@@ -16,12 +16,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Inject Supabase config
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          echo "export const SUPABASE_URL = \"$SUPABASE_URL\";" > app/js/config.js
-          echo "export const SUPABASE_ANON_KEY = \"$SUPABASE_ANON_KEY\";" >> app/js/config.js
+          echo "export const SUPABASE_URL = '${{ secrets.SUPABASE_URL }}';" > app/js/config.js
+          echo "export const SUPABASE_ANON_KEY = '${{ secrets.SUPABASE_ANON_KEY }}';" >> app/js/config.js
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
