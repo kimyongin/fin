@@ -16,9 +16,10 @@ form.addEventListener('submit', async (e) => {
     const email = emailInput.value.trim()
     if (!email) return
 
+    const base = location.origin + location.pathname.replace(/\/[^/]*$/, '')
     const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${location.origin}/auth/callback.html` },
+        options: { emailRedirectTo: `${base}/auth/callback.html` },
     })
 
     if (error) {
