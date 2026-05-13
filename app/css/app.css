@@ -200,6 +200,21 @@ input:focus, select:focus, textarea:focus {
     border-color: var(--accent);
 }
 
+/* ── Divider ── */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 12px;
+}
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
 /* ── Utilities ── */
 .muted { color: var(--muted); }
 .hidden { display: none !important; }
