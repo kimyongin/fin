@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자산 — 포트폴리오</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+    <div class="app-shell">
+        <nav class="lnb">
+            <a href="index.html" class="active">자산</a>
+            <a href="analysis.html">분석</a>
+            <a href="data.html">자료</a>
+            <div class="spacer"></div>
+            <button id="logout-btn">로그아웃</button>
+        </nav>
+
+        <div class="page-content">
+            <div class="hero">
+                <div class="hero-value" id="total-value">—</div>
+                <div class="hero-meta" id="hero-meta">로딩 중...</div>
+            </div>
+
+            <div class="tab-bar">
+                <button class="active" data-tab="accounts">계좌</button>
+                <button data-tab="positions">종목</button>
+                <button data-tab="transactions">거래</button>
+            </div>
+
+            <div id="tab-accounts" class="tab-content"></div>
+            <div id="tab-positions" class="tab-content hidden"></div>
+            <div id="tab-transactions" class="tab-content hidden"></div>
+        </div>
+    </div>
+    <script type="module" src="js/assets.js"></script>
+</body>
+</html>

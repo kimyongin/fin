@@ -70,6 +70,49 @@ _Avoid_: holdings(수량·평단만 있는 원본 테이블과 구분)
 > **Dev:** "거래를 추가했는데 holdings 테이블을 직접 업데이트해야 하나요?"
 > **Domain expert:** "아니요. `transactions`에 insert 하나만 하면 트리거가 Holding을 자동으로 재계산합니다. holdings를 직접 건드리는 건 Initial Load 때만요."
 
+## UI 패턴
+
+### 시각 토큰
+
+```
+--bg:        #0a0b0d
+--surface:   #14151a
+--surface-2: #1c1d23
+--border:    rgba(255,255,255,0.08)
+--border-2:  rgba(255,255,255,0.16)
+--text:      #ececef
+--muted:     #8a8e96
+--accent:    #ff8a00   /* primary CTA + 첫 번째 차트 segment에만 */
+--success:   #22c55e   /* 손익+, sync, accepted */
+--warning:   #f59e0b   /* manual, pending, 사이클 주의 */
+--danger:    #ef4444   /* 손익−, failed, rejected */
+--info:      #60a5fa
+```
+
+- 채색 배지는 `success / warning / danger / neutral` 4종 + outline 칩만 사용한다.
+- 차트 segment 팔레트(6단): `accent → info → success → #a78bfa → warning → #94a3b8`
+- 그림자는 모바일 drawer 슬라이드와 FAB에만 사용한다.
+- 카드 라운드 10px, drawer 0(모바일 풀스크린).
+
+### Drawer 패턴
+
+모든 편집·생성·삭제·확인은 단일 우측 drawer 안에서 처리한다. 별도 중앙 dialog나 토스트를 사용하지 않는다.
+
+| 모드 | 필드 | sticky footer |
+|---|---|---|
+| `view` | 모두 disabled | `편집` (primary), `동기화` (ghost, sync 가능 drawer만) |
+| `edit` | 입력 가능 | `삭제` (danger), `저장` (primary), `취소` (ghost) |
+| `create` | 입력 가능, 빈 값 | `저장` (primary), `취소` (ghost) |
+| `delete-confirm` | 직전 유지 | inline 확인 메시지 + `삭제` (danger), `취소` (ghost) |
+
+- 데스크탑(≥901px): 우측 400px 고정 패널, 항상 표시
+- 모바일(≤900px): 풀스크린 overlay, 위→아래 슬라이드
+- 생성: FAB → draft 카드 삽입 → create-mode drawer 즉시 오픈
+
+### 로그성 데이터 패턴
+
+Transaction, 가격처럼 무한히 늘어나는 데이터는 최근 N건 + 그룹 헤더 + 더 보기로 탐색한다. 자동 무한 스크롤 사용 안 함.
+
 ## Flagged ambiguities
 
 - "instrument"가 주식/ETF와 환율 코드를 모두 가리키는 데 혼용됨 — 해소: Instrument(투자 종목)와 FX Rate(환율 코드)는 별도 개념이며 DB만 공유한다.

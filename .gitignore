@@ -1,0 +1,14 @@
+# 로컬 Supabase config (GitHub Actions가 secrets에서 자동 생성)
+app/js/config.js
+
+# 환경 변수
+.env
+*.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

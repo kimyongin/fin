@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>로그인 처리 중...</title>
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body class="login-page">
+    <p class="muted">로그인 처리 중...</p>
+    <script type="module">
+        import { supabase } from '../js/supabase.js'
+
+        // Supabase가 URL 해시의 토큰을 감지해 세션을 자동 설정함
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (session) {
+            window.location.href = '../index.html'
+        } else {
+            // 토큰이 URL 해시에 있는 경우 onAuthStateChange로 처리
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (session) window.location.href = '../index.html'
+            })
+        }
+    </script>
+</body>
+</html>
