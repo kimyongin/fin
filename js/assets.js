@@ -136,6 +136,7 @@ async function loadAccounts() {
         const instrCount = countByAccount[acc.id] ?? 0
         const li = document.createElement('li')
         li.className = 'card-item'
+        li.dataset.id = String(acc.id)
         li.innerHTML = `
             <div class="card-main">
                 <div class="card-title">${acc.name}</div>
@@ -191,6 +192,17 @@ async function renderAccountDrawer(drawer, id, mode = id ? 'view' : 'create') {
     }
 
     const ro = mode === 'view'
+    const isActive = acc?.is_active !== false
+    const activeToggle = ro
+        ? `<div class="toggle-group">
+            <span class="toggle-opt${isActive ? ' active' : ''}">활성</span>
+            <span class="toggle-opt${!isActive ? ' active' : ''}">비활성</span>
+           </div>`
+        : `<div class="toggle-group" id="f-active-toggle">
+            <button type="button" class="toggle-opt${isActive ? ' active' : ''}">활성</button>
+            <button type="button" class="toggle-opt${!isActive ? ' active' : ''}">비활성</button>
+           </div>`
+
     body.innerHTML = `
         <div class="form-group"><label>계좌명</label>
             <input id="f-name" type="text" value="${acc?.name ?? ''}" ${ro ? 'disabled' : ''}></div>
@@ -198,10 +210,16 @@ async function renderAccountDrawer(drawer, id, mode = id ? 'view' : 'create') {
             <input id="f-broker" type="text" value="${acc?.broker ?? ''}" ${ro ? 'disabled' : ''}></div>
         <div class="form-group"><label>메모</label>
             <textarea id="f-note" rows="2" ${ro ? 'disabled' : ''}>${acc?.note ?? ''}</textarea></div>
-        <div class="form-group" style="flex-direction:row;align-items:center;gap:8px">
-            <input id="f-active" type="checkbox" ${acc?.is_active !== false ? 'checked' : ''} ${ro ? 'disabled' : ''} style="width:auto">
-            <label for="f-active" style="margin:0;font-size:14px">활성</label>
-        </div>`
+        <div class="form-group"><label>활성 상태</label>${activeToggle}</div>`
+
+    if (!ro) {
+        body.querySelectorAll('#f-active-toggle .toggle-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                body.querySelectorAll('#f-active-toggle .toggle-opt').forEach(b => b.classList.remove('active'))
+                btn.classList.add('active')
+            })
+        })
+    }
 
     if (ro) {
         footer.innerHTML = `<div class="footer-row"><button class="btn-primary flex-1" id="d-edit">편집</button></div>`
@@ -223,7 +241,7 @@ async function renderAccountDrawer(drawer, id, mode = id ? 'view' : 'create') {
                 name: body.querySelector('#f-name').value.trim(),
                 broker: body.querySelector('#f-broker').value.trim() || null,
                 note: body.querySelector('#f-note').value.trim() || null,
-                is_active: body.querySelector('#f-active').checked,
+                is_active: body.querySelector('#f-active-toggle .toggle-opt.active')?.textContent.trim() === '활성',
             }
             const { error } = mode === 'create'
                 ? await supabase.from('accounts').insert(payload)
@@ -264,8 +282,6 @@ async function loadTransactions(append = false) {
         .order('created_at', { ascending: false })
         .range(txOffset, txOffset + TX_PAGE - 1)
 
-    if (txFilters.account_id) query = query.eq('account_id', txFilters.account_id)
-    if (txFilters.ticker) query = query.eq('ticker', txFilters.ticker)
     if (txFilters.trade_type) query = query.eq('trade_type', txFilters.trade_type)
     if (txFilters.has_pnl) query = query.not('realized_pnl_krw', 'is', null)
     if (txFilters.period) {
@@ -345,13 +361,6 @@ function renderFilterBar() {
         `<button class="chip chip-${t.color}${txFilters.tag_id === t.id ? ' selected' : ''}" data-fk="tag_id" data-fv="${t.id}">${t.name}</button>`
     ).join('')
 
-    const accountOpts = ['<option value="">전체 계좌</option>',
-        ...allAccounts.map(a => `<option value="${a.id}"${txFilters.account_id == a.id ? ' selected' : ''}>${a.name}</option>`)
-    ].join('')
-    const tickerOpts = ['<option value="">전체 종목</option>',
-        ...allInstruments.map(i => `<option value="${i.ticker}"${txFilters.ticker === i.ticker ? ' selected' : ''}>${i.display_name}</option>`)
-    ].join('')
-
     bar.innerHTML = `
         <div class="filter-chips">
             <button class="chip chip-neutral${txFilters.trade_type === 'BUY' ? ' selected' : ''}" data-fk="trade_type" data-fv="BUY">BUY</button>
@@ -361,10 +370,6 @@ function renderFilterBar() {
             <button class="chip chip-neutral${txFilters.period === '6m' ? ' selected' : ''}" data-fk="period" data-fv="6m">6개월</button>
             <button class="chip chip-neutral${txFilters.has_pnl ? ' selected' : ''}" data-fk="has_pnl" data-fv="1">실현손익</button>
             ${tagChips}
-        </div>
-        <div class="filter-extra">
-            <select id="f-flt-account">${accountOpts}</select>
-            <select id="f-flt-ticker">${tickerOpts}</select>
         </div>`
 
     bar.querySelectorAll('.chip[data-fk]').forEach(btn => {
@@ -380,14 +385,6 @@ function renderFilterBar() {
             }
             loadTransactions()
         })
-    })
-    bar.querySelector('#f-flt-account')?.addEventListener('change', e => {
-        txFilters.account_id = e.target.value ? Number(e.target.value) : null
-        loadTransactions()
-    })
-    bar.querySelector('#f-flt-ticker')?.addEventListener('change', e => {
-        txFilters.ticker = e.target.value || null
-        loadTransactions()
     })
 }
 
@@ -424,6 +421,7 @@ function renderTxCards(txs, append) {
 
         const li = document.createElement('li')
         li.className = 'card-item'
+        li.dataset.id = String(tx.id)
         li.innerHTML = `
             <div class="card-main" style="width:100%">
                 <div style="display:flex;justify-content:space-between;align-items:baseline">
@@ -623,6 +621,7 @@ function renderPositionsView() {
                 <div class="card-sub">${pos.quantity} · ${pos.avg_price?.toLocaleString()}</div>
             </div>`
         const posIdx = allPositions.indexOf(pos)
+        li.dataset.posIdx = String(posIdx)
         li.addEventListener('click', () => openPositionDrawer(posIdx))
         list.appendChild(li)
     }
@@ -729,6 +728,7 @@ async function openPositionDrawer(idx) {
     const drawer = getOrCreateDrawer()
     document.querySelector('.drawer-overlay').classList.add('open')
     drawer.classList.add('open')
+    highlightCard('tab-positions', 'data-pos-idx', idx)
     await renderPositionDrawer(drawer, idx)
 }
 
@@ -1072,17 +1072,22 @@ function closeDrawer() {
     document.querySelector('.drawer-overlay')?.classList.remove('open')
 }
 
+function highlightCard(tabId, attr, val) {
+    document.querySelectorAll(`#${tabId} .card-item`).forEach(el => el.classList.remove('active'))
+    if (val != null) document.querySelector(`#${tabId} .card-item[${attr}="${val}"]`)?.classList.add('active')
+}
+
 async function autoSelectFirst() {
-    const drawer = getOrCreateDrawer()
-    drawer.classList.add('open')
-    document.querySelector('.drawer-overlay').classList.add('open')
     if (activeTab === 'accounts' && allAccounts.length) {
-        await renderAccountDrawer(drawer, allAccounts[0].id)
+        await openDrawer('account', allAccounts[0].id)
     } else if (activeTab === 'positions' && allPositions.length) {
-        await renderPositionDrawer(drawer, 0)
+        await openPositionDrawer(0)
     } else if (activeTab === 'transactions' && firstTxId) {
-        await renderTransactionDrawer(drawer, firstTxId)
+        await openDrawer('transaction', firstTxId)
     } else {
+        const drawer = getOrCreateDrawer()
+        drawer.classList.add('open')
+        document.querySelector('.drawer-overlay').classList.add('open')
         drawer.querySelector('.drawer-body').innerHTML = '<p class="empty-state">항목을 선택하세요.</p>'
         drawer.querySelector('.drawer-footer').innerHTML = ''
         resetDrawerHeader(drawer)
@@ -1094,8 +1099,13 @@ async function openDrawer(type, id) {
     const drawer = getOrCreateDrawer()
     document.querySelector('.drawer-overlay').classList.add('open')
     drawer.classList.add('open')
-    if (type === 'account') await renderAccountDrawer(drawer, id)
-    else if (type === 'transaction') await renderTransactionDrawer(drawer, id)
+    if (type === 'account') {
+        highlightCard('tab-accounts', 'data-id', id)
+        await renderAccountDrawer(drawer, id)
+    } else if (type === 'transaction') {
+        highlightCard('tab-transactions', 'data-id', id)
+        await renderTransactionDrawer(drawer, id)
+    }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────
