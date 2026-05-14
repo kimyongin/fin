@@ -408,3 +408,44 @@ input:focus, select:focus, textarea:focus {
 .message { font-size: 13px; padding: 8px 0; }
 .message.success { color: var(--success); }
 .message.error { color: var(--danger); }
+
+/* ── Composition chart ── */
+.composition {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px 16px;
+    margin-bottom: 14px;
+}
+.composition-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.composition-head h2 { margin: 0; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.composition-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.comp-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+.comp-bar > span { display: block; height: 100%; cursor: pointer; transition: filter 0.15s; box-shadow: inset -1px 0 0 var(--surface); }
+.comp-bar > span:last-child { box-shadow: none; }
+.comp-bar > span:hover { filter: brightness(1.15); }
+.comp-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 4px 16px; }
+.leg { display: flex; align-items: center; gap: 8px; font-size: 12px; background: transparent; border: 0; padding: 5px 0; cursor: pointer; text-align: left; color: var(--muted); min-width: 0; width: 100%; }
+.leg:hover { color: var(--text); }
+.leg .dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.leg .name { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.leg .pct { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+.leg .amt { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; flex: none; }
+
+/* ── Timeline chart ── */
+.chart { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 12px 10px; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart .grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
+.chart .area { fill: rgba(255,138,0,0.10); stroke: none; }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.chart .buy { fill: var(--success); stroke: var(--surface-2); stroke-width: 1.5; }
+.chart .sell { fill: var(--danger); stroke: var(--surface-2); stroke-width: 1.5; }
+.chart .ytx { fill: var(--muted); font-size: 9px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.chart-axis { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+.chart-axis .cur { color: var(--text); font-weight: 600; }
+.chart-legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+.chart-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend .m { display: inline-block; }
+.chart-legend .m.buy { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+.chart-legend .m.sell { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+.chart-legend .m.line { width: 14px; height: 2px; background: var(--accent); }

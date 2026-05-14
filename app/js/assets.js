@@ -20,6 +20,7 @@ let txFilters = {}
 const TX_PAGE = 30
 
 const CHART_PALETTE = ['var(--accent)', 'var(--info)', 'var(--success)', '#a78bfa', 'var(--warning)', '#64748b']
+const fmtM = v => `₩${((v || 0) / 1_000_000).toFixed(1)}M`
 
 // ── Tab switching ─────────────────────────────────────────────────────
 document.querySelectorAll('.tab-bar button').forEach(btn => {
@@ -537,21 +538,35 @@ function renderPositionsView() {
             return { pos, w: Number(w), color, posIdx }
         })
 
+        const headingTitle = posTagFilters.size === 0 ? '전체 자산 구성' : '선택 태그 자산 구성'
+        const metaText = posTagFilters.size === 0
+            ? `태그 미선택 · ${filteredPositions.length}종목`
+            : `${[...posTagFilters].map(id => allTags.find(t => t.id === id)?.name).filter(Boolean).join(' + ')} · ${filteredPositions.length}종목`
+
         const barSegments = segments.map(({ pos, w, color, posIdx }) =>
-            `<div style="width:${w}%;height:10px;background:${color};cursor:pointer" title="${pos.display_name} ${w}%" data-pos-idx="${posIdx}"></div>`
+            `<span style="width:${w}%;background:${color}" title="${pos.display_name} ${w}%" data-pos-idx="${posIdx}"></span>`
         ).join('')
 
         const legendItems = segments.map(({ pos, w, color, posIdx }) =>
-            `<div style="display:flex;align-items:center;gap:4px;cursor:pointer" data-pos-idx="${posIdx}">
-                <div style="width:8px;height:8px;border-radius:2px;background:${color};flex-shrink:0"></div>
-                <span style="font-size:11px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pos.display_name}</span>
-                <span style="font-size:11px;color:var(--muted)">${w}%</span>
-            </div>`
+            `<button class="leg" data-pos-idx="${posIdx}">
+                <span class="dot" style="background:${color}"></span>
+                <span class="name">${pos.display_name}</span>
+                <span class="pct">${w}%</span>
+                <span class="amt">${fmtM(pos.market_value_krw)}</span>
+            </button>`
         ).join('')
 
         chartArea.innerHTML = `
-            <div style="display:flex;border-radius:4px;overflow:hidden;margin-bottom:8px">${barSegments}</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px 12px">${legendItems}</div>`
+            <div class="composition">
+                <div class="composition-head">
+                    <div>
+                        <h2>${headingTitle}</h2>
+                        <p>${metaText}</p>
+                    </div>
+                </div>
+                <div class="comp-bar">${barSegments}</div>
+                <div class="comp-legend">${legendItems}</div>
+            </div>`
 
         chartArea.querySelectorAll('[data-pos-idx]').forEach(el => {
             el.addEventListener('click', () => openPositionDrawer(Number(el.dataset.posIdx)))
@@ -638,48 +653,34 @@ async function renderPositionChart(container, pos, range) {
         return
     }
 
-    const W = 340
-    const H = 110
-    const padL = 38, padR = 6, padT = 6, padB = 4
-    const cW = W - padL - padR
-    const cH = H - padT - padB
+    const W = 400, H = 140
+    const n = prices.length
+    const currency = pos.currency ?? 'KRW'
 
     const vals = prices.map(p => p.close_price)
     const minP = Math.min(...vals)
     const maxP = Math.max(...vals)
-    const priceRange = maxP - minP || maxP * 0.01 || 1
+    const priceRange = Math.max(1, maxP - minP)
 
-    const n = prices.length
-    const xFn = i => padL + (n > 1 ? i / (n - 1) : 0.5) * cW
-    const yFn = p => padT + (1 - (p - minP) / priceRange) * cH
+    const xFn = i => 20 + (n > 1 ? i * 366 / (n - 1) : 183)
+    const yFn = v => 115 - ((v - minP) / priceRange) * 82
 
-    const pts = prices.map((p, i) => [xFn(i), yFn(p.close_price)])
-    const polyline = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-    const areaPath = `M${xFn(0).toFixed(1)},${(padT + cH).toFixed(1)} ` +
-        pts.map(([x, y]) => `L${x.toFixed(1)},${y.toFixed(1)}`).join(' ') +
-        ` L${xFn(n - 1).toFixed(1)},${(padT + cH).toFixed(1)} Z`
+    const pts = prices.map((p, i) => `${xFn(i).toFixed(1)},${yFn(p.close_price).toFixed(1)}`)
 
-    const gradId = `ag_${pos.ticker.replace(/[^a-z0-9]/gi, '_')}`
-
-    // Dotted grid at 25/50/75%
-    const currency = pos.currency ?? 'KRW'
     const fmtP = p => {
         if (currency === 'KRW') return p >= 10000 ? `${(p / 1000).toFixed(0)}K` : p.toFixed(0)
-        return p >= 1000 ? `${(p / 1000).toFixed(1)}K` : p.toFixed(2)
+        return p >= 1000 ? `$${(p / 1000).toFixed(1)}K` : `$${p.toFixed(2)}`
     }
-    const gridLines = [0.25, 0.5, 0.75].map(t => {
-        const y = (padT + t * cH).toFixed(1)
-        const label = fmtP(maxP - t * priceRange)
-        return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(255,255,255,0.07)" stroke-dasharray="3,3"/>
-            <text x="${(padL - 2).toFixed(0)}" y="${(Number(y) + 3.5).toFixed(0)}" text-anchor="end" font-size="9" fill="var(--muted)">${label}</text>`
-    }).join('')
 
-    // Hi/lo axis labels
+    const gridLines = [35, 75, 115].map(y =>
+        `<line class="grid" x1="0" y1="${y}" x2="${W}" y2="${y}"/>`
+    ).join('')
+
     const axisLabels = `
-        <text x="${(padL - 2).toFixed(0)}" y="${(padT + 9).toFixed(0)}" text-anchor="end" font-size="9" fill="var(--muted)">${fmtP(maxP)}</text>
-        <text x="${(padL - 2).toFixed(0)}" y="${(padT + cH).toFixed(0)}" text-anchor="end" font-size="9" fill="var(--muted)">${fmtP(minP)}</text>`
+        <text class="ytx" x="395" y="32" text-anchor="end">${fmtP(maxP)}</text>
+        <text class="ytx" x="395" y="118" text-anchor="end">${fmtP(minP)}</text>`
 
-    // BUY/SELL markers — place at price point when date matches
+    // BUY/SELL circles at price coordinates
     const dateIndexMap = {}
     prices.forEach((p, i) => { dateIndexMap[p.price_date] = i })
     const txInRange = (txs ?? []).filter(tx => !since || tx.trade_date >= since)
@@ -687,57 +688,35 @@ async function renderPositionChart(container, pos, range) {
     const markers = txInRange.map(tx => {
         const idx = dateIndexMap[tx.trade_date]
         if (idx == null) return ''
-        const x = xFn(idx).toFixed(1)
-        const y = yFn(prices[idx].close_price)
-        const isBuy = tx.trade_type === 'BUY'
-        const color = isBuy ? 'var(--success)' : 'var(--danger)'
-        // Triangle pointing up (BUY) or down (SELL)
-        const markerY = isBuy ? (y + 6).toFixed(1) : (y - 6).toFixed(1)
-        const tooltip = `${tx.trade_date} ${tx.trade_type} ${tx.quantity}주 @${tx.price}`
-        const path = isBuy
-            ? `M${x},${markerY} l-4,7 l8,0 Z`
-            : `M${x},${markerY} l-4,-7 l8,0 Z`
-        return `<path d="${path}" fill="${color}" opacity="0.9"><title>${tooltip}</title></path>`
+        const cx = xFn(idx).toFixed(1)
+        const cy = yFn(prices[idx].close_price).toFixed(1)
+        const cls = tx.trade_type === 'BUY' ? 'buy' : 'sell'
+        return `<circle class="${cls}" cx="${cx}" cy="${cy}" r="5"><title>${tx.trade_date} ${tx.trade_type} ${tx.quantity}주 @${tx.price}</title></circle>`
     }).join('')
 
-    // Hover hit areas (invisible rects per data point for tooltip)
-    const hitAreas = pts.map(([x, y], i) => {
-        const p = prices[i]
-        const label = `${p.price_date}: ${fmtP(p.close_price)}${currency !== 'KRW' ? ' ' + currency : ''}`
-        const rx = Math.max(padL, x - cW / (2 * n))
-        const rw = cW / n
-        return `<rect x="${rx.toFixed(1)}" y="${padT}" width="${rw.toFixed(1)}" height="${cH}" fill="transparent">
-            <title>${label}</title>
-        </rect>`
-    }).join('')
-
-    // Change label
-    const firstVal = vals[0], lastVal = vals[n - 1]
-    const chg = firstVal ? ((lastVal - firstVal) / firstVal * 100).toFixed(1) : null
-    const chgClass = chg != null ? (Number(chg) >= 0 ? 'text-success' : 'text-danger') : ''
-    const chgText = chg != null ? `${Number(chg) >= 0 ? '+' : ''}${chg}%` : ''
-    const dateRange = `${prices[0].price_date.slice(5)} ~ ${prices[n-1].price_date.slice(5)}`
-    const currencyNote = currency !== 'KRW' ? `<span style="color:var(--muted);margin-left:4px">${currency}</span>` : ''
+    const areaPath = `M${pts.join(' L')} L${xFn(n - 1).toFixed(1)},130 L20,130 Z`
+    const linePath = `M${pts.join(' L')}`
 
     container.innerHTML = `
-        <div style="display:flex;align-items:baseline;justify-content:space-between;font-size:11px;margin-bottom:4px">
-            <span class="${chgClass}" style="font-weight:600">${chgText}${currencyNote}</span>
-            <span style="color:var(--muted)">${dateRange}</span>
-        </div>
-        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block">
-            <defs>
-                <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.25"/>
-                    <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.0"/>
-                </linearGradient>
-            </defs>
-            ${gridLines}
-            ${axisLabels}
-            <path d="${areaPath}" fill="url(#${gradId})"/>
-            <polyline points="${polyline}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
-            ${markers}
-            ${hitAreas}
-        </svg>`
+        <div class="chart">
+            <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+                ${gridLines}
+                <path class="area" d="${areaPath}"/>
+                <path class="line" d="${linePath}"/>
+                ${axisLabels}
+                ${markers}
+            </svg>
+            <div class="chart-axis">
+                <span>${prices[0].price_date}</span>
+                <span class="cur">최근 ${fmtP(vals[n - 1])}</span>
+                <span>${prices[n - 1].price_date}</span>
+            </div>
+            <div class="chart-legend">
+                <span><span class="m buy"></span>BUY</span>
+                <span><span class="m sell"></span>SELL</span>
+                <span><span class="m line"></span>종가</span>
+            </div>
+        </div>`
 }
 
 // ── Position Drawer ───────────────────────────────────────────────────
@@ -819,7 +798,7 @@ async function renderPositionDrawer(drawer, idx) {
 
         <div class="chart-section">
             <div class="chart-header">
-                <span style="font-size:12px;font-weight:600;color:var(--muted)">가격 추이</span>
+                <span style="font-size:12px;font-weight:600;color:var(--muted)">${pos.currency === 'USD' ? '매매 타임라인 (USD)' : '매매 타임라인'}</span>
                 <div class="seg-control" id="pos-range-ctrl">
                     <button data-range="1M">1M</button>
                     <button data-range="3M">3M</button>
