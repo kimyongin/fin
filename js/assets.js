@@ -163,6 +163,7 @@ function resetDrawerHeader(drawer) {
 // ── Account Drawer ────────────────────────────────────────────────────
 async function renderAccountDrawer(drawer, id, mode = id ? 'view' : 'create') {
     resetDrawerHeader(drawer)
+    drawer.querySelector('.drawer-body').removeAttribute('style')
     let acc = null
     if (id) {
         const { data } = await supabase.from('accounts').select().eq('id', id).single()
@@ -724,6 +725,7 @@ async function renderPositionDrawer(drawer, idx) {
     drawer.querySelector('#d-next')?.addEventListener('click', () => { if (idx < n-1) renderPositionDrawer(drawer, idx+1) })
 
     const body = drawer.querySelector('.drawer-body')
+    body.style.cssText = 'padding:0;display:flex;flex-direction:column;overflow:hidden'
     drawer.querySelector('.drawer-footer').innerHTML = ''
 
     // Fetch recent transactions
@@ -755,36 +757,38 @@ async function renderPositionDrawer(drawer, idx) {
     const txHasMoreFeed = (txs?.length ?? 0) === 30
 
     body.innerHTML = `
-        <div class="stat-row">
-            <div class="stat-item">
-                <div class="stat-label">평가금액</div>
-                <div class="stat-value">${pos.market_value_krw ? `₩${Math.round(pos.market_value_krw).toLocaleString()}` : '—'}</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">미실현 손익</div>
-                <div class="stat-value ${pnlKrw != null ? (pnlKrw >= 0 ? 'text-success' : 'text-danger') : ''}">${
-                    pnlKrw != null ? `${pnlKrw >= 0 ? '+' : ''}₩${Math.round(pnlKrw).toLocaleString()}` : '—'}</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">비중</div>
-                <div class="stat-value">${weight}%</div>
-            </div>
-        </div>
-
-        <div class="chart-section">
-            <div class="chart-header">
-                <span style="font-size:12px;font-weight:600;color:var(--muted)">${pos.currency === 'USD' ? '매매 타임라인 (USD)' : '매매 타임라인'}</span>
-                <div class="seg-control" id="pos-range-ctrl">
-                    <button data-range="1M">1M</button>
-                    <button data-range="3M">3M</button>
-                    <button data-range="ALL" class="active">ALL</button>
+        <div class="pos-upper">
+            <div class="stat-row">
+                <div class="stat-item">
+                    <div class="stat-label">평가금액</div>
+                    <div class="stat-value">${pos.market_value_krw ? `₩${Math.round(pos.market_value_krw).toLocaleString()}` : '—'}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">미실현 손익</div>
+                    <div class="stat-value ${pnlKrw != null ? (pnlKrw >= 0 ? 'text-success' : 'text-danger') : ''}">${
+                        pnlKrw != null ? `${pnlKrw >= 0 ? '+' : ''}₩${Math.round(pnlKrw).toLocaleString()}` : '—'}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">비중</div>
+                    <div class="stat-value">${weight}%</div>
                 </div>
             </div>
-            <div id="pos-chart-container"></div>
+
+            <div class="chart-section">
+                <div class="chart-header">
+                    <span style="font-size:12px;font-weight:600;color:var(--muted)">${pos.currency === 'USD' ? '매매 타임라인 (USD)' : '매매 타임라인'}</span>
+                    <div class="seg-control" id="pos-range-ctrl">
+                        <button data-range="1M">1M</button>
+                        <button data-range="3M">3M</button>
+                        <button data-range="ALL" class="active">ALL</button>
+                    </div>
+                </div>
+                <div id="pos-chart-container"></div>
+            </div>
         </div>
 
-        <div style="margin-top:16px">
-            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">거래 기록</div>
+        <div class="pos-tx-section">
+            <div class="pos-tx-label">거래 기록</div>
             <div id="tx-feed">${txFeedHtml || '<p class="empty-state" style="padding:8px 0">거래 내역 없음</p>'}</div>
             ${txHasMoreFeed ? `<button class="load-more-btn" id="d-more-tx" style="font-size:12px" data-offset="30">이전 거래 더 보기</button>` : ''}
         </div>`
@@ -839,6 +843,7 @@ async function renderPositionDrawer(drawer, idx) {
 // ── Transaction Drawer ────────────────────────────────────────────────
 async function renderTransactionDrawer(drawer, id, mode = id ? 'view' : 'create') {
     resetDrawerHeader(drawer)
+    drawer.querySelector('.drawer-body').removeAttribute('style')
     let tx = null
     if (id) {
         const { data } = await supabase
