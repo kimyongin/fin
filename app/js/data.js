@@ -343,10 +343,11 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
         ${inst ? `
         <div class="chart-section">
             <div class="chart-header">
-                <span>가격 이력</span>
+                <span>가격 이력 <span id="res-label" style="font-size:11px;color:var(--muted)"></span></span>
                 <div class="seg-control">
+                    <button data-range="1W">1W</button>
                     <button data-range="1M" class="active">1M</button>
-                    <button data-range="1D">1D</button>
+                    <button data-range="3M">3M</button>
                 </div>
             </div>
             <div id="chart-container"></div>
@@ -526,9 +527,34 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
     }
 }
 
+// ── Chart helpers ─────────────────────────────────────────────────────
+function weekKey(dateStr) {
+    const d = new Date(dateStr)
+    const day = d.getDay() || 7
+    d.setDate(d.getDate() - day + 1)
+    return d.toISOString().slice(0, 10)
+}
+
+function aggregatePrices(prices, resolution) {
+    if (resolution === 'daily') return prices
+    const grouped = new Map()
+    for (const p of prices) {
+        const key = resolution === 'weekly' ? weekKey(p.price_date) : p.price_date.slice(0, 7)
+        grouped.set(key, p)
+    }
+    return [...grouped.values()]
+}
+
+function getResolution(range) {
+    if (range === '1W' || range === '1M') return 'daily'
+    if (range === '3M') return 'weekly'
+    return 'monthly'
+}
+
 // ── Chart ─────────────────────────────────────────────────────────────
 async function renderChart(ticker, range) {
-    const days = range === '1M' ? 30 : 7
+    const dayMap = { '1W': 7, '1M': 30, '3M': 90 }
+    const days = dayMap[range] ?? 30
     const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
 
     const { data: prices } = await supabase
@@ -552,19 +578,24 @@ async function renderChart(ticker, range) {
         return
     }
 
+    const resolution = getResolution(range)
+    const displayPrices = aggregatePrices(chartPrices, resolution)
+    const resLabelEl = document.getElementById('res-label')
+    if (resLabelEl) resLabelEl.textContent = resolution === 'monthly' ? '(월봉)' : resolution === 'weekly' ? '(주봉)' : '(일봉)'
+
     const W = 300, H = 72, P = 6
-    const vals = chartPrices.map(p => p.close_price)
+    const vals = displayPrices.map(p => p.close_price)
     const min = Math.min(...vals), max = Math.max(...vals)
     const span = max - min || 1
-    const n = chartPrices.length
+    const n = displayPrices.length
 
     const cx = i => P + (i / Math.max(n - 1, 1)) * (W - P * 2)
     const cy = v => H - P - ((v - min) / span) * (H - P * 2)
 
-    const linePts = chartPrices.map((p, i) => `${cx(i)},${cy(p.close_price)}`).join(' ')
+    const linePts = displayPrices.map((p, i) => `${cx(i)},${cy(p.close_price)}`).join(' ')
     const areaPath = [
         `M ${cx(0)},${H - P}`,
-        ...chartPrices.map((p, i) => `L ${cx(i)},${cy(p.close_price)}`),
+        ...displayPrices.map((p, i) => `L ${cx(i)},${cy(p.close_price)}`),
         `L ${cx(n - 1)},${H - P}`, 'Z'
     ].join(' ')
 

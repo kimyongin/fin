@@ -598,6 +598,30 @@ function renderPositionsView() {
     }
 }
 
+// ── Chart helpers ─────────────────────────────────────────────────────
+function weekKey(dateStr) {
+    const d = new Date(dateStr)
+    const day = d.getDay() || 7
+    d.setDate(d.getDate() - day + 1)
+    return d.toISOString().slice(0, 10)
+}
+
+function aggregatePrices(prices, resolution) {
+    if (resolution === 'daily') return prices
+    const grouped = new Map()
+    for (const p of prices) {
+        const key = resolution === 'weekly' ? weekKey(p.price_date) : p.price_date.slice(0, 7)
+        grouped.set(key, p)
+    }
+    return [...grouped.values()]
+}
+
+function getResolution(range) {
+    if (range === '1M') return 'daily'
+    if (range === '3M' || range === '6M') return 'weekly'
+    return 'monthly' // 1Y, ALL
+}
+
 // ── Position price chart ──────────────────────────────────────────────
 async function renderPositionChart(container, pos, range) {
     container.innerHTML = '<p class="empty-state" style="padding:8px 0;font-size:12px">로딩 중...</p>'
@@ -606,6 +630,8 @@ async function renderPositionChart(container, pos, range) {
     let since = null
     if (range === '1M') since = new Date(now - 30 * 86400000).toISOString().slice(0, 10)
     else if (range === '3M') since = new Date(now - 90 * 86400000).toISOString().slice(0, 10)
+    else if (range === '6M') since = new Date(now - 180 * 86400000).toISOString().slice(0, 10)
+    else if (range === '1Y') since = new Date(now - 365 * 86400000).toISOString().slice(0, 10)
 
     let priceQuery = supabase
         .from('holding_prices_daily')
@@ -629,11 +655,14 @@ async function renderPositionChart(container, pos, range) {
         return
     }
 
+    const resolution = getResolution(range)
+    const displayPrices = aggregatePrices(prices, resolution)
+
     const W = 400, H = 140
-    const n = prices.length
+    const n = displayPrices.length
     const currency = pos.currency ?? 'KRW'
 
-    const vals = prices.map(p => p.close_price)
+    const vals = displayPrices.map(p => p.close_price)
     const minP = Math.min(...vals)
     const maxP = Math.max(...vals)
     const priceRange = Math.max(1, maxP - minP)
@@ -641,7 +670,7 @@ async function renderPositionChart(container, pos, range) {
     const xFn = i => 20 + (n > 1 ? i * 366 / (n - 1) : 183)
     const yFn = v => 115 - ((v - minP) / priceRange) * 82
 
-    const pts = prices.map((p, i) => `${xFn(i).toFixed(1)},${yFn(p.close_price).toFixed(1)}`)
+    const pts = displayPrices.map((p, i) => `${xFn(i).toFixed(1)},${yFn(p.close_price).toFixed(1)}`)
 
     const fmtP = p => {
         if (currency === 'KRW') return p >= 10000 ? `${(p / 1000).toFixed(0)}K` : p.toFixed(0)
@@ -658,26 +687,27 @@ async function renderPositionChart(container, pos, range) {
 
     // BUY/SELL circles at price coordinates
     const dateIndexMap = {}
-    prices.forEach((p, i) => { dateIndexMap[p.price_date] = i })
+    displayPrices.forEach((p, i) => { dateIndexMap[p.price_date] = i })
     const txInRange = (txs ?? []).filter(tx => !since || tx.trade_date >= since)
+    const toleranceMs = resolution === 'monthly' ? 45 * 86400000 : resolution === 'weekly' ? 14 * 86400000 : 7 * 86400000
 
     const findNearestPriceIdx = (date) => {
         const exact = dateIndexMap[date]
         if (exact != null) return exact
         const txTime = new Date(date).getTime()
         let best = null, minDiff = Infinity
-        for (let i = 0; i < prices.length; i++) {
-            const diff = Math.abs(new Date(prices[i].price_date).getTime() - txTime)
+        for (let i = 0; i < displayPrices.length; i++) {
+            const diff = Math.abs(new Date(displayPrices[i].price_date).getTime() - txTime)
             if (diff < minDiff) { minDiff = diff; best = i }
         }
-        return minDiff <= 7 * 86400000 ? best : null
+        return minDiff <= toleranceMs ? best : null
     }
 
     const markers = txInRange.map(tx => {
         const idx = findNearestPriceIdx(tx.trade_date)
         if (idx == null) return ''
         const cx = xFn(idx).toFixed(1)
-        const cy = yFn(prices[idx].close_price).toFixed(1)
+        const cy = yFn(displayPrices[idx].close_price).toFixed(1)
         const cls = tx.trade_type === 'SELL' ? 'sell' : 'buy'
         return `<circle class="${cls}" cx="${cx}" cy="${cy}" r="5"><title>${tx.trade_date} ${tx.trade_type} ${tx.quantity}주 @${tx.price}</title></circle>`
     }).join('')
@@ -695,9 +725,9 @@ async function renderPositionChart(container, pos, range) {
                 ${markers}
             </svg>
             <div class="chart-axis">
-                <span>${prices[0].price_date}</span>
-                <span class="cur">최근 ${fmtP(vals[n - 1])}</span>
-                <span>${prices[n - 1].price_date}</span>
+                <span>${displayPrices[0].price_date}</span>
+                <span class="cur">${resolution === 'monthly' ? '월봉' : resolution === 'weekly' ? '주봉' : '일봉'} · ${fmtP(vals[n - 1])}</span>
+                <span>${displayPrices[n - 1].price_date}</span>
             </div>
             <div class="chart-legend">
                 <span><span class="m buy"></span>BUY</span>
@@ -793,6 +823,8 @@ async function renderPositionDrawer(drawer, idx) {
                     <div class="seg-control" id="pos-range-ctrl">
                         <button data-range="1M">1M</button>
                         <button data-range="3M">3M</button>
+                        <button data-range="6M">6M</button>
+                        <button data-range="1Y">1Y</button>
                         <button data-range="ALL" class="active">ALL</button>
                     </div>
                 </div>
