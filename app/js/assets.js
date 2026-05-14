@@ -282,12 +282,6 @@ async function loadTransactions(append = false) {
         .order('created_at', { ascending: false })
         .range(txOffset, txOffset + TX_PAGE - 1)
 
-    if (txFilters.trade_type) query = query.eq('trade_type', txFilters.trade_type)
-    if (txFilters.has_pnl) query = query.not('realized_pnl_krw', 'is', null)
-    if (txFilters.period) {
-        const from = periodFrom(txFilters.period)
-        if (from) query = query.gte('trade_date', from)
-    }
     if (txFilters.tag_id) {
         const { data: tagged } = await supabase
             .from('instrument_tags')
@@ -343,15 +337,6 @@ function renderEmptyTransactions(tab, append) {
     }
 }
 
-function periodFrom(period) {
-    const now = new Date()
-    if (period === 'this-month') return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`
-    if (period === 'last-month') return new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().slice(0, 10)
-    if (period === '3m') return new Date(now - 90*86400000).toISOString().slice(0, 10)
-    if (period === '6m') return new Date(now - 180*86400000).toISOString().slice(0, 10)
-    if (period === '1y') return new Date(now - 365*86400000).toISOString().slice(0, 10)
-    return null
-}
 
 function renderFilterBar() {
     const bar = document.getElementById('tx-filter-bar')
@@ -361,28 +346,13 @@ function renderFilterBar() {
         `<button class="chip chip-${t.color}${txFilters.tag_id === t.id ? ' selected' : ''}" data-fk="tag_id" data-fv="${t.id}">${t.name}</button>`
     ).join('')
 
-    bar.innerHTML = `
-        <div class="filter-chips">
-            <button class="chip chip-neutral${txFilters.trade_type === 'BUY' ? ' selected' : ''}" data-fk="trade_type" data-fv="BUY">BUY</button>
-            <button class="chip chip-neutral${txFilters.trade_type === 'SELL' ? ' selected' : ''}" data-fk="trade_type" data-fv="SELL">SELL</button>
-            <button class="chip chip-neutral${txFilters.period === 'this-month' ? ' selected' : ''}" data-fk="period" data-fv="this-month">이번달</button>
-            <button class="chip chip-neutral${txFilters.period === '3m' ? ' selected' : ''}" data-fk="period" data-fv="3m">3개월</button>
-            <button class="chip chip-neutral${txFilters.period === '6m' ? ' selected' : ''}" data-fk="period" data-fv="6m">6개월</button>
-            <button class="chip chip-neutral${txFilters.has_pnl ? ' selected' : ''}" data-fk="has_pnl" data-fv="1">실현손익</button>
-            ${tagChips}
-        </div>`
+    bar.innerHTML = tagChips
+        ? `<div class="filter-chips">${tagChips}</div>`
+        : ''
 
     bar.querySelectorAll('.chip[data-fk]').forEach(btn => {
         btn.addEventListener('click', () => {
-            const k = btn.dataset.fk
-            const v = btn.dataset.fv
-            if (k === 'has_pnl') {
-                txFilters.has_pnl = !txFilters.has_pnl
-            } else if (k === 'tag_id') {
-                txFilters.tag_id = txFilters.tag_id === Number(v) ? null : Number(v)
-            } else {
-                txFilters[k] = txFilters[k] === v ? null : v
-            }
+            txFilters.tag_id = txFilters.tag_id === Number(btn.dataset.fv) ? null : Number(btn.dataset.fv)
             loadTransactions()
         })
     })
@@ -763,7 +733,7 @@ async function renderPositionDrawer(drawer, idx) {
         .eq('ticker', pos.ticker)
         .eq('account_id', pos.account_id)
         .order('trade_date', { ascending: false })
-        .limit(5)
+        .limit(30)
 
     const txFeedHtml = (txs ?? []).map(tx => {
         const isSell = tx.trade_type === 'SELL'
@@ -782,7 +752,7 @@ async function renderPositionDrawer(drawer, idx) {
         </div>`
     }).join('')
 
-    const txHasMoreFeed = (txs?.length ?? 0) === 5
+    const txHasMoreFeed = (txs?.length ?? 0) === 30
 
     body.innerHTML = `
         <div class="stat-row">
@@ -816,7 +786,7 @@ async function renderPositionDrawer(drawer, idx) {
         <div style="margin-top:16px">
             <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">거래 기록</div>
             <div id="tx-feed">${txFeedHtml || '<p class="empty-state" style="padding:8px 0">거래 내역 없음</p>'}</div>
-            ${txHasMoreFeed ? `<button class="load-more-btn" id="d-more-tx" style="font-size:12px" data-offset="5">이전 거래 더 보기</button>` : ''}
+            ${txHasMoreFeed ? `<button class="load-more-btn" id="d-more-tx" style="font-size:12px" data-offset="30">이전 거래 더 보기</button>` : ''}
         </div>`
 
     // Chart range toggle
@@ -842,7 +812,7 @@ async function renderPositionDrawer(drawer, idx) {
             .eq('ticker', pos.ticker)
             .eq('account_id', pos.account_id)
             .order('trade_date', { ascending: false })
-            .range(offset, offset + 4)
+            .range(offset, offset + 29)
         const feedEl = body.querySelector('#tx-feed')
         for (const tx of moreTxs ?? []) {
             const isSell = tx.trade_type === 'SELL'
@@ -861,8 +831,8 @@ async function renderPositionDrawer(drawer, idx) {
                     </div>
                 </div>`)
         }
-        if ((moreTxs?.length ?? 0) < 5) this.remove()
-        else this.dataset.offset = String(offset + 5)
+        if ((moreTxs?.length ?? 0) < 30) this.remove()
+        else this.dataset.offset = String(offset + 30)
     })
 }
 
