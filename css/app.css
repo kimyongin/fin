@@ -376,6 +376,11 @@ input:focus, select:focus, textarea:focus {
 .sync-result.success { color: var(--success); }
 .sync-result.error { color: var(--danger); }
 
+/* ── Hero delta + notice ── */
+.hero-delta { font-size: 14px; margin-top: 4px; font-weight: 500; }
+.notice-amber { background: rgba(245,158,11,.1); border: 1px solid var(--warning); color: var(--warning); padding: 10px 16px; margin: 0 0 8px; border-radius: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+.notice-cta { color: var(--warning); font-weight: 600; text-decoration: none; }
+
 /* ── Stat row ── */
 .stat-row { display: flex; gap: 8px; margin-bottom: 16px; background: var(--surface-2); border-radius: 10px; padding: 12px; }
 .stat-item { flex: 1; text-align: center; }
