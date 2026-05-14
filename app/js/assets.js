@@ -12,10 +12,14 @@ let allInstruments = []
 let allTags = []
 let allPositions = []
 let positionsTotalKrw = 0
+let posTagFilters = new Set()
+let tagsByTickerMap = {}
 let txOffset = 0
 let txHasMore = true
 let txFilters = {}
 const TX_PAGE = 30
+
+const CHART_PALETTE = ['var(--accent)', 'var(--info)', 'var(--success)', '#a78bfa', 'var(--warning)', '#64748b']
 
 // ── Tab switching ─────────────────────────────────────────────────────
 document.querySelectorAll('.tab-bar button').forEach(btn => {
@@ -59,7 +63,6 @@ async function loadHero() {
         ? `₩${Math.round(total).toLocaleString()}`
         : '₩0'
 
-    // Monthly delta from portfolio_snapshots
     const today = new Date()
     const monthStart = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`
     const prevSnap = (snapshots ?? []).find(s => s.snapshot_date < monthStart)
@@ -83,7 +86,6 @@ async function loadHero() {
     document.getElementById('hero-meta').textContent =
         `${accCount}개 계좌 · ${posCount}개 종목${lastPriceDate ? ` · 마지막 가격 ${lastPriceDate}` : ''}`
 
-    // Amber notice for stale/missing prices
     const notice = document.getElementById('price-notice')
     if (notice && pvRows?.length) {
         const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 10)
@@ -442,9 +444,14 @@ function renderTxCards(txs, append) {
 async function loadPositions() {
     const tab = document.getElementById('tab-positions')
 
+    if (!allTags.length) {
+        const { data } = await supabase.from('tags').select('id, name, color').order('sort_order')
+        allTags = data ?? []
+    }
+
     const [{ data: pvRows }, { data: instrTags }] = await Promise.all([
         supabase.from('portfolio_view').select('*'),
-        supabase.from('instrument_tags').select('ticker, tags(name, color)')
+        supabase.from('instrument_tags').select('ticker, tags(id, name, color)')
     ])
 
     if (!pvRows?.length) {
@@ -459,10 +466,10 @@ async function loadPositions() {
         return
     }
 
-    const tagsByTicker = {}
+    tagsByTickerMap = {}
     for (const it of instrTags ?? []) {
-        if (!tagsByTicker[it.ticker]) tagsByTicker[it.ticker] = []
-        tagsByTicker[it.ticker].push(it.tags)
+        if (!tagsByTickerMap[it.ticker]) tagsByTickerMap[it.ticker] = []
+        tagsByTickerMap[it.ticker].push(it.tags)
     }
 
     positionsTotalKrw = pvRows.reduce((s, r) => s + (r.market_value_krw ?? 0), 0)
@@ -471,11 +478,99 @@ async function loadPositions() {
         return (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0)
     })
 
-    tab.innerHTML = '<ul class="card-list"></ul>'
-    const list = tab.querySelector('.card-list')
+    tab.innerHTML = `
+        <div id="pos-filter-bar" class="filter-bar" style="padding:8px 16px 4px"></div>
+        <div id="pos-chart-area" style="padding:0 16px 8px"></div>
+        <ul id="pos-list" class="card-list"></ul>`
+
+    renderPositionsView()
+}
+
+function renderPositionsView() {
+    const filterBar = document.getElementById('pos-filter-bar')
+    const chartArea = document.getElementById('pos-chart-area')
+    const list = document.getElementById('pos-list')
+    if (!filterBar || !chartArea || !list) return
+
+    const filteredPositions = posTagFilters.size === 0
+        ? allPositions
+        : allPositions.filter(pos => {
+            const posTags = (tagsByTickerMap[pos.ticker] ?? []).map(t => t?.id)
+            for (const tagId of posTagFilters) {
+                if (!posTags.includes(tagId)) return false
+            }
+            return true
+        })
+
+    // Tag pills — only show tags present in at least one position
+    const tagsInPositions = new Set()
+    for (const pos of allPositions) {
+        for (const t of tagsByTickerMap[pos.ticker] ?? []) {
+            if (t?.id) tagsInPositions.add(t.id)
+        }
+    }
+    const tagPills = allTags
+        .filter(t => tagsInPositions.has(t.id))
+        .map(t => `<button class="chip chip-${t.color}${posTagFilters.has(t.id) ? ' selected' : ''}" data-tag-id="${t.id}">${t.name}</button>`)
+        .join('')
+
+    filterBar.innerHTML = tagPills
+        ? `<div class="filter-chips">${tagPills}</div>`
+        : ''
+
+    filterBar.querySelectorAll('.chip[data-tag-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = Number(btn.dataset.tagId)
+            if (posTagFilters.has(id)) posTagFilters.delete(id)
+            else posTagFilters.add(id)
+            renderPositionsView()
+        })
+    })
+
+    // Composition bar chart
+    const filteredTotal = filteredPositions.reduce((s, p) => s + (p.market_value_krw ?? 0), 0)
+    if (filteredPositions.length && filteredTotal > 0) {
+        const segments = filteredPositions.map((pos, i) => {
+            const w = ((pos.market_value_krw ?? 0) / filteredTotal * 100).toFixed(2)
+            const color = CHART_PALETTE[i % CHART_PALETTE.length]
+            const posIdx = allPositions.indexOf(pos)
+            return { pos, w: Number(w), color, posIdx }
+        })
+
+        const barSegments = segments.map(({ pos, w, color, posIdx }) =>
+            `<div style="width:${w}%;height:10px;background:${color};cursor:pointer" title="${pos.display_name} ${w}%" data-pos-idx="${posIdx}"></div>`
+        ).join('')
+
+        const legendItems = segments.map(({ pos, w, color, posIdx }) =>
+            `<div style="display:flex;align-items:center;gap:4px;cursor:pointer" data-pos-idx="${posIdx}">
+                <div style="width:8px;height:8px;border-radius:2px;background:${color};flex-shrink:0"></div>
+                <span style="font-size:11px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pos.display_name}</span>
+                <span style="font-size:11px;color:var(--muted)">${w}%</span>
+            </div>`
+        ).join('')
+
+        chartArea.innerHTML = `
+            <div style="display:flex;border-radius:4px;overflow:hidden;margin-bottom:8px">${barSegments}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 12px">${legendItems}</div>`
+
+        chartArea.querySelectorAll('[data-pos-idx]').forEach(el => {
+            el.addEventListener('click', () => openPositionDrawer(Number(el.dataset.posIdx)))
+        })
+    } else {
+        chartArea.innerHTML = ''
+    }
+
+    // Position cards
+    list.innerHTML = ''
+    if (!filteredPositions.length) {
+        const li = document.createElement('li')
+        li.innerHTML = '<p class="empty-state">필터에 맞는 종목이 없습니다.</p>'
+        list.appendChild(li)
+        return
+    }
 
     let lastAccountId = null
-    for (const pos of allPositions) {
+    for (const pos of filteredPositions) {
         if (pos.account_id !== lastAccountId) {
             lastAccountId = pos.account_id
             const header = document.createElement('li')
@@ -484,7 +579,7 @@ async function loadPositions() {
             list.appendChild(header)
         }
 
-        const tags = (tagsByTicker[pos.ticker] ?? []).map(t =>
+        const tags = (tagsByTickerMap[pos.ticker] ?? []).map(t =>
             `<span class="chip chip-${t?.color ?? 'neutral'}">${t?.name}</span>`
         ).join('')
 
@@ -513,6 +608,139 @@ async function loadPositions() {
     }
 }
 
+// ── Position price chart ──────────────────────────────────────────────
+async function renderPositionChart(container, pos, range) {
+    container.innerHTML = '<p class="empty-state" style="padding:8px 0;font-size:12px">로딩 중...</p>'
+
+    const now = new Date()
+    let since = null
+    if (range === '1M') since = new Date(now - 30 * 86400000).toISOString().slice(0, 10)
+    else if (range === '3M') since = new Date(now - 90 * 86400000).toISOString().slice(0, 10)
+
+    let priceQuery = supabase
+        .from('holding_prices_daily')
+        .select('price_date, close_price')
+        .eq('ticker', pos.ticker)
+        .order('price_date')
+    if (since) priceQuery = priceQuery.gte('price_date', since)
+
+    const [{ data: prices }, { data: txs }] = await Promise.all([
+        priceQuery,
+        supabase.from('transactions')
+            .select('trade_date, trade_type, price, quantity')
+            .eq('ticker', pos.ticker)
+            .eq('account_id', pos.account_id)
+            .order('trade_date')
+    ])
+
+    if (!prices?.length) {
+        container.innerHTML = '<p class="empty-state" style="padding:8px 0;font-size:12px">가격 데이터 없음</p>'
+        return
+    }
+
+    const W = 340
+    const H = 110
+    const padL = 38, padR = 6, padT = 6, padB = 4
+    const cW = W - padL - padR
+    const cH = H - padT - padB
+
+    const vals = prices.map(p => p.close_price)
+    const minP = Math.min(...vals)
+    const maxP = Math.max(...vals)
+    const priceRange = maxP - minP || maxP * 0.01 || 1
+
+    const n = prices.length
+    const xFn = i => padL + (n > 1 ? i / (n - 1) : 0.5) * cW
+    const yFn = p => padT + (1 - (p - minP) / priceRange) * cH
+
+    const pts = prices.map((p, i) => [xFn(i), yFn(p.close_price)])
+    const polyline = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
+    const areaPath = `M${xFn(0).toFixed(1)},${(padT + cH).toFixed(1)} ` +
+        pts.map(([x, y]) => `L${x.toFixed(1)},${y.toFixed(1)}`).join(' ') +
+        ` L${xFn(n - 1).toFixed(1)},${(padT + cH).toFixed(1)} Z`
+
+    const gradId = `ag_${pos.ticker.replace(/[^a-z0-9]/gi, '_')}`
+
+    // Dotted grid at 25/50/75%
+    const currency = pos.currency ?? 'KRW'
+    const fmtP = p => {
+        if (currency === 'KRW') return p >= 10000 ? `${(p / 1000).toFixed(0)}K` : p.toFixed(0)
+        return p >= 1000 ? `${(p / 1000).toFixed(1)}K` : p.toFixed(2)
+    }
+    const gridLines = [0.25, 0.5, 0.75].map(t => {
+        const y = (padT + t * cH).toFixed(1)
+        const label = fmtP(maxP - t * priceRange)
+        return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(255,255,255,0.07)" stroke-dasharray="3,3"/>
+            <text x="${(padL - 2).toFixed(0)}" y="${(Number(y) + 3.5).toFixed(0)}" text-anchor="end" font-size="9" fill="var(--muted)">${label}</text>`
+    }).join('')
+
+    // Hi/lo axis labels
+    const axisLabels = `
+        <text x="${(padL - 2).toFixed(0)}" y="${(padT + 9).toFixed(0)}" text-anchor="end" font-size="9" fill="var(--muted)">${fmtP(maxP)}</text>
+        <text x="${(padL - 2).toFixed(0)}" y="${(padT + cH).toFixed(0)}" text-anchor="end" font-size="9" fill="var(--muted)">${fmtP(minP)}</text>`
+
+    // BUY/SELL markers — place at price point when date matches
+    const dateIndexMap = {}
+    prices.forEach((p, i) => { dateIndexMap[p.price_date] = i })
+    const txInRange = (txs ?? []).filter(tx => !since || tx.trade_date >= since)
+
+    const markers = txInRange.map(tx => {
+        const idx = dateIndexMap[tx.trade_date]
+        if (idx == null) return ''
+        const x = xFn(idx).toFixed(1)
+        const y = yFn(prices[idx].close_price)
+        const isBuy = tx.trade_type === 'BUY'
+        const color = isBuy ? 'var(--success)' : 'var(--danger)'
+        // Triangle pointing up (BUY) or down (SELL)
+        const markerY = isBuy ? (y + 6).toFixed(1) : (y - 6).toFixed(1)
+        const tooltip = `${tx.trade_date} ${tx.trade_type} ${tx.quantity}주 @${tx.price}`
+        const path = isBuy
+            ? `M${x},${markerY} l-4,7 l8,0 Z`
+            : `M${x},${markerY} l-4,-7 l8,0 Z`
+        return `<path d="${path}" fill="${color}" opacity="0.9"><title>${tooltip}</title></path>`
+    }).join('')
+
+    // Hover hit areas (invisible rects per data point for tooltip)
+    const hitAreas = pts.map(([x, y], i) => {
+        const p = prices[i]
+        const label = `${p.price_date}: ${fmtP(p.close_price)}${currency !== 'KRW' ? ' ' + currency : ''}`
+        const rx = Math.max(padL, x - cW / (2 * n))
+        const rw = cW / n
+        return `<rect x="${rx.toFixed(1)}" y="${padT}" width="${rw.toFixed(1)}" height="${cH}" fill="transparent">
+            <title>${label}</title>
+        </rect>`
+    }).join('')
+
+    // Change label
+    const firstVal = vals[0], lastVal = vals[n - 1]
+    const chg = firstVal ? ((lastVal - firstVal) / firstVal * 100).toFixed(1) : null
+    const chgClass = chg != null ? (Number(chg) >= 0 ? 'text-success' : 'text-danger') : ''
+    const chgText = chg != null ? `${Number(chg) >= 0 ? '+' : ''}${chg}%` : ''
+    const dateRange = `${prices[0].price_date.slice(5)} ~ ${prices[n-1].price_date.slice(5)}`
+    const currencyNote = currency !== 'KRW' ? `<span style="color:var(--muted);margin-left:4px">${currency}</span>` : ''
+
+    container.innerHTML = `
+        <div style="display:flex;align-items:baseline;justify-content:space-between;font-size:11px;margin-bottom:4px">
+            <span class="${chgClass}" style="font-weight:600">${chgText}${currencyNote}</span>
+            <span style="color:var(--muted)">${dateRange}</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block">
+            <defs>
+                <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.25"/>
+                    <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.0"/>
+                </linearGradient>
+            </defs>
+            ${gridLines}
+            ${axisLabels}
+            <path d="${areaPath}" fill="url(#${gradId})"/>
+            <polyline points="${polyline}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
+            ${markers}
+            ${hitAreas}
+        </svg>`
+}
+
+// ── Position Drawer ───────────────────────────────────────────────────
 async function openPositionDrawer(idx) {
     const drawer = getOrCreateDrawer()
     document.querySelector('.drawer-overlay').classList.add('open')
@@ -570,7 +798,7 @@ async function renderPositionDrawer(drawer, idx) {
         </div>`
     }).join('')
 
-    const txHasMore = (txs?.length ?? 0) === 5
+    const txHasMoreFeed = (txs?.length ?? 0) === 5
 
     body.innerHTML = `
         <div class="stat-row">
@@ -589,7 +817,19 @@ async function renderPositionDrawer(drawer, idx) {
             </div>
         </div>
 
-        <div style="margin-bottom:20px">
+        <div class="chart-section">
+            <div class="chart-header">
+                <span style="font-size:12px;font-weight:600;color:var(--muted)">가격 추이</span>
+                <div class="seg-control" id="pos-range-ctrl">
+                    <button data-range="1M">1M</button>
+                    <button data-range="3M">3M</button>
+                    <button data-range="ALL" class="active">ALL</button>
+                </div>
+            </div>
+            <div id="pos-chart-container"></div>
+        </div>
+
+        <div style="margin-top:16px;margin-bottom:20px">
             <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">보유 직접 편집 (Initial Load)</div>
             <div class="form-group"><label>수량</label>
                 <input id="f-il-qty" type="number" step="any" value="${pos.quantity ?? ''}"></div>
@@ -605,8 +845,23 @@ async function renderPositionDrawer(drawer, idx) {
         <div>
             <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">거래 기록</div>
             <div id="tx-feed">${txFeedHtml || '<p class="empty-state" style="padding:8px 0">거래 내역 없음</p>'}</div>
-            ${txHasMore ? `<button class="load-more-btn" id="d-more-tx" style="font-size:12px" data-offset="5">이전 거래 더 보기</button>` : ''}
+            ${txHasMoreFeed ? `<button class="load-more-btn" id="d-more-tx" style="font-size:12px" data-offset="5">이전 거래 더 보기</button>` : ''}
         </div>`
+
+    // Chart range toggle
+    let currentRange = 'ALL'
+    const chartContainer = body.querySelector('#pos-chart-container')
+    await renderPositionChart(chartContainer, pos, currentRange)
+
+    body.querySelector('#pos-range-ctrl')?.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (btn.dataset.range === currentRange) return
+            currentRange = btn.dataset.range
+            body.querySelectorAll('#pos-range-ctrl button').forEach(b => b.classList.remove('active'))
+            btn.classList.add('active')
+            await renderPositionChart(chartContainer, pos, currentRange)
+        })
+    })
 
     body.querySelector('#d-il-save')?.addEventListener('click', async () => {
         const resultEl = body.querySelector('#il-result')
@@ -878,10 +1133,8 @@ async function openDrawer(type, id) {
     drawer.classList.add('open')
     if (type === 'account') await renderAccountDrawer(drawer, id)
     else if (type === 'transaction') await renderTransactionDrawer(drawer, id)
-    // position drawer uses openPositionDrawer directly
 }
 
 // ── Init ──────────────────────────────────────────────────────────────
-// TODO: Issue #8 — 태그 필터 + 구성 차트 + 타임라인 차트
 await Promise.all([loadHero(), loadAccounts(), loadPositions(), loadTransactions()])
 updateFab()
