@@ -408,6 +408,7 @@ function renderTxCards(txs, append) {
         ).join('') ?? ''
 
         const isSell = tx.trade_type === 'SELL'
+        const txTypeLabel = { BUY: 'BUY', SELL: 'SELL', INITIAL: '초기값' }
         const currency = tx.instruments?.currency ?? ''
         const amountStr = currency === 'KRW'
             ? `₩${Math.round(tx.amount).toLocaleString()}`
@@ -422,7 +423,7 @@ function renderTxCards(txs, append) {
         li.innerHTML = `
             <div class="card-main" style="width:100%">
                 <div style="display:flex;justify-content:space-between;align-items:baseline">
-                    <span class="card-sub">${tx.trade_date} · <strong>${tx.trade_type}</strong></span>
+                    <span class="card-sub">${tx.trade_date} · <strong>${txTypeLabel[tx.trade_type] ?? tx.trade_type}</strong></span>
                     <span class="card-price">${amountStr}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:4px">
@@ -690,7 +691,7 @@ async function renderPositionChart(container, pos, range) {
         if (idx == null) return ''
         const cx = xFn(idx).toFixed(1)
         const cy = yFn(prices[idx].close_price).toFixed(1)
-        const cls = tx.trade_type === 'BUY' ? 'buy' : 'sell'
+        const cls = tx.trade_type === 'SELL' ? 'sell' : 'buy'
         return `<circle class="${cls}" cx="${cx}" cy="${cy}" r="5"><title>${tx.trade_date} ${tx.trade_type} ${tx.quantity}주 @${tx.price}</title></circle>`
     }).join('')
 
@@ -808,20 +809,7 @@ async function renderPositionDrawer(drawer, idx) {
             <div id="pos-chart-container"></div>
         </div>
 
-        <div style="margin-top:16px;margin-bottom:20px">
-            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">보유 직접 편집 (Initial Load)</div>
-            <div class="form-group"><label>수량</label>
-                <input id="f-il-qty" type="number" step="any" value="${pos.quantity ?? ''}"></div>
-            <div class="form-group"><label>평균단가</label>
-                <input id="f-il-price" type="number" step="any" value="${pos.avg_price ?? ''}"></div>
-            <div class="form-group"><label>메모</label>
-                <textarea id="f-il-note" rows="2">${pos.note ?? ''}</textarea></div>
-            <p style="font-size:11px;color:var(--warning);margin:4px 0 8px">⚠ 거래를 입력하면 트리거가 이 값을 덮어씁니다.</p>
-            <div id="il-result" class="sync-result hidden"></div>
-            <button class="btn-primary" id="d-il-save" style="width:100%">저장</button>
-        </div>
-
-        <div>
+        <div style="margin-top:16px">
             <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">거래 기록</div>
             <div id="tx-feed">${txFeedHtml || '<p class="empty-state" style="padding:8px 0">거래 내역 없음</p>'}</div>
             ${txHasMoreFeed ? `<button class="load-more-btn" id="d-more-tx" style="font-size:12px" data-offset="5">이전 거래 더 보기</button>` : ''}
@@ -840,36 +828,6 @@ async function renderPositionDrawer(drawer, idx) {
             btn.classList.add('active')
             await renderPositionChart(chartContainer, pos, currentRange)
         })
-    })
-
-    body.querySelector('#d-il-save')?.addEventListener('click', async () => {
-        const resultEl = body.querySelector('#il-result')
-        resultEl.classList.add('hidden')
-        const qty = parseFloat(body.querySelector('#f-il-qty').value)
-        const avgPrice = parseFloat(body.querySelector('#f-il-price').value)
-        if (isNaN(qty) || isNaN(avgPrice)) {
-            resultEl.textContent = '수량과 평균단가를 입력하세요'
-            resultEl.className = 'sync-result error'
-            resultEl.classList.remove('hidden')
-            return
-        }
-        const { error } = await supabase.from('holdings').upsert({
-            user_id: session.user.id,
-            account_id: pos.account_id,
-            ticker: pos.ticker,
-            quantity: qty,
-            avg_price: avgPrice,
-            note: body.querySelector('#f-il-note').value.trim() || null,
-        }, { onConflict: 'account_id,ticker' })
-        if (error) {
-            resultEl.textContent = error.message
-            resultEl.className = 'sync-result error'
-        } else {
-            resultEl.textContent = '저장 완료'
-            resultEl.className = 'sync-result success'
-            await Promise.all([loadPositions(), loadHero()])
-        }
-        resultEl.classList.remove('hidden')
     })
 
     body.querySelector('#d-more-tx')?.addEventListener('click', async function() {
@@ -927,8 +885,10 @@ async function renderTransactionDrawer(drawer, id, mode = id ? 'view' : 'create'
     }
 
     const isSell = (tx?.trade_type ?? 'BUY') === 'SELL'
+    const isInitial = (tx?.trade_type) === 'INITIAL'
+    const typeLabel = { BUY: 'BUY', SELL: 'SELL', INITIAL: '초기값' }
     drawer.querySelector('.drawer-title').textContent =
-        mode === 'create' ? '거래 추가' : `${tx?.trade_date ?? ''} · ${tx?.trade_type ?? ''}`
+        mode === 'create' ? '거래 추가' : `${tx?.trade_date ?? ''} · ${typeLabel[tx?.trade_type] ?? tx?.trade_type ?? ''}`
 
     const body = drawer.querySelector('.drawer-body')
     const footer = drawer.querySelector('.drawer-footer')
@@ -976,7 +936,7 @@ async function renderTransactionDrawer(drawer, id, mode = id ? 'view' : 'create'
                     ? (tx.realized_pnl_krw >= 0 ? 'text-success' : 'text-danger') : ''}">${
                     isSell && tx.realized_pnl_krw != null
                         ? `${tx.realized_pnl_krw >= 0 ? '+' : ''}₩${Math.round(tx.realized_pnl_krw).toLocaleString()}`
-                        : tx.trade_type}</div>
+                        : (typeLabel[tx.trade_type] ?? tx.trade_type)}</div>
             </div>
         </div>` : ''
 
@@ -986,8 +946,9 @@ async function renderTransactionDrawer(drawer, id, mode = id ? 'view' : 'create'
             <input id="f-date" type="date" value="${tx?.trade_date ?? new Date().toISOString().slice(0,10)}" ${ro ? 'disabled' : ''}></div>
         <div class="form-group"><label>거래 유형</label>
             <select id="f-type" ${ro ? 'disabled' : ''}>
-                <option value="BUY"${!isSell ? ' selected' : ''}>BUY</option>
+                <option value="BUY"${!isSell && !isInitial ? ' selected' : ''}>BUY</option>
                 <option value="SELL"${isSell ? ' selected' : ''}>SELL</option>
+                <option value="INITIAL"${isInitial ? ' selected' : ''}>초기값</option>
             </select></div>
         <div class="form-group"><label>계좌</label>
             <select id="f-account" ${ro ? 'disabled' : ''}>${accountOpts}</select></div>
