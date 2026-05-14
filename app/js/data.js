@@ -342,8 +342,8 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
             <textarea id="f-note" rows="2" ${ro ? 'disabled' : ''}>${inst?.note ?? ''}</textarea></div>
         ${inst ? `
         <div class="chart-section">
-            <div class="chart-header">
-                <span>가격 이력 <span id="res-label" style="font-size:11px;color:var(--muted)"></span></span>
+            <div style="margin-bottom:12px">
+                <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">가격 이력 <span id="res-label" style="font-size:11px;color:var(--muted)"></span></div>
                 <div class="seg-control">
                     <button data-range="1W">1W</button>
                     <button data-range="1M" class="active">1M</button>
