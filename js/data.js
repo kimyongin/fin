@@ -5,19 +5,25 @@ if (!session) throw new Error('unauthenticated')
 
 document.getElementById('logout-btn').addEventListener('click', signOut)
 
+const isDesktop = () => window.innerWidth >= 901
+
 let activeTab = 'fx'
 let allTags = []
 let drawerEl = null
+let firstFxId = null
+let firstInstrumentId = null
+let firstTagId = null
 
 // ── Tab switching ─────────────────────────────────────────────────────
 document.querySelectorAll('.tab-bar button').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
         document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'))
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'))
         btn.classList.add('active')
         document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden')
         activeTab = btn.dataset.tab
         updateFab()
+        if (isDesktop()) await autoSelectFirst()
     })
 })
 
@@ -81,6 +87,7 @@ async function loadFx() {
         return
     }
 
+    firstFxId = instruments[0].id
     const tickers = instruments.map(i => i.ticker)
     const { data: prices } = await supabase
         .from('holding_prices_daily')
@@ -139,6 +146,7 @@ async function loadInstruments() {
         if (!latestPrice[p.ticker]) latestPrice[p.ticker] = p
     }
 
+    firstInstrumentId = instruments[0]?.id ?? null
     const sorted = [...instruments].sort((a, b) => {
         const score = lp => {
             if (!lp) return 0
@@ -184,6 +192,7 @@ async function loadTags() {
         .order('sort_order')
 
     allTags = tags ?? []
+    firstTagId = tags?.[0]?.id ?? null
     const tab = document.getElementById('tab-tags')
 
     if (!tags?.length) {
@@ -234,8 +243,24 @@ function getOrCreateDrawer() {
 }
 
 function closeDrawer() {
+    if (isDesktop()) return
     document.querySelector('.drawer')?.classList.remove('open')
     document.querySelector('.drawer-overlay')?.classList.remove('open')
+}
+
+async function autoSelectFirst() {
+    if (activeTab === 'fx' && firstFxId) {
+        await openDrawer('fx', firstFxId)
+    } else if (activeTab === 'instruments' && firstInstrumentId) {
+        await openDrawer('instrument', firstInstrumentId)
+    } else if (activeTab === 'tags' && firstTagId) {
+        await openDrawer('tag', firstTagId)
+    } else {
+        const drawer = getOrCreateDrawer()
+        drawer.querySelector('.drawer-body').innerHTML = '<p class="empty-state">항목을 선택하세요.</p>'
+        drawer.querySelector('.drawer-footer').innerHTML = ''
+        drawer.querySelector('.drawer-title').textContent = ''
+    }
 }
 
 async function openDrawer(type, id) {
@@ -682,3 +707,4 @@ async function renderTagDrawer(drawer, id, mode = id ? 'view' : 'create') {
 // ── Init ──────────────────────────────────────────────────────────────
 await Promise.all([loadHero(), loadFx(), loadInstruments(), loadTags()])
 updateFab()
+if (isDesktop()) await autoSelectFirst()

@@ -320,21 +320,39 @@ input:focus, select:focus, textarea:focus {
     background: rgba(0,0,0,.5);
     z-index: 200;
 }
-.drawer-overlay.open { display: block; }
 
 .drawer {
     position: fixed;
-    top: 0; right: 0; bottom: 0;
-    width: min(420px, 100vw);
+    top: 0; right: 0;
+    width: 400px;
+    height: 100vh;
     background: var(--surface);
     border-left: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    z-index: 300;
-    transform: translateX(100%);
-    transition: transform .2s ease;
+    z-index: 10;
 }
-.drawer.open { transform: translateX(0); }
+
+/* desktop: 상시 노출, 콘텐츠 영역 오른쪽 여백 확보 */
+@media (min-width: 901px) {
+    .page-content { padding-right: 432px; }
+    .drawer-close { display: none !important; }
+    .drawer-overlay, .drawer-overlay.open { display: none !important; }
+    .fab { right: calc(400px + 24px); }
+}
+
+/* mobile: 전체화면, 위에서 슬라이드인 */
+@media (max-width: 900px) {
+    .drawer {
+        width: 100vw;
+        border-left: none;
+        transform: translateY(-100%);
+        transition: transform 0.22s ease;
+        z-index: 300;
+    }
+    .drawer.open { transform: translateY(0); }
+    .drawer-overlay.open { display: block; }
+}
 
 .drawer-header {
     display: flex;
