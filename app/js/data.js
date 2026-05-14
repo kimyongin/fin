@@ -326,9 +326,15 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
         <div class="form-group"><label>유형</label>
             <select id="f-type" ${ro ? 'disabled' : ''}>${typeOpts}</select></div>
         <div class="form-group"><label>통화</label>
-            <input id="f-currency" type="text" value="${inst?.currency ?? ''}" ${ro ? 'disabled' : ''}></div>
+            ${ro
+                ? `<input id="f-currency" type="text" value="${inst?.currency ?? ''}" disabled>`
+                : `<select id="f-currency">${['KRW','USD','JPY'].map(c => `<option value="${c}"${(inst?.currency ?? 'KRW') === c ? ' selected' : ''}>${c}</option>`).join('')}</select>`
+            }</div>
         <div class="form-group"><label>가격 소스</label>
-            <input id="f-price-source" type="text" value="${inst?.price_source ?? 'yfinance'}" ${ro ? 'disabled' : ''}></div>
+            ${ro
+                ? `<input id="f-price-source" type="text" value="${inst?.price_source ?? 'yfinance'}" disabled>`
+                : `<select id="f-price-source"><option value="yfinance"${(inst?.price_source ?? 'yfinance') === 'yfinance' ? ' selected' : ''}>yfinance</option></select>`
+            }</div>
         <div class="form-group"><label>소스 심볼</label>
             <input id="f-source-symbol" type="text" value="${inst?.source_symbol ?? ''}" ${ro ? 'disabled' : ''}></div>
         ${!isFx ? `<div class="form-group"><label>태그</label><div id="f-tags" class="tag-selector"></div></div>` : ''}
@@ -450,7 +456,7 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
                     res.textContent = `실패: ${fail.error}`
                     res.className = 'sync-result error'
                 } else {
-                    res.textContent = `${rows}개 저장 완료`
+                    res.textContent = rows === 0 ? '이미 최신입니다' : `${rows}개 저장 완료`
                     res.className = 'sync-result success'
                     await renderChart(inst.ticker, chartRange)
                 }
