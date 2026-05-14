@@ -376,6 +376,27 @@ input:focus, select:focus, textarea:focus {
 .sync-result.success { color: var(--success); }
 .sync-result.error { color: var(--danger); }
 
+/* ── Stat row ── */
+.stat-row { display: flex; gap: 8px; margin-bottom: 16px; background: var(--surface-2); border-radius: 10px; padding: 12px; }
+.stat-item { flex: 1; text-align: center; }
+.stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.stat-value { font-size: 14px; font-weight: 600; }
+.text-success { color: var(--success); }
+.text-danger  { color: var(--danger); }
+
+/* ── Filter bar ── */
+.filter-bar { padding: 8px 0 4px; }
+.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-extra { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-extra select { font-size: 12px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+
+/* ── Group header ── */
+.group-header { padding: 8px 16px 4px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .05em; background: var(--bg); position: sticky; top: 0; z-index: 1; list-style: none; }
+
+/* ── Load more ── */
+.load-more-btn { display: block; width: 100%; padding: 12px; background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 500; cursor: pointer; text-align: center; }
+.load-more-btn:hover { opacity: .8; }
+
 /* ── Utilities ── */
 .muted { color: var(--muted); }
 .hidden { display: none !important; }
