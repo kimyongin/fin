@@ -14,7 +14,8 @@
     color-scheme: dark;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none; }
 
 body {
     background: var(--bg);
@@ -349,7 +350,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* desktop: 상시 노출, 콘텐츠 영역 오른쪽 여백 확보 */
 @media (min-width: 901px) {
-    .page-content { padding-right: 432px; }
+    .page-content { padding-right: 400px; }
     .drawer-close { display: none !important; }
     .drawer-overlay, .drawer-overlay.open { display: none !important; }
     .fab { right: calc(400px + 24px); }
