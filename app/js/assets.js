@@ -10,6 +10,8 @@ let drawerEl = null
 let allAccounts = []
 let allInstruments = []
 let allTags = []
+let allPositions = []
+let positionsTotalKrw = 0
 let txOffset = 0
 let txHasMore = true
 let txFilters = {}
@@ -42,12 +44,52 @@ function updateFab() {
 
 // ── Hero ─────────────────────────────────────────────────────────────
 async function loadHero() {
-    const { data: pvRows } = await supabase.from('portfolio_view').select('market_value_krw')
+    const [
+        { data: pvRows },
+        { data: snapshots },
+        { data: accountRows }
+    ] = await Promise.all([
+        supabase.from('portfolio_view').select('market_value_krw, price_date, account_id'),
+        supabase.from('portfolio_snapshots').select('snapshot_date, total_value_krw').order('snapshot_date', { ascending: false }).limit(10),
+        supabase.from('accounts').select('id')
+    ])
+
     const total = (pvRows ?? []).reduce((s, r) => s + (r.market_value_krw ?? 0), 0)
     document.getElementById('total-value').textContent = total
         ? `₩${Math.round(total).toLocaleString()}`
         : '₩0'
-    document.getElementById('hero-meta').textContent = `보유 종목 ${pvRows?.length ?? 0}개`
+
+    // Monthly delta from portfolio_snapshots
+    const today = new Date()
+    const monthStart = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`
+    const prevSnap = (snapshots ?? []).find(s => s.snapshot_date < monthStart)
+    const deltaEl = document.getElementById('hero-delta')
+    if (deltaEl) {
+        if (prevSnap && total) {
+            const delta = total - prevSnap.total_value_krw
+            const pct = prevSnap.total_value_krw > 0
+                ? (delta / prevSnap.total_value_krw * 100).toFixed(1) : '0.0'
+            const sign = delta >= 0 ? '+' : ''
+            deltaEl.textContent = `${sign}₩${Math.round(delta).toLocaleString()} (${sign}${pct}%)`
+            deltaEl.className = `hero-delta ${delta >= 0 ? 'text-success' : 'text-danger'}`
+        } else {
+            deltaEl.textContent = ''
+        }
+    }
+
+    const accCount = accountRows?.length ?? 0
+    const posCount = pvRows?.length ?? 0
+    const lastPriceDate = (pvRows ?? []).reduce((max, r) => r.price_date > (max ?? '') ? r.price_date : max, null)
+    document.getElementById('hero-meta').textContent =
+        `${accCount}개 계좌 · ${posCount}개 종목${lastPriceDate ? ` · 마지막 가격 ${lastPriceDate}` : ''}`
+
+    // Amber notice for stale/missing prices
+    const notice = document.getElementById('price-notice')
+    if (notice && pvRows?.length) {
+        const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 10)
+        const hasMissing = pvRows.some(r => !r.price_date || r.price_date < fiveDaysAgo)
+        notice.classList.toggle('hidden', !hasMissing)
+    }
 }
 
 // ── Accounts Tab ──────────────────────────────────────────────────────
@@ -103,8 +145,17 @@ async function loadAccounts() {
     }
 }
 
+// ── Drawer header reset (restores standard layout after position drawer) ──
+function resetDrawerHeader(drawer) {
+    drawer.querySelector('.drawer-header').innerHTML = `
+        <h2 class="drawer-title"></h2>
+        <button class="drawer-close">✕</button>`
+    drawer.querySelector('.drawer-close').addEventListener('click', closeDrawer)
+}
+
 // ── Account Drawer ────────────────────────────────────────────────────
 async function renderAccountDrawer(drawer, id, mode = id ? 'view' : 'create') {
+    resetDrawerHeader(drawer)
     let acc = null
     if (id) {
         const { data } = await supabase.from('accounts').select().eq('id', id).single()
@@ -387,8 +438,241 @@ function renderTxCards(txs, append) {
     }
 }
 
+// ── Positions Tab ─────────────────────────────────────────────────────
+async function loadPositions() {
+    const tab = document.getElementById('tab-positions')
+
+    const [{ data: pvRows }, { data: instrTags }] = await Promise.all([
+        supabase.from('portfolio_view').select('*'),
+        supabase.from('instrument_tags').select('ticker, tags(name, color)')
+    ])
+
+    if (!pvRows?.length) {
+        tab.innerHTML = `
+            <p class="empty-state">보유 종목이 없습니다.</p>
+            <div style="text-align:center;padding:0 16px 16px">
+                <button class="btn-primary" id="goto-tx">거래 추가</button>
+            </div>`
+        tab.querySelector('#goto-tx')?.addEventListener('click', () => {
+            document.querySelector('[data-tab="transactions"]').click()
+        })
+        return
+    }
+
+    const tagsByTicker = {}
+    for (const it of instrTags ?? []) {
+        if (!tagsByTicker[it.ticker]) tagsByTicker[it.ticker] = []
+        tagsByTicker[it.ticker].push(it.tags)
+    }
+
+    positionsTotalKrw = pvRows.reduce((s, r) => s + (r.market_value_krw ?? 0), 0)
+    allPositions = [...pvRows].sort((a, b) => {
+        if (a.account_id !== b.account_id) return a.account_id - b.account_id
+        return (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0)
+    })
+
+    tab.innerHTML = '<ul class="card-list"></ul>'
+    const list = tab.querySelector('.card-list')
+
+    let lastAccountId = null
+    for (const pos of allPositions) {
+        if (pos.account_id !== lastAccountId) {
+            lastAccountId = pos.account_id
+            const header = document.createElement('li')
+            header.className = 'group-header'
+            header.textContent = pos.account_name ?? `계좌 ${pos.account_id}`
+            list.appendChild(header)
+        }
+
+        const tags = (tagsByTicker[pos.ticker] ?? []).map(t =>
+            `<span class="chip chip-${t?.color ?? 'neutral'}">${t?.name}</span>`
+        ).join('')
+
+        const pnlPct = pos.avg_price && pos.close_price
+            ? ((pos.close_price - pos.avg_price) / pos.avg_price * 100).toFixed(1)
+            : null
+        const pnlClass = pnlPct == null ? 'badge-neutral' : (Number(pnlPct) >= 0 ? 'badge-success' : 'badge-danger')
+        const pnlText = pnlPct == null ? '—' : `${Number(pnlPct) >= 0 ? '+' : ''}${pnlPct}%`
+
+        const li = document.createElement('li')
+        li.className = 'card-item'
+        li.innerHTML = `
+            <div class="card-main">
+                <div class="card-title">${pos.display_name}</div>
+                <div class="card-sub">${pos.ticker} · ${pos.currency}</div>
+                <div class="card-chips">${tags}</div>
+            </div>
+            <div class="card-right">
+                <span class="badge ${pnlClass}">${pnlText}</span>
+                <div class="card-price">${pos.market_value_krw ? `₩${Math.round(pos.market_value_krw).toLocaleString()}` : '—'}</div>
+                <div class="card-sub">${pos.quantity} · ${pos.avg_price?.toLocaleString()}</div>
+            </div>`
+        const posIdx = allPositions.indexOf(pos)
+        li.addEventListener('click', () => openPositionDrawer(posIdx))
+        list.appendChild(li)
+    }
+}
+
+async function openPositionDrawer(idx) {
+    const drawer = getOrCreateDrawer()
+    document.querySelector('.drawer-overlay').classList.add('open')
+    drawer.classList.add('open')
+    await renderPositionDrawer(drawer, idx)
+}
+
+async function renderPositionDrawer(drawer, idx) {
+    const pos = allPositions[idx]
+    const n = allPositions.length
+    const weight = positionsTotalKrw ? ((pos.market_value_krw ?? 0) / positionsTotalKrw * 100).toFixed(1) : 0
+    const pnlKrw = pos.unrealized_pnl_krw
+
+    // Custom header with prev/next
+    drawer.querySelector('.drawer-header').innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+            <button id="d-prev" style="background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:0 4px" ${idx === 0 ? 'disabled' : ''}>‹</button>
+            <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pos.display_name}</div>
+                <div style="font-size:11px;color:var(--muted)">${pos.ticker} · ${pos.account_name} · ${idx+1}/${n}</div>
+            </div>
+            <button id="d-next" style="background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:0 4px" ${idx === n-1 ? 'disabled' : ''}>›</button>
+        </div>
+        <button class="drawer-close" style="margin-left:8px">✕</button>`
+    drawer.querySelector('.drawer-close').addEventListener('click', closeDrawer)
+    drawer.querySelector('#d-prev')?.addEventListener('click', () => { if (idx > 0) renderPositionDrawer(drawer, idx-1) })
+    drawer.querySelector('#d-next')?.addEventListener('click', () => { if (idx < n-1) renderPositionDrawer(drawer, idx+1) })
+
+    const body = drawer.querySelector('.drawer-body')
+    drawer.querySelector('.drawer-footer').innerHTML = ''
+
+    // Fetch recent transactions
+    const { data: txs } = await supabase
+        .from('transactions')
+        .select('id, trade_date, trade_type, quantity, price, amount, realized_pnl_krw')
+        .eq('ticker', pos.ticker)
+        .eq('account_id', pos.account_id)
+        .order('trade_date', { ascending: false })
+        .limit(5)
+
+    const txFeedHtml = (txs ?? []).map(tx => {
+        const isSell = tx.trade_type === 'SELL'
+        const pnl = isSell && tx.realized_pnl_krw != null
+            ? `<span class="badge ${tx.realized_pnl_krw >= 0 ? 'badge-success' : 'badge-danger'}" style="font-size:10px">${tx.realized_pnl_krw >= 0 ? '+' : ''}₩${Math.round(tx.realized_pnl_krw).toLocaleString()}</span>`
+            : ''
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div>
+                <span style="font-size:12px;color:var(--muted)">${tx.trade_date} · <strong>${tx.trade_type}</strong></span>
+                <div style="font-size:12px;color:var(--muted)">${tx.quantity} × ${tx.price}</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:13px">${(tx.amount ?? 0).toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+                ${pnl}
+            </div>
+        </div>`
+    }).join('')
+
+    const txHasMore = (txs?.length ?? 0) === 5
+
+    body.innerHTML = `
+        <div class="stat-row">
+            <div class="stat-item">
+                <div class="stat-label">평가금액</div>
+                <div class="stat-value">${pos.market_value_krw ? `₩${Math.round(pos.market_value_krw).toLocaleString()}` : '—'}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">미실현 손익</div>
+                <div class="stat-value ${pnlKrw != null ? (pnlKrw >= 0 ? 'text-success' : 'text-danger') : ''}">${
+                    pnlKrw != null ? `${pnlKrw >= 0 ? '+' : ''}₩${Math.round(pnlKrw).toLocaleString()}` : '—'}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">비중</div>
+                <div class="stat-value">${weight}%</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">보유 직접 편집 (Initial Load)</div>
+            <div class="form-group"><label>수량</label>
+                <input id="f-il-qty" type="number" step="any" value="${pos.quantity ?? ''}"></div>
+            <div class="form-group"><label>평균단가</label>
+                <input id="f-il-price" type="number" step="any" value="${pos.avg_price ?? ''}"></div>
+            <div class="form-group"><label>메모</label>
+                <textarea id="f-il-note" rows="2">${pos.note ?? ''}</textarea></div>
+            <p style="font-size:11px;color:var(--warning);margin:4px 0 8px">⚠ 거래를 입력하면 트리거가 이 값을 덮어씁니다.</p>
+            <div id="il-result" class="sync-result hidden"></div>
+            <button class="btn-primary" id="d-il-save" style="width:100%">저장</button>
+        </div>
+
+        <div>
+            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px">거래 기록</div>
+            <div id="tx-feed">${txFeedHtml || '<p class="empty-state" style="padding:8px 0">거래 내역 없음</p>'}</div>
+            ${txHasMore ? `<button class="load-more-btn" id="d-more-tx" style="font-size:12px" data-offset="5">이전 거래 더 보기</button>` : ''}
+        </div>`
+
+    body.querySelector('#d-il-save')?.addEventListener('click', async () => {
+        const resultEl = body.querySelector('#il-result')
+        resultEl.classList.add('hidden')
+        const qty = parseFloat(body.querySelector('#f-il-qty').value)
+        const avgPrice = parseFloat(body.querySelector('#f-il-price').value)
+        if (isNaN(qty) || isNaN(avgPrice)) {
+            resultEl.textContent = '수량과 평균단가를 입력하세요'
+            resultEl.className = 'sync-result error'
+            resultEl.classList.remove('hidden')
+            return
+        }
+        const { error } = await supabase.from('holdings').upsert({
+            user_id: session.user.id,
+            account_id: pos.account_id,
+            ticker: pos.ticker,
+            quantity: qty,
+            avg_price: avgPrice,
+            note: body.querySelector('#f-il-note').value.trim() || null,
+        }, { onConflict: 'account_id,ticker' })
+        if (error) {
+            resultEl.textContent = error.message
+            resultEl.className = 'sync-result error'
+        } else {
+            resultEl.textContent = '저장 완료'
+            resultEl.className = 'sync-result success'
+            await Promise.all([loadPositions(), loadHero()])
+        }
+        resultEl.classList.remove('hidden')
+    })
+
+    body.querySelector('#d-more-tx')?.addEventListener('click', async function() {
+        const offset = Number(this.dataset.offset)
+        const { data: moreTxs } = await supabase
+            .from('transactions')
+            .select('id, trade_date, trade_type, quantity, price, amount, realized_pnl_krw')
+            .eq('ticker', pos.ticker)
+            .eq('account_id', pos.account_id)
+            .order('trade_date', { ascending: false })
+            .range(offset, offset + 4)
+        const feedEl = body.querySelector('#tx-feed')
+        for (const tx of moreTxs ?? []) {
+            const isSell = tx.trade_type === 'SELL'
+            const pnl = isSell && tx.realized_pnl_krw != null
+                ? `<span class="badge ${tx.realized_pnl_krw >= 0 ? 'badge-success' : 'badge-danger'}" style="font-size:10px">${tx.realized_pnl_krw >= 0 ? '+' : ''}₩${Math.round(tx.realized_pnl_krw).toLocaleString()}</span>`
+                : ''
+            feedEl.insertAdjacentHTML('beforeend', `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+                    <div>
+                        <span style="font-size:12px;color:var(--muted)">${tx.trade_date} · <strong>${tx.trade_type}</strong></span>
+                        <div style="font-size:12px;color:var(--muted)">${tx.quantity} × ${tx.price}</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-size:13px">${(tx.amount ?? 0).toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+                        ${pnl}
+                    </div>
+                </div>`)
+        }
+        if ((moreTxs?.length ?? 0) < 5) this.remove()
+        else this.dataset.offset = String(offset + 5)
+    })
+}
+
 // ── Transaction Drawer ────────────────────────────────────────────────
 async function renderTransactionDrawer(drawer, id, mode = id ? 'view' : 'create') {
+    resetDrawerHeader(drawer)
     let tx = null
     if (id) {
         const { data } = await supabase
@@ -594,10 +878,10 @@ async function openDrawer(type, id) {
     drawer.classList.add('open')
     if (type === 'account') await renderAccountDrawer(drawer, id)
     else if (type === 'transaction') await renderTransactionDrawer(drawer, id)
+    // position drawer uses openPositionDrawer directly
 }
 
 // ── Init ──────────────────────────────────────────────────────────────
-// TODO: Issue #7 — Position 목록 + 상세 (portfolio_view)
 // TODO: Issue #8 — 태그 필터 + 구성 차트 + 타임라인 차트
-await Promise.all([loadHero(), loadAccounts(), loadTransactions()])
+await Promise.all([loadHero(), loadAccounts(), loadPositions(), loadTransactions()])
 updateFab()
