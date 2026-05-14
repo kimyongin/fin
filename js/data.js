@@ -562,9 +562,11 @@ async function renderChart(ticker, range) {
     ].join(' ')
 
     const fmtAx = d => { const p = d.split('-'); return `${p[0]}<br>${p[1]}/${p[2]}` }
-    const axisIdx = n <= 2
-        ? [...Array(n).keys()]
-        : [0, Math.round((n-1)/3), Math.round(2*(n-1)/3), n-1].filter((v,i,a) => a.indexOf(v) === i)
+    const axisCount = Math.min(n, 7)
+    const axisIdx = axisCount <= 1
+        ? [0]
+        : [...Array(axisCount).keys()].map(i => Math.round(i * (n - 1) / (axisCount - 1)))
+            .filter((v, i, a) => a.indexOf(v) === i)
 
     container.innerHTML = `
         <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
@@ -582,9 +584,13 @@ async function renderChart(ticker, range) {
         </div>`
 
     if (quality) {
-        quality.innerHTML = lastRun
-            ? `<div class="quality-row"><span>동기화 시각</span><span>${new Date(lastRun.run_at).toLocaleString('ko-KR')}</span></div>`
-            : ''
+        if (lastRun) {
+            const d = new Date(lastRun.run_at)
+            const syncFmt = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`
+            quality.innerHTML = `<div style="text-align:right;font-size:10px;color:var(--muted);margin-top:2px">${syncFmt}</div>`
+        } else {
+            quality.innerHTML = ''
+        }
     }
 }
 
