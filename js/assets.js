@@ -818,7 +818,7 @@ async function renderPositionDrawer(drawer, idx) {
             </div>
 
             <div class="chart-section">
-                <div class="chart-header">
+                <div class="chart-header" style="flex-direction:column;align-items:flex-start;gap:6px">
                     <span style="font-size:12px;font-weight:600;color:var(--muted)">${pos.currency === 'USD' ? '매매 타임라인 (USD)' : '매매 타임라인'}</span>
                     <div class="seg-control" id="pos-range-ctrl">
                         <button data-range="1M">1M</button>

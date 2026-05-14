@@ -460,6 +460,7 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
                     res.textContent = rows === 0 ? '이미 최신입니다' : `${rows}개 저장 완료`
                     res.className = 'sync-result success'
                     await renderChart(inst.ticker, chartRange)
+                    if (rows > 0) await (isFx ? loadFx() : loadInstruments())
                 }
             } catch (e) {
                 res.textContent = e.message
@@ -557,12 +558,18 @@ async function renderChart(ticker, range) {
     const days = dayMap[range] ?? 30
     const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
 
-    const { data: prices } = await supabase
-        .from('holding_prices_daily')
-        .select('price_date, close_price, source')
-        .eq('ticker', ticker)
-        .gte('price_date', since)
-        .order('price_date')
+    const [{ data: prices }, { data: lastRun }] = await Promise.all([
+        supabase.from('holding_prices_daily')
+            .select('price_date, close_price, source')
+            .eq('ticker', ticker)
+            .gte('price_date', since)
+            .order('price_date'),
+        supabase.from('sync_runs')
+            .select('run_at')
+            .order('run_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+    ])
 
     const container = document.getElementById('chart-container')
     const quality = document.getElementById('data-quality')
@@ -609,7 +616,11 @@ async function renderChart(ticker, range) {
             </defs>
             <path d="${areaPath}" fill="url(#ag)"/>
             <polyline points="${linePts}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
-        </svg>`
+        </svg>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px">
+            <span>${displayPrices[0].price_date}</span>
+            <span>${displayPrices[n - 1].price_date}</span>
+        </div>`
 
     if (quality) {
         const last = chartPrices[chartPrices.length - 1]
@@ -629,8 +640,8 @@ async function renderChart(ticker, range) {
         }
 
         quality.innerHTML = `
-            <div class="quality-row"><span>데이터 시작일</span><span>${prices[0].price_date}</span></div>
-            <div class="quality-row"><span>마지막 동기화</span><span>${last.price_date}</span></div>
+            <div class="quality-row"><span>마지막 가격</span><span>${last.price_date}</span></div>
+            ${lastRun ? `<div class="quality-row"><span>동기화 시각</span><span>${new Date(lastRun.run_at).toLocaleString('ko-KR')}</span></div>` : ''}
             ${manualCnt ? `<div class="quality-row"><span>수동 입력</span><span>${manualCnt}일</span></div>` : ''}
             ${missingDates.length ? `
             <div class="quality-row" style="margin-top:6px">
