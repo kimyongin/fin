@@ -352,17 +352,6 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
             </div>
             <div id="chart-container"></div>
             <div id="data-quality"></div>
-            <div id="manual-form-section" class="hidden">
-                <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-                    <div style="font-size:12px;color:var(--muted);font-weight:500;margin-bottom:8px">누락 가격 보완</div>
-                    <div style="display:flex;gap:8px;align-items:flex-start">
-                        <input id="f-manual-date" type="date" style="flex:1;min-width:0">
-                        <input id="f-manual-price" type="number" step="any" placeholder="종가" style="flex:1;min-width:0">
-                        <button type="button" class="btn-primary" id="d-manual-save" style="flex-shrink:0">저장</button>
-                    </div>
-                    <div id="manual-save-result" class="sync-result hidden" style="margin-top:6px"></div>
-                </div>
-            </div>
         </div>` : ''}`
 
     // Tag selector
@@ -387,7 +376,6 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
         }
     }
 
-    // Chart + manual save
     if (inst) {
         await renderChart(inst.ticker, chartRange)
         body.querySelectorAll('.seg-control button').forEach(btn => {
@@ -397,39 +385,6 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
                 chartRange = btn.dataset.range
                 await renderChart(inst.ticker, chartRange)
             })
-        })
-        body.querySelector('#d-manual-save')?.addEventListener('click', async () => {
-            const dateVal = body.querySelector('#f-manual-date').value
-            const priceVal = body.querySelector('#f-manual-price').value
-            const resultEl = body.querySelector('#manual-save-result')
-            if (!dateVal || !priceVal) {
-                resultEl.textContent = '날짜와 종가를 입력하세요'
-                resultEl.className = 'sync-result error'
-                resultEl.classList.remove('hidden')
-                return
-            }
-            resultEl.textContent = '저장 중...'
-            resultEl.className = 'sync-result'
-            resultEl.classList.remove('hidden')
-            const { error } = await supabase
-                .from('holding_prices_daily')
-                .upsert({
-                    user_id: session.user.id,
-                    ticker: inst.ticker,
-                    price_date: dateVal,
-                    close_price: parseFloat(priceVal),
-                    source: 'manual'
-                }, { onConflict: 'user_id,ticker,price_date' })
-            if (error) {
-                resultEl.textContent = error.message
-                resultEl.className = 'sync-result error'
-            } else {
-                resultEl.textContent = '저장 완료'
-                resultEl.className = 'sync-result success'
-                body.querySelector('#f-manual-price').value = ''
-                await renderChart(inst.ticker, chartRange)
-                isFx ? await loadFx() : await loadInstruments()
-            }
         })
     }
 
@@ -624,48 +579,9 @@ async function renderChart(ticker, range) {
 
     if (quality) {
         const last = chartPrices[chartPrices.length - 1]
-        const manualCnt = chartPrices.filter(p => p.source === 'manual').length
-
-        // allPrices 기준 priceSet: holiday 마킹된 날짜도 포함 → 누락으로 집계 안됨
-        const priceSet = new Set(allPrices.map(p => p.price_date))
-        const yesterday = new Date()
-        yesterday.setDate(yesterday.getDate() - 1)
-        yesterday.setHours(0, 0, 0, 0)
-        const missingDates = []
-        for (let d = new Date(since); d <= yesterday; d.setDate(d.getDate() + 1)) {
-            const dow = d.getDay()
-            if (dow === 0 || dow === 6) continue
-            const ds = d.toISOString().slice(0, 10)
-            if (!priceSet.has(ds)) missingDates.push(ds)
-        }
-
         quality.innerHTML = `
             <div class="quality-row"><span>마지막 가격</span><span>${last.price_date}</span></div>
-            ${lastRun ? `<div class="quality-row"><span>동기화 시각</span><span>${new Date(lastRun.run_at).toLocaleString('ko-KR')}</span></div>` : ''}
-            ${manualCnt ? `<div class="quality-row"><span>수동 입력</span><span>${manualCnt}일</span></div>` : ''}
-            ${missingDates.length ? `
-            <div class="quality-row" style="margin-top:6px">
-                <span class="badge badge-danger" style="font-size:10px">누락 ${missingDates.length}일</span>
-                <button type="button" class="btn-ghost" id="btn-open-manual" style="font-size:11px;padding:3px 8px">보완</button>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
-                ${missingDates.slice(-8).map(d =>
-                    `<button type="button" class="chip chip-danger missing-date-chip" data-date="${d}">${d.slice(5)}</button>`
-                ).join('')}
-            </div>` : ''}`
-
-        quality.querySelectorAll('.missing-date-chip').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.getElementById('manual-form-section')?.classList.remove('hidden')
-                const di = document.getElementById('f-manual-date')
-                if (di) di.value = btn.dataset.date
-                document.getElementById('f-manual-price')?.focus()
-            })
-        })
-        document.getElementById('btn-open-manual')?.addEventListener('click', () => {
-            document.getElementById('manual-form-section')?.classList.remove('hidden')
-            document.getElementById('f-manual-price')?.focus()
-        })
+            ${lastRun ? `<div class="quality-row"><span>동기화 시각</span><span>${new Date(lastRun.run_at).toLocaleString('ko-KR')}</span></div>` : ''}`
     }
 }
 
