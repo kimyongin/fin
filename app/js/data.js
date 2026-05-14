@@ -278,7 +278,7 @@ async function openDrawer(type, id) {
 async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'create') {
     const isFx = type === 'fx'
     let inst = null
-    let chartRange = '1M'
+    let chartRange = 'ALL'
 
     if (id) {
         const { data } = await supabase
@@ -345,9 +345,11 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
             <div style="margin-bottom:12px">
                 <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">가격 이력 <span id="res-label" style="font-size:11px;color:var(--muted)"></span></div>
                 <div class="seg-control">
-                    <button data-range="1W">1W</button>
-                    <button data-range="1M" class="active">1M</button>
+                    <button data-range="1M">1M</button>
                     <button data-range="3M">3M</button>
+                    <button data-range="6M">6M</button>
+                    <button data-range="1Y">1Y</button>
+                    <button data-range="ALL" class="active">ALL</button>
                 </div>
             </div>
             <div id="chart-container"></div>
@@ -502,23 +504,25 @@ function aggregatePrices(prices, resolution) {
 }
 
 function getResolution(range) {
-    if (range === '1W' || range === '1M') return 'daily'
-    if (range === '3M') return 'weekly'
-    return 'monthly'
+    if (range === '1M') return 'daily'
+    if (range === '3M' || range === '6M') return 'weekly'
+    return 'monthly' // 1Y, ALL
 }
 
 // ── Chart ─────────────────────────────────────────────────────────────
 async function renderChart(ticker, range) {
-    const dayMap = { '1W': 7, '1M': 30, '3M': 90 }
-    const days = dayMap[range] ?? 30
-    const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
+    const dayMap = { '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+    const days = dayMap[range]
+    const since = days ? new Date(Date.now() - days * 86400000).toISOString().slice(0, 10) : null
+
+    let priceQuery = supabase.from('holding_prices_daily')
+        .select('price_date, close_price, source')
+        .eq('ticker', ticker)
+        .order('price_date')
+    if (since) priceQuery = priceQuery.gte('price_date', since)
 
     const [{ data: prices }, { data: lastRun }] = await Promise.all([
-        supabase.from('holding_prices_daily')
-            .select('price_date, close_price, source')
-            .eq('ticker', ticker)
-            .gte('price_date', since)
-            .order('price_date'),
+        priceQuery,
         supabase.from('sync_runs')
             .select('run_at')
             .order('run_at', { ascending: false })
