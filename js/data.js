@@ -97,7 +97,7 @@ async function loadFx() {
 
     const latestPrice = {}
     for (const p of prices ?? []) {
-        if (!latestPrice[p.ticker]) latestPrice[p.ticker] = p
+        if (p.source !== 'holiday' && !latestPrice[p.ticker]) latestPrice[p.ticker] = p
     }
 
     tab.innerHTML = '<ul class="card-list"></ul>'
@@ -143,7 +143,7 @@ async function loadInstruments() {
 
     const latestPrice = {}
     for (const p of prices ?? []) {
-        if (!latestPrice[p.ticker]) latestPrice[p.ticker] = p
+        if (p.source !== 'holiday' && !latestPrice[p.ticker]) latestPrice[p.ticker] = p
     }
 
     firstInstrumentId = instruments[0]?.id ?? null
@@ -343,10 +343,11 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
         ${inst ? `
         <div class="chart-section">
             <div class="chart-header">
-                <span>가격 이력</span>
+                <span>가격 이력 <span id="res-label" style="font-size:11px;color:var(--muted)"></span></span>
                 <div class="seg-control">
+                    <button data-range="1W">1W</button>
                     <button data-range="1M" class="active">1M</button>
-                    <button data-range="1D">1D</button>
+                    <button data-range="3M">3M</button>
                 </div>
             </div>
             <div id="chart-container"></div>
@@ -526,9 +527,34 @@ async function renderInstrumentDrawer(drawer, type, id, mode = id ? 'view' : 'cr
     }
 }
 
+// ── Chart helpers ─────────────────────────────────────────────────────
+function weekKey(dateStr) {
+    const d = new Date(dateStr)
+    const day = d.getDay() || 7
+    d.setDate(d.getDate() - day + 1)
+    return d.toISOString().slice(0, 10)
+}
+
+function aggregatePrices(prices, resolution) {
+    if (resolution === 'daily') return prices
+    const grouped = new Map()
+    for (const p of prices) {
+        const key = resolution === 'weekly' ? weekKey(p.price_date) : p.price_date.slice(0, 7)
+        grouped.set(key, p)
+    }
+    return [...grouped.values()]
+}
+
+function getResolution(range) {
+    if (range === '1W' || range === '1M') return 'daily'
+    if (range === '3M') return 'weekly'
+    return 'monthly'
+}
+
 // ── Chart ─────────────────────────────────────────────────────────────
 async function renderChart(ticker, range) {
-    const days = range === '1M' ? 30 : 7
+    const dayMap = { '1W': 7, '1M': 30, '3M': 90 }
+    const days = dayMap[range] ?? 30
     const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
 
     const { data: prices } = await supabase
@@ -542,25 +568,34 @@ async function renderChart(ticker, range) {
     const quality = document.getElementById('data-quality')
     if (!container) return
 
-    if (!prices?.length) {
+    // holiday 레코드: 품질 체크 priceSet엔 포함, 차트 렌더링엔 제외
+    const allPrices = prices ?? []
+    const chartPrices = allPrices.filter(p => p.source !== 'holiday' && p.close_price != null)
+
+    if (!chartPrices.length) {
         container.innerHTML = '<p class="muted" style="font-size:12px;padding:8px 0">데이터 없음</p>'
         if (quality) quality.innerHTML = ''
         return
     }
 
+    const resolution = getResolution(range)
+    const displayPrices = aggregatePrices(chartPrices, resolution)
+    const resLabelEl = document.getElementById('res-label')
+    if (resLabelEl) resLabelEl.textContent = resolution === 'monthly' ? '(월봉)' : resolution === 'weekly' ? '(주봉)' : '(일봉)'
+
     const W = 300, H = 72, P = 6
-    const vals = prices.map(p => p.close_price)
+    const vals = displayPrices.map(p => p.close_price)
     const min = Math.min(...vals), max = Math.max(...vals)
     const span = max - min || 1
-    const n = prices.length
+    const n = displayPrices.length
 
     const cx = i => P + (i / Math.max(n - 1, 1)) * (W - P * 2)
     const cy = v => H - P - ((v - min) / span) * (H - P * 2)
 
-    const linePts = prices.map((p, i) => `${cx(i)},${cy(p.close_price)}`).join(' ')
+    const linePts = displayPrices.map((p, i) => `${cx(i)},${cy(p.close_price)}`).join(' ')
     const areaPath = [
         `M ${cx(0)},${H - P}`,
-        ...prices.map((p, i) => `L ${cx(i)},${cy(p.close_price)}`),
+        ...displayPrices.map((p, i) => `L ${cx(i)},${cy(p.close_price)}`),
         `L ${cx(n - 1)},${H - P}`, 'Z'
     ].join(' ')
 
@@ -577,10 +612,11 @@ async function renderChart(ticker, range) {
         </svg>`
 
     if (quality) {
-        const last = prices[prices.length - 1]
-        const manualCnt = prices.filter(p => p.source === 'manual').length
+        const last = chartPrices[chartPrices.length - 1]
+        const manualCnt = chartPrices.filter(p => p.source === 'manual').length
 
-        const priceSet = new Set(prices.map(p => p.price_date))
+        // allPrices 기준 priceSet: holiday 마킹된 날짜도 포함 → 누락으로 집계 안됨
+        const priceSet = new Set(allPrices.map(p => p.price_date))
         const yesterday = new Date()
         yesterday.setDate(yesterday.getDate() - 1)
         yesterday.setHours(0, 0, 0, 0)
