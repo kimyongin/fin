@@ -818,14 +818,14 @@ async function renderPositionDrawer(drawer, idx) {
             </div>
 
             <div class="chart-section">
-                <div class="chart-header" style="flex-direction:column;align-items:flex-start;gap:4px">
-                    <span style="font-size:12px;font-weight:600;color:var(--muted)">${pos.currency === 'USD' ? '매매 타임라인 (USD)' : '매매 타임라인'}</span>
-                    <div class="seg-control" id="pos-range-ctrl" style="flex-shrink:0;white-space:nowrap">
-                        <button data-range="1M" style="padding:3px 8px">1M</button>
-                        <button data-range="3M" style="padding:3px 8px">3M</button>
-                        <button data-range="6M" style="padding:3px 8px">6M</button>
-                        <button data-range="1Y" style="padding:3px 8px">1Y</button>
-                        <button data-range="ALL" class="active" style="padding:3px 8px">ALL</button>
+                <div style="margin-bottom:12px">
+                    <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">${pos.currency === 'USD' ? '매매 타임라인 (USD)' : '매매 타임라인'}</div>
+                    <div class="seg-control" id="pos-range-ctrl">
+                        <button data-range="1M">1M</button>
+                        <button data-range="3M">3M</button>
+                        <button data-range="6M">6M</button>
+                        <button data-range="1Y">1Y</button>
+                        <button data-range="ALL" class="active">ALL</button>
                     </div>
                 </div>
                 <div id="pos-chart-container"></div>
