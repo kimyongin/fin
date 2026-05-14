@@ -660,8 +660,20 @@ async function renderPositionChart(container, pos, range) {
     prices.forEach((p, i) => { dateIndexMap[p.price_date] = i })
     const txInRange = (txs ?? []).filter(tx => !since || tx.trade_date >= since)
 
+    const findNearestPriceIdx = (date) => {
+        const exact = dateIndexMap[date]
+        if (exact != null) return exact
+        const txTime = new Date(date).getTime()
+        let best = null, minDiff = Infinity
+        for (let i = 0; i < prices.length; i++) {
+            const diff = Math.abs(new Date(prices[i].price_date).getTime() - txTime)
+            if (diff < minDiff) { minDiff = diff; best = i }
+        }
+        return minDiff <= 7 * 86400000 ? best : null
+    }
+
     const markers = txInRange.map(tx => {
-        const idx = dateIndexMap[tx.trade_date]
+        const idx = findNearestPriceIdx(tx.trade_date)
         if (idx == null) return ''
         const cx = xFn(idx).toFixed(1)
         const cy = yFn(prices[idx].close_price).toFixed(1)
