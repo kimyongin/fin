@@ -4,7 +4,7 @@
 
 ## Contexts
 
-- [Portfolio App](./portfolio-app/CONTEXT.md) — Next.js 웹 UI와 Supabase 백엔드(스키마, RLS, 트리거, Edge Function, Storage)를 소유
+- [Portfolio App](./portfolio-app/CONTEXT.md) — 순수 HTML/JS 웹 앱과 Supabase 백엔드(스키마, RLS, 트리거, Edge Function, Storage)를 소유
 - [Market Analysis Skill](./market-analysis-skill/CONTEXT.md) — 매일 아침 시장 뉴스·지표를 분석해 리포트를 생성하고 Supabase에 저장
 - [Rebalancing Skill](./rebalancing-skill/CONTEXT.md) — 사용자 수동 트리거로 리밸런싱 액션을 제안하고 Supabase에 저장
 
