@@ -11,6 +11,7 @@
     --warning:   #f59e0b;
     --danger:    #ef4444;
     --info:      #60a5fa;
+    color-scheme: dark;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,7 +20,7 @@ body {
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 14px;
+    font-size: 15px;
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -185,7 +186,7 @@ body {
 .btn-ghost:hover { color: var(--text); border-color: var(--border-2); }
 
 /* ── Form ── */
-input[type="email"], input[type="text"], input[type="number"], select, textarea {
+input[type="email"], input[type="text"], input[type="number"], input[type="date"], select, textarea {
     width: 100%;
     background: var(--surface-2);
     border: 1px solid var(--border-2);
@@ -198,6 +199,11 @@ input[type="email"], input[type="text"], input[type="number"], select, textarea 
 
 input:focus, select:focus, textarea:focus {
     border-color: var(--accent);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+    cursor: pointer;
 }
 
 /* ── Divider ── */
@@ -252,6 +258,7 @@ input:focus, select:focus, textarea:focus {
     transition: background 0.1s;
 }
 .card-item:hover { background: var(--surface); }
+.card-item.active { background: var(--surface-2); border-left: 2px solid var(--accent); padding-left: 14px; }
 .card-fail { border-left: 3px solid var(--danger); padding-left: 13px; }
 
 .card-main { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
@@ -410,8 +417,12 @@ input:focus, select:focus, textarea:focus {
 /* ── Filter bar ── */
 .filter-bar { padding: 8px 0 4px; }
 .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.filter-extra { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
-.filter-extra select { font-size: 12px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+
+/* ── Active/inactive toggle ── */
+.toggle-group { display: flex; background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 8px; padding: 3px; gap: 3px; width: 100%; }
+.toggle-opt { flex: 1; background: none; border: none; color: var(--muted); font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; cursor: pointer; text-align: center; }
+.toggle-opt.active { background: var(--bg); color: var(--text); }
+span.toggle-opt { cursor: default; }
 
 /* ── Group header ── */
 .group-header { padding: 8px 16px 4px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .05em; background: var(--bg); position: sticky; top: 0; z-index: 1; list-style: none; }
