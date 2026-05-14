@@ -17,20 +17,23 @@ let tagsByTickerMap = {}
 let txOffset = 0
 let txHasMore = true
 let txFilters = {}
+let firstTxId = null
 const TX_PAGE = 30
+const isDesktop = () => window.innerWidth >= 901
 
 const CHART_PALETTE = ['var(--accent)', 'var(--info)', 'var(--success)', '#a78bfa', 'var(--warning)', '#64748b']
 const fmtM = v => `₩${((v || 0) / 1_000_000).toFixed(1)}M`
 
 // ── Tab switching ─────────────────────────────────────────────────────
 document.querySelectorAll('.tab-bar button').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
         document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'))
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'))
         btn.classList.add('active')
         document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden')
         activeTab = btn.dataset.tab
         updateFab()
+        if (isDesktop()) await autoSelectFirst()
     })
 })
 
@@ -284,6 +287,7 @@ async function loadTransactions(append = false) {
 
     const { data: txs } = await query
     txHasMore = (txs?.length ?? 0) === TX_PAGE
+    if (!append && txs?.length) firstTxId = txs[0].id
 
     if (!append) {
         if (!txs?.length) {
@@ -1063,8 +1067,27 @@ function getOrCreateDrawer() {
 }
 
 function closeDrawer() {
+    if (isDesktop()) return
     document.querySelector('.drawer')?.classList.remove('open')
     document.querySelector('.drawer-overlay')?.classList.remove('open')
+}
+
+async function autoSelectFirst() {
+    const drawer = getOrCreateDrawer()
+    drawer.classList.add('open')
+    document.querySelector('.drawer-overlay').classList.add('open')
+    if (activeTab === 'accounts' && allAccounts.length) {
+        await renderAccountDrawer(drawer, allAccounts[0].id)
+    } else if (activeTab === 'positions' && allPositions.length) {
+        await renderPositionDrawer(drawer, 0)
+    } else if (activeTab === 'transactions' && firstTxId) {
+        await renderTransactionDrawer(drawer, firstTxId)
+    } else {
+        drawer.querySelector('.drawer-body').innerHTML = '<p class="empty-state">항목을 선택하세요.</p>'
+        drawer.querySelector('.drawer-footer').innerHTML = ''
+        resetDrawerHeader(drawer)
+        drawer.querySelector('.drawer-title').textContent = ''
+    }
 }
 
 async function openDrawer(type, id) {
@@ -1078,3 +1101,4 @@ async function openDrawer(type, id) {
 // ── Init ──────────────────────────────────────────────────────────────
 await Promise.all([loadHero(), loadAccounts(), loadPositions(), loadTransactions()])
 updateFab()
+if (isDesktop()) await autoSelectFirst()
