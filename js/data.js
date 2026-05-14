@@ -561,6 +561,11 @@ async function renderChart(ticker, range) {
         `L ${cx(n - 1)},${H - P}`, 'Z'
     ].join(' ')
 
+    const fmtAx = d => { const p = d.split('-'); return `${p[0]}<br>${p[1]}/${p[2]}` }
+    const axisIdx = n <= 2
+        ? [...Array(n).keys()]
+        : [0, Math.round((n-1)/3), Math.round(2*(n-1)/3), n-1].filter((v,i,a) => a.indexOf(v) === i)
+
     container.innerHTML = `
         <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
             <defs>
@@ -572,16 +577,14 @@ async function renderChart(ticker, range) {
             <path d="${areaPath}" fill="url(#ag)"/>
             <polyline points="${linePts}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
         </svg>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px">
-            <span>${displayPrices[0].price_date}</span>
-            <span>${displayPrices[n - 1].price_date}</span>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px;text-align:center;line-height:1.3">
+            ${axisIdx.map(i => `<span>${fmtAx(displayPrices[i].price_date)}</span>`).join('')}
         </div>`
 
     if (quality) {
-        const last = chartPrices[chartPrices.length - 1]
-        quality.innerHTML = `
-            <div class="quality-row"><span>마지막 가격</span><span>${last.price_date}</span></div>
-            ${lastRun ? `<div class="quality-row"><span>동기화 시각</span><span>${new Date(lastRun.run_at).toLocaleString('ko-KR')}</span></div>` : ''}`
+        quality.innerHTML = lastRun
+            ? `<div class="quality-row"><span>동기화 시각</span><span>${new Date(lastRun.run_at).toLocaleString('ko-KR')}</span></div>`
+            : ''
     }
 }
 
