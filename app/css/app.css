@@ -107,9 +107,16 @@ body {
 
 .page-content {
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
+}
+
+/* ── Tab content ── */
+.tab-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 /* ── Tabs ── */
@@ -415,7 +422,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .text-danger  { color: var(--danger); }
 
 /* ── Filter bar ── */
-.filter-bar { padding: 8px 0 4px; }
+.filter-bar { padding: 8px 0 4px; position: sticky; top: 0; background: var(--bg); z-index: 1; flex-shrink: 0; }
 .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 
 /* ── Active/inactive toggle ── */
