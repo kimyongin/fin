@@ -97,7 +97,7 @@ async function loadFx() {
 
     const latestPrice = {}
     for (const p of prices ?? []) {
-        if (!latestPrice[p.ticker]) latestPrice[p.ticker] = p
+        if (p.source !== 'holiday' && !latestPrice[p.ticker]) latestPrice[p.ticker] = p
     }
 
     tab.innerHTML = '<ul class="card-list"></ul>'
@@ -143,7 +143,7 @@ async function loadInstruments() {
 
     const latestPrice = {}
     for (const p of prices ?? []) {
-        if (!latestPrice[p.ticker]) latestPrice[p.ticker] = p
+        if (p.source !== 'holiday' && !latestPrice[p.ticker]) latestPrice[p.ticker] = p
     }
 
     firstInstrumentId = instruments[0]?.id ?? null
@@ -542,25 +542,29 @@ async function renderChart(ticker, range) {
     const quality = document.getElementById('data-quality')
     if (!container) return
 
-    if (!prices?.length) {
+    // holiday 레코드: 품질 체크 priceSet엔 포함, 차트 렌더링엔 제외
+    const allPrices = prices ?? []
+    const chartPrices = allPrices.filter(p => p.source !== 'holiday' && p.close_price != null)
+
+    if (!chartPrices.length) {
         container.innerHTML = '<p class="muted" style="font-size:12px;padding:8px 0">데이터 없음</p>'
         if (quality) quality.innerHTML = ''
         return
     }
 
     const W = 300, H = 72, P = 6
-    const vals = prices.map(p => p.close_price)
+    const vals = chartPrices.map(p => p.close_price)
     const min = Math.min(...vals), max = Math.max(...vals)
     const span = max - min || 1
-    const n = prices.length
+    const n = chartPrices.length
 
     const cx = i => P + (i / Math.max(n - 1, 1)) * (W - P * 2)
     const cy = v => H - P - ((v - min) / span) * (H - P * 2)
 
-    const linePts = prices.map((p, i) => `${cx(i)},${cy(p.close_price)}`).join(' ')
+    const linePts = chartPrices.map((p, i) => `${cx(i)},${cy(p.close_price)}`).join(' ')
     const areaPath = [
         `M ${cx(0)},${H - P}`,
-        ...prices.map((p, i) => `L ${cx(i)},${cy(p.close_price)}`),
+        ...chartPrices.map((p, i) => `L ${cx(i)},${cy(p.close_price)}`),
         `L ${cx(n - 1)},${H - P}`, 'Z'
     ].join(' ')
 
@@ -577,10 +581,11 @@ async function renderChart(ticker, range) {
         </svg>`
 
     if (quality) {
-        const last = prices[prices.length - 1]
-        const manualCnt = prices.filter(p => p.source === 'manual').length
+        const last = chartPrices[chartPrices.length - 1]
+        const manualCnt = chartPrices.filter(p => p.source === 'manual').length
 
-        const priceSet = new Set(prices.map(p => p.price_date))
+        // allPrices 기준 priceSet: holiday 마킹된 날짜도 포함 → 누락으로 집계 안됨
+        const priceSet = new Set(allPrices.map(p => p.price_date))
         const yesterday = new Date()
         yesterday.setDate(yesterday.getDate() - 1)
         yesterday.setHours(0, 0, 0, 0)

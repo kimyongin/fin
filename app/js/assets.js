@@ -609,12 +609,12 @@ async function renderPositionChart(container, pos, range) {
 
     let priceQuery = supabase
         .from('holding_prices_daily')
-        .select('price_date, close_price')
+        .select('price_date, close_price, source')
         .eq('ticker', pos.ticker)
         .order('price_date')
     if (since) priceQuery = priceQuery.gte('price_date', since)
 
-    const [{ data: prices }, { data: txs }] = await Promise.all([
+    const [{ data: rawPrices }, { data: txs }] = await Promise.all([
         priceQuery,
         supabase.from('transactions')
             .select('trade_date, trade_type, price, quantity')
@@ -623,7 +623,8 @@ async function renderPositionChart(container, pos, range) {
             .order('trade_date')
     ])
 
-    if (!prices?.length) {
+    const prices = (rawPrices ?? []).filter(p => p.source !== 'holiday' && p.close_price != null)
+    if (!prices.length) {
         container.innerHTML = '<p class="empty-state" style="padding:8px 0;font-size:12px">가격 데이터 없음</p>'
         return
     }
