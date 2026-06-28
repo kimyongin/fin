@@ -198,6 +198,7 @@ function renderTagOverview(tags, total) {
     const colors = ['var(--accent)', 'var(--info)', 'var(--success)', '#a78bfa', 'var(--warning)', '#94a3b8', '#f97316', '#14b8a6']
     const topTags = tags.filter(tag => (tag.market_value_krw ?? 0) > 0)
     if (!topTags.length) return ''
+    const tickerRows = aggregateByTicker()
 
     const segments = topTags.map((tag, index) => {
         const width = Math.min(tag.market_value_krw / total * 100, 100)
@@ -205,13 +206,13 @@ function renderTagOverview(tags, total) {
     }).join('')
 
     const cards = topTags.map((tag, index) => {
-        const positions = state.positions
-            .filter(pos => tagsForTicker(pos.ticker).some(item => item.id === tag.id))
+        const taggedTickers = tickerRows
+            .filter(row => tagsForTicker(row.ticker).some(item => item.id === tag.id))
             .sort((a, b) => (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0))
-        const holdings = positions.slice(0, 4).map(pos => `
+        const holdings = taggedTickers.slice(0, 4).map(row => `
             <span class="tag-holding-row">
-                <span>${pos.display_name ?? pos.ticker}</span>
-                <strong>${fmtKrw(pos.market_value_krw ?? 0)}</strong>
+                <span>${row.display_name ?? row.ticker}</span>
+                <strong>${fmtKrw(row.market_value_krw ?? 0)}</strong>
             </span>
         `).join('')
 
@@ -222,7 +223,7 @@ function renderTagOverview(tags, total) {
                     <span class="tag-card-pct">${pct(tag.market_value_krw / total * 100)}</span>
                 </div>
                 <div class="tag-card-value">${fmtKrw(tag.market_value_krw)}</div>
-                <div class="tag-card-note">${positions.length}개 종목</div>
+                <div class="tag-card-note">${taggedTickers.length}개 통합 종목</div>
                 <div class="tag-card-holdings">${holdings}</div>
             </article>`
     }).join('')
