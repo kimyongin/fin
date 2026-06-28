@@ -480,6 +480,77 @@ span.toggle-opt { cursor: default; }
 .leg .name { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
 .leg .pct { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
 .leg .amt { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; flex: none; }
+.tag-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+}
+.tag-summary-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--tag-color);
+    border-radius: 8px;
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 12px;
+}
+.tag-card-head {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+}
+.tag-card-name {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tag-card-pct {
+    color: var(--accent);
+    flex: none;
+    font-size: 13px;
+    font-weight: 700;
+}
+.tag-card-value {
+    color: var(--text);
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+.tag-card-note {
+    color: var(--muted);
+    font-size: 12px;
+}
+.tag-card-holdings {
+    display: grid;
+    gap: 4px;
+    margin-top: 4px;
+}
+.tag-holding-row {
+    align-items: center;
+    color: var(--muted);
+    display: flex;
+    font-size: 12px;
+    gap: 10px;
+    justify-content: space-between;
+    min-width: 0;
+}
+.tag-holding-row span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tag-holding-row strong {
+    color: var(--text);
+    flex: none;
+    font-weight: 600;
+}
 
 /* ── Timeline chart ── */
 .chart { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 12px 10px; }

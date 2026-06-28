@@ -163,18 +163,15 @@ function renderOverview() {
     const total = totalValue()
     const tickers = aggregateByTicker()
     const tags = aggregateByTag()
-    const accounts = aggregateByAccount()
 
     if (!tickers.length) {
-        tab.innerHTML = `
-            <p class="empty-state">아직 보유 항목이 없습니다. 계좌와 종목을 만든 뒤 계좌 메뉴에서 보유를 추가하세요.</p>`
+        tab.innerHTML =
+            '<p class="empty-state">아직 보유 항목이 없습니다. 계좌와 종목을 만든 뒤 계좌 메뉴에서 보유를 추가하세요.</p>'
         return
     }
 
     tab.innerHTML = `
-        ${renderComposition('종목 비중', tickers, row => row.display_name ?? row.ticker, total)}
-        ${renderComposition('태그 비중', tags, row => row.name, total)}
-        ${renderComposition('계좌 비중', accounts, row => row.name, total)}
+        ${renderTagOverview(tags, total)}
         <ul class="card-list">
             ${tickers.map(row => `
                 <li class="card-item" data-ticker="${row.ticker}">
@@ -196,6 +193,52 @@ function renderOverview() {
     })
 }
 
+function renderTagOverview(tags, total) {
+    if (!tags.length || !total) return ''
+    const colors = ['var(--accent)', 'var(--info)', 'var(--success)', '#a78bfa', 'var(--warning)', '#94a3b8', '#f97316', '#14b8a6']
+    const topTags = tags.filter(tag => (tag.market_value_krw ?? 0) > 0)
+    if (!topTags.length) return ''
+
+    const segments = topTags.map((tag, index) => {
+        const width = Math.min(tag.market_value_krw / total * 100, 100)
+        return `<span style="width:${width}%;background:${colors[index % colors.length]}" title="${tag.name}"></span>`
+    }).join('')
+
+    const cards = topTags.map((tag, index) => {
+        const positions = state.positions
+            .filter(pos => tagsForTicker(pos.ticker).some(item => item.id === tag.id))
+            .sort((a, b) => (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0))
+        const holdings = positions.slice(0, 4).map(pos => `
+            <span class="tag-holding-row">
+                <span>${pos.display_name ?? pos.ticker}</span>
+                <strong>${fmtKrw(pos.market_value_krw ?? 0)}</strong>
+            </span>
+        `).join('')
+
+        return `
+            <article class="tag-summary-card" style="--tag-color:${colors[index % colors.length]}">
+                <div class="tag-card-head">
+                    <span class="tag-card-name">${tag.name}</span>
+                    <span class="tag-card-pct">${pct(tag.market_value_krw / total * 100)}</span>
+                </div>
+                <div class="tag-card-value">${fmtKrw(tag.market_value_krw)}</div>
+                <div class="tag-card-note">${positions.length}개 종목</div>
+                <div class="tag-card-holdings">${holdings}</div>
+            </article>`
+    }).join('')
+
+    return `
+        <section class="composition tag-overview">
+            <div class="composition-head">
+                <div>
+                    <h2>태그 비중</h2>
+                    <p>계좌가 나뉘어 있어도 같은 성격의 자산을 한 번에 볼 수 있습니다. 한 종목에 태그가 여러 개면 합계가 100%를 넘을 수 있습니다.</p>
+                </div>
+            </div>
+            <div class="comp-bar">${segments}</div>
+            <div class="tag-summary-grid">${cards}</div>
+        </section>`
+}
 function renderComposition(title, rows, labelFn, total) {
     if (!rows.length || !total) return ''
     const topRows = rows.filter(row => (row.market_value_krw ?? 0) > 0).slice(0, 8)
