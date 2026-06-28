@@ -1,1134 +1,628 @@
-import { supabase, requireAuth, signOut } from './supabase.js'
+import { supabase, requireAuth, signOut } from './supabase.js?v=auth-guard-2'
 
 const session = await requireAuth()
 if (!session) throw new Error('unauthenticated')
+document.body.classList.remove('auth-pending')
 
 document.getElementById('logout-btn').addEventListener('click', signOut)
 
-let activeTab = 'accounts'
+let activeTab = 'overview'
 let drawerEl = null
-let allAccounts = []
-let allInstruments = []
-let allTags = []
-let allPositions = []
-let positionsTotalKrw = 0
-let posTagFilters = new Set()
-let tagsByTickerMap = {}
-let txOffset = 0
-let txHasMore = true
-let txFilters = {}
-let firstTxId = null
-const TX_PAGE = 30
-const isDesktop = () => window.innerWidth >= 901
+let state = {
+    accounts: [],
+    holdings: [],
+    instruments: [],
+    tags: [],
+    instrumentTags: [],
+    positions: [],
+    prices: [],
+}
 
-const CHART_PALETTE = ['var(--accent)', 'var(--info)', 'var(--success)', '#a78bfa', 'var(--warning)', '#64748b']
-const fmtM = v => `₩${((v || 0) / 1_000_000).toFixed(1)}M`
+const KRW = new Intl.NumberFormat('ko-KR', {
+    style: 'currency',
+    currency: 'KRW',
+    maximumFractionDigits: 0,
+})
 
-// ── Tab switching ─────────────────────────────────────────────────────
-document.querySelectorAll('.tab-bar button').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'))
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'))
-        btn.classList.add('active')
-        document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden')
-        activeTab = btn.dataset.tab
-        updateFab()
-        if (isDesktop()) await autoSelectFirst()
+const fmtKrw = value => Number.isFinite(value) ? KRW.format(Math.round(value)) : '—'
+const fmtNum = value => Number.isFinite(value) ? Number(value).toLocaleString(undefined, { maximumFractionDigits: 4 }) : '—'
+const pct = value => Number.isFinite(value) ? `${value.toFixed(1)}%` : '—'
+const today = () => new Date().toISOString().slice(0, 10)
+
+document.querySelectorAll('.nav-tab').forEach(button => {
+    button.addEventListener('click', () => {
+        activeTab = button.dataset.tab
+        document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'))
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'))
+        button.classList.add('active')
+        document.getElementById(`tab-${activeTab}`).classList.remove('hidden')
+        render()
     })
 })
 
-// ── FAB ───────────────────────────────────────────────────────────────
-function updateFab() {
-    let fab = document.getElementById('fab')
-    if (!fab) {
-        fab = document.createElement('button')
-        fab.id = 'fab'
-        fab.className = 'fab'
-        fab.textContent = '+'
-        document.querySelector('.page-content').appendChild(fab)
-    }
-    fab.onclick = () => openDrawer(activeTab === 'transactions' ? 'transaction' : 'account', null)
-}
-
-// ── Hero ─────────────────────────────────────────────────────────────
-async function loadHero() {
-    const [
-        { data: pvRows },
-        { data: snapshots },
-        { data: accountRows }
-    ] = await Promise.all([
-        supabase.from('portfolio_view').select('market_value_krw, price_date, account_id'),
-        supabase.from('portfolio_snapshots').select('snapshot_date, total_value_krw').order('snapshot_date', { ascending: false }).limit(10),
-        supabase.from('accounts').select('id')
-    ])
-
-    const total = (pvRows ?? []).reduce((s, r) => s + (r.market_value_krw ?? 0), 0)
-    document.getElementById('total-value').textContent = total
-        ? `₩${Math.round(total).toLocaleString()}`
-        : '₩0'
-
-    const today = new Date()
-    const monthStart = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`
-    const prevSnap = (snapshots ?? []).find(s => s.snapshot_date < monthStart)
-    const deltaEl = document.getElementById('hero-delta')
-    if (deltaEl) {
-        if (prevSnap && total) {
-            const delta = total - prevSnap.total_value_krw
-            const pct = prevSnap.total_value_krw > 0
-                ? (delta / prevSnap.total_value_krw * 100).toFixed(1) : '0.0'
-            const sign = delta >= 0 ? '+' : ''
-            deltaEl.textContent = `${sign}₩${Math.round(delta).toLocaleString()} (${sign}${pct}%)`
-            deltaEl.className = `hero-delta ${delta >= 0 ? 'text-success' : 'text-danger'}`
-        } else {
-            deltaEl.textContent = ''
-        }
-    }
-
-    const accCount = accountRows?.length ?? 0
-    const posCount = pvRows?.length ?? 0
-    const lastPriceDate = (pvRows ?? []).reduce((max, r) => r.price_date > (max ?? '') ? r.price_date : max, null)
-    document.getElementById('hero-meta').textContent =
-        `${accCount}개 계좌 · ${posCount}개 종목${lastPriceDate ? ` · 마지막 가격 ${lastPriceDate}` : ''}`
-
-    const notice = document.getElementById('price-notice')
-    if (notice && pvRows?.length) {
-        const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 10)
-        const hasMissing = pvRows.some(r => !r.price_date || r.price_date < fiveDaysAgo)
-        notice.classList.toggle('hidden', !hasMissing)
-    }
-}
-
-// ── Accounts Tab ──────────────────────────────────────────────────────
-async function loadAccounts() {
-    const tab = document.getElementById('tab-accounts')
-
+async function loadState() {
     const [
         { data: accounts },
-        { data: holdingRows },
-        { data: pvRows }
+        { data: holdings },
+        { data: instruments },
+        { data: tags },
+        { data: instrumentTags },
+        { data: positions },
+        { data: prices },
     ] = await Promise.all([
-        supabase.from('accounts').select().order('id'),
-        supabase.from('holdings').select('account_id, ticker, quantity'),
-        supabase.from('portfolio_view').select('account_id, market_value_krw')
-    ])
-
-    allAccounts = accounts ?? []
-
-    if (!allAccounts.length) {
-        tab.innerHTML = '<p class="empty-state">계좌가 없습니다.</p>'
-        return
-    }
-
-    const krwByAccount = {}
-    const countByAccount = {}
-    for (const r of pvRows ?? []) {
-        krwByAccount[r.account_id] = (krwByAccount[r.account_id] ?? 0) + (r.market_value_krw ?? 0)
-    }
-    for (const r of holdingRows ?? []) {
-        if ((r.quantity ?? 0) > 0)
-            countByAccount[r.account_id] = (countByAccount[r.account_id] ?? 0) + 1
-    }
-
-    tab.innerHTML = '<ul class="card-list"></ul>'
-    const list = tab.querySelector('.card-list')
-    for (const acc of allAccounts) {
-        const totalKrw = krwByAccount[acc.id] ?? 0
-        const instrCount = countByAccount[acc.id] ?? 0
-        const li = document.createElement('li')
-        li.className = 'card-item'
-        li.dataset.id = String(acc.id)
-        li.innerHTML = `
-            <div class="card-main">
-                <div class="card-title">${acc.name}</div>
-                <div class="card-sub">${acc.broker ?? '증권사 미등록'}</div>
-            </div>
-            <div class="card-right">
-                <span class="badge ${acc.is_active ? 'badge-success' : 'badge-neutral'}">${acc.is_active ? '활성' : '비활성'}</span>
-                <div class="card-price">${totalKrw ? `₩${Math.round(totalKrw).toLocaleString()}` : '—'}</div>
-                <div class="card-sub">${instrCount}종목</div>
-            </div>`
-        li.addEventListener('click', () => openDrawer('account', acc.id))
-        list.appendChild(li)
-    }
-}
-
-// ── Drawer header reset (restores standard layout after position drawer) ──
-function resetDrawerHeader(drawer) {
-    drawer.querySelector('.drawer-header').innerHTML = `
-        <h2 class="drawer-title"></h2>
-        <button class="drawer-close">✕</button>`
-    drawer.querySelector('.drawer-close').addEventListener('click', closeDrawer)
-}
-
-// ── Account Drawer ────────────────────────────────────────────────────
-async function renderAccountDrawer(drawer, id, mode = id ? 'view' : 'create') {
-    resetDrawerHeader(drawer)
-    drawer.querySelector('.drawer-body').removeAttribute('style')
-    let acc = null
-    if (id) {
-        const { data } = await supabase.from('accounts').select().eq('id', id).single()
-        acc = data
-    }
-
-    drawer.querySelector('.drawer-title').textContent =
-        mode === 'create' ? '계좌 추가' : (acc?.name ?? '')
-
-    const body = drawer.querySelector('.drawer-body')
-    const footer = drawer.querySelector('.drawer-footer')
-
-    if (mode === 'delete-confirm') {
-        body.innerHTML = `<div class="confirm-msg">정말 <strong>${acc?.name}</strong> 계좌를 삭제할까요?<br>연결된 거래 내역도 모두 삭제됩니다.</div>`
-        footer.innerHTML = `
-            <div class="footer-row">
-                <button class="btn-ghost flex-1" id="d-cancel">취소</button>
-                <button class="btn-danger flex-1" id="d-confirm">삭제</button>
-            </div>`
-        footer.querySelector('#d-cancel').onclick = () => renderAccountDrawer(drawer, id, 'view')
-        footer.querySelector('#d-confirm').onclick = async () => {
-            await supabase.from('accounts').delete().eq('id', id)
-            closeDrawer()
-            await Promise.all([loadAccounts(), loadHero()])
-        }
-        return
-    }
-
-    const ro = mode === 'view'
-    const isActive = acc?.is_active !== false
-    const activeToggle = ro
-        ? `<div class="toggle-group">
-            <span class="toggle-opt${isActive ? ' active' : ''}">활성</span>
-            <span class="toggle-opt${!isActive ? ' active' : ''}">비활성</span>
-           </div>`
-        : `<div class="toggle-group" id="f-active-toggle">
-            <button type="button" class="toggle-opt${isActive ? ' active' : ''}">활성</button>
-            <button type="button" class="toggle-opt${!isActive ? ' active' : ''}">비활성</button>
-           </div>`
-
-    body.innerHTML = `
-        <div class="form-group"><label>계좌명</label>
-            <input id="f-name" type="text" value="${acc?.name ?? ''}" ${ro ? 'disabled' : ''}></div>
-        <div class="form-group"><label>증권사</label>
-            <input id="f-broker" type="text" value="${acc?.broker ?? ''}" ${ro ? 'disabled' : ''}></div>
-        <div class="form-group"><label>메모</label>
-            <textarea id="f-note" rows="2" ${ro ? 'disabled' : ''}>${acc?.note ?? ''}</textarea></div>
-        <div class="form-group"><label>활성 상태</label>${activeToggle}</div>`
-
-    if (!ro) {
-        body.querySelectorAll('#f-active-toggle .toggle-opt').forEach(btn => {
-            btn.addEventListener('click', () => {
-                body.querySelectorAll('#f-active-toggle .toggle-opt').forEach(b => b.classList.remove('active'))
-                btn.classList.add('active')
-            })
-        })
-    }
-
-    if (ro) {
-        footer.innerHTML = `<div class="footer-row"><button class="btn-primary flex-1" id="d-edit">편집</button></div>`
-        footer.querySelector('#d-edit').onclick = () => renderAccountDrawer(drawer, id, 'edit')
-    } else {
-        footer.innerHTML = `
-            <div class="footer-row">
-                ${mode === 'edit' ? `<button class="btn-danger-ghost" id="d-delete">삭제</button>` : ''}
-                <button class="btn-ghost flex-1" id="d-cancel">취소</button>
-                <button class="btn-primary flex-1" id="d-save">저장</button>
-            </div>`
-        if (mode === 'edit') {
-            footer.querySelector('#d-delete').onclick = () => renderAccountDrawer(drawer, id, 'delete-confirm')
-        }
-        footer.querySelector('#d-cancel').onclick = () =>
-            mode === 'create' ? closeDrawer() : renderAccountDrawer(drawer, id, 'view')
-        footer.querySelector('#d-save').onclick = async () => {
-            const payload = {
-                name: body.querySelector('#f-name').value.trim(),
-                broker: body.querySelector('#f-broker').value.trim() || null,
-                note: body.querySelector('#f-note').value.trim() || null,
-                is_active: body.querySelector('#f-active-toggle .toggle-opt.active')?.textContent.trim() === '활성',
-            }
-            const { error } = mode === 'create'
-                ? await supabase.from('accounts').insert(payload)
-                : await supabase.from('accounts').update(payload).eq('id', id)
-            if (error) { alert(error.message); return }
-            closeDrawer()
-            await loadAccounts()
-        }
-    }
-}
-
-// ── Transactions Tab ──────────────────────────────────────────────────
-async function loadTransactions(append = false) {
-    if (!append) {
-        txOffset = 0
-        txHasMore = true
-    }
-
-    const tab = document.getElementById('tab-transactions')
-
-    if (!allAccounts.length) {
-        const { data } = await supabase.from('accounts').select('id, name').order('id')
-        allAccounts = data ?? []
-    }
-    if (!allInstruments.length) {
-        const { data } = await supabase.from('instruments').select('id, ticker, display_name, currency').neq('instrument_type', 'fx').order('display_name')
-        allInstruments = data ?? []
-    }
-    if (!allTags.length) {
-        const { data } = await supabase.from('tags').select('id, name, color').order('sort_order')
-        allTags = data ?? []
-    }
-
-    let query = supabase
-        .from('transactions')
-        .select('*, instruments(display_name, currency, instrument_tags(tag_id, tags(name, color))), accounts(name)')
-        .order('trade_date', { ascending: false })
-        .order('created_at', { ascending: false })
-        .range(txOffset, txOffset + TX_PAGE - 1)
-
-    if (txFilters.tag_id) {
-        const { data: tagged } = await supabase
-            .from('instrument_tags')
-            .select('ticker')
-            .eq('tag_id', txFilters.tag_id)
-        const tickers = (tagged ?? []).map(r => r.ticker)
-        if (!tickers.length) {
-            renderEmptyTransactions(tab, append)
-            return
-        }
-        query = query.in('ticker', tickers)
-    }
-
-    const { data: txs } = await query
-    txHasMore = (txs?.length ?? 0) === TX_PAGE
-    if (!append && txs?.length) firstTxId = txs[0].id
-
-    if (!append) {
-        if (!txs?.length) {
-            tab.innerHTML = `
-                <div id="tx-filter-bar" class="filter-bar"></div>
-                <p class="empty-state">거래 내역이 없습니다.</p>`
-            renderFilterBar()
-            return
-        }
-        tab.innerHTML = `
-            <div id="tx-filter-bar" class="filter-bar"></div>
-            <ul id="tx-list" class="card-list"></ul>
-            <div id="tx-footer"></div>`
-        renderFilterBar()
-    }
-
-    renderTxCards(txs ?? [], append)
-
-    const footerEl = document.getElementById('tx-footer')
-    if (footerEl) {
-        footerEl.innerHTML = txHasMore
-            ? `<button class="load-more-btn" id="load-more">이전 거래 더 보기</button>`
-            : ''
-        document.getElementById('load-more')?.addEventListener('click', async () => {
-            txOffset += TX_PAGE
-            await loadTransactions(true)
-        })
-    }
-}
-
-function renderEmptyTransactions(tab, append) {
-    if (!append) {
-        tab.innerHTML = `
-            <div id="tx-filter-bar" class="filter-bar"></div>
-            <p class="empty-state">해당 조건의 거래가 없습니다.</p>`
-        renderFilterBar()
-    }
-}
-
-
-function renderFilterBar() {
-    const bar = document.getElementById('tx-filter-bar')
-    if (!bar) return
-
-    const tagChips = allTags.map(t =>
-        `<button class="chip chip-${t.color}${txFilters.tag_id === t.id ? ' selected' : ''}" data-fk="tag_id" data-fv="${t.id}">${t.name}</button>`
-    ).join('')
-
-    bar.innerHTML = tagChips
-        ? `<div class="filter-chips">${tagChips}</div>`
-        : ''
-
-    bar.querySelectorAll('.chip[data-fk]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            txFilters.tag_id = txFilters.tag_id === Number(btn.dataset.fv) ? null : Number(btn.dataset.fv)
-            loadTransactions()
-        })
-    })
-}
-
-function renderTxCards(txs, append) {
-    const list = document.getElementById('tx-list')
-    if (!list) return
-    if (!append) list.innerHTML = ''
-
-    let lastMonth = null
-    for (const tx of txs) {
-        const month = tx.trade_date.slice(0, 7)
-        if (month !== lastMonth) {
-            lastMonth = month
-            const header = document.createElement('li')
-            header.className = 'group-header'
-            header.textContent = month
-            list.appendChild(header)
-        }
-
-        const tags = tx.instruments?.instrument_tags?.map(t =>
-            `<span class="chip chip-${t.tags?.color ?? 'neutral'}">${t.tags?.name}</span>`
-        ).join('') ?? ''
-
-        const isSell = tx.trade_type === 'SELL'
-        const txTypeLabel = { BUY: 'BUY', SELL: 'SELL', INITIAL: '초기값' }
-        const currency = tx.instruments?.currency ?? ''
-        const amountStr = currency === 'KRW'
-            ? `₩${Math.round(tx.amount).toLocaleString()}`
-            : `${currency} ${tx.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
-
-        const pnlBadge = isSell && tx.realized_pnl_krw != null
-            ? `<span class="badge ${tx.realized_pnl_krw >= 0 ? 'badge-success' : 'badge-danger'}">${tx.realized_pnl_krw >= 0 ? '+' : ''}₩${Math.round(tx.realized_pnl_krw).toLocaleString()}</span>`
-            : tx.fee ? `<span class="muted" style="font-size:11px">수수료 ${tx.fee}</span>` : ''
-
-        const li = document.createElement('li')
-        li.className = 'card-item'
-        li.dataset.id = String(tx.id)
-        li.innerHTML = `
-            <div class="card-main" style="width:100%">
-                <div style="display:flex;justify-content:space-between;align-items:baseline">
-                    <span class="card-sub">${tx.trade_date} · <strong>${txTypeLabel[tx.trade_type] ?? tx.trade_type}</strong></span>
-                    <span class="card-price">${amountStr}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:4px">
-                    <div>
-                        <div class="card-title" style="font-size:13px">${tx.instruments?.display_name ?? tx.ticker} · ${tx.accounts?.name ?? ''}</div>
-                        <div class="card-chips" style="margin-top:2px">${tags}</div>
-                    </div>
-                    <div style="text-align:right;font-size:12px;color:var(--muted)">
-                        <div>${tx.quantity} × ${tx.price}</div>
-                        <div style="margin-top:2px">${pnlBadge}</div>
-                    </div>
-                </div>
-            </div>`
-        li.addEventListener('click', () => openDrawer('transaction', tx.id))
-        list.appendChild(li)
-    }
-}
-
-// ── Positions Tab ─────────────────────────────────────────────────────
-async function loadPositions() {
-    const tab = document.getElementById('tab-positions')
-
-    if (!allTags.length) {
-        const { data } = await supabase.from('tags').select('id, name, color').order('sort_order')
-        allTags = data ?? []
-    }
-
-    const [{ data: pvRows }, { data: instrTags }] = await Promise.all([
+        supabase.from('accounts').select('*').order('name'),
+        supabase.from('holdings').select('*, accounts(name), instruments(display_name, currency, instrument_type)').order('account_id'),
+        supabase.from('instruments').select('*').order('display_name'),
+        supabase.from('tags').select('*').order('sort_order'),
+        supabase.from('instrument_tags').select('ticker, tag_id, tags(id, name, color)'),
         supabase.from('portfolio_view').select('*'),
-        supabase.from('instrument_tags').select('ticker, tags(id, name, color)')
+        supabase.from('holding_prices_daily').select('ticker, price_date, close_price, source').order('price_date', { ascending: false }),
     ])
 
-    if (!pvRows?.length) {
+    state = {
+        accounts: accounts ?? [],
+        holdings: holdings ?? [],
+        instruments: instruments ?? [],
+        tags: tags ?? [],
+        instrumentTags: instrumentTags ?? [],
+        positions: positions ?? [],
+        prices: latestPrices(prices ?? []),
+    }
+}
+
+function latestPrices(rows) {
+    const seen = new Set()
+    const result = []
+    for (const row of rows) {
+        if (row.source === 'holiday' || seen.has(row.ticker)) continue
+        seen.add(row.ticker)
+        result.push(row)
+    }
+    return result
+}
+
+function totalValue() {
+    return state.positions.reduce((sum, row) => sum + (row.market_value_krw ?? 0), 0)
+}
+
+function tagsForTicker(ticker) {
+    return state.instrumentTags
+        .filter(row => row.ticker === ticker && row.tags)
+        .map(row => row.tags)
+}
+
+function tagNames(ticker) {
+    const tags = tagsForTicker(ticker).map(tag => tag.name)
+    return tags.length ? tags.join(', ') : '태그 없음'
+}
+
+function aggregateByTicker() {
+    const map = new Map()
+    for (const pos of state.positions) {
+        const prev = map.get(pos.ticker) ?? {
+            ticker: pos.ticker,
+            display_name: pos.display_name,
+            currency: pos.currency,
+            quantity: 0,
+            market_value_krw: 0,
+            unrealized_pnl_krw: 0,
+            accounts: [],
+        }
+        prev.quantity += pos.quantity ?? 0
+        prev.market_value_krw += pos.market_value_krw ?? 0
+        prev.unrealized_pnl_krw += pos.unrealized_pnl_krw ?? 0
+        prev.accounts.push(pos)
+        map.set(pos.ticker, prev)
+    }
+    return [...map.values()].sort((a, b) => b.market_value_krw - a.market_value_krw)
+}
+
+function aggregateByAccount() {
+    return state.accounts.map(account => {
+        const rows = state.positions.filter(pos => pos.account_id === account.id)
+        return {
+            ...account,
+            market_value_krw: rows.reduce((sum, pos) => sum + (pos.market_value_krw ?? 0), 0),
+            count: rows.length,
+        }
+    }).sort((a, b) => b.market_value_krw - a.market_value_krw)
+}
+
+function aggregateByTag() {
+    const map = new Map()
+    for (const pos of state.positions) {
+        const tags = tagsForTicker(pos.ticker)
+        for (const tag of tags) {
+            const prev = map.get(tag.id) ?? { ...tag, market_value_krw: 0 }
+            prev.market_value_krw += pos.market_value_krw ?? 0
+            map.set(tag.id, prev)
+        }
+    }
+    return [...map.values()].sort((a, b) => b.market_value_krw - a.market_value_krw)
+}
+
+function render() {
+    renderHero()
+    if (activeTab === 'overview') renderOverview()
+    if (activeTab === 'accounts') renderAccounts()
+    if (activeTab === 'instruments') renderInstruments()
+    if (activeTab === 'settings') renderSettings()
+}
+
+function renderHero() {
+    const total = totalValue()
+    const lastDate = state.prices.reduce((max, row) => row.price_date > max ? row.price_date : max, '')
+    document.getElementById('total-value').textContent = fmtKrw(total)
+    document.getElementById('hero-meta').textContent =
+        `${state.accounts.length}개 계좌 · ${aggregateByTicker().length}개 통합 종목${lastDate ? ` · 가격 ${lastDate}` : ''}`
+    document.getElementById('hero-delta').textContent = ''
+}
+
+function renderOverview() {
+    const tab = document.getElementById('tab-overview')
+    const total = totalValue()
+    const tickers = aggregateByTicker()
+    const tags = aggregateByTag()
+    const accounts = aggregateByAccount()
+
+    if (!tickers.length) {
         tab.innerHTML = `
-            <p class="empty-state">보유 종목이 없습니다.</p>
-            <div style="text-align:center;padding:0 16px 16px">
-                <button class="btn-primary" id="goto-tx">거래 추가</button>
-            </div>`
-        tab.querySelector('#goto-tx')?.addEventListener('click', () => {
-            document.querySelector('[data-tab="transactions"]').click()
-        })
+            <p class="empty-state">아직 보유 항목이 없습니다. 계좌와 종목을 만든 뒤 계좌 메뉴에서 보유를 추가하세요.</p>`
         return
     }
-
-    tagsByTickerMap = {}
-    for (const it of instrTags ?? []) {
-        if (!tagsByTickerMap[it.ticker]) tagsByTickerMap[it.ticker] = []
-        tagsByTickerMap[it.ticker].push(it.tags)
-    }
-
-    positionsTotalKrw = pvRows.reduce((s, r) => s + (r.market_value_krw ?? 0), 0)
-    allPositions = [...pvRows].sort((a, b) => {
-        if (a.account_id !== b.account_id) return a.account_id - b.account_id
-        return (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0)
-    })
 
     tab.innerHTML = `
-        <div id="pos-filter-bar" class="filter-bar" style="padding:8px 16px 4px"></div>
-        <div id="pos-chart-area" style="padding:0 16px 8px"></div>
-        <ul id="pos-list" class="card-list"></ul>`
-
-    renderPositionsView()
-}
-
-function renderPositionsView() {
-    const filterBar = document.getElementById('pos-filter-bar')
-    const chartArea = document.getElementById('pos-chart-area')
-    const list = document.getElementById('pos-list')
-    if (!filterBar || !chartArea || !list) return
-
-    const filteredPositions = posTagFilters.size === 0
-        ? allPositions
-        : allPositions.filter(pos => {
-            const posTags = (tagsByTickerMap[pos.ticker] ?? []).map(t => t?.id)
-            for (const tagId of posTagFilters) {
-                if (!posTags.includes(tagId)) return false
-            }
-            return true
-        })
-
-    // Tag pills — only show tags present in at least one position
-    const tagsInPositions = new Set()
-    for (const pos of allPositions) {
-        for (const t of tagsByTickerMap[pos.ticker] ?? []) {
-            if (t?.id) tagsInPositions.add(t.id)
-        }
-    }
-    const tagPills = allTags
-        .filter(t => tagsInPositions.has(t.id))
-        .map(t => `<button class="chip chip-${t.color}${posTagFilters.has(t.id) ? ' selected' : ''}" data-tag-id="${t.id}">${t.name}</button>`)
-        .join('')
-
-    filterBar.innerHTML = tagPills
-        ? `<div class="filter-chips">${tagPills}</div>`
-        : ''
-
-    filterBar.querySelectorAll('.chip[data-tag-id]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = Number(btn.dataset.tagId)
-            if (posTagFilters.has(id)) posTagFilters.delete(id)
-            else posTagFilters.add(id)
-            renderPositionsView()
-        })
-    })
-
-    // Composition bar chart
-    const filteredTotal = filteredPositions.reduce((s, p) => s + (p.market_value_krw ?? 0), 0)
-    if (filteredPositions.length && filteredTotal > 0) {
-        const segments = filteredPositions.map((pos, i) => {
-            const w = ((pos.market_value_krw ?? 0) / filteredTotal * 100).toFixed(2)
-            const color = CHART_PALETTE[i % CHART_PALETTE.length]
-            const posIdx = allPositions.indexOf(pos)
-            return { pos, w: Number(w), color, posIdx }
-        })
-
-        const headingTitle = posTagFilters.size === 0 ? '전체 자산 구성' : '선택 태그 자산 구성'
-        const metaText = posTagFilters.size === 0
-            ? `태그 미선택 · ${filteredPositions.length}종목`
-            : `${[...posTagFilters].map(id => allTags.find(t => t.id === id)?.name).filter(Boolean).join(' + ')} · ${filteredPositions.length}종목`
-
-        const barSegments = segments.map(({ pos, w, color, posIdx }) =>
-            `<span style="width:${w}%;background:${color}" title="${pos.display_name} ${w}%" data-pos-idx="${posIdx}"></span>`
-        ).join('')
-
-        const legendItems = segments.map(({ pos, w, color, posIdx }) =>
-            `<button class="leg" data-pos-idx="${posIdx}">
-                <span class="dot" style="background:${color}"></span>
-                <span class="name">${pos.display_name}</span>
-                <span class="pct">${w}%</span>
-                <span class="amt">${fmtM(pos.market_value_krw)}</span>
-            </button>`
-        ).join('')
-
-        chartArea.innerHTML = `
-            <div class="composition">
-                <div class="composition-head">
-                    <div>
-                        <h2>${headingTitle}</h2>
-                        <p>${metaText}</p>
+        ${renderComposition('종목 비중', tickers, row => row.display_name ?? row.ticker, total)}
+        ${renderComposition('태그 비중', tags, row => row.name, total)}
+        ${renderComposition('계좌 비중', accounts, row => row.name, total)}
+        <ul class="card-list">
+            ${tickers.map(row => `
+                <li class="card-item" data-ticker="${row.ticker}">
+                    <div class="card-main">
+                        <div class="card-title">${row.display_name ?? row.ticker}</div>
+                        <div class="card-sub">${row.ticker} · ${row.currency ?? ''} · ${tagNames(row.ticker)}</div>
                     </div>
-                </div>
-                <div class="comp-bar">${barSegments}</div>
-                <div class="comp-legend">${legendItems}</div>
-            </div>`
+                    <div class="card-right">
+                        <span class="badge badge-neutral">${pct(total ? row.market_value_krw / total * 100 : NaN)}</span>
+                        <div class="card-price">${fmtKrw(row.market_value_krw)}</div>
+                        <div class="card-sub">${fmtNum(row.quantity)}주</div>
+                    </div>
+                </li>
+            `).join('')}
+        </ul>`
 
-        chartArea.querySelectorAll('[data-pos-idx]').forEach(el => {
-            el.addEventListener('click', () => openPositionDrawer(Number(el.dataset.posIdx)))
-        })
-    } else {
-        chartArea.innerHTML = ''
-    }
-
-    // Position cards
-    list.innerHTML = ''
-    if (!filteredPositions.length) {
-        const li = document.createElement('li')
-        li.innerHTML = '<p class="empty-state">필터에 맞는 종목이 없습니다.</p>'
-        list.appendChild(li)
-        return
-    }
-
-    let lastAccountId = null
-    for (const pos of filteredPositions) {
-        if (pos.account_id !== lastAccountId) {
-            lastAccountId = pos.account_id
-            const header = document.createElement('li')
-            header.className = 'group-header'
-            header.textContent = pos.account_name ?? `계좌 ${pos.account_id}`
-            list.appendChild(header)
-        }
-
-        const tags = (tagsByTickerMap[pos.ticker] ?? []).map(t =>
-            `<span class="chip chip-${t?.color ?? 'neutral'}">${t?.name}</span>`
-        ).join('')
-
-        const pnlPct = pos.avg_price && pos.close_price
-            ? ((pos.close_price - pos.avg_price) / pos.avg_price * 100).toFixed(1)
-            : null
-        const pnlClass = pnlPct == null ? 'badge-neutral' : (Number(pnlPct) >= 0 ? 'badge-success' : 'badge-danger')
-        const pnlText = pnlPct == null ? '—' : `${Number(pnlPct) >= 0 ? '+' : ''}${pnlPct}%`
-
-        const li = document.createElement('li')
-        li.className = 'card-item'
-        li.innerHTML = `
-            <div class="card-main">
-                <div class="card-title">${pos.display_name}</div>
-                <div class="card-sub">${pos.ticker} · ${pos.currency}</div>
-                <div class="card-chips">${tags}</div>
-            </div>
-            <div class="card-right">
-                <span class="badge ${pnlClass}">${pnlText}</span>
-                <div class="card-price">${pos.market_value_krw ? `₩${Math.round(pos.market_value_krw).toLocaleString()}` : '—'}</div>
-                <div class="card-sub">${pos.quantity} · ${pos.avg_price?.toLocaleString()}</div>
-            </div>`
-        const posIdx = allPositions.indexOf(pos)
-        li.dataset.posIdx = String(posIdx)
-        li.addEventListener('click', () => openPositionDrawer(posIdx))
-        list.appendChild(li)
-    }
+    tab.querySelectorAll('[data-ticker]').forEach(item => {
+        item.addEventListener('click', () => openTickerDrawer(item.dataset.ticker))
+    })
 }
 
-// ── Chart helpers ─────────────────────────────────────────────────────
-function weekKey(dateStr) {
-    const d = new Date(dateStr)
-    const day = d.getDay() || 7
-    d.setDate(d.getDate() - day + 1)
-    return d.toISOString().slice(0, 10)
-}
-
-function aggregatePrices(prices, resolution) {
-    if (resolution === 'daily') return prices
-    const grouped = new Map()
-    for (const p of prices) {
-        const key = resolution === 'weekly' ? weekKey(p.price_date) : p.price_date.slice(0, 7)
-        grouped.set(key, p)
-    }
-    return [...grouped.values()]
-}
-
-function getResolution(range) {
-    if (range === '1M') return 'daily'
-    if (range === '3M' || range === '6M') return 'weekly'
-    return 'monthly' // 1Y, ALL
-}
-
-// ── Position price chart ──────────────────────────────────────────────
-async function renderPositionChart(container, pos, range) {
-    container.innerHTML = '<p class="empty-state" style="padding:8px 0;font-size:12px">로딩 중...</p>'
-
-    const now = new Date()
-    let since = null
-    if (range === '1M') since = new Date(now - 30 * 86400000).toISOString().slice(0, 10)
-    else if (range === '3M') since = new Date(now - 90 * 86400000).toISOString().slice(0, 10)
-    else if (range === '6M') since = new Date(now - 180 * 86400000).toISOString().slice(0, 10)
-    else if (range === '1Y') since = new Date(now - 365 * 86400000).toISOString().slice(0, 10)
-
-    let priceQuery = supabase
-        .from('holding_prices_daily')
-        .select('price_date, close_price, source')
-        .eq('ticker', pos.ticker)
-        .order('price_date')
-    if (since) priceQuery = priceQuery.gte('price_date', since)
-
-    const [{ data: rawPrices }, { data: txs }] = await Promise.all([
-        priceQuery,
-        supabase.from('transactions')
-            .select('trade_date, trade_type, price, quantity')
-            .eq('ticker', pos.ticker)
-            .eq('account_id', pos.account_id)
-            .order('trade_date')
-    ])
-
-    const prices = (rawPrices ?? []).filter(p => p.source !== 'holiday' && p.close_price != null)
-    if (!prices.length) {
-        container.innerHTML = '<p class="empty-state" style="padding:8px 0;font-size:12px">가격 데이터 없음</p>'
-        return
-    }
-
-    const resolution = getResolution(range)
-    const displayPrices = aggregatePrices(prices, resolution)
-
-    const W = 400, H = 140
-    const n = displayPrices.length
-    const currency = pos.currency ?? 'KRW'
-
-    const vals = displayPrices.map(p => p.close_price)
-    const minP = Math.min(...vals)
-    const maxP = Math.max(...vals)
-    const priceRange = Math.max(1, maxP - minP)
-
-    const xFn = i => 20 + (n > 1 ? i * 366 / (n - 1) : 183)
-    const yFn = v => 115 - ((v - minP) / priceRange) * 82
-
-    const pts = displayPrices.map((p, i) => `${xFn(i).toFixed(1)},${yFn(p.close_price).toFixed(1)}`)
-
-    const fmtP = p => {
-        if (currency === 'KRW') return p >= 10000 ? `${(p / 1000).toFixed(0)}K` : p.toFixed(0)
-        return p >= 1000 ? `$${(p / 1000).toFixed(1)}K` : `$${p.toFixed(2)}`
-    }
-
-    const gridLines = [35, 75, 115].map(y =>
-        `<line class="grid" x1="0" y1="${y}" x2="${W}" y2="${y}"/>`
-    ).join('')
-
-    const axisLabels = `
-        <text class="ytx" x="395" y="32" text-anchor="end">${fmtP(maxP)}</text>
-        <text class="ytx" x="395" y="118" text-anchor="end">${fmtP(minP)}</text>`
-
-    // BUY/SELL circles at price coordinates
-    const dateIndexMap = {}
-    displayPrices.forEach((p, i) => { dateIndexMap[p.price_date] = i })
-    const txInRange = (txs ?? []).filter(tx => !since || tx.trade_date >= since)
-    const toleranceMs = resolution === 'monthly' ? 45 * 86400000 : resolution === 'weekly' ? 14 * 86400000 : 7 * 86400000
-
-    const findNearestPriceIdx = (date) => {
-        const exact = dateIndexMap[date]
-        if (exact != null) return exact
-        const txTime = new Date(date).getTime()
-        let best = null, minDiff = Infinity
-        for (let i = 0; i < displayPrices.length; i++) {
-            const diff = Math.abs(new Date(displayPrices[i].price_date).getTime() - txTime)
-            if (diff < minDiff) { minDiff = diff; best = i }
-        }
-        return minDiff <= toleranceMs ? best : null
-    }
-
-    const markers = txInRange.map(tx => {
-        const idx = findNearestPriceIdx(tx.trade_date)
-        if (idx == null) return ''
-        const cx = xFn(idx).toFixed(1)
-        const cy = yFn(displayPrices[idx].close_price).toFixed(1)
-        const cls = tx.trade_type === 'SELL' ? 'sell' : 'buy'
-        return `<circle class="${cls}" cx="${cx}" cy="${cy}" r="5"><title>${tx.trade_date} ${tx.trade_type} ${tx.quantity}주 @${tx.price}</title></circle>`
+function renderComposition(title, rows, labelFn, total) {
+    if (!rows.length || !total) return ''
+    const topRows = rows.filter(row => (row.market_value_krw ?? 0) > 0).slice(0, 8)
+    if (!topRows.length) return ''
+    const colors = ['var(--accent)', 'var(--info)', 'var(--success)', '#a78bfa', 'var(--warning)', '#94a3b8', '#f97316', '#14b8a6']
+    const segments = topRows.map((row, index) => {
+        const width = row.market_value_krw / total * 100
+        return `<span style="width:${width}%;background:${colors[index % colors.length]}"></span>`
     }).join('')
+    const legend = topRows.map((row, index) => `
+        <div class="leg">
+            <span class="dot" style="background:${colors[index % colors.length]}"></span>
+            <span class="name">${labelFn(row)}</span>
+            <span class="pct">${pct(row.market_value_krw / total * 100)}</span>
+            <span class="amt">${fmtKrw(row.market_value_krw)}</span>
+        </div>
+    `).join('')
 
-    const areaPath = `M${pts.join(' L')} L${xFn(n - 1).toFixed(1)},130 L20,130 Z`
-    const linePath = `M${pts.join(' L')}`
-
-    container.innerHTML = `
-        <div class="chart">
-            <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-                ${gridLines}
-                <path class="area" d="${areaPath}"/>
-                <path class="line" d="${linePath}"/>
-                ${axisLabels}
-                ${markers}
-            </svg>
-            <div class="chart-axis">
-                <span>${displayPrices[0].price_date}</span>
-                <span class="cur">${resolution === 'monthly' ? '월봉' : resolution === 'weekly' ? '주봉' : '일봉'} · ${fmtP(vals[n - 1])}</span>
-                <span>${displayPrices[n - 1].price_date}</span>
+    return `
+        <section class="composition">
+            <div class="composition-head">
+                <div>
+                    <h2>${title}</h2>
+                    <p>전체 평가금액 기준</p>
+                </div>
             </div>
-            <div class="chart-legend">
-                <span><span class="m buy"></span>BUY</span>
-                <span><span class="m sell"></span>SELL</span>
-                <span><span class="m line"></span>종가</span>
-            </div>
-        </div>`
+            <div class="comp-bar">${segments}</div>
+            <div class="comp-legend">${legend}</div>
+        </section>`
 }
 
-// ── Position Drawer ───────────────────────────────────────────────────
-async function openPositionDrawer(idx) {
-    const drawer = getOrCreateDrawer()
-    document.querySelector('.drawer-overlay').classList.add('open')
-    drawer.classList.add('open')
-    highlightCard('tab-positions', 'data-pos-idx', idx)
-    await renderPositionDrawer(drawer, idx)
-}
-
-async function renderPositionDrawer(drawer, idx) {
-    const pos = allPositions[idx]
-    const n = allPositions.length
-    const weight = positionsTotalKrw ? ((pos.market_value_krw ?? 0) / positionsTotalKrw * 100).toFixed(1) : 0
-    const pnlKrw = pos.unrealized_pnl_krw
-
-    // Custom header with prev/next
-    drawer.querySelector('.drawer-header').innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-            <button id="d-prev" style="background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:0 4px" ${idx === 0 ? 'disabled' : ''}>‹</button>
-            <div style="flex:1;min-width:0">
-                <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pos.display_name}</div>
-                <div style="font-size:11px;color:var(--muted)">${pos.ticker} · ${pos.account_name} · ${idx+1}/${n}</div>
-            </div>
-            <button id="d-next" style="background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:0 4px" ${idx === n-1 ? 'disabled' : ''}>›</button>
+function renderAccounts() {
+    const tab = document.getElementById('tab-accounts')
+    const accounts = aggregateByAccount()
+    tab.innerHTML = `
+        <div style="padding:12px 16px">
+            <button class="btn-primary" id="add-account">계좌 추가</button>
         </div>
-        <button class="drawer-close" style="margin-left:8px">✕</button>`
-    drawer.querySelector('.drawer-close').addEventListener('click', closeDrawer)
-    drawer.querySelector('#d-prev')?.addEventListener('click', () => { if (idx > 0) renderPositionDrawer(drawer, idx-1) })
-    drawer.querySelector('#d-next')?.addEventListener('click', () => { if (idx < n-1) renderPositionDrawer(drawer, idx+1) })
-
-    const body = drawer.querySelector('.drawer-body')
-    body.style.cssText = 'padding:0;display:flex;flex-direction:column;overflow:hidden'
-    drawer.querySelector('.drawer-footer').innerHTML = ''
-
-    // Fetch recent transactions
-    const { data: txs } = await supabase
-        .from('transactions')
-        .select('id, trade_date, trade_type, quantity, price, amount, realized_pnl_krw')
-        .eq('ticker', pos.ticker)
-        .eq('account_id', pos.account_id)
-        .order('trade_date', { ascending: false })
-        .limit(30)
-
-    const txFeedHtml = (txs ?? []).map(tx => {
-        const isSell = tx.trade_type === 'SELL'
-        const pnl = isSell && tx.realized_pnl_krw != null
-            ? `<span class="badge ${tx.realized_pnl_krw >= 0 ? 'badge-success' : 'badge-danger'}" style="font-size:10px">${tx.realized_pnl_krw >= 0 ? '+' : ''}₩${Math.round(tx.realized_pnl_krw).toLocaleString()}</span>`
-            : ''
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div>
-                <span style="font-size:12px;color:var(--muted)">${tx.trade_date} · <strong>${tx.trade_type}</strong></span>
-                <div style="font-size:12px;color:var(--muted)">${tx.quantity} × ${tx.price}</div>
-            </div>
-            <div style="text-align:right">
-                <div style="font-size:13px">${(tx.amount ?? 0).toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-                ${pnl}
-            </div>
-        </div>`
-    }).join('')
-
-    const txHasMoreFeed = (txs?.length ?? 0) === 30
-
-    body.innerHTML = `
-        <div class="pos-upper">
-            <div class="stat-row">
-                <div class="stat-item">
-                    <div class="stat-label">평가금액</div>
-                    <div class="stat-value">${pos.market_value_krw ? `₩${Math.round(pos.market_value_krw).toLocaleString()}` : '—'}</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">미실현 손익</div>
-                    <div class="stat-value ${pnlKrw != null ? (pnlKrw >= 0 ? 'text-success' : 'text-danger') : ''}">${
-                        pnlKrw != null ? `${pnlKrw >= 0 ? '+' : ''}₩${Math.round(pnlKrw).toLocaleString()}` : '—'}</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">비중</div>
-                    <div class="stat-value">${weight}%</div>
-                </div>
-            </div>
-
-            <div class="chart-section">
-                <div style="margin-bottom:12px">
-                    <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px">${pos.currency === 'USD' ? '매매 타임라인 (USD)' : '매매 타임라인'}</div>
-                    <div class="seg-control" id="pos-range-ctrl">
-                        <button data-range="1M">1M</button>
-                        <button data-range="3M">3M</button>
-                        <button data-range="6M">6M</button>
-                        <button data-range="1Y">1Y</button>
-                        <button data-range="ALL" class="active">ALL</button>
+        <ul class="card-list">
+            ${accounts.map(account => `
+                <li class="card-item" data-account="${account.id}">
+                    <div class="card-main">
+                        <div class="card-title">${account.name}</div>
+                        <div class="card-sub">${account.broker ?? '증권사 없음'} · ${account.count}개 보유</div>
                     </div>
-                </div>
-                <div id="pos-chart-container"></div>
-            </div>
-        </div>
-
-        <div class="pos-tx-section">
-            <div class="pos-tx-label">거래 기록</div>
-            <div id="tx-feed">${txFeedHtml || '<p class="empty-state" style="padding:8px 0">거래 내역 없음</p>'}</div>
-            ${txHasMoreFeed ? `<button class="load-more-btn" id="d-more-tx" style="font-size:12px" data-offset="30">이전 거래 더 보기</button>` : ''}
-        </div>`
-
-    // Chart range toggle
-    let currentRange = 'ALL'
-    const chartContainer = body.querySelector('#pos-chart-container')
-    await renderPositionChart(chartContainer, pos, currentRange)
-
-    body.querySelector('#pos-range-ctrl')?.querySelectorAll('button').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            if (btn.dataset.range === currentRange) return
-            currentRange = btn.dataset.range
-            body.querySelectorAll('#pos-range-ctrl button').forEach(b => b.classList.remove('active'))
-            btn.classList.add('active')
-            await renderPositionChart(chartContainer, pos, currentRange)
-        })
-    })
-
-    body.querySelector('#d-more-tx')?.addEventListener('click', async function() {
-        const offset = Number(this.dataset.offset)
-        const { data: moreTxs } = await supabase
-            .from('transactions')
-            .select('id, trade_date, trade_type, quantity, price, amount, realized_pnl_krw')
-            .eq('ticker', pos.ticker)
-            .eq('account_id', pos.account_id)
-            .order('trade_date', { ascending: false })
-            .range(offset, offset + 29)
-        const feedEl = body.querySelector('#tx-feed')
-        for (const tx of moreTxs ?? []) {
-            const isSell = tx.trade_type === 'SELL'
-            const pnl = isSell && tx.realized_pnl_krw != null
-                ? `<span class="badge ${tx.realized_pnl_krw >= 0 ? 'badge-success' : 'badge-danger'}" style="font-size:10px">${tx.realized_pnl_krw >= 0 ? '+' : ''}₩${Math.round(tx.realized_pnl_krw).toLocaleString()}</span>`
-                : ''
-            feedEl.insertAdjacentHTML('beforeend', `
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-                    <div>
-                        <span style="font-size:12px;color:var(--muted)">${tx.trade_date} · <strong>${tx.trade_type}</strong></span>
-                        <div style="font-size:12px;color:var(--muted)">${tx.quantity} × ${tx.price}</div>
+                    <div class="card-right">
+                        <div class="card-price">${fmtKrw(account.market_value_krw)}</div>
                     </div>
-                    <div style="text-align:right">
-                        <div style="font-size:13px">${(tx.amount ?? 0).toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-                        ${pnl}
-                    </div>
-                </div>`)
-        }
-        if ((moreTxs?.length ?? 0) < 30) this.remove()
-        else this.dataset.offset = String(offset + 30)
+                </li>
+            `).join('')}
+        </ul>`
+
+    tab.querySelector('#add-account').addEventListener('click', () => openAccountDrawer(null))
+    tab.querySelectorAll('[data-account]').forEach(item => {
+        item.addEventListener('click', () => openAccountDrawer(Number(item.dataset.account)))
     })
 }
 
-// ── Transaction Drawer ────────────────────────────────────────────────
-async function renderTransactionDrawer(drawer, id, mode = id ? 'view' : 'create') {
-    resetDrawerHeader(drawer)
-    drawer.querySelector('.drawer-body').removeAttribute('style')
-    let tx = null
-    if (id) {
-        const { data } = await supabase
-            .from('transactions')
-            .select('*, instruments(display_name, currency), accounts(name)')
-            .eq('id', id)
-            .single()
-        tx = data
-    }
+function renderInstruments() {
+    const tab = document.getElementById('tab-instruments')
+    const instruments = state.instruments.filter(item => item.instrument_type !== 'fx')
+    tab.innerHTML = `
+        <div style="padding:12px 16px">
+            <button class="btn-primary" id="add-instrument">종목 추가</button>
+        </div>
+        <ul class="card-list">
+            ${instruments.map(item => {
+                const price = state.prices.find(row => row.ticker === item.ticker)
+                return `
+                    <li class="card-item" data-instrument="${item.id}">
+                        <div class="card-main">
+                            <div class="card-title">${item.display_name}</div>
+                            <div class="card-sub">${item.ticker} · ${item.currency} · ${tagNames(item.ticker)}</div>
+                        </div>
+                        <div class="card-right">
+                            <div class="card-price">${price ? fmtNum(price.close_price) : '—'}</div>
+                            <div class="card-sub">${price?.price_date ?? '가격 없음'}</div>
+                        </div>
+                    </li>`
+            }).join('')}
+        </ul>`
 
-    if (!allAccounts.length) {
-        const { data } = await supabase.from('accounts').select('id, name').order('id')
-        allAccounts = data ?? []
-    }
-    if (!allInstruments.length) {
-        const { data } = await supabase.from('instruments').select('id, ticker, display_name, currency').neq('instrument_type', 'fx').order('display_name')
-        allInstruments = data ?? []
-    }
+    tab.querySelector('#add-instrument').addEventListener('click', () => openInstrumentDrawer(null))
+    tab.querySelectorAll('[data-instrument]').forEach(item => {
+        item.addEventListener('click', () => openInstrumentDrawer(Number(item.dataset.instrument)))
+    })
+}
 
-    const isSell = (tx?.trade_type ?? 'BUY') === 'SELL'
-    const isInitial = (tx?.trade_type) === 'INITIAL'
-    const typeLabel = { BUY: 'BUY', SELL: 'SELL', INITIAL: '초기값' }
-    drawer.querySelector('.drawer-title').textContent =
-        mode === 'create' ? '거래 추가' : `${tx?.trade_date ?? ''} · ${typeLabel[tx?.trade_type] ?? tx?.trade_type ?? ''}`
+function renderSettings() {
+    const tab = document.getElementById('tab-settings')
+    const fx = state.instruments.filter(item => item.instrument_type === 'fx')
+    tab.innerHTML = `
+        <div style="padding:12px 16px;display:grid;gap:8px">
+            <button class="btn-primary" id="sync-prices">가격 동기화</button>
+            <button class="btn-ghost" id="add-tag">태그 추가</button>
+        </div>
+        <ul class="card-list">
+            <li class="group-header">태그</li>
+            ${state.tags.map(tag => `
+                <li class="card-item" data-tag="${tag.id}">
+                    <div class="card-main">
+                        <div class="card-title">${tag.name}</div>
+                        <div class="card-sub">${tag.color ?? 'neutral'}</div>
+                    </div>
+                </li>
+            `).join('')}
+            <li class="group-header">환율</li>
+            ${fx.map(item => {
+                const price = state.prices.find(row => row.ticker === item.ticker)
+                return `
+                    <li class="card-item" data-instrument="${item.id}">
+                        <div class="card-main">
+                            <div class="card-title">${item.display_name}</div>
+                            <div class="card-sub">${item.ticker}</div>
+                        </div>
+                        <div class="card-right">
+                            <div class="card-price">${price ? fmtNum(price.close_price) : '—'}</div>
+                            <div class="card-sub">${price?.price_date ?? '가격 없음'}</div>
+                        </div>
+                    </li>`
+            }).join('')}
+        </ul>`
 
-    const body = drawer.querySelector('.drawer-body')
-    const footer = drawer.querySelector('.drawer-footer')
+    tab.querySelector('#sync-prices').addEventListener('click', syncPrices)
+    tab.querySelector('#add-tag').addEventListener('click', () => openTagDrawer(null))
+    tab.querySelectorAll('[data-tag]').forEach(item => {
+        item.addEventListener('click', () => openTagDrawer(Number(item.dataset.tag)))
+    })
+    tab.querySelectorAll('[data-instrument]').forEach(item => {
+        item.addEventListener('click', () => openInstrumentDrawer(Number(item.dataset.instrument)))
+    })
+}
 
-    if (mode === 'delete-confirm') {
-        body.innerHTML = `<div class="confirm-msg">이 거래를 삭제할까요?<br>Holdings가 자동으로 재계산됩니다.</div>`
-        footer.innerHTML = `
-            <div class="footer-row">
-                <button class="btn-ghost flex-1" id="d-cancel">취소</button>
-                <button class="btn-danger flex-1" id="d-confirm">삭제</button>
-            </div>`
-        footer.querySelector('#d-cancel').onclick = () => renderTransactionDrawer(drawer, id, 'view')
-        footer.querySelector('#d-confirm').onclick = async () => {
-            await supabase.from('transactions').delete().eq('id', id)
-            closeDrawer()
-            await Promise.all([loadTransactions(), loadHero()])
-        }
-        return
-    }
-
-    const ro = mode === 'view'
-    const accountOpts = allAccounts.map(a =>
-        `<option value="${a.id}"${tx?.account_id === a.id ? ' selected' : ''}>${a.name}</option>`
-    ).join('')
-    const instrOpts = allInstruments.map(i =>
-        `<option value="${i.ticker}"${tx?.ticker === i.ticker ? ' selected' : ''}>${i.display_name} (${i.ticker} · ${i.currency})</option>`
-    ).join('')
-
-    const currency = tx?.instruments?.currency ?? ''
-    const statRow = tx ? `
-        <div class="stat-row">
-            <div class="stat-item">
-                <div class="stat-label">거래금액</div>
-                <div class="stat-value">${currency === 'KRW'
-                    ? `₩${Math.round(tx.amount).toLocaleString()}`
-                    : `${tx.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">수량</div>
-                <div class="stat-value">${tx.quantity}</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">${isSell ? '실현손익' : '거래 타입'}</div>
-                <div class="stat-value ${isSell && tx.realized_pnl_krw != null
-                    ? (tx.realized_pnl_krw >= 0 ? 'text-success' : 'text-danger') : ''}">${
-                    isSell && tx.realized_pnl_krw != null
-                        ? `${tx.realized_pnl_krw >= 0 ? '+' : ''}₩${Math.round(tx.realized_pnl_krw).toLocaleString()}`
-                        : (typeLabel[tx.trade_type] ?? tx.trade_type)}</div>
-            </div>
-        </div>` : ''
-
-    body.innerHTML = `
-        ${statRow}
-        <div class="form-group"><label>거래일</label>
-            <input id="f-date" type="date" value="${tx?.trade_date ?? new Date().toISOString().slice(0,10)}" ${ro ? 'disabled' : ''}></div>
-        <div class="form-group"><label>거래 유형</label>
-            <select id="f-type" ${ro ? 'disabled' : ''}>
-                <option value="BUY"${!isSell && !isInitial ? ' selected' : ''}>BUY</option>
-                <option value="SELL"${isSell ? ' selected' : ''}>SELL</option>
-                <option value="INITIAL"${isInitial ? ' selected' : ''}>초기값</option>
-            </select></div>
-        <div class="form-group"><label>계좌</label>
-            <select id="f-account" ${ro ? 'disabled' : ''}>${accountOpts}</select></div>
-        <div class="form-group"><label>종목</label>
-            <select id="f-ticker" ${ro || mode === 'edit' ? 'disabled' : ''}><option value="">선택</option>${instrOpts}</select></div>
-        <div class="form-group"><label>통화</label>
-            <input id="f-currency" type="text" disabled value="${tx?.instruments?.currency ?? ''}"></div>
-        <div class="form-group"><label>수량</label>
-            <input id="f-qty" type="number" step="any" value="${tx?.quantity ?? ''}" ${ro ? 'disabled' : ''}></div>
-        <div class="form-group"><label>단가</label>
-            <input id="f-price" type="number" step="any" value="${tx?.price ?? ''}" ${ro ? 'disabled' : ''}></div>
-        <div class="form-group"><label>수수료</label>
-            <input id="f-fee" type="number" step="any" value="${tx?.fee ?? 0}" ${ro ? 'disabled' : ''}></div>
-        <div class="form-group"><label>거래금액 (자동)</label>
-            <input id="f-amount" type="number" step="any" value="${tx?.amount ?? ''}" ${ro ? 'disabled' : ''}></div>
-        ${isSell ? `<div class="form-group"><label>실현손익 (자동)</label>
-            <input type="text" disabled value="${tx?.realized_pnl_krw != null ? tx.realized_pnl_krw : '트리거 자동계산'}"></div>` : ''}
-        <div class="form-group"><label>메모</label>
-            <textarea id="f-note" rows="2" ${ro ? 'disabled' : ''}>${tx?.note ?? ''}</textarea></div>
-        <div id="tx-error" class="sync-result error hidden"></div>`
-
-    if (!ro) {
-        const tickerSel = body.querySelector('#f-ticker')
-        const qtyInput = body.querySelector('#f-qty')
-        const priceInput = body.querySelector('#f-price')
-        const feeInput = body.querySelector('#f-fee')
-        const amountInput = body.querySelector('#f-amount')
-        const currencyInput = body.querySelector('#f-currency')
-
-        const calcAmount = () => {
-            const q = parseFloat(qtyInput.value) || 0
-            const p = parseFloat(priceInput.value) || 0
-            const f = parseFloat(feeInput.value) || 0
-            amountInput.value = (q * p + f).toFixed(2)
-        }
-
-        tickerSel?.addEventListener('change', () => {
-            const inst = allInstruments.find(i => i.ticker === tickerSel.value)
-            currencyInput.value = inst?.currency ?? ''
-        })
-        qtyInput?.addEventListener('input', calcAmount)
-        priceInput?.addEventListener('input', calcAmount)
-        feeInput?.addEventListener('input', calcAmount)
-    }
-
-    if (ro) {
-        footer.innerHTML = `<div class="footer-row"><button class="btn-primary flex-1" id="d-edit">편집</button></div>`
-        footer.querySelector('#d-edit').onclick = () => renderTransactionDrawer(drawer, id, 'edit')
-    } else {
-        footer.innerHTML = `
-            <div class="footer-row">
-                ${mode === 'edit' ? `<button class="btn-danger-ghost" id="d-delete">삭제</button>` : ''}
-                <button class="btn-ghost flex-1" id="d-cancel">취소</button>
-                <button class="btn-primary flex-1" id="d-save">저장</button>
-            </div>`
-        if (mode === 'edit') {
-            footer.querySelector('#d-delete').onclick = () => renderTransactionDrawer(drawer, id, 'delete-confirm')
-        }
-        footer.querySelector('#d-cancel').onclick = () =>
-            mode === 'create' ? closeDrawer() : renderTransactionDrawer(drawer, id, 'view')
-        footer.querySelector('#d-save').onclick = async () => {
-            const errEl = body.querySelector('#tx-error')
-            errEl.classList.add('hidden')
-            const tickerVal = body.querySelector('#f-ticker').value
-            if (!tickerVal) { errEl.textContent = '종목을 선택하세요'; errEl.classList.remove('hidden'); return }
-            const payload = {
-                trade_date: body.querySelector('#f-date').value,
-                trade_type: body.querySelector('#f-type').value,
-                account_id: Number(body.querySelector('#f-account').value),
-                ticker: tickerVal,
-                quantity: parseFloat(body.querySelector('#f-qty').value),
-                price: parseFloat(body.querySelector('#f-price').value),
-                fee: parseFloat(body.querySelector('#f-fee').value) || 0,
-                amount: parseFloat(body.querySelector('#f-amount').value),
-                note: body.querySelector('#f-note').value.trim() || null,
-            }
-            const { error } = mode === 'create'
-                ? await supabase.from('transactions').insert(payload)
-                : await supabase.from('transactions').update(payload).eq('id', id)
-            if (error) {
-                errEl.textContent = error.message
-                errEl.classList.remove('hidden')
-                return
-            }
-            closeDrawer()
-            await Promise.all([loadTransactions(), loadHero()])
-        }
+async function syncPrices() {
+    const button = document.getElementById('sync-prices')
+    button.disabled = true
+    button.textContent = '동기화 중...'
+    try {
+        const { error } = await supabase.functions.invoke('sync-prices', { body: {} })
+        if (error) alert(error.message)
+        await refresh()
+    } finally {
+        button.disabled = false
+        button.textContent = '가격 동기화'
     }
 }
 
-// ── Drawer core ───────────────────────────────────────────────────────
-function getOrCreateDrawer() {
+function drawer() {
     if (!drawerEl) {
         const overlay = document.createElement('div')
         overlay.className = 'drawer-overlay'
         overlay.addEventListener('click', closeDrawer)
         document.body.appendChild(overlay)
 
-        drawerEl = document.createElement('div')
+        drawerEl = document.createElement('aside')
         drawerEl.className = 'drawer'
         drawerEl.innerHTML = `
             <div class="drawer-header">
                 <h2 class="drawer-title"></h2>
-                <button class="drawer-close">✕</button>
+                <button class="drawer-close">×</button>
             </div>
             <div class="drawer-body"></div>
             <div class="drawer-footer"></div>`
         drawerEl.querySelector('.drawer-close').addEventListener('click', closeDrawer)
         document.body.appendChild(drawerEl)
     }
+    document.querySelector('.drawer-overlay').classList.add('open')
+    drawerEl.classList.add('open')
     return drawerEl
 }
 
 function closeDrawer() {
-    if (isDesktop()) return
-    document.querySelector('.drawer')?.classList.remove('open')
     document.querySelector('.drawer-overlay')?.classList.remove('open')
+    drawerEl?.classList.remove('open')
 }
 
-function highlightCard(tabId, attr, val) {
-    document.querySelectorAll(`#${tabId} .card-item`).forEach(el => el.classList.remove('active'))
-    if (val != null) document.querySelector(`#${tabId} .card-item[${attr}="${val}"]`)?.classList.add('active')
+function setDrawer(title, bodyHtml, footerHtml = '') {
+    const el = drawer()
+    el.querySelector('.drawer-title').textContent = title
+    el.querySelector('.drawer-body').innerHTML = bodyHtml
+    el.querySelector('.drawer-footer').innerHTML = footerHtml
+    return el
 }
 
-async function autoSelectFirst() {
-    if (activeTab === 'accounts' && allAccounts.length) {
-        await openDrawer('account', allAccounts[0].id)
-    } else if (activeTab === 'positions' && allPositions.length) {
-        await openPositionDrawer(0)
-    } else if (activeTab === 'transactions' && firstTxId) {
-        await openDrawer('transaction', firstTxId)
-    } else {
-        const drawer = getOrCreateDrawer()
-        drawer.classList.add('open')
-        document.querySelector('.drawer-overlay').classList.add('open')
-        drawer.querySelector('.drawer-body').innerHTML = '<p class="empty-state">항목을 선택하세요.</p>'
-        drawer.querySelector('.drawer-footer').innerHTML = ''
-        resetDrawerHeader(drawer)
-        drawer.querySelector('.drawer-title').textContent = ''
+function openTickerDrawer(ticker) {
+    const row = aggregateByTicker().find(item => item.ticker === ticker)
+    if (!row) return
+    const total = totalValue()
+    const accountRows = row.accounts.map(pos => `
+        <li class="card-item" data-holding="${pos.id}">
+            <div class="card-main">
+                <div class="card-title">${pos.account_name}</div>
+                <div class="card-sub">수량 ${fmtNum(pos.quantity)} · 평단 ${fmtNum(pos.avg_price)}</div>
+            </div>
+            <div class="card-right">
+                <div class="card-price">${fmtKrw(pos.market_value_krw)}</div>
+            </div>
+        </li>
+    `).join('')
+
+    const el = setDrawer(row.display_name ?? ticker, `
+        <div class="stat-row">
+            <div class="stat-item">
+                <div class="stat-label">평가금액</div>
+                <div class="stat-value">${fmtKrw(row.market_value_krw)}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">전체 비중</div>
+                <div class="stat-value">${pct(total ? row.market_value_krw / total * 100 : NaN)}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">총 수량</div>
+                <div class="stat-value">${fmtNum(row.quantity)}</div>
+            </div>
+        </div>
+        <ul class="card-list">${accountRows}</ul>
+    `, `
+        <div class="footer-row">
+            <button class="btn-primary flex-1" id="add-holding-for-ticker">계좌 보유 추가</button>
+        </div>
+    `)
+
+    el.querySelector('#add-holding-for-ticker').addEventListener('click', () => openHoldingDrawer({ ticker }))
+    el.querySelectorAll('[data-holding]').forEach(item => {
+        item.addEventListener('click', () => openHoldingDrawer({ id: Number(item.dataset.holding) }))
+    })
+}
+
+function openAccountDrawer(id) {
+    const account = state.accounts.find(item => item.id === id)
+    const accountHoldings = id ? state.holdings.filter(row => row.account_id === id) : []
+    const title = id ? account.name : '계좌 추가'
+    const body = `
+        <div class="form-group"><label>계좌명</label><input id="account-name" value="${account?.name ?? ''}"></div>
+        <div class="form-group"><label>증권사</label><input id="account-broker" value="${account?.broker ?? ''}"></div>
+        <div class="form-group"><label>메모</label><textarea id="account-note" rows="2">${account?.note ?? ''}</textarea></div>
+        ${id ? `
+            <div class="group-header">이 계좌의 보유</div>
+            <ul class="card-list">
+                ${accountHoldings.map(row => `
+                    <li class="card-item" data-holding="${row.id}">
+                        <div class="card-main">
+                            <div class="card-title">${row.instruments?.display_name ?? row.ticker}</div>
+                            <div class="card-sub">${row.ticker} · 수량 ${fmtNum(row.quantity)} · 평단 ${fmtNum(row.avg_price)}</div>
+                        </div>
+                    </li>
+                `).join('')}
+            </ul>
+        ` : ''}`
+    const footer = `
+        <div class="footer-row">
+            ${id ? '<button class="btn-ghost flex-1" id="add-holding">보유 추가</button>' : ''}
+            <button class="btn-primary flex-1" id="save-account">저장</button>
+        </div>`
+    const el = setDrawer(title, body, footer)
+    el.querySelector('#save-account').addEventListener('click', async () => {
+        const payload = {
+            name: el.querySelector('#account-name').value.trim(),
+            broker: el.querySelector('#account-broker').value.trim() || null,
+            note: el.querySelector('#account-note').value.trim() || null,
+            is_active: true,
+        }
+        if (!payload.name) return alert('계좌명을 입력하세요.')
+        const { error } = id
+            ? await supabase.from('accounts').update(payload).eq('id', id)
+            : await supabase.from('accounts').insert(payload)
+        if (error) return alert(error.message)
+        await refresh()
+        closeDrawer()
+    })
+    el.querySelector('#add-holding')?.addEventListener('click', () => openHoldingDrawer({ account_id: id }))
+    el.querySelectorAll('[data-holding]').forEach(item => {
+        item.addEventListener('click', () => openHoldingDrawer({ id: Number(item.dataset.holding) }))
+    })
+}
+
+function openHoldingDrawer({ id = null, account_id = null, ticker = '' } = {}) {
+    if (!state.accounts.length) {
+        alert('계좌를 먼저 추가하세요.')
+        return
     }
-}
-
-async function openDrawer(type, id) {
-    const drawer = getOrCreateDrawer()
-    document.querySelector('.drawer-overlay').classList.add('open')
-    drawer.classList.add('open')
-    if (type === 'account') {
-        highlightCard('tab-accounts', 'data-id', id)
-        await renderAccountDrawer(drawer, id)
-    } else if (type === 'transaction') {
-        highlightCard('tab-transactions', 'data-id', id)
-        await renderTransactionDrawer(drawer, id)
+    if (!state.instruments.some(item => item.instrument_type !== 'fx')) {
+        alert('종목을 먼저 추가하세요.')
+        return
     }
+
+    const holding = state.holdings.find(item => item.id === id)
+    const accountOptions = state.accounts.map(account =>
+        `<option value="${account.id}"${(holding?.account_id ?? account_id) === account.id ? ' selected' : ''}>${account.name}</option>`
+    ).join('')
+    const instrumentOptions = state.instruments
+        .filter(item => item.instrument_type !== 'fx')
+        .map(item => `<option value="${item.ticker}"${(holding?.ticker ?? ticker) === item.ticker ? ' selected' : ''}>${item.display_name} (${item.ticker})</option>`)
+        .join('')
+    const el = setDrawer(id ? '보유 수정' : '보유 추가', `
+        <div class="form-group"><label>계좌</label><select id="holding-account">${accountOptions}</select></div>
+        <div class="form-group"><label>종목</label><select id="holding-ticker">${instrumentOptions}</select></div>
+        <div class="form-group"><label>수량</label><input id="holding-quantity" type="number" step="any" value="${holding?.quantity ?? ''}"></div>
+        <div class="form-group"><label>평균 단가</label><input id="holding-avg" type="number" step="any" value="${holding?.avg_price ?? ''}"></div>
+        <div class="form-group"><label>메모</label><textarea id="holding-note" rows="2">${holding?.note ?? ''}</textarea></div>
+    `, `
+        <div class="footer-row">
+            ${id ? '<button class="btn-danger-ghost" id="delete-holding">삭제</button>' : ''}
+            <button class="btn-primary flex-1" id="save-holding">저장</button>
+        </div>`)
+
+    el.querySelector('#save-holding').addEventListener('click', async () => {
+        const payload = {
+            account_id: Number(el.querySelector('#holding-account').value),
+            ticker: el.querySelector('#holding-ticker').value,
+            quantity: Number(el.querySelector('#holding-quantity').value),
+            avg_price: Number(el.querySelector('#holding-avg').value),
+            note: el.querySelector('#holding-note').value.trim() || null,
+        }
+        if (!payload.account_id || !payload.ticker || !Number.isFinite(payload.quantity) || !Number.isFinite(payload.avg_price)) {
+            return alert('계좌, 종목, 수량, 평균 단가를 입력하세요.')
+        }
+        const { error } = id
+            ? await supabase.from('holdings').update(payload).eq('id', id)
+            : await supabase.from('holdings').upsert(payload, { onConflict: 'account_id,ticker' })
+        if (error) return alert(error.message)
+        await refresh()
+        closeDrawer()
+    })
+    el.querySelector('#delete-holding')?.addEventListener('click', async () => {
+        if (!confirm('이 보유 항목을 삭제할까요?')) return
+        const { error } = await supabase.from('holdings').delete().eq('id', id)
+        if (error) return alert(error.message)
+        await refresh()
+        closeDrawer()
+    })
 }
 
-// ── Init ──────────────────────────────────────────────────────────────
-await Promise.all([loadHero(), loadAccounts(), loadPositions(), loadTransactions()])
-updateFab()
-if (isDesktop()) await autoSelectFirst()
+function openInstrumentDrawer(id) {
+    const instrument = state.instruments.find(item => item.id === id)
+    const selectedTags = new Set(state.instrumentTags.filter(row => row.ticker === instrument?.ticker).map(row => row.tag_id))
+    const tagChecks = state.tags.map(tag => `
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <input type="checkbox" class="instrument-tag" value="${tag.id}" ${selectedTags.has(tag.id) ? 'checked' : ''}>
+            <span>${tag.name}</span>
+        </label>
+    `).join('')
+    const price = state.prices.find(row => row.ticker === instrument?.ticker)
+    const el = setDrawer(id ? '종목 수정' : '종목 추가', `
+        <div class="form-group"><label>티커</label><input id="instrument-ticker" value="${instrument?.ticker ?? ''}" ${id ? 'disabled' : ''}></div>
+        <div class="form-group"><label>종목명</label><input id="instrument-name" value="${instrument?.display_name ?? ''}"></div>
+        <div class="form-group"><label>통화</label><select id="instrument-currency">
+            ${['KRW', 'USD'].map(cur => `<option value="${cur}"${(instrument?.currency ?? 'KRW') === cur ? ' selected' : ''}>${cur}</option>`).join('')}
+        </select></div>
+        <div class="form-group"><label>종류</label><select id="instrument-type">
+            ${['stock', 'etf', 'fund', 'cash', 'other', 'fx'].map(type => `<option value="${type}"${(instrument?.instrument_type ?? 'etf') === type ? ' selected' : ''}>${type}</option>`).join('')}
+        </select></div>
+        <div class="form-group"><label>현재가</label><input id="instrument-price" type="number" step="any" value="${price?.close_price ?? ''}"></div>
+        <div class="form-group"><label>가격일</label><input id="instrument-price-date" type="date" value="${price?.price_date ?? today()}"></div>
+        <div class="form-group"><label>태그</label>${tagChecks || '<p class="empty-state">설정에서 태그를 먼저 추가하세요.</p>'}</div>
+    `, `
+        <div class="footer-row">
+            <button class="btn-primary flex-1" id="save-instrument">저장</button>
+        </div>`)
+
+    el.querySelector('#save-instrument').addEventListener('click', async () => {
+        const tickerValue = el.querySelector('#instrument-ticker').value.trim()
+        const payload = {
+            ticker: tickerValue,
+            display_name: el.querySelector('#instrument-name').value.trim(),
+            currency: el.querySelector('#instrument-currency').value,
+            instrument_type: el.querySelector('#instrument-type').value,
+            price_source: 'yfinance',
+        }
+        if (!payload.ticker || !payload.display_name) return alert('티커와 종목명을 입력하세요.')
+        const { error } = id
+            ? await supabase.from('instruments').update(payload).eq('id', id)
+            : await supabase.from('instruments').insert(payload)
+        if (error) return alert(error.message)
+
+        const priceValue = Number(el.querySelector('#instrument-price').value)
+        if (Number.isFinite(priceValue) && priceValue > 0) {
+            await supabase.from('holding_prices_daily').upsert({
+                ticker: tickerValue,
+                price_date: el.querySelector('#instrument-price-date').value,
+                close_price: priceValue,
+                source: 'manual',
+            }, { onConflict: 'user_id,ticker,price_date' })
+        }
+
+        await supabase.from('instrument_tags').delete().eq('ticker', tickerValue)
+        const tagRows = [...el.querySelectorAll('.instrument-tag:checked')].map(input => ({
+            ticker: tickerValue,
+            tag_id: Number(input.value),
+        }))
+        if (tagRows.length) await supabase.from('instrument_tags').insert(tagRows)
+
+        await refresh()
+        closeDrawer()
+    })
+}
+
+function openTagDrawer(id) {
+    const tag = state.tags.find(item => item.id === id)
+    const el = setDrawer(id ? '태그 수정' : '태그 추가', `
+        <div class="form-group"><label>태그명</label><input id="tag-name" value="${tag?.name ?? ''}"></div>
+        <div class="form-group"><label>색상</label><select id="tag-color">
+            ${['neutral', 'info', 'success', 'warning', 'danger'].map(color => `<option value="${color}"${(tag?.color ?? 'neutral') === color ? ' selected' : ''}>${color}</option>`).join('')}
+        </select></div>
+    `, `
+        <div class="footer-row">
+            <button class="btn-primary flex-1" id="save-tag">저장</button>
+        </div>`)
+
+    el.querySelector('#save-tag').addEventListener('click', async () => {
+        const payload = {
+            name: el.querySelector('#tag-name').value.trim(),
+            color: el.querySelector('#tag-color').value,
+        }
+        if (!payload.name) return alert('태그명을 입력하세요.')
+        const { error } = id
+            ? await supabase.from('tags').update(payload).eq('id', id)
+            : await supabase.from('tags').insert(payload)
+        if (error) return alert(error.message)
+        await refresh()
+        closeDrawer()
+    })
+}
+
+async function refresh() {
+    await loadState()
+    render()
+}
+
+await refresh()

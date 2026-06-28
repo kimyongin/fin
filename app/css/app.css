@@ -26,6 +26,10 @@ body {
     overflow-x: hidden;
 }
 
+body.auth-pending .app-shell {
+    display: none;
+}
+
 /* ── Login ── */
 .login-page {
     display: flex;
@@ -65,7 +69,8 @@ body {
     flex-shrink: 0;
 }
 
-.lnb a {
+.lnb a,
+.lnb .nav-tab {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -80,9 +85,13 @@ body {
     text-orientation: mixed;
     letter-spacing: 0.05em;
     transition: color 0.1s, background 0.1s;
+    background: none;
+    border: none;
+    cursor: pointer;
 }
 
-.lnb a:hover, .lnb a.active {
+.lnb a:hover, .lnb a.active,
+.lnb .nav-tab:hover, .lnb .nav-tab.active {
     color: var(--text);
     background: var(--surface-2);
 }
@@ -489,3 +498,16 @@ span.toggle-opt { cursor: default; }
 .chart-legend .m.buy { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
 .chart-legend .m.sell { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
 .chart-legend .m.line { width: 14px; height: 2px; background: var(--accent); }
+
+/* Simple portfolio redesign overrides */
+@media (min-width: 901px) {
+    .page-content { padding-right: 0; }
+    .drawer {
+        z-index: 300;
+        transform: translateX(100%);
+        transition: transform 0.22s ease;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-close { display: block !important; }
+    .drawer-overlay.open { display: block !important; }
+}

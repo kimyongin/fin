@@ -8,17 +8,19 @@
 <body class="login-page">
     <p class="muted">로그인 처리 중...</p>
     <script type="module">
-        import { supabase } from '../js/supabase.js'
+        import { supabase, isSupabaseConfigured } from '../js/supabase.js?v=auth-guard-2'
 
-        // Supabase가 URL 해시의 토큰을 감지해 세션을 자동 설정함
-        const { data: { session }, error } = await supabase.auth.getSession()
-        if (session) {
-            window.location.href = '../index.html'
+        if (!isSupabaseConfigured) {
+            window.location.href = '../login.html'
         } else {
-            // 토큰이 URL 해시에 있는 경우 onAuthStateChange로 처리
-            supabase.auth.onAuthStateChange((event, session) => {
-                if (session) window.location.href = '../index.html'
-            })
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session) {
+                window.location.href = '../index.html'
+            } else {
+                supabase.auth.onAuthStateChange((event, session) => {
+                    if (session) window.location.href = '../index.html'
+                })
+            }
         }
     </script>
 </body>
