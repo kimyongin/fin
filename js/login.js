@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js'
+import { supabase, isSupabaseConfigured } from './supabase.js?v=auth-guard-2'
 
 const form = document.getElementById('login-form')
 const emailInput = document.getElementById('email')
@@ -12,38 +12,45 @@ function showMessage(text, type = 'success') {
     message.classList.remove('hidden')
 }
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault()
-    const email = emailInput.value.trim()
-    if (!email) return
+if (!isSupabaseConfigured) {
+    showMessage('Supabase 설정이 필요합니다. app/js/config.js의 SUPABASE_URL과 SUPABASE_ANON_KEY를 실제 값으로 바꿔주세요.', 'error')
+    form.querySelector('button[type="submit"]').disabled = true
+    googleBtn.disabled = true
+    checkBtn.disabled = true
+} else {
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        const email = emailInput.value.trim()
+        if (!email) return
 
-    const base = location.origin + location.pathname.replace(/\/[^/]*$/, '')
-    const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: `${base}/auth/callback.html` },
+        const base = location.origin + location.pathname.replace(/\/[^/]*$/, '')
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: `${base}/auth/callback.html` },
+        })
+
+        if (error) {
+            showMessage(error.message, 'error')
+        } else {
+            showMessage('로그인 링크를 보냈습니다. 이메일을 확인하세요.')
+        }
     })
 
-    if (error) {
-        showMessage(error.message, 'error')
-    } else {
-        showMessage('로그인 링크를 보냈습니다. 이메일을 확인하세요.')
-    }
-})
-
-googleBtn.addEventListener('click', async () => {
-    const base = location.origin + location.pathname.replace(/\/[^/]*$/, '')
-    const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${base}/auth/callback.html` },
+    googleBtn.addEventListener('click', async () => {
+        const base = location.origin + location.pathname.replace(/\/[^/]*$/, '')
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: `${base}/auth/callback.html` },
+        })
+        if (error) showMessage(error.message, 'error')
     })
-    if (error) showMessage(error.message, 'error')
-})
 
-checkBtn.addEventListener('click', async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-        window.location.href = 'index.html'
-    } else {
-        showMessage('아직 로그인이 확인되지 않았습니다. 이메일의 링크를 클릭하세요.', 'error')
-    }
-})
+    checkBtn.addEventListener('click', async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+            window.location.href = 'index.html'
+        } else {
+            showMessage('아직 로그인이 확인되지 않았습니다. 이메일의 링크를 클릭하세요.', 'error')
+        }
+    })
+}
