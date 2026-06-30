@@ -182,28 +182,36 @@ function renderOverview() {
 
     if (!tickers.length) {
         tab.innerHTML =
-            '<p class="empty-state">아직 보유 항목이 없습니다. 계좌와 종목을 만든 뒤 계좌 메뉴에서 보유를 추가하세요.</p>'
+            '<p class="empty-state">\uC544\uC9C1 \uBCF4\uC720 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uACC4\uC88C\uC640 \uC885\uBAA9\uC744 \uB9CC\uB4E0 \uB4A4 \uACC4\uC88C \uBA54\uB274\uC5D0\uC11C \uBCF4\uC720\uB97C \uCD94\uAC00\uD558\uC138\uC694.</p>'
         return
     }
 
     tab.innerHTML = `
         ${renderTagOverview(tags, total)}
-        <ul class="card-list">
+        <section class="overview-holdings-card">
+            <div class="overview-section-head">
+                <div>
+                    <h2>\uC885\uBAA9</h2>
+                    <p>${tickers.length}\uAC1C \uD1B5\uD569 \uC885\uBAA9</p>
+                </div>
+            </div>
+            <div class="holding-card-grid">
             ${tickers.map(row => `
-                <li class="card-item" data-ticker="${row.ticker}">
-                    <div class="card-main">
-                        <div class="card-title">${row.display_name ?? row.ticker}</div>
-                        <div class="card-sub">${row.ticker} · ${row.currency ?? ''} · ${tagNames(row.ticker)}</div>
-                    </div>
-                    <div class="card-right">
+                <button class="holding-card" data-ticker="${row.ticker}">
+                    <div class="holding-card-top">
+                        <div class="holding-title">${row.display_name ?? row.ticker}</div>
                         <span class="badge badge-neutral">${pct(total ? row.market_value_krw / total * 100 : NaN)}</span>
-                        <div class="card-price">${fmtMoney(row.market_value_native, row.currency)}</div>
-                        ${row.currency !== 'KRW' ? `<div class="card-sub">${fmtKrw(row.market_value_krw)} 환산</div>` : ''}
-                        <div class="card-sub">${fmtNum(row.quantity)}주</div>
                     </div>
-                </li>
+                    <div class="holding-meta">${row.ticker} \u00B7 ${row.currency ?? ''} \u00B7 ${tagNames(row.ticker)}</div>
+                    <div class="holding-value">${fmtMoney(row.market_value_native, row.currency)}</div>
+                    <div class="holding-sub">
+                        ${row.currency !== 'KRW' ? `<span>${fmtKrw(row.market_value_krw)} \uD658\uC0B0</span>` : ''}
+                        <span>${fmtNum(row.quantity)}\uC8FC</span>
+                    </div>
+                </button>
             `).join('')}
-        </ul>`
+            </div>
+        </section>`
 
     tab.querySelectorAll('[data-ticker]').forEach(item => {
         item.addEventListener('click', () => openTickerDrawer(item.dataset.ticker))
