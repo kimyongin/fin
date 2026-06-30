@@ -212,12 +212,16 @@ function renderTagOverview(tags, total) {
             .sort((a, b) => (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0))
         const holdings = taggedTickers.map(row => `
             <button class="tag-holding-card" data-ticker="${row.ticker}">
-                <span class="tag-holding-title">${row.display_name ?? row.ticker}</span>
-                <span class="tag-holding-meta">${row.ticker} · ${row.currency ?? ''}</span>
-                <span class="tag-holding-value">${fmtMoney(row.market_value_native, row.currency)}</span>
-                <span class="tag-holding-sub">
-                    ${row.currency !== 'KRW' ? `${fmtKrw(row.market_value_krw)} 환산 · ` : ''}
-                    ${pct(total ? row.market_value_krw / total * 100 : NaN)}
+                <span class="tag-holding-main">
+                    <span class="tag-holding-info">
+                        <span class="tag-holding-title">${row.display_name ?? row.ticker}</span>
+                        <span class="tag-holding-meta">${row.ticker} &middot; ${row.currency ?? ''}</span>
+                    </span>
+                    <span class="tag-holding-pct">${pct(total ? row.market_value_krw / total * 100 : NaN)}</span>
+                </span>
+                <span class="tag-holding-footer">
+                    <span class="tag-holding-value">${fmtMoney(row.market_value_native, row.currency)}</span>
+                    ${row.currency !== 'KRW' ? `<span class="tag-holding-sub">${fmtKrw(row.market_value_krw)} \uD658\uC0B0</span>` : ''}
                 </span>
             </button>
         `).join('')
@@ -229,7 +233,7 @@ function renderTagOverview(tags, total) {
                     <span class="tag-card-pct">${pct(tag.market_value_krw / total * 100)}</span>
                 </div>
                 <div class="tag-card-value">${fmtKrw(tag.market_value_krw)}</div>
-                <div class="tag-card-note">${taggedTickers.length}개 통합 종목</div>
+                <div class="tag-card-note">${taggedTickers.length}\uAC1C \uD1B5\uD569 \uC885\uBAA9</div>
                 <div class="tag-card-holdings">${holdings}</div>
             </article>`
     }).join('')
