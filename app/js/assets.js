@@ -561,7 +561,27 @@ function setDrawer(title, bodyHtml, footerHtml = '') {
     el.querySelector('.drawer-title').textContent = title
     el.querySelector('.drawer-body').innerHTML = bodyHtml
     el.querySelector('.drawer-footer').innerHTML = footerHtml
+    applyTailwindFormStyles(el)
     return el
+}
+
+const twFormGroup = '!mb-5 !flex !flex-col !gap-2'
+const twFormLabel = '!text-xs !font-bold !text-[#8a8e96]'
+const twFieldBase = '!w-full !rounded-lg !border !border-white/15 !bg-[#0f1014] !px-3 !py-2.5 !text-sm !leading-normal !text-[#ececef] !outline-none !shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] !transition hover:!border-white/25 hover:!bg-[#121319] focus:!border-[#ff8a00] focus:!bg-[#14151a] focus:!shadow-[0_0_0_3px_rgba(255,138,0,0.14)] disabled:!cursor-not-allowed disabled:!opacity-60'
+const twFieldSingleLine = '!h-11'
+const twFieldTextarea = '!min-h-24 !resize-y'
+
+function addClasses(el, classes) {
+    classes.split(/\s+/).filter(Boolean).forEach(className => el.classList.add(className))
+}
+
+function applyTailwindFormStyles(root) {
+    root.querySelectorAll('.form-group').forEach(group => addClasses(group, twFormGroup))
+    root.querySelectorAll('.form-group label').forEach(label => addClasses(label, twFormLabel))
+    root.querySelectorAll('input, select, textarea').forEach(field => {
+        addClasses(field, twFieldBase)
+        addClasses(field, field.tagName === 'TEXTAREA' ? twFieldTextarea : twFieldSingleLine)
+    })
 }
 
 function openTickerDrawer(ticker) {
