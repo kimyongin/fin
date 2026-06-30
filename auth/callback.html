@@ -8,7 +8,7 @@
 <body class="login-page">
     <p class="muted">로그인 처리 중...</p>
     <script type="module">
-        import { supabase, isSupabaseConfigured } from '../js/supabase.js?v=auth-guard-2'
+        import { supabase, isSupabaseConfigured } from '../js/supabase.js'
 
         if (!isSupabaseConfigured) {
             window.location.href = '../login.html'
