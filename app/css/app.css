@@ -482,18 +482,19 @@ span.toggle-opt { cursor: default; }
 .leg .amt { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; flex: none; }
 .tag-summary-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
 }
 .tag-summary-card {
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-left: 4px solid var(--tag-color);
+    border-left: 6px solid var(--tag-color);
     border-radius: 8px;
     display: grid;
-    gap: 6px;
+    gap: 10px;
     min-width: 0;
-    padding: 12px;
+    min-height: 168px;
+    padding: 18px;
 }
 .tag-card-head {
     align-items: center;
@@ -503,7 +504,7 @@ span.toggle-opt { cursor: default; }
 }
 .tag-card-name {
     color: var(--text);
-    font-size: 14px;
+    font-size: 17px;
     font-weight: 700;
     min-width: 0;
     overflow: hidden;
@@ -513,12 +514,12 @@ span.toggle-opt { cursor: default; }
 .tag-card-pct {
     color: var(--accent);
     flex: none;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
 }
 .tag-card-value {
     color: var(--text);
-    font-size: 18px;
+    font-size: 24px;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
 }
@@ -569,6 +570,86 @@ span.toggle-opt { cursor: default; }
 .chart-legend .m.buy { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
 .chart-legend .m.sell { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
 .chart-legend .m.line { width: 14px; height: 2px; background: var(--accent); }
+
+.overview-holdings-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    padding: 16px;
+}
+.overview-section-head {
+    align-items: flex-start;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.overview-section-head h2 {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+}
+.overview-section-head p {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 4px 0 0;
+}
+.holding-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+}
+.holding-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding: 14px;
+    text-align: left;
+    transition: border-color 0.12s, background 0.12s;
+}
+.holding-card:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+}
+.holding-card-top {
+    align-items: flex-start;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+.holding-title {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.holding-meta,
+.holding-sub {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
+}
+.holding-value {
+    color: var(--text);
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+.holding-sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+}
 
 /* Simple portfolio redesign overrides */
 @media (min-width: 901px) {
