@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase.js?v=auth-guard-2'
+import { supabase, isSupabaseConfigured } from './supabase.js'
 
 const form = document.getElementById('login-form')
 const emailInput = document.getElementById('email')

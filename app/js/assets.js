@@ -1,8 +1,7 @@
-import { supabase, requireAuth, signOut } from './supabase.js?v=auth-guard-2'
+import { supabase, requireAuth, signOut } from './supabase.js'
 
 const session = await requireAuth()
 if (!session) throw new Error('unauthenticated')
-document.body.classList.remove('auth-pending')
 
 document.getElementById('logout-btn').addEventListener('click', signOut)
 
@@ -41,15 +40,7 @@ document.querySelectorAll('.nav-tab').forEach(button => {
 })
 
 async function loadState() {
-    const [
-        { data: accounts },
-        { data: holdings },
-        { data: instruments },
-        { data: tags },
-        { data: instrumentTags },
-        { data: positions },
-        { data: prices },
-    ] = await Promise.all([
+    const results = await Promise.all([
         supabase.from('accounts').select('*').order('name'),
         supabase.from('holdings').select('*, accounts(name), instruments(display_name, currency, instrument_type)').order('account_id'),
         supabase.from('instruments').select('*').order('display_name'),
@@ -58,6 +49,17 @@ async function loadState() {
         supabase.from('portfolio_view').select('*'),
         supabase.from('holding_prices_daily').select('ticker, price_date, close_price, source').order('price_date', { ascending: false }),
     ])
+    const errorResult = results.find(result => result.error)
+    if (errorResult) throw errorResult.error
+    const [
+        { data: accounts },
+        { data: holdings },
+        { data: instruments },
+        { data: tags },
+        { data: instrumentTags },
+        { data: positions },
+        { data: prices },
+    ] = results
 
     state = {
         accounts: accounts ?? [],
@@ -91,9 +93,12 @@ function tagsForTicker(ticker) {
         .map(row => row.tags)
 }
 
+function primaryTagForTicker(ticker) {
+    return tagsForTicker(ticker)[0] ?? null
+}
+
 function tagNames(ticker) {
-    const tags = tagsForTicker(ticker).map(tag => tag.name)
-    return tags.length ? tags.join(', ') : '태그 없음'
+    return primaryTagForTicker(ticker)?.name ?? '태그 없음'
 }
 
 function aggregateByTicker() {
@@ -131,12 +136,11 @@ function aggregateByAccount() {
 function aggregateByTag() {
     const map = new Map()
     for (const pos of state.positions) {
-        const tags = tagsForTicker(pos.ticker)
-        for (const tag of tags) {
-            const prev = map.get(tag.id) ?? { ...tag, market_value_krw: 0 }
-            prev.market_value_krw += pos.market_value_krw ?? 0
-            map.set(tag.id, prev)
-        }
+        const tag = primaryTagForTicker(pos.ticker)
+        if (!tag) continue
+        const prev = map.get(tag.id) ?? { ...tag, market_value_krw: 0 }
+        prev.market_value_krw += pos.market_value_krw ?? 0
+        map.set(tag.id, prev)
     }
     return [...map.values()].sort((a, b) => b.market_value_krw - a.market_value_krw)
 }
@@ -207,7 +211,7 @@ function renderTagOverview(tags, total) {
 
     const cards = topTags.map((tag, index) => {
         const taggedTickers = tickerRows
-            .filter(row => tagsForTicker(row.ticker).some(item => item.id === tag.id))
+            .filter(row => primaryTagForTicker(row.ticker)?.id === tag.id)
             .sort((a, b) => (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0))
         const holdings = taggedTickers.slice(0, 4).map(row => `
             <span class="tag-holding-row">
@@ -233,7 +237,7 @@ function renderTagOverview(tags, total) {
             <div class="composition-head">
                 <div>
                     <h2>태그 비중</h2>
-                    <p>계좌가 나뉘어 있어도 같은 성격의 자산을 한 번에 볼 수 있습니다. 한 종목에 태그가 여러 개면 합계가 100%를 넘을 수 있습니다.</p>
+                    <p>각 종목의 대표 태그 하나만 기준으로 계산합니다. 그래서 태그 비중 합계는 전체 자산의 100% 안에서 해석할 수 있습니다.</p>
                 </div>
             </div>
             <div class="comp-bar">${segments}</div>
@@ -575,13 +579,10 @@ function openHoldingDrawer({ id = null, account_id = null, ticker = '' } = {}) {
 
 function openInstrumentDrawer(id) {
     const instrument = state.instruments.find(item => item.id === id)
-    const selectedTags = new Set(state.instrumentTags.filter(row => row.ticker === instrument?.ticker).map(row => row.tag_id))
-    const tagChecks = state.tags.map(tag => `
-        <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <input type="checkbox" class="instrument-tag" value="${tag.id}" ${selectedTags.has(tag.id) ? 'checked' : ''}>
-            <span>${tag.name}</span>
-        </label>
-    `).join('')
+    const selectedTagId = primaryTagForTicker(instrument?.ticker)?.id ?? ''
+    const tagOptions = state.tags.map(tag =>
+        `<option value="${tag.id}"${selectedTagId === tag.id ? ' selected' : ''}>${tag.name}</option>`
+    ).join('')
     const price = state.prices.find(row => row.ticker === instrument?.ticker)
     const el = setDrawer(id ? '종목 수정' : '종목 추가', `
         <div class="form-group"><label>티커</label><input id="instrument-ticker" value="${instrument?.ticker ?? ''}" ${id ? 'disabled' : ''}></div>
@@ -594,7 +595,7 @@ function openInstrumentDrawer(id) {
         </select></div>
         <div class="form-group"><label>현재가</label><input id="instrument-price" type="number" step="any" value="${price?.close_price ?? ''}"></div>
         <div class="form-group"><label>가격일</label><input id="instrument-price-date" type="date" value="${price?.price_date ?? today()}"></div>
-        <div class="form-group"><label>태그</label>${tagChecks || '<p class="empty-state">설정에서 태그를 먼저 추가하세요.</p>'}</div>
+        <div class="form-group"><label>태그</label><select id="instrument-tag"><option value="">태그 없음</option>${tagOptions}</select></div>
     `, `
         <div class="footer-row">
             <button class="btn-primary flex-1" id="save-instrument">저장</button>
@@ -626,11 +627,13 @@ function openInstrumentDrawer(id) {
         }
 
         await supabase.from('instrument_tags').delete().eq('ticker', tickerValue)
-        const tagRows = [...el.querySelectorAll('.instrument-tag:checked')].map(input => ({
-            ticker: tickerValue,
-            tag_id: Number(input.value),
-        }))
-        if (tagRows.length) await supabase.from('instrument_tags').insert(tagRows)
+        const tagId = Number(el.querySelector('#instrument-tag').value)
+        if (Number.isFinite(tagId) && tagId > 0) {
+            await supabase.from('instrument_tags').insert({
+                ticker: tickerValue,
+                tag_id: tagId,
+            })
+        }
 
         await refresh()
         closeDrawer()
@@ -669,4 +672,26 @@ async function refresh() {
     render()
 }
 
-await refresh()
+function renderFatalError(error) {
+    document.body.classList.remove('auth-pending')
+    document.getElementById('total-value').textContent = '불러오기 실패'
+    document.getElementById('hero-meta').textContent = error?.message ?? '데이터를 불러오지 못했습니다.'
+    document.getElementById('hero-delta').textContent = ''
+    document.getElementById('tab-overview').innerHTML = `
+        <div class="empty-state">
+            <p>로그인 세션은 있지만 데이터를 불러오지 못했습니다.</p>
+            <p class="muted">${error?.message ?? ''}</p>
+            <button class="btn-primary" id="retry-load">다시 시도</button>
+            <button class="btn-ghost" id="error-logout">로그아웃</button>
+        </div>`
+    document.getElementById('retry-load')?.addEventListener('click', () => location.reload())
+    document.getElementById('error-logout')?.addEventListener('click', signOut)
+}
+
+try {
+    await refresh()
+    document.body.classList.remove('auth-pending')
+} catch (error) {
+    console.error(error)
+    renderFatalError(error)
+}
