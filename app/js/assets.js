@@ -187,31 +187,7 @@ function renderOverview() {
     }
 
     tab.innerHTML = `
-        ${renderTagOverview(tags, total)}
-        <section class="overview-holdings-card">
-            <div class="overview-section-head">
-                <div>
-                    <h2>\uC885\uBAA9</h2>
-                    <p>${tickers.length}\uAC1C \uD1B5\uD569 \uC885\uBAA9</p>
-                </div>
-            </div>
-            <div class="holding-card-grid">
-            ${tickers.map(row => `
-                <button class="holding-card" data-ticker="${row.ticker}">
-                    <div class="holding-card-top">
-                        <div class="holding-title">${row.display_name ?? row.ticker}</div>
-                        <span class="badge badge-neutral">${pct(total ? row.market_value_krw / total * 100 : NaN)}</span>
-                    </div>
-                    <div class="holding-meta">${row.ticker} \u00B7 ${row.currency ?? ''} \u00B7 ${tagNames(row.ticker)}</div>
-                    <div class="holding-value">${fmtMoney(row.market_value_native, row.currency)}</div>
-                    <div class="holding-sub">
-                        ${row.currency !== 'KRW' ? `<span>${fmtKrw(row.market_value_krw)} \uD658\uC0B0</span>` : ''}
-                        <span>${fmtNum(row.quantity)}\uC8FC</span>
-                    </div>
-                </button>
-            `).join('')}
-            </div>
-        </section>`
+        ${renderTagOverview(tags, total)}`
 
     tab.querySelectorAll('[data-ticker]').forEach(item => {
         item.addEventListener('click', () => openTickerDrawer(item.dataset.ticker))
@@ -234,11 +210,16 @@ function renderTagOverview(tags, total) {
         const taggedTickers = tickerRows
             .filter(row => primaryTagForTicker(row.ticker)?.id === tag.id)
             .sort((a, b) => (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0))
-        const holdings = taggedTickers.slice(0, 4).map(row => `
-            <span class="tag-holding-row">
-                <span>${row.display_name ?? row.ticker}</span>
-                <strong>${fmtKrw(row.market_value_krw ?? 0)}</strong>
-            </span>
+        const holdings = taggedTickers.map(row => `
+            <button class="tag-holding-card" data-ticker="${row.ticker}">
+                <span class="tag-holding-title">${row.display_name ?? row.ticker}</span>
+                <span class="tag-holding-meta">${row.ticker} · ${row.currency ?? ''}</span>
+                <span class="tag-holding-value">${fmtMoney(row.market_value_native, row.currency)}</span>
+                <span class="tag-holding-sub">
+                    ${row.currency !== 'KRW' ? `${fmtKrw(row.market_value_krw)} 환산 · ` : ''}
+                    ${pct(total ? row.market_value_krw / total * 100 : NaN)}
+                </span>
+            </button>
         `).join('')
 
         return `
