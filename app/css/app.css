@@ -491,7 +491,7 @@ span.toggle-opt { cursor: default; }
     border-left: 6px solid var(--tag-color);
     border-radius: 8px;
     display: grid;
-    gap: 14px;
+    gap: 12px;
     min-width: 0;
     min-height: 260px;
     padding: 18px;
@@ -529,7 +529,7 @@ span.toggle-opt { cursor: default; }
 }
 .tag-card-holdings {
     display: grid;
-    gap: 8px;
+    gap: 10px;
 }
 .tag-holding-card {
     background: var(--surface);
@@ -538,32 +538,71 @@ span.toggle-opt { cursor: default; }
     color: var(--text);
     cursor: pointer;
     display: grid;
-    gap: 4px;
+    gap: 9px;
     min-width: 0;
-    padding: 10px 12px;
+    padding: 12px;
     text-align: left;
-    transition: border-color 0.12s, background 0.12s;
+    transition: border-color 0.12s, background 0.12s, transform 0.12s;
 }
 .tag-holding-card:hover {
+    background: color-mix(in srgb, var(--surface) 88%, var(--tag-color));
     border-color: var(--accent);
+    transform: translateY(-1px);
+}
+.tag-holding-main,
+.tag-holding-footer {
+    align-items: flex-start;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    min-width: 0;
+}
+.tag-holding-info {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
 }
 .tag-holding-title {
-    font-size: 13px;
+    color: var(--text);
+    font-size: 14px;
     font-weight: 700;
+    line-height: 1.25;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.tag-holding-meta,
-.tag-holding-sub {
+.tag-holding-meta {
     color: var(--muted);
     font-size: 12px;
+    line-height: 1.3;
 }
-.tag-holding-value {
-    font-size: 15px;
+.tag-holding-pct {
+    background: color-mix(in srgb, var(--tag-color) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tag-color) 34%, var(--border));
+    border-radius: 999px;
+    color: var(--text);
+    flex: none;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
+    line-height: 1;
+    padding: 5px 8px;
+}
+.tag-holding-value {
+    color: var(--text);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    line-height: 1.25;
+}
+.tag-holding-sub {
+    color: var(--muted);
+    flex: none;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.35;
+    padding-top: 2px;
 }
 
 /* ── Timeline chart ── */
