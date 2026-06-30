@@ -8,16 +8,22 @@
 </head>
 <body class="auth-pending">
     <div class="app-shell">
-        <nav class="lnb">
-            <button class="nav-tab active" data-tab="overview">자산</button>
-            <button class="nav-tab" data-tab="accounts">계좌</button>
-            <button class="nav-tab" data-tab="instruments">종목</button>
-            <button class="nav-tab" data-tab="settings">설정</button>
-            <div class="spacer"></div>
-            <button id="logout-btn">로그아웃</button>
-        </nav>
-
         <main class="page-content">
+            <div class="top-menu">
+                <button class="menu-toggle" id="menu-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <nav class="menu-popover" id="menu-popover" aria-label="주 메뉴">
+                    <button class="nav-tab active" data-tab="overview">자산</button>
+                    <button class="nav-tab" data-tab="accounts">계좌</button>
+                    <button class="nav-tab" data-tab="instruments">종목</button>
+                    <button class="nav-tab" data-tab="settings">설정</button>
+                    <button id="logout-btn">로그아웃</button>
+                </nav>
+            </div>
+
             <section class="hero">
                 <div class="hero-value" id="total-value">—</div>
                 <div id="hero-delta"></div>

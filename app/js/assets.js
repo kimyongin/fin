@@ -4,6 +4,28 @@ const session = await requireAuth()
 if (!session) throw new Error('unauthenticated')
 
 document.getElementById('logout-btn').addEventListener('click', signOut)
+const menuToggle = document.getElementById('menu-toggle')
+const menuPopover = document.getElementById('menu-popover')
+
+function setMenuOpen(open) {
+    menuToggle?.setAttribute('aria-expanded', String(open))
+    menuPopover?.classList.toggle('open', open)
+}
+
+menuToggle?.addEventListener('click', event => {
+    event.stopPropagation()
+    setMenuOpen(menuToggle.getAttribute('aria-expanded') !== 'true')
+})
+
+document.addEventListener('click', event => {
+    if (!menuPopover?.classList.contains('open')) return
+    if (event.target.closest('.top-menu')) return
+    setMenuOpen(false)
+})
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') setMenuOpen(false)
+})
 
 let activeTab = 'overview'
 let drawerEl = null
@@ -45,6 +67,7 @@ document.querySelectorAll('.nav-tab').forEach(button => {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'))
         button.classList.add('active')
         document.getElementById(`tab-${activeTab}`).classList.remove('hidden')
+        setMenuOpen(false)
         render()
     })
 })
@@ -189,6 +212,15 @@ function renderOverview() {
     tab.innerHTML = `
         ${renderTagOverview(tags, total)}`
 
+    tab.querySelectorAll('[data-copy-tags]').forEach(button => {
+        button.addEventListener('click', async event => {
+            event.stopPropagation()
+            await copyAllTagsMarkdown()
+            button.classList.add('copied')
+            setTimeout(() => button.classList.remove('copied'), 900)
+        })
+    })
+
     tab.querySelectorAll('[data-ticker]').forEach(item => {
         item.addEventListener('click', () => openTickerDrawer(item.dataset.ticker))
     })
@@ -201,10 +233,20 @@ function renderTagOverview(tags, total) {
     if (!topTags.length) return ''
     const tickerRows = aggregateByTicker()
 
-    const segments = topTags.map((tag, index) => {
-        const width = Math.min(tag.market_value_krw / total * 100, 100)
-        return `<span style="width:${width}%;background:${colors[index % colors.length]}" title="${tag.name}"></span>`
-    }).join('')
+    let pieCursor = 0
+    const pieSlices = topTags.map((tag, index) => {
+        const value = Math.min(tag.market_value_krw / total * 100, 100)
+        const start = pieCursor
+        const end = pieCursor + value
+        pieCursor = end
+        return `${colors[index % colors.length]} ${start}% ${end}%`
+    }).join(', ')
+    const pieLegend = topTags.map((tag, index) => `
+        <div class="tag-pie-leg" style="--slice-color:${colors[index % colors.length]}">
+            <span class="tag-pie-name">${tag.name}</span>
+            <span class="tag-pie-pct">${pct(tag.market_value_krw / total * 100)}</span>
+        </div>
+    `).join('')
 
     const cards = topTags.map((tag, index) => {
         const taggedTickers = tickerRows
@@ -212,16 +254,14 @@ function renderTagOverview(tags, total) {
             .sort((a, b) => (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0))
         const holdings = taggedTickers.map(row => `
             <button class="tag-holding-card" data-ticker="${row.ticker}">
-                <span class="tag-holding-main">
-                    <span class="tag-holding-info">
-                        <span class="tag-holding-title">${row.display_name ?? row.ticker}</span>
-                        <span class="tag-holding-meta">${row.ticker} &middot; ${row.currency ?? ''}</span>
-                    </span>
+                <span class="tag-holding-top">
+                    <span class="tag-holding-ticker">${row.ticker}</span>
                     <span class="tag-holding-pct">${pct(total ? row.market_value_krw / total * 100 : NaN)}</span>
                 </span>
-                <span class="tag-holding-footer">
+                <span class="tag-holding-title">${row.display_name ?? row.ticker}</span>
+                <span class="tag-holding-side">
                     <span class="tag-holding-value">${fmtMoney(row.market_value_native, row.currency)}</span>
-                    ${row.currency !== 'KRW' ? `<span class="tag-holding-sub">${fmtKrw(row.market_value_krw)} \uD658\uC0B0</span>` : ''}
+                    ${row.currency !== 'KRW' ? `<span class="tag-holding-sub">(${fmtKrw(row.market_value_krw)} \uD658\uC0B0)</span>` : ''}
                 </span>
             </button>
         `).join('')
@@ -239,17 +279,107 @@ function renderTagOverview(tags, total) {
     }).join('')
 
     return `
-        <section class="composition tag-overview">
-            <div class="composition-head">
+        <section class="tag-overview">
+            <div class="tag-overview-head">
                 <div>
                     <h2>태그 비중</h2>
                     <p>각 종목의 대표 태그 하나만 기준으로 계산합니다. 그래서 태그 비중 합계는 전체 자산의 100% 안에서 해석할 수 있습니다.</p>
                 </div>
+                <button class="tag-copy-btn" data-copy-tags type="button" title="\uC804\uCCB4 \uD0DC\uADF8 \uCE74\uB4DC\uB97C \uB9C8\uD06C\uB2E4\uC6B4\uC73C\uB85C \uBCF5\uC0AC" aria-label="\uC804\uCCB4 \uD0DC\uADF8 \uCE74\uB4DC\uB97C \uB9C8\uD06C\uB2E4\uC6B4\uC73C\uB85C \uBCF5\uC0AC">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="8" y="8" width="10" height="10" rx="2"></rect>
+                        <path d="M6 16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
             </div>
-            <div class="comp-bar">${segments}</div>
+            <div class="tag-pie-wrap">
+                <div class="tag-pie-chart" style="--pie: conic-gradient(${pieSlices})">
+                    <span>${pct(pieCursor)}</span>
+                </div>
+                <div class="tag-pie-legend">${pieLegend}</div>
+            </div>
             <div class="tag-summary-grid">${cards}</div>
         </section>`
 }
+
+async function copyAllTagsMarkdown() {
+    const total = totalValue()
+    const tickerRows = aggregateByTicker()
+    const lines = aggregateByTag()
+        .filter(tag => (tag.market_value_krw ?? 0) > 0)
+        .flatMap(tag => {
+            const rows = tickerRows
+                .filter(row => String(primaryTagForTicker(row.ticker)?.id) === String(tag.id))
+                .sort((a, b) => (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0))
+
+            return [
+                `## ${tag.name} · ${pct(total ? tag.market_value_krw / total * 100 : NaN)}`,
+                `${fmtKrw(tag.market_value_krw)} · ${rows.length}\uAC1C \uD1B5\uD569 \uC885\uBAA9`,
+                '',
+                ...rows.flatMap(row => {
+                    const value = fmtMoney(row.market_value_native, row.currency)
+                    const converted = row.currency !== 'KRW' ? ` (${fmtKrw(row.market_value_krw)} \uD658\uC0B0)` : ''
+                    return [
+                        `### ${row.ticker} · ${pct(total ? row.market_value_krw / total * 100 : NaN)}`,
+                        row.display_name ?? row.ticker,
+                        `${value}${converted}`,
+                        '',
+                    ]
+                }),
+            ]
+        })
+
+    await writeClipboard(lines.join('\n').trim())
+}
+
+async function copyTagMarkdownUnused() {
+    const total = totalValue()
+    const tag = aggregateByTag().find(item => String(item.id) === String(tagId))
+    if (!tag) return
+
+    const rows = aggregateByTicker()
+        .filter(row => String(primaryTagForTicker(row.ticker)?.id) === String(tagId))
+        .sort((a, b) => (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0))
+
+    const lines = [
+        `## ${tag.name}`,
+        '',
+        `- \uBE44\uC911: ${pct(total ? tag.market_value_krw / total * 100 : NaN)}`,
+        `- \uD3C9\uAC00\uAE08\uC561: ${fmtKrw(tag.market_value_krw)}`,
+        `- \uD1B5\uD569 \uC885\uBAA9: ${rows.length}\uAC1C`,
+        '',
+        ...rows.flatMap(row => {
+            const value = fmtMoney(row.market_value_native, row.currency)
+            const converted = row.currency !== 'KRW' ? ` (${fmtKrw(row.market_value_krw)} \uD658\uC0B0)` : ''
+            return [
+                `### ${row.ticker} · ${pct(total ? row.market_value_krw / total * 100 : NaN)}`,
+                row.display_name ?? row.ticker,
+                `${value}${converted}`,
+                '',
+            ]
+        }),
+    ]
+
+    await writeClipboard(lines.join('\n').trim())
+}
+
+async function writeClipboard(text) {
+    if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        return
+    }
+
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.top = '-999px'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    textarea.remove()
+}
+
 function renderComposition(title, rows, labelFn, total) {
     if (!rows.length || !total) return ''
     const topRows = rows.filter(row => (row.market_value_krw ?? 0) > 0).slice(0, 8)
