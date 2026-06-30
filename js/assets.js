@@ -6,10 +6,72 @@ if (!session) throw new Error('unauthenticated')
 document.getElementById('logout-btn').addEventListener('click', signOut)
 const menuToggle = document.getElementById('menu-toggle')
 const menuPopover = document.getElementById('menu-popover')
+const tw = {
+    menuToggle: '!inline-flex !h-10 !w-10 !flex-col !items-center !justify-center !gap-1 !rounded-lg !border !border-white/15 !bg-[#14151a] !text-[#ececef] !transition hover:!border-[#ff8a00] hover:!bg-[#1c1d23]',
+    menuLine: '!h-0.5 !w-[17px] !rounded-full !bg-current',
+    menuPopover: '!absolute !right-0 !top-12 !min-w-40 !gap-1 !rounded-lg !border !border-white/15 !bg-[#14151a] !p-1.5 !shadow-2xl !shadow-black/40',
+    menuButton: '!rounded-md !px-3 !py-2.5 !text-left !text-sm !font-semibold !text-[#8a8e96] !transition hover:!bg-[#1c1d23] hover:!text-[#ececef]',
+    primaryButton: '!w-full !rounded-lg !border-0 !bg-[#ff8a00] !px-4 !py-2.5 !text-sm !font-bold !text-white !transition hover:!opacity-90 disabled:!cursor-not-allowed disabled:!opacity-50',
+    ghostButton: '!w-full !rounded-lg !border !border-white/15 !bg-transparent !px-4 !py-2.5 !text-sm !font-semibold !text-[#8a8e96] !transition hover:!border-white/25 hover:!text-[#ececef]',
+    dangerGhostButton: '!rounded-lg !border !border-red-500/70 !bg-transparent !px-4 !py-2.5 !text-sm !font-semibold !text-red-400 !transition hover:!bg-red-500/10 disabled:!cursor-not-allowed disabled:!opacity-40',
+    cardItem: '!flex !cursor-pointer !items-center !justify-between !border-b !border-white/10 !px-4 !py-3.5 !transition hover:!bg-[#14151a]',
+    cardTitle: '!truncate !font-semibold !text-[#ececef]',
+    cardSub: '!text-[13px] !text-[#8a8e96]',
+    cardPrice: '!text-sm !font-semibold !text-[#ececef]',
+    drawer: '!fixed !right-0 !top-0 !z-[300] !flex !h-screen !w-[480px] !translate-x-full !flex-col !border-l !border-white/10 !bg-[#14151a] !transition-transform !duration-200',
+    drawerOpen: '!translate-x-0',
+    drawerHeader: '!flex !shrink-0 !items-center !justify-between !border-b !border-white/10 !px-5 !py-4',
+    drawerTitle: '!text-base !font-bold !text-[#ececef]',
+    drawerBody: '!min-h-0 !flex-1 !overflow-y-auto !px-5 !py-4',
+    drawerFooter: '!shrink-0 !border-t !border-white/10 !px-5 !py-3',
+    formGroup: '!mb-5 !flex !flex-col !gap-2',
+    formLabel: '!text-xs !font-bold !text-[#8a8e96]',
+    field: '!w-full !rounded-lg !border !border-white/15 !bg-[#0f1014] !px-3 !py-2.5 !text-sm !leading-normal !text-[#ececef] !outline-none !shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] !transition hover:!border-white/25 hover:!bg-[#121319] focus:!border-[#ff8a00] focus:!bg-[#14151a] focus:!shadow-[0_0_0_3px_rgba(255,138,0,0.14)] disabled:!cursor-not-allowed disabled:!opacity-60',
+    fieldLine: '!h-11',
+    fieldText: '!min-h-24 !resize-y',
+    tagCard: '!grid !min-h-[260px] !min-w-0 !content-start !gap-3 !rounded-lg !border !border-white/10 !bg-[#1c1d23] !p-[18px]',
+    tagHolding: '!grid !min-w-0 !cursor-pointer !gap-2 !rounded-lg !border !border-white/10 !bg-black/10 !px-3 !py-3 !text-left !text-[#ececef] !transition hover:!border-white/20 hover:!bg-[#14151a]',
+}
+
+function addClasses(el, classes) {
+    classes.split(/\s+/).filter(Boolean).forEach(className => el.classList.add(className))
+}
+
+function applyTailwindChrome() {
+    addClasses(menuToggle, tw.menuToggle)
+    menuToggle?.querySelectorAll('span').forEach(line => addClasses(line, tw.menuLine))
+    addClasses(menuPopover, tw.menuPopover)
+    menuPopover?.querySelectorAll('button').forEach(button => addClasses(button, tw.menuButton))
+}
+
+function applyTailwindRenderedStyles(root = document) {
+    root.querySelectorAll('.btn-primary').forEach(el => addClasses(el, tw.primaryButton))
+    root.querySelectorAll('.btn-ghost').forEach(el => addClasses(el, tw.ghostButton))
+    root.querySelectorAll('.btn-danger-ghost').forEach(el => addClasses(el, tw.dangerGhostButton))
+    root.querySelectorAll('.card-item').forEach(el => addClasses(el, tw.cardItem))
+    root.querySelectorAll('.card-title').forEach(el => addClasses(el, tw.cardTitle))
+    root.querySelectorAll('.card-sub').forEach(el => addClasses(el, tw.cardSub))
+    root.querySelectorAll('.card-price').forEach(el => addClasses(el, tw.cardPrice))
+    root.querySelectorAll('.drawer').forEach(el => addClasses(el, tw.drawer))
+    root.querySelectorAll('.drawer.open').forEach(el => addClasses(el, tw.drawerOpen))
+    root.querySelectorAll('.drawer-header').forEach(el => addClasses(el, tw.drawerHeader))
+    root.querySelectorAll('.drawer-title').forEach(el => addClasses(el, tw.drawerTitle))
+    root.querySelectorAll('.drawer-body').forEach(el => addClasses(el, tw.drawerBody))
+    root.querySelectorAll('.drawer-footer').forEach(el => addClasses(el, tw.drawerFooter))
+    root.querySelectorAll('.form-group').forEach(el => addClasses(el, tw.formGroup))
+    root.querySelectorAll('.form-group label').forEach(el => addClasses(el, tw.formLabel))
+    root.querySelectorAll('input, select, textarea').forEach(el => {
+        addClasses(el, tw.field)
+        addClasses(el, el.tagName === 'TEXTAREA' ? tw.fieldText : tw.fieldLine)
+    })
+    root.querySelectorAll('.tag-summary-card').forEach(el => addClasses(el, tw.tagCard))
+    root.querySelectorAll('.tag-holding-card').forEach(el => addClasses(el, tw.tagHolding))
+}
 
 function setMenuOpen(open) {
     menuToggle?.setAttribute('aria-expanded', String(open))
     menuPopover?.classList.toggle('open', open)
+    applyTailwindChrome()
 }
 
 menuToggle?.addEventListener('click', event => {
@@ -59,6 +121,7 @@ const fmtMoney = (value, currency = 'KRW') => {
 const fmtNum = value => Number.isFinite(value) ? Number(value).toLocaleString(undefined, { maximumFractionDigits: 4 }) : '—'
 const pct = value => Number.isFinite(value) ? `${value.toFixed(1)}%` : '—'
 const today = () => new Date().toISOString().slice(0, 10)
+applyTailwindChrome()
 
 document.querySelectorAll('.nav-tab').forEach(button => {
     button.addEventListener('click', () => {
@@ -186,6 +249,7 @@ function render() {
     if (activeTab === 'accounts') renderAccounts()
     if (activeTab === 'instruments') renderInstruments()
     if (activeTab === 'settings') renderSettings()
+    applyTailwindRenderedStyles(document)
 }
 
 function renderHero() {
@@ -548,6 +612,7 @@ function drawer() {
     }
     document.querySelector('.drawer-overlay').classList.add('open')
     drawerEl.classList.add('open')
+    applyTailwindRenderedStyles(drawerEl)
     return drawerEl
 }
 
@@ -561,27 +626,8 @@ function setDrawer(title, bodyHtml, footerHtml = '') {
     el.querySelector('.drawer-title').textContent = title
     el.querySelector('.drawer-body').innerHTML = bodyHtml
     el.querySelector('.drawer-footer').innerHTML = footerHtml
-    applyTailwindFormStyles(el)
+    applyTailwindRenderedStyles(el)
     return el
-}
-
-const twFormGroup = '!mb-5 !flex !flex-col !gap-2'
-const twFormLabel = '!text-xs !font-bold !text-[#8a8e96]'
-const twFieldBase = '!w-full !rounded-lg !border !border-white/15 !bg-[#0f1014] !px-3 !py-2.5 !text-sm !leading-normal !text-[#ececef] !outline-none !shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] !transition hover:!border-white/25 hover:!bg-[#121319] focus:!border-[#ff8a00] focus:!bg-[#14151a] focus:!shadow-[0_0_0_3px_rgba(255,138,0,0.14)] disabled:!cursor-not-allowed disabled:!opacity-60'
-const twFieldSingleLine = '!h-11'
-const twFieldTextarea = '!min-h-24 !resize-y'
-
-function addClasses(el, classes) {
-    classes.split(/\s+/).filter(Boolean).forEach(className => el.classList.add(className))
-}
-
-function applyTailwindFormStyles(root) {
-    root.querySelectorAll('.form-group').forEach(group => addClasses(group, twFormGroup))
-    root.querySelectorAll('.form-group label').forEach(label => addClasses(label, twFormLabel))
-    root.querySelectorAll('input, select, textarea').forEach(field => {
-        addClasses(field, twFieldBase)
-        addClasses(field, field.tagName === 'TEXTAREA' ? twFieldTextarea : twFieldSingleLine)
-    })
 }
 
 function openTickerDrawer(ticker) {
