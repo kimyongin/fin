@@ -22,8 +22,18 @@ const KRW = new Intl.NumberFormat('ko-KR', {
     currency: 'KRW',
     maximumFractionDigits: 0,
 })
+const USD = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+})
 
 const fmtKrw = value => Number.isFinite(value) ? KRW.format(Math.round(value)) : '—'
+const fmtMoney = (value, currency = 'KRW') => {
+    if (!Number.isFinite(value)) return '—'
+    if (currency === 'USD') return USD.format(value)
+    return fmtKrw(value)
+}
 const fmtNum = value => Number.isFinite(value) ? Number(value).toLocaleString(undefined, { maximumFractionDigits: 4 }) : '—'
 const pct = value => Number.isFinite(value) ? `${value.toFixed(1)}%` : '—'
 const today = () => new Date().toISOString().slice(0, 10)
@@ -109,11 +119,13 @@ function aggregateByTicker() {
             display_name: pos.display_name,
             currency: pos.currency,
             quantity: 0,
+            market_value_native: 0,
             market_value_krw: 0,
             unrealized_pnl_krw: 0,
             accounts: [],
         }
         prev.quantity += pos.quantity ?? 0
+        prev.market_value_native += pos.market_value_native ?? 0
         prev.market_value_krw += pos.market_value_krw ?? 0
         prev.unrealized_pnl_krw += pos.unrealized_pnl_krw ?? 0
         prev.accounts.push(pos)
@@ -185,7 +197,8 @@ function renderOverview() {
                     </div>
                     <div class="card-right">
                         <span class="badge badge-neutral">${pct(total ? row.market_value_krw / total * 100 : NaN)}</span>
-                        <div class="card-price">${fmtKrw(row.market_value_krw)}</div>
+                        <div class="card-price">${fmtMoney(row.market_value_native, row.currency)}</div>
+                        ${row.currency !== 'KRW' ? `<div class="card-sub">${fmtKrw(row.market_value_krw)} 환산</div>` : ''}
                         <div class="card-sub">${fmtNum(row.quantity)}주</div>
                     </div>
                 </li>
@@ -319,7 +332,7 @@ function renderInstruments() {
                             <div class="card-sub">${item.ticker} · ${item.currency} · ${tagNames(item.ticker)}</div>
                         </div>
                         <div class="card-right">
-                            <div class="card-price">${price ? fmtNum(price.close_price) : '—'}</div>
+                            <div class="card-price">${price ? fmtMoney(price.close_price, item.currency) : '—'}</div>
                             <div class="card-sub">${price?.price_date ?? '가격 없음'}</div>
                         </div>
                     </li>`
@@ -360,7 +373,7 @@ function renderSettings() {
                             <div class="card-sub">${item.ticker}</div>
                         </div>
                         <div class="card-right">
-                            <div class="card-price">${price ? fmtNum(price.close_price) : '—'}</div>
+                            <div class="card-price">${price ? fmtMoney(price.close_price, item.currency) : '—'}</div>
                             <div class="card-sub">${price?.price_date ?? '가격 없음'}</div>
                         </div>
                     </li>`
@@ -436,10 +449,11 @@ function openTickerDrawer(ticker) {
         <li class="card-item" data-holding="${pos.id}">
             <div class="card-main">
                 <div class="card-title">${pos.account_name}</div>
-                <div class="card-sub">수량 ${fmtNum(pos.quantity)} · 평단 ${fmtNum(pos.avg_price)}</div>
+                <div class="card-sub">수량 ${fmtNum(pos.quantity)} · 평단 ${fmtMoney(pos.avg_price, pos.currency)}</div>
             </div>
             <div class="card-right">
-                <div class="card-price">${fmtKrw(pos.market_value_krw)}</div>
+                <div class="card-price">${fmtMoney(pos.market_value_native, pos.currency)}</div>
+                ${pos.currency !== 'KRW' ? `<div class="card-sub">${fmtKrw(pos.market_value_krw)} 환산</div>` : ''}
             </div>
         </li>
     `).join('')
@@ -448,7 +462,8 @@ function openTickerDrawer(ticker) {
         <div class="stat-row">
             <div class="stat-item">
                 <div class="stat-label">평가금액</div>
-                <div class="stat-value">${fmtKrw(row.market_value_krw)}</div>
+                <div class="stat-value">${fmtMoney(row.market_value_native, row.currency)}</div>
+                ${row.currency !== 'KRW' ? `<div class="card-sub">${fmtKrw(row.market_value_krw)} 환산</div>` : ''}
             </div>
             <div class="stat-item">
                 <div class="stat-label">전체 비중</div>
@@ -487,7 +502,7 @@ function openAccountDrawer(id) {
                     <li class="card-item" data-holding="${row.id}">
                         <div class="card-main">
                             <div class="card-title">${row.instruments?.display_name ?? row.ticker}</div>
-                            <div class="card-sub">${row.ticker} · 수량 ${fmtNum(row.quantity)} · 평단 ${fmtNum(row.avg_price)}</div>
+                            <div class="card-sub">${row.ticker} · 수량 ${fmtNum(row.quantity)} · 평단 ${fmtMoney(row.avg_price, row.instruments?.currency)}</div>
                         </div>
                     </li>
                 `).join('')}
