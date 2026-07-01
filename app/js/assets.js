@@ -18,7 +18,7 @@ const tw = {
     cardTitle: '!truncate !font-semibold !text-[#ececef]',
     cardSub: '!text-[13px] !text-[#8a8e96]',
     cardPrice: '!text-sm !font-semibold !text-[#ececef]',
-    drawer: '!fixed !right-0 !top-0 !z-[300] !flex !h-screen !w-[480px] !flex-col !border-l !border-white/10 !bg-[#14151a] !transition-transform !duration-200',
+    drawer: '!fixed !right-0 !top-0 !z-[300] !flex !h-screen !flex-col !border-l !border-white/10 !bg-[#14151a] !transition-transform !duration-200',
     drawerHeader: '!flex !shrink-0 !items-center !justify-between !border-b !border-white/10 !px-5 !py-4',
     drawerTitle: '!text-base !font-bold !text-[#ececef]',
     drawerBody: '!min-h-0 !flex-1 !overflow-y-auto !px-5 !py-4',
