@@ -437,11 +437,12 @@ input:-webkit-autofill:focus {
         width: 100vw;
         max-width: 100vw;
         border-left: none;
-        transform: translateY(-100%);
-        transition: transform 0.22s ease;
+        display: none;
+        transform: none;
+        transition: none;
         z-index: 300;
     }
-    .drawer.open { transform: translateY(0); }
+    .drawer.open { display: flex; }
     .drawer-overlay.open { display: block; }
 }
 
