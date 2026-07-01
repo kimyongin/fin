@@ -18,7 +18,6 @@ const tw = {
     cardTitle: '!truncate !font-semibold !text-[#ececef]',
     cardSub: '!text-[13px] !text-[#8a8e96]',
     cardPrice: '!text-sm !font-semibold !text-[#ececef]',
-    drawer: '!fixed !right-0 !top-0 !z-[300] !flex !h-screen !flex-col !border-l !border-white/10 !bg-[#14151a] !transition-transform !duration-200',
     drawerHeader: '!flex !shrink-0 !items-center !justify-between !border-b !border-white/10 !px-5 !py-4',
     drawerTitle: '!text-base !font-bold !text-[#ececef]',
     drawerBody: '!min-h-0 !flex-1 !overflow-y-auto !px-5 !py-4',
@@ -51,7 +50,6 @@ function applyTailwindRenderedStyles(root = document) {
     root.querySelectorAll('.card-title').forEach(el => addClasses(el, tw.cardTitle))
     root.querySelectorAll('.card-sub').forEach(el => addClasses(el, tw.cardSub))
     root.querySelectorAll('.card-price').forEach(el => addClasses(el, tw.cardPrice))
-    root.querySelectorAll('.drawer').forEach(el => addClasses(el, tw.drawer))
     root.querySelectorAll('.drawer-header').forEach(el => addClasses(el, tw.drawerHeader))
     root.querySelectorAll('.drawer-title').forEach(el => addClasses(el, tw.drawerTitle))
     root.querySelectorAll('.drawer-body').forEach(el => addClasses(el, tw.drawerBody))
