@@ -63,8 +63,12 @@ function App() {
   const [activeTab, setActiveTab] = useState('overview')
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [accountModal, setAccountModal] = useState(null)
+  const [accountSaving, setAccountSaving] = useState(false)
+  const [accountError, setAccountError] = useState('')
   const [state, setState] = useState({
     accounts: [],
+    holdings: [],
     positions: [],
     instruments: [],
     tags: [],
@@ -123,31 +127,36 @@ function App() {
     }
   }, [menuOpen])
 
+  async function refreshState() {
+    setLoadError('')
+    const results = await Promise.all([
+      supabase.from('accounts').select('*').order('name'),
+      supabase
+        .from('holdings')
+        .select('*, instruments(display_name, currency, instrument_type)')
+        .order('account_id'),
+      supabase.from('portfolio_view').select('*'),
+      supabase.from('instruments').select('*').order('display_name'),
+      supabase.from('tags').select('*').order('sort_order'),
+      supabase.from('instrument_tags').select('ticker, tag_id, tags(id, name, color)'),
+    ])
+    const failed = results.find((result) => result.error)
+    if (failed) throw failed.error
+
+    setState({
+      accounts: results[0].data ?? [],
+      holdings: results[1].data ?? [],
+      positions: results[2].data ?? [],
+      instruments: results[3].data ?? [],
+      tags: results[4].data ?? [],
+      instrumentTags: results[5].data ?? [],
+    })
+  }
+
   useEffect(() => {
     if (!session) return
 
-    async function loadState() {
-      setLoadError('')
-      const results = await Promise.all([
-        supabase.from('accounts').select('*').order('name'),
-        supabase.from('portfolio_view').select('*'),
-        supabase.from('instruments').select('*').order('display_name'),
-        supabase.from('tags').select('*').order('sort_order'),
-        supabase.from('instrument_tags').select('ticker, tag_id, tags(id, name, color)'),
-      ])
-      const failed = results.find((result) => result.error)
-      if (failed) throw failed.error
-
-      setState({
-        accounts: results[0].data ?? [],
-        positions: results[1].data ?? [],
-        instruments: results[2].data ?? [],
-        tags: results[3].data ?? [],
-        instrumentTags: results[4].data ?? [],
-      })
-    }
-
-    loadState().catch((error) => {
+    refreshState().catch((error) => {
       setLoadError(error.message ?? String(error))
     })
   }, [session])
@@ -306,6 +315,61 @@ function App() {
     await supabase.auth.signOut()
   }
 
+  async function handleSaveAccount() {
+    if (!accountModal) return
+
+    const payload = {
+      name: accountModal.name.trim(),
+      broker: accountModal.broker.trim() || null,
+      note: accountModal.note.trim() || null,
+      is_active: true,
+    }
+
+    if (!payload.name) {
+      setAccountError('계좌명을 입력해주세요.')
+      return
+    }
+
+    setAccountSaving(true)
+    setAccountError('')
+    const query = accountModal.id
+      ? supabase.from('accounts').update(payload).eq('id', accountModal.id)
+      : supabase.from('accounts').insert(payload)
+    const { error } = await query
+    setAccountSaving(false)
+
+    if (error) {
+      setAccountError(error.message)
+      return
+    }
+
+    await refreshState()
+    setAccountModal(null)
+  }
+
+  async function handleDeleteAccount() {
+    if (!accountModal?.id) return
+
+    const holdingCount = state.holdings.filter((row) => row.account_id === accountModal.id).length
+    if (holdingCount > 0) {
+      setAccountError('보유 종목이 있는 계좌는 아직 삭제할 수 없습니다. 먼저 보유를 정리해주세요.')
+      return
+    }
+
+    setAccountSaving(true)
+    setAccountError('')
+    const { error } = await supabase.from('accounts').delete().eq('id', accountModal.id)
+    setAccountSaving(false)
+
+    if (error) {
+      setAccountError(error.message)
+      return
+    }
+
+    await refreshState()
+    setAccountModal(null)
+  }
+
   if (authStatus === 'loading') {
     return <CenteredMessage title="로딩 중" body="세션을 확인하고 있습니다." />
   }
@@ -418,12 +482,49 @@ function App() {
           />
         )}
         {activeTab === 'accounts' && (
-          <AccountsPage accounts={accountCards} totalValue={totalValue} />
+          <AccountsPage
+            accounts={accountCards}
+            holdings={state.holdings}
+            onCreateAccount={() =>
+              setAccountModal({ id: null, name: '', broker: '', note: '' })
+            }
+            onEditAccount={(account) => {
+              setAccountError('')
+              setAccountModal({
+                id: account.id,
+                name: account.name ?? '',
+                broker: account.broker ?? '',
+                note: account.note ?? '',
+              })
+            }}
+            totalValue={totalValue}
+          />
         )}
         {activeTab === 'instruments' && (
           <InstrumentsPage instruments={instrumentRows} totalValue={totalValue} />
         )}
         {activeTab === 'settings' && <SettingsPage />}
+
+        {accountModal && (
+          <AccountEditorModal
+            accountError={accountError}
+            accountSaving={accountSaving}
+            draft={accountModal}
+            holdings={state.holdings.filter((row) => row.account_id === accountModal.id)}
+            onChange={(field, value) => {
+              setAccountError('')
+              setAccountModal((current) => ({ ...current, [field]: value }))
+            }}
+            onClose={() => {
+              if (!accountSaving) {
+                setAccountError('')
+                setAccountModal(null)
+              }
+            }}
+            onDelete={handleDeleteAccount}
+            onSave={handleSaveAccount}
+          />
+        )}
       </div>
     </main>
   )
@@ -557,13 +658,24 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
   )
 }
 
-function AccountsPage({ accounts, totalValue }) {
+function AccountsPage({ accounts, holdings, onCreateAccount, onEditAccount, totalValue }) {
   return (
     <section className="mt-8 grid gap-3">
+      <div className="flex justify-end">
+        <button
+          className="rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
+          onClick={onCreateAccount}
+          type="button"
+        >
+          계좌 추가
+        </button>
+      </div>
       {accounts.map((account) => (
-        <article
-          className="grid gap-3 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)] sm:grid-cols-[1fr_auto] sm:items-center"
+        <button
+          className="grid gap-3 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-4 text-left shadow-[var(--shadow-soft)] transition hover:-translate-y-[1px] hover:shadow-[0_18px_40px_rgba(94,72,44,0.12)] sm:grid-cols-[1fr_auto] sm:items-center"
           key={account.id}
+          onClick={() => onEditAccount(account)}
+          type="button"
         >
           <div>
             <h2 className="text-base font-semibold">{account.name}</h2>
@@ -571,6 +683,9 @@ function AccountsPage({ accounts, totalValue }) {
               {account.broker || '증권사 없음'} · {account.count}개 보유
             </p>
             {account.note && <p className="mt-2 text-sm text-[var(--muted-ink)]">{account.note}</p>}
+            <p className="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-[var(--muted-ink)]">
+              보유 레코드 {holdings.filter((row) => row.account_id === account.id).length}
+            </p>
           </div>
           <div className="text-left sm:text-right">
             <p className="text-lg font-semibold">{formatKrw(account.market_value_krw)}</p>
@@ -578,7 +693,7 @@ function AccountsPage({ accounts, totalValue }) {
               {formatPercent(totalValue > 0 ? (account.market_value_krw / totalValue) * 100 : NaN)}
             </p>
           </div>
-        </article>
+        </button>
       ))}
     </section>
   )
@@ -643,6 +758,159 @@ function CenteredMessage({ title, body }) {
         <p className="mt-3 text-sm leading-6 text-[var(--muted-ink)]">{body}</p>
       </section>
     </main>
+  )
+}
+
+function AccountEditorModal({
+  accountError,
+  accountSaving,
+  draft,
+  holdings,
+  onChange,
+  onClose,
+  onDelete,
+  onSave,
+}) {
+  return (
+    <ModalShell onClose={onClose} title={draft.id ? draft.name || '계좌 수정' : '계좌 추가'}>
+      <div className="grid gap-4">
+        <label className="grid gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+            계좌명
+          </span>
+          <input
+            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            onChange={(event) => onChange('name', event.target.value)}
+            value={draft.name}
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+            증권사
+          </span>
+          <input
+            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            onChange={(event) => onChange('broker', event.target.value)}
+            value={draft.broker}
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+            메모
+          </span>
+          <textarea
+            className="min-h-24 rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            onChange={(event) => onChange('note', event.target.value)}
+            value={draft.note}
+          />
+        </label>
+
+        {!!draft.id && (
+          <div className="grid gap-3 rounded-[24px] border border-[var(--line)] bg-white/65 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold">이 계좌의 보유 종목</h3>
+              <span className="text-sm text-[var(--muted-ink)]">{holdings.length}개</span>
+            </div>
+            {holdings.length ? (
+              <div className="grid gap-2.5">
+                {holdings.map((holding) => (
+                  <article
+                    className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] px-3 py-3"
+                    key={holding.id}
+                  >
+                    <div className="text-sm font-semibold text-[var(--ink)]">
+                      {holding.instruments?.display_name ?? holding.ticker}
+                    </div>
+                    <div className="mt-1 text-sm text-[var(--muted-ink)]">
+                      {holding.ticker} · 수량 {holding.quantity?.toLocaleString?.() ?? holding.quantity}
+                    </div>
+                    <div className="mt-1 text-sm text-[var(--muted-ink)]">
+                      평균단가 {formatMoney(holding.avg_price, holding.instruments?.currency)}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm leading-6 text-[var(--muted-ink)]">
+                아직 보유 종목이 없습니다. 보유 편집은 다음 티켓에서 이어집니다.
+              </p>
+            )}
+          </div>
+        )}
+
+        {accountError && (
+          <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+            {accountError}
+          </div>
+        )}
+
+        <div className="flex flex-wrap justify-between gap-3 pt-1">
+          <div>
+            {draft.id && (
+              <button
+                className="rounded-2xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={accountSaving}
+                onClick={onDelete}
+                type="button"
+              >
+                계좌 삭제
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={accountSaving}
+              onClick={onClose}
+              type="button"
+            >
+              닫기
+            </button>
+            <button
+              className="rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={accountSaving}
+              onClick={onSave}
+              type="button"
+            >
+              {accountSaving ? '저장 중' : '저장'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </ModalShell>
+  )
+}
+
+function ModalShell({ children, onClose, title }) {
+  useEffect(() => {
+    function handleKeydown(event) {
+      if (event.key === 'Escape') onClose()
+    }
+
+    document.addEventListener('keydown', handleKeydown)
+    return () => document.removeEventListener('keydown', handleKeydown)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-30 bg-[rgba(71,49,28,0.18)] px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-8">
+      <div className="mx-auto flex h-full max-w-2xl items-start justify-center">
+        <section className="max-h-full w-full overflow-y-auto rounded-[30px] border border-[var(--line)] bg-[rgba(255,248,241,0.98)] p-5 shadow-[0_30px_70px_rgba(79,55,29,0.2)] sm:p-6">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <h2 className="text-xl font-semibold">{title}</h2>
+            <button
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--line)] bg-white/75 text-[var(--muted-ink)] transition hover:text-[var(--ink)]"
+              onClick={onClose}
+              type="button"
+            >
+              ×
+            </button>
+          </div>
+          {children}
+        </section>
+      </div>
+    </div>
   )
 }
 
