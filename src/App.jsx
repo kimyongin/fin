@@ -13,9 +13,24 @@ const KRW = new Intl.NumberFormat('ko-KR', {
   currency: 'KRW',
   maximumFractionDigits: 0,
 })
+const USD = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 2,
+})
 
 function formatKrw(value) {
   return Number.isFinite(value) ? KRW.format(Math.round(value)) : '-'
+}
+
+function formatMoney(value, currency = 'KRW') {
+  if (!Number.isFinite(value)) return '-'
+  if (currency === 'USD') return USD.format(value)
+  return formatKrw(value)
+}
+
+function formatPercent(value) {
+  return Number.isFinite(value) ? `${value.toFixed(1)}%` : '-'
 }
 
 function authRedirectTo() {
@@ -94,6 +109,54 @@ function App() {
     () => state.positions.reduce((sum, row) => sum + (row.market_value_krw ?? 0), 0),
     [state.positions],
   )
+
+  const accountCards = useMemo(() => {
+    return state.accounts
+      .map((account) => {
+        const rows = state.positions.filter((pos) => pos.account_id === account.id)
+        return {
+          ...account,
+          count: rows.length,
+          market_value_krw: rows.reduce((sum, row) => sum + (row.market_value_krw ?? 0), 0),
+        }
+      })
+      .sort((a, b) => b.market_value_krw - a.market_value_krw)
+  }, [state.accounts, state.positions])
+
+  const instrumentRows = useMemo(() => {
+    const byTicker = new Map()
+    for (const tagRow of state.instrumentTags) {
+      if (!byTicker.has(tagRow.ticker) && tagRow.tags) {
+        byTicker.set(tagRow.ticker, tagRow.tags.name)
+      }
+    }
+
+    const byPosition = new Map()
+    for (const pos of state.positions) {
+      const current = byPosition.get(pos.ticker) ?? {
+        ticker: pos.ticker,
+        display_name: pos.display_name,
+        currency: pos.currency,
+        quantity: 0,
+        market_value_native: 0,
+        market_value_krw: 0,
+        accounts: new Set(),
+      }
+      current.quantity += pos.quantity ?? 0
+      current.market_value_native += pos.market_value_native ?? 0
+      current.market_value_krw += pos.market_value_krw ?? 0
+      if (pos.account_id) current.accounts.add(pos.account_id)
+      byPosition.set(pos.ticker, current)
+    }
+
+    return [...byPosition.values()]
+      .map((row) => ({
+        ...row,
+        accountCount: row.accounts.size,
+        tagName: byTicker.get(row.ticker) ?? '태그 없음',
+      }))
+      .sort((a, b) => b.market_value_krw - a.market_value_krw)
+  }, [state.instrumentTags, state.positions])
 
   const tagCards = useMemo(() => {
     const byTicker = new Map()
@@ -229,14 +292,13 @@ function App() {
         )}
 
         {activeTab === 'overview' && <Overview cards={tagCards} totalValue={totalValue} />}
-        {activeTab !== 'overview' && (
-          <section className="mt-8 rounded-lg border border-white/10 bg-zinc-900 p-5">
-            <h2 className="text-lg font-bold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              이 화면은 다음 단계에서 기존 기능을 React 컴포넌트로 옮길 예정입니다.
-            </p>
-          </section>
+        {activeTab === 'accounts' && (
+          <AccountsPage accounts={accountCards} totalValue={totalValue} />
         )}
+        {activeTab === 'instruments' && (
+          <InstrumentsPage instruments={instrumentRows} totalValue={totalValue} />
+        )}
+        {activeTab === 'settings' && <SettingsPage />}
       </div>
     </main>
   )
@@ -268,17 +330,99 @@ function Overview({ cards, totalValue }) {
               >
                 <div className="font-bold text-zinc-100">
                   {holding.ticker} ·{' '}
-                  {totalValue > 0
-                    ? `${(((holding.market_value_krw ?? 0) / totalValue) * 100).toFixed(1)}%`
-                    : '-'}
+                  {formatPercent(totalValue > 0 ? ((holding.market_value_krw ?? 0) / totalValue) * 100 : NaN)}
                 </div>
                 <div className="mt-2 leading-6 text-zinc-300">{holding.display_name}</div>
-                <div className="mt-3 font-bold">{formatKrw(holding.market_value_krw ?? 0)}</div>
+                <div className="mt-3 font-bold">
+                  {formatMoney(holding.market_value_native, holding.currency)}
+                  {holding.currency !== 'KRW' && (
+                    <span className="ml-1 text-zinc-400">
+                      ({formatKrw(holding.market_value_krw ?? 0)} 환산)
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         </article>
       ))}
+    </section>
+  )
+}
+
+function AccountsPage({ accounts, totalValue }) {
+  return (
+    <section className="mt-8 grid gap-3">
+      {accounts.map((account) => (
+        <article
+          className="grid gap-3 rounded-lg border border-white/10 bg-zinc-900 p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+          key={account.id}
+        >
+          <div>
+            <h2 className="text-base font-bold">{account.name}</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              {account.broker || '증권사 없음'} · {account.count}개 보유
+            </p>
+            {account.note && <p className="mt-2 text-sm text-zinc-500">{account.note}</p>}
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-lg font-bold">{formatKrw(account.market_value_krw)}</p>
+            <p className="mt-1 text-sm text-orange-400">
+              {formatPercent(totalValue > 0 ? (account.market_value_krw / totalValue) * 100 : NaN)}
+            </p>
+          </div>
+        </article>
+      ))}
+    </section>
+  )
+}
+
+function InstrumentsPage({ instruments, totalValue }) {
+  return (
+    <section className="mt-8 grid gap-3">
+      {instruments.map((instrument) => (
+        <article
+          className="grid gap-3 rounded-lg border border-white/10 bg-zinc-900 p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+          key={instrument.ticker}
+        >
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md border border-white/15 px-2 py-1 text-xs font-bold text-zinc-200">
+                {instrument.ticker}
+              </span>
+              <span className="text-sm font-semibold text-orange-400">{instrument.tagName}</span>
+            </div>
+            <h2 className="mt-3 text-base font-bold leading-6">{instrument.display_name}</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              {instrument.accountCount}개 계좌 · 수량 {instrument.quantity.toLocaleString()}
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-lg font-bold">
+              {formatMoney(instrument.market_value_native, instrument.currency)}
+            </p>
+            {instrument.currency !== 'KRW' && (
+              <p className="mt-1 text-sm text-zinc-400">
+                {formatKrw(instrument.market_value_krw)} 환산
+              </p>
+            )}
+            <p className="mt-1 text-sm text-orange-400">
+              {formatPercent(totalValue > 0 ? (instrument.market_value_krw / totalValue) * 100 : NaN)}
+            </p>
+          </div>
+        </article>
+      ))}
+    </section>
+  )
+}
+
+function SettingsPage() {
+  return (
+    <section className="mt-8 rounded-lg border border-white/10 bg-zinc-900 p-5">
+      <h2 className="text-lg font-bold">설정</h2>
+      <p className="mt-2 text-sm leading-6 text-zinc-400">
+        편집, CSV 가져오기, 가격 갱신 같은 관리 기능은 다음 단계에서 React 드로어와 함께 옮깁니다.
+      </p>
     </section>
   )
 }
