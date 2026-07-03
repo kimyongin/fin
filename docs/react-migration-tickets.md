@@ -12,6 +12,8 @@ context quickly after a context-window reset.
 
 - `bd5b478 feat: add Vite React app foundation`
 - `1131ca4 feat: add React portfolio read views`
+- `19d0cd5 feat: rebuild React assets overview`
+- `90d9002 feat: add React account editor modal`
 
 ## Tickets
 
@@ -29,6 +31,7 @@ context quickly after a context-window reset.
 - Use GitHub Pages with CSR only.
 - Deploy built `dist/` output, not source files.
 - Keep Supabase as the backend.
+- Keep `app/` as a temporary legacy reference until final cleanup after cutover.
 - Do not stage `.claude/settings.local.json`; it is an unrelated local change.
 - Prefer small commits that close or advance one ticket at a time.
 
