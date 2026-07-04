@@ -1072,7 +1072,7 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
 
   return (
     <section className="mt-8 grid gap-6">
-      <div className="grid gap-5 rounded-[32px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)] sm:p-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:p-6">
+      <div className="grid gap-4 rounded-[32px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)] sm:p-5 lg:p-6">
         <div className="grid gap-4">
           <div className="grid gap-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0">
@@ -1133,53 +1133,53 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {cards.map((card) => (
-            <article
-              className="grid min-h-[320px] content-start gap-4 rounded-[28px] border border-[var(--line)] bg-[var(--surface-2)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
-              key={card.id}
-              style={{ borderTop: `4px solid ${card.color}` }}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold">{card.name}</h3>
-                  <p className="mt-2 text-2xl font-semibold">{formatKrw(card.value)}</p>
-                </div>
-                <strong className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-sm font-semibold text-[var(--accent)]">
-                  {formatPercent(totalValue > 0 ? (card.value / totalValue) * 100 : NaN)}
-                </strong>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.map((card) => (
+          <article
+            className="grid min-h-[320px] content-start gap-4 rounded-[28px] border border-[var(--line)] bg-[var(--surface-2)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
+            key={card.id}
+            style={{ borderTop: `4px solid ${card.color}` }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">{card.name}</h3>
+                <p className="mt-2 text-2xl font-semibold">{formatKrw(card.value)}</p>
               </div>
-              <p className="text-sm text-[var(--muted-ink)]">{card.holdings.length}개 통합 종목</p>
-              <div className="grid gap-3">
-                {card.holdings.map((holding) => (
-                  <article
-                    className="rounded-[22px] border border-[var(--line)] bg-[var(--panel)] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
-                    key={holding.ticker}
-                  >
-                    <div className="text-sm font-semibold text-[var(--muted-ink)]">
-                      [{holding.ticker}] ·{' '}
-                      {formatPercent(
-                        totalValue > 0 ? (holding.market_value_krw / totalValue) * 100 : NaN,
-                      )}
-                    </div>
-                    <div className="mt-2 text-[15px] font-medium leading-6 text-[var(--ink)] break-words">
-                      {holding.display_name ?? holding.ticker}
-                    </div>
-                    <div className="mt-3 text-sm font-semibold text-[var(--ink)]">
-                      {formatMoney(holding.market_value_native, holding.currency)}
-                      {holding.currency !== 'KRW' && (
-                        <span className="ml-1 font-medium text-[var(--muted-ink)]">
-                          ({formatKrw(holding.market_value_krw)} 환산)
-                        </span>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
+              <strong className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-sm font-semibold text-[var(--accent)]">
+                {formatPercent(totalValue > 0 ? (card.value / totalValue) * 100 : NaN)}
+              </strong>
+            </div>
+            <p className="text-sm text-[var(--muted-ink)]">{card.holdings.length}개 통합 종목</p>
+            <div className="grid gap-3">
+              {card.holdings.map((holding) => (
+                <article
+                  className="rounded-[22px] border border-[var(--line)] bg-[var(--panel)] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
+                  key={holding.ticker}
+                >
+                  <div className="text-sm font-semibold text-[var(--muted-ink)]">
+                    [{holding.ticker}] ·{' '}
+                    {formatPercent(
+                      totalValue > 0 ? (holding.market_value_krw / totalValue) * 100 : NaN,
+                    )}
+                  </div>
+                  <div className="mt-2 text-[15px] font-medium leading-6 text-[var(--ink)] break-words">
+                    {holding.display_name ?? holding.ticker}
+                  </div>
+                  <div className="mt-3 text-sm font-semibold text-[var(--ink)]">
+                    {formatMoney(holding.market_value_native, holding.currency)}
+                    {holding.currency !== 'KRW' && (
+                      <span className="ml-1 font-medium text-[var(--muted-ink)]">
+                        ({formatKrw(holding.market_value_krw)} 환산)
+                      </span>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   )
