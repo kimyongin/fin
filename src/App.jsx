@@ -154,6 +154,7 @@ function App() {
   const [tagError, setTagError] = useState('')
   const [syncingPrices, setSyncingPrices] = useState(false)
   const [syncMessage, setSyncMessage] = useState('')
+  const [instrumentTagFilter, setInstrumentTagFilter] = useState('all')
   const [state, setState] = useState({
     accounts: [],
     holdings: [],
@@ -355,9 +356,11 @@ function App() {
       .map((instrument) => {
         const position = aggregated.get(instrument.ticker)
         const latestPrice = latestPriceByTicker.get(instrument.ticker)
+        const tag = tagMapByTicker.get(instrument.ticker)
         return {
           ...instrument,
-          tagName: tagMapByTicker.get(instrument.ticker)?.name ?? '태그 없음',
+          tagId: tag?.id ? String(tag.id) : '',
+          tagName: tag?.name ?? '태그 없음',
           quantity: position?.quantity ?? 0,
           market_value_native: position?.market_value_native ?? 0,
           market_value_krw: position?.market_value_krw ?? 0,
@@ -368,6 +371,14 @@ function App() {
       })
       .sort((a, b) => b.market_value_krw - a.market_value_krw || a.display_name.localeCompare(b.display_name))
   }, [state.instruments, state.positions, latestPriceByTicker, tagMapByTicker])
+
+  const filteredInstrumentRows = useMemo(() => {
+    if (instrumentTagFilter === 'all') return instrumentRows
+    if (instrumentTagFilter === 'untagged') {
+      return instrumentRows.filter((instrument) => !instrument.tagId)
+    }
+    return instrumentRows.filter((instrument) => instrument.tagId === instrumentTagFilter)
+  }, [instrumentRows, instrumentTagFilter])
 
   const tagCards = useMemo(() => {
     const rows = instrumentRows.filter((row) => (row.market_value_krw ?? 0) > 0)
@@ -912,11 +923,14 @@ function App() {
         {activeTab === 'instruments' && (
           <InstrumentsPage
             holdingsByTicker={holdingsByTicker}
-            instruments={instrumentRows}
+            instruments={filteredInstrumentRows}
             onCreateHolding={(ticker) => openHoldingModal({ ticker })}
             onCreateInstrument={() => openInstrumentModal()}
             onEditHolding={(holding) => openHoldingModal({ holding })}
             onEditInstrument={(instrument) => openInstrumentModal(instrument)}
+            onTagFilterChange={setInstrumentTagFilter}
+            selectedTagId={instrumentTagFilter}
+            tags={state.tags}
             totalValue={totalValue}
           />
         )}
@@ -1256,19 +1270,45 @@ function InstrumentsPage({
   onCreateInstrument,
   onEditHolding,
   onEditInstrument,
+  onTagFilterChange,
+  selectedTagId,
+  tags,
   totalValue,
 }) {
   return (
     <section className="mt-8 grid gap-3">
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
+        <label className="grid min-w-0 flex-1 gap-2 sm:max-w-sm">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+            태그 필터
+          </span>
+          <select
+            className="h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
+            onChange={(event) => onTagFilterChange(event.target.value)}
+            value={selectedTagId}
+          >
+            <option value="all">전체 태그</option>
+            {tags.map((tag) => (
+              <option key={tag.id} value={String(tag.id)}>
+                {tag.name}
+              </option>
+            ))}
+            <option value="untagged">태그 없음</option>
+          </select>
+        </label>
         <button
-          className="rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
+          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:brightness-95"
           onClick={onCreateInstrument}
           type="button"
         >
           종목 추가
         </button>
       </div>
+      {!instruments.length && (
+        <div className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-5 text-sm leading-6 text-[var(--muted-ink)] shadow-[var(--shadow-soft)]">
+          선택한 태그에 해당하는 종목이 없습니다.
+        </div>
+      )}
       {instruments.map((instrument) => {
         const linkedHoldings = holdingsByTicker.get(instrument.ticker) ?? []
         return (
