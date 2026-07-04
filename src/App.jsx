@@ -1172,8 +1172,8 @@ function AccountsPage({
             className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]"
             key={account.id}
           >
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
-              <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
                 <h2 className="text-base font-semibold">{account.name}</h2>
                 <p className="mt-1 text-sm text-[var(--muted-ink)]">
                   {account.broker || '증권사 없음'} · {account.count}개 보유
@@ -1185,21 +1185,22 @@ function AccountsPage({
                   보유 레코드 {holdings.length}
                 </p>
               </div>
-              <div className="text-left sm:text-right">
-                <p className="text-lg font-semibold">{formatKrw(account.market_value_krw)}</p>
-                <p className="mt-1 text-sm text-[var(--accent)]">
-                  {formatPercent(
-                    totalValue > 0 ? (account.market_value_krw / totalValue) * 100 : NaN,
-                  )}
-                </p>
-                <button
-                  className="mt-3 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                  onClick={() => onEditAccount(account)}
-                  type="button"
-                >
-                  편집
-                </button>
-              </div>
+              <button
+                className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                onClick={() => onEditAccount(account)}
+                type="button"
+              >
+                편집
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-lg font-semibold">{formatKrw(account.market_value_krw)}</p>
+              <p className="mt-1 text-sm text-[var(--accent)]">
+                {formatPercent(
+                  totalValue > 0 ? (account.market_value_krw / totalValue) * 100 : NaN,
+                )}
+              </p>
             </div>
 
             {!!holdings.length && (
@@ -1275,8 +1276,8 @@ function InstrumentsPage({
             className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]"
             key={instrument.ticker}
           >
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
-              <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-2.5 py-1 text-xs font-semibold text-[var(--ink)]">
                     {instrument.ticker}
@@ -1298,28 +1299,29 @@ function InstrumentsPage({
                   {instrument.latestPriceDate ? ` · ${instrument.latestPriceDate}` : ''}
                 </p>
               </div>
-              <div className="text-left sm:text-right">
-                <p className="text-lg font-semibold">
-                  {formatMoney(instrument.market_value_native, instrument.currency)}
+              <button
+                className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                onClick={() => onEditInstrument(instrument)}
+                type="button"
+              >
+                편집
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-lg font-semibold">
+                {formatMoney(instrument.market_value_native, instrument.currency)}
+              </p>
+              {instrument.currency !== 'KRW' && (
+                <p className="mt-1 text-sm text-[var(--muted-ink)]">
+                  {formatKrw(instrument.market_value_krw)} 환산
                 </p>
-                {instrument.currency !== 'KRW' && (
-                  <p className="mt-1 text-sm text-[var(--muted-ink)]">
-                    {formatKrw(instrument.market_value_krw)} 환산
-                  </p>
+              )}
+              <p className="mt-1 text-sm text-[var(--accent)]">
+                {formatPercent(
+                  totalValue > 0 ? (instrument.market_value_krw / totalValue) * 100 : NaN,
                 )}
-                <p className="mt-1 text-sm text-[var(--accent)]">
-                  {formatPercent(
-                    totalValue > 0 ? (instrument.market_value_krw / totalValue) * 100 : NaN,
-                  )}
-                </p>
-                <button
-                  className="mt-3 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                  onClick={() => onEditInstrument(instrument)}
-                  type="button"
-                >
-                  편집
-                </button>
-              </div>
+              </p>
             </div>
 
             {!!linkedHoldings.length && (
