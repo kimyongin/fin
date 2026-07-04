@@ -2,20 +2,22 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: light;
-  --accent: #db6a21;
-  --accent-soft: rgba(219, 106, 33, 0.12);
-  --panel: rgba(255, 248, 241, 0.92);
-  --line: rgba(122, 92, 62, 0.16);
-  --ink: #2f2418;
-  --muted-ink: #7f6954;
-  --shadow-soft: 0 28px 60px rgba(94, 72, 44, 0.08);
+  color-scheme: dark;
+  --accent: #ff8a00;
+  --accent-soft: rgba(255, 138, 0, 0.16);
+  --panel: rgba(24, 25, 31, 0.94);
+  --surface-2: rgba(19, 20, 26, 0.9);
+  --surface-3: rgba(15, 16, 20, 0.96);
+  --line: rgba(255, 255, 255, 0.1);
+  --ink: #ececef;
+  --muted-ink: #8a8e96;
+  --shadow-soft: 0 28px 60px rgba(0, 0, 0, 0.32);
   font-family:
     "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(255, 191, 133, 0.34), transparent 28%),
-    radial-gradient(circle at top right, rgba(103, 194, 205, 0.18), transparent 24%),
-    linear-gradient(180deg, #fffdf9 0%, #f8f1e7 100%);
+    radial-gradient(circle at top left, rgba(255, 138, 0, 0.14), transparent 24%),
+    radial-gradient(circle at top right, rgba(38, 198, 218, 0.1), transparent 24%),
+    linear-gradient(180deg, #0d0e12 0%, #14151a 100%);
 }
 
 html {
