@@ -87,6 +87,15 @@ function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
+function createViewerProfileDraft(profile = null) {
+  return {
+    public_name: profile?.public_name ?? '',
+    sharing_enabled: Boolean(profile?.sharing_enabled),
+    viewer_password: '',
+    viewer_password_updated_at: profile?.viewer_password_updated_at ?? null,
+  }
+}
+
 function resolveTagColor(color, fallback) {
   if (!color) return fallback
   return tagColorMap[color] ?? color
@@ -161,6 +170,12 @@ function App() {
   const [tagError, setTagError] = useState('')
   const [syncingPrices, setSyncingPrices] = useState(false)
   const [syncMessage, setSyncMessage] = useState('')
+  const [viewerProfileSchemaReady, setViewerProfileSchemaReady] = useState(true)
+  const [viewerProfileSaving, setViewerProfileSaving] = useState(false)
+  const [viewerProfileError, setViewerProfileError] = useState('')
+  const [viewerProfileMessage, setViewerProfileMessage] = useState('')
+  const [viewerProfile, setViewerProfile] = useState(() => createViewerProfileDraft())
+  const [viewerProfileDraft, setViewerProfileDraft] = useState(() => createViewerProfileDraft())
   const [accountTagFilter, setAccountTagFilter] = useState('all')
   const [instrumentTagFilter, setInstrumentTagFilter] = useState('all')
   const [state, setState] = useState({
@@ -277,10 +292,35 @@ function App() {
     })
   }
 
+  async function loadViewerProfile() {
+    setViewerProfileError('')
+    setViewerProfileMessage('')
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('public_name, sharing_enabled, viewer_password_updated_at')
+      .maybeSingle()
+
+    if (error) {
+      if (error.code === '42P01') {
+        setViewerProfileSchemaReady(false)
+        setViewerProfile(createViewerProfileDraft())
+        setViewerProfileDraft(createViewerProfileDraft())
+        return
+      }
+      throw error
+    }
+
+    setViewerProfileSchemaReady(true)
+    const nextProfile = createViewerProfileDraft(Array.isArray(data) ? data[0] : data)
+    setViewerProfile(nextProfile)
+    setViewerProfileDraft(nextProfile)
+  }
+
   useEffect(() => {
     if (!session) return
 
-    refreshState().catch((error) => {
+    Promise.all([refreshState(), loadViewerProfile()]).catch((error) => {
       setLoadError(error.message ?? String(error))
     })
   }, [session])
@@ -814,6 +854,41 @@ function App() {
     }
   }
 
+  async function handleSaveViewerProfile() {
+    setViewerProfileSaving(true)
+    setViewerProfileError('')
+    setViewerProfileMessage('')
+
+    try {
+      const { data, error } = await supabase.rpc('set_viewer_profile', {
+        input_public_name: viewerProfileDraft.public_name,
+        input_viewer_password: viewerProfileDraft.viewer_password,
+        input_sharing_enabled: viewerProfileDraft.sharing_enabled,
+      })
+
+      if (error) throw error
+
+      const nextProfile = createViewerProfileDraft(Array.isArray(data) ? data[0] : data)
+      setViewerProfileSchemaReady(true)
+      setViewerProfile(nextProfile)
+      setViewerProfileDraft(nextProfile)
+      setViewerProfileMessage(
+        viewerProfileDraft.viewer_password
+          ? '공유 보기 설정을 저장했고, 기존 보기 세션도 새 비밀번호 기준으로 갱신됩니다.'
+          : '공유 보기 설정을 저장했습니다.',
+      )
+    } catch (error) {
+      if (error.code === '42P01' || error.code === '42883') {
+        setViewerProfileSchemaReady(false)
+        setViewerProfileError('공유 보기용 데이터베이스 마이그레이션이 아직 적용되지 않았습니다.')
+      } else {
+        setViewerProfileError(error.message ?? '공유 보기 설정을 저장하지 못했습니다.')
+      }
+    } finally {
+      setViewerProfileSaving(false)
+    }
+  }
+
   if (authStatus === 'loading') {
     return <CenteredMessage title="로딩 중" body="세션을 확인하고 있습니다." />
   }
@@ -991,9 +1066,21 @@ function App() {
             onCreateTag={() => openTagModal()}
             onEditTag={(tag) => openTagModal(tag)}
             onSyncPrices={handleSyncPrices}
+            onViewerProfileChange={(field, value) => {
+              setViewerProfileError('')
+              setViewerProfileMessage('')
+              setViewerProfileDraft((current) => ({ ...current, [field]: value }))
+            }}
+            onViewerProfileSave={handleSaveViewerProfile}
             syncingPrices={syncingPrices}
             syncMessage={syncMessage}
             tags={state.tags}
+            viewerProfile={viewerProfile}
+            viewerProfileDraft={viewerProfileDraft}
+            viewerProfileError={viewerProfileError}
+            viewerProfileMessage={viewerProfileMessage}
+            viewerProfileSaving={viewerProfileSaving}
+            viewerProfileSchemaReady={viewerProfileSchemaReady}
           />
         )}
 
@@ -1493,9 +1580,129 @@ function InstrumentsPage({
   )
 }
 
-function SettingsPage({ onCreateTag, onEditTag, onSyncPrices, syncingPrices, syncMessage, tags }) {
+function SettingsPage({
+  onCreateTag,
+  onEditTag,
+  onSyncPrices,
+  onViewerProfileChange,
+  onViewerProfileSave,
+  syncingPrices,
+  syncMessage,
+  tags,
+  viewerProfile,
+  viewerProfileDraft,
+  viewerProfileError,
+  viewerProfileMessage,
+  viewerProfileSaving,
+  viewerProfileSchemaReady,
+}) {
   return (
     <section className="mt-8 grid gap-5">
+      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">{'공유 보기'}</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">
+              {'친구가 공개 이름과 보기 전용 비밀번호로 내 포트폴리오를 읽기 전용으로 볼 수 있게 합니다.'}
+            </p>
+          </div>
+          <button
+            className="rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!viewerProfileSchemaReady || viewerProfileSaving}
+            onClick={onViewerProfileSave}
+            type="button"
+          >
+            {viewerProfileSaving ? '저장 중' : '공유 설정 저장'}
+          </button>
+        </div>
+
+        {!viewerProfileSchemaReady ? (
+          <div className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            {'공유 보기 기능용 데이터베이스 마이그레이션이 아직 적용되지 않았습니다. Supabase migration 적용 후 다시 사용할 수 있어요.'}
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-4">
+            <label className="grid gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+                {'공개 이름'}
+              </span>
+              <input
+                className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+                onChange={(event) => onViewerProfileChange('public_name', event.target.value)}
+                placeholder="예: yongin-portfolio"
+                value={viewerProfileDraft.public_name}
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+                {'보기 전용 비밀번호'}
+              </span>
+              <input
+                className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+                onChange={(event) => onViewerProfileChange('viewer_password', event.target.value)}
+                placeholder={
+                  viewerProfile.viewer_password_updated_at ? '변경할 때만 입력' : '최소 4자 이상'
+                }
+                type="password"
+                value={viewerProfileDraft.viewer_password}
+              />
+            </label>
+
+            <label className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-[var(--ink)]">{'공유 보기 활성화'}</p>
+                <p className="mt-1 text-sm text-[var(--muted-ink)]">
+                  {'켜면 친구가 검색 이름과 비밀번호로 들어와서 자산/계좌/종목을 읽기 전용으로 볼 수 있습니다.'}
+                </p>
+              </div>
+              <button
+                aria-pressed={viewerProfileDraft.sharing_enabled}
+                className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition ${
+                  viewerProfileDraft.sharing_enabled
+                    ? 'border-[var(--accent)] bg-[var(--accent)]'
+                    : 'border-[var(--line)] bg-[var(--surface-3)]'
+                }`}
+                onClick={() =>
+                  onViewerProfileChange('sharing_enabled', !viewerProfileDraft.sharing_enabled)
+                }
+                type="button"
+              >
+                <span
+                  className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${
+                    viewerProfileDraft.sharing_enabled ? 'left-6' : 'left-1'
+                  }`}
+                />
+              </button>
+            </label>
+
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--muted-ink)]">
+              <p>
+                {'현재 상태: '}
+                <span className="font-semibold text-[var(--ink)]">
+                  {viewerProfile.sharing_enabled ? '활성화됨' : '비활성화됨'}
+                </span>
+              </p>
+              <p className="mt-2">
+                {'저장 후에는 비밀번호를 다시 보여주지 않습니다. 바꾸고 싶을 때만 새 비밀번호를 입력하면 됩니다.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {viewerProfileError && (
+          <div className="mt-4 rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {viewerProfileError}
+          </div>
+        )}
+
+        {viewerProfileMessage && (
+          <div className="mt-4 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+            {viewerProfileMessage}
+          </div>
+        )}
+      </article>
+
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
