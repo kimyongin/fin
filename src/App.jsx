@@ -1072,10 +1072,10 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
 
   return (
     <section className="mt-8 grid gap-6">
-      <div className="grid gap-5 rounded-[32px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:p-6">
+      <div className="grid gap-5 rounded-[32px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)] sm:p-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:p-6">
         <div className="grid gap-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
+          <div className="grid gap-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0">
               <h2 className="text-xl font-semibold">태그 비중</h2>
               <p className="mt-2 max-w-md text-sm leading-6 text-[var(--muted-ink)]">
                 각 종목은 하나의 대표 태그만 기준으로 잡습니다. 그래서 태그 비중 합계는 전체
@@ -1083,7 +1083,7 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
               </p>
             </div>
             <button
-              className={`inline-flex h-11 items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition ${
+              className={`inline-flex h-10 w-fit items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition sm:h-11 ${
                 copied
                   ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
                   : 'border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted-ink)] hover:text-[var(--ink)]'
@@ -1092,22 +1092,22 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
               type="button"
             >
               <CopyIcon />
-              {copied ? '복사됨' : 'Markdown 복사'}
+              {copied ? '복사됨' : '복사'}
             </button>
           </div>
 
-          <div className="grid items-center gap-5 rounded-[28px] bg-[var(--surface-2)] p-4 md:grid-cols-[220px_minmax(0,1fr)]">
-            <div className="mx-auto flex h-[220px] w-[220px] items-center justify-center rounded-full bg-[var(--panel)] shadow-[inset_0_0_0_18px_rgba(255,255,255,0.82)]">
+          <div className="grid items-center gap-4 rounded-[28px] bg-[var(--surface-2)] p-4 md:grid-cols-[200px_minmax(0,1fr)]">
+            <div className="mx-auto flex h-[190px] w-[190px] items-center justify-center rounded-full bg-[var(--surface-3)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] sm:h-[210px] sm:w-[210px]">
               <div
-                className="relative h-[184px] w-[184px] rounded-full"
+                className="relative h-[162px] w-[162px] rounded-full sm:h-[180px] sm:w-[180px]"
                 style={{ backgroundImage: pieGradient }}
               >
-                <div className="absolute inset-[26px] grid place-items-center rounded-full bg-[var(--panel)] text-center shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+                <div className="absolute inset-[24px] grid place-items-center rounded-full bg-[var(--panel)] text-center shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
                   <div>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
                       Total
                     </div>
-                    <div className="mt-2 text-lg font-semibold">{formatKrw(totalValue)}</div>
+                    <div className="mt-2 text-base font-semibold sm:text-lg">{formatKrw(totalValue)}</div>
                   </div>
                 </div>
               </div>
