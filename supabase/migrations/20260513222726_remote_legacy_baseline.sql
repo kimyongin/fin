@@ -1,0 +1,2 @@
+-- Legacy remote migration placeholder.
+-- This file exists so the local migrations directory matches the remote Supabase migration history.

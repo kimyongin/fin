@@ -1134,31 +1134,7 @@ function App() {
     )
   }
 
-  if (!session) {
-    return (
-      <main className="min-h-screen px-5 py-8 text-[var(--ink)]">
-        <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-sm content-center gap-6">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-              Portfolio
-            </p>
-            <h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">포트폴리오</h1>
-            <p className="mt-4 text-sm leading-6 text-[var(--muted-ink)]">
-              여러 계좌에 흩어진 보유 종목을 한 화면에서 통합해 보고, 태그 기준 비중을 빠르게
-              확인합니다.
-            </p>
-          </div>
-          <button
-            className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95"
-            onClick={signInWithGoogle}
-            type="button"
-          >
-            Google로 로그인
-          </button>
-        </section>
-      </main>
-    )
-  }
+  
 
   const pageTitle =
     activeTab === 'overview'

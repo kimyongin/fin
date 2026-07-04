@@ -126,8 +126,13 @@ begin
         raise exception 'Authentication required';
     end if;
 
-    if normalized_name is not null and normalized_name !~ '^[0-9a-z가-힣_-]{2,32}$' then
-        raise exception 'Public name must be 2-32 chars using Korean, English, numbers, dash, or underscore';
+    if normalized_name is not null
+       and (
+            char_length(normalized_name) < 2
+            or char_length(normalized_name) > 32
+            or normalized_name ~ '\s'
+       ) then
+        raise exception 'Public name must be 2-32 characters with no spaces';
     end if;
 
     select *
