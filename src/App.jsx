@@ -1200,11 +1200,9 @@ function AccountsPage({
 }) {
   return (
     <section className="mt-8 grid gap-3">
-      <div className="flex flex-col gap-3 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
-        <label className="grid min-w-0 flex-1 gap-2 sm:max-w-sm">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-            태그 필터
-          </span>
+      <div className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)]">
+        <label className="min-w-0 flex-1 sm:max-w-sm">
+          <span className="sr-only">태그 필터</span>
           <select
             className="h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onTagFilterChange(event.target.value)}
@@ -1220,7 +1218,7 @@ function AccountsPage({
           </select>
         </label>
         <button
-          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:brightness-95"
+          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
           onClick={onCreateAccount}
           type="button"
         >
@@ -1333,11 +1331,9 @@ function InstrumentsPage({
 }) {
   return (
     <section className="mt-8 grid gap-3">
-      <div className="flex flex-col gap-3 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
-        <label className="grid min-w-0 flex-1 gap-2 sm:max-w-sm">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-            태그 필터
-          </span>
+      <div className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)]">
+        <label className="min-w-0 flex-1 sm:max-w-sm">
+          <span className="sr-only">태그 필터</span>
           <select
             className="h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onTagFilterChange(event.target.value)}
@@ -1353,7 +1349,7 @@ function InstrumentsPage({
           </select>
         </label>
         <button
-          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:brightness-95"
+          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
           onClick={onCreateInstrument}
           type="button"
         >
