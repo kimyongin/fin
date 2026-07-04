@@ -117,6 +117,13 @@ function effectiveKrwValue(row, latestPriceByTicker) {
   return Number.isFinite(fxRate) ? row.market_value_native * fxRate : 0
 }
 
+function matchesTagFilter(ticker, selectedTagId, tagMapByTicker) {
+  if (selectedTagId === 'all') return true
+  const tag = tagMapByTicker.get(ticker)
+  if (selectedTagId === 'untagged') return !tag?.id
+  return String(tag?.id ?? '') === selectedTagId
+}
+
 async function writeClipboard(text) {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text)
@@ -154,6 +161,7 @@ function App() {
   const [tagError, setTagError] = useState('')
   const [syncingPrices, setSyncingPrices] = useState(false)
   const [syncMessage, setSyncMessage] = useState('')
+  const [accountTagFilter, setAccountTagFilter] = useState('all')
   const [instrumentTagFilter, setInstrumentTagFilter] = useState('all')
   const [state, setState] = useState({
     accounts: [],
@@ -332,6 +340,16 @@ function App() {
       .sort((a, b) => b.market_value_krw - a.market_value_krw)
   }, [state.accounts, state.positions, latestPriceByTicker])
 
+  const filteredAccountCards = useMemo(() => {
+    if (accountTagFilter === 'all') return accountCards
+    return accountCards.filter((account) => {
+      const holdings = holdingsByAccountId.get(account.id) ?? []
+      return holdings.some((holding) =>
+        matchesTagFilter(holding.ticker, accountTagFilter, tagMapByTicker),
+      )
+    })
+  }, [accountCards, accountTagFilter, holdingsByAccountId, tagMapByTicker])
+
   const instrumentRows = useMemo(() => {
     const aggregated = new Map()
     for (const pos of state.positions) {
@@ -375,10 +393,14 @@ function App() {
   const filteredInstrumentRows = useMemo(() => {
     if (instrumentTagFilter === 'all') return instrumentRows
     if (instrumentTagFilter === 'untagged') {
-      return instrumentRows.filter((instrument) => !instrument.tagId)
+      return instrumentRows.filter((instrument) =>
+        matchesTagFilter(instrument.ticker, instrumentTagFilter, tagMapByTicker),
+      )
     }
-    return instrumentRows.filter((instrument) => instrument.tagId === instrumentTagFilter)
-  }, [instrumentRows, instrumentTagFilter])
+    return instrumentRows.filter((instrument) =>
+      matchesTagFilter(instrument.ticker, instrumentTagFilter, tagMapByTicker),
+    )
+  }, [instrumentRows, instrumentTagFilter, tagMapByTicker])
 
   const tagCards = useMemo(() => {
     const rows = instrumentRows.filter((row) => (row.market_value_krw ?? 0) > 0)
@@ -911,12 +933,16 @@ function App() {
         )}
         {activeTab === 'accounts' && (
           <AccountsPage
-            accounts={accountCards}
+            accounts={filteredAccountCards}
             holdingsByAccountId={holdingsByAccountId}
             onCreateAccount={() => openAccountModal()}
             onCreateHolding={(accountId) => openHoldingModal({ accountId })}
             onEditAccount={(account) => openAccountModal(account)}
             onEditHolding={(holding) => openHoldingModal({ holding })}
+            onTagFilterChange={setAccountTagFilter}
+            selectedTagId={accountTagFilter}
+            tagMapByTicker={tagMapByTicker}
+            tags={state.tags}
             totalValue={totalValue}
           />
         )}
@@ -1166,21 +1192,51 @@ function AccountsPage({
   onCreateHolding,
   onEditAccount,
   onEditHolding,
+  onTagFilterChange,
+  selectedTagId,
+  tagMapByTicker,
+  tags,
   totalValue,
 }) {
   return (
     <section className="mt-8 grid gap-3">
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] sm:flex-row sm:items-center sm:justify-between">
+        <label className="grid min-w-0 flex-1 gap-2 sm:max-w-sm">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+            태그 필터
+          </span>
+          <select
+            className="h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
+            onChange={(event) => onTagFilterChange(event.target.value)}
+            value={selectedTagId}
+          >
+            <option value="all">전체 태그</option>
+            {tags.map((tag) => (
+              <option key={tag.id} value={String(tag.id)}>
+                {tag.name}
+              </option>
+            ))}
+            <option value="untagged">태그 없음</option>
+          </select>
+        </label>
         <button
-          className="rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95"
+          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:brightness-95"
           onClick={onCreateAccount}
           type="button"
         >
           계좌 추가
         </button>
       </div>
+      {!accounts.length && (
+        <div className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-5 text-sm leading-6 text-[var(--muted-ink)] shadow-[var(--shadow-soft)]">
+          선택한 태그에 해당하는 계좌가 없습니다.
+        </div>
+      )}
       {accounts.map((account) => {
-        const holdings = holdingsByAccountId.get(account.id) ?? []
+        const allHoldings = holdingsByAccountId.get(account.id) ?? []
+        const holdings = allHoldings.filter((holding) =>
+          matchesTagFilter(holding.ticker, selectedTagId, tagMapByTicker),
+        )
         return (
           <article
             className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]"
