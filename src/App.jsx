@@ -9,8 +9,31 @@ const tabs = [
 ]
 
 const chartPalette = ['#db6a21', '#26c6da', '#7dd3fc', '#f97316', '#84cc16', '#facc15', '#fb7185']
-const tagColorOptions = ['neutral', 'info', 'success', 'warning', 'danger']
+const tagColorOptions = [
+  { value: 'orange', label: 'Orange' },
+  { value: 'cyan', label: 'Cyan' },
+  { value: 'blue', label: 'Blue' },
+  { value: 'lime', label: 'Lime' },
+  { value: 'amber', label: 'Amber' },
+  { value: 'rose', label: 'Rose' },
+  { value: 'violet', label: 'Violet' },
+  { value: 'slate', label: 'Slate' },
+  { value: 'neutral', label: 'Neutral' },
+  { value: 'info', label: 'Info' },
+  { value: 'success', label: 'Success' },
+  { value: 'warning', label: 'Warning' },
+  { value: 'danger', label: 'Danger' },
+]
+const tabIds = new Set(tabs.map((tab) => tab.id))
 const tagColorMap = {
+  orange: '#ff8a00',
+  cyan: '#26c6da',
+  blue: '#7dd3fc',
+  lime: '#84cc16',
+  amber: '#f59e0b',
+  rose: '#fb7185',
+  violet: '#a78bfa',
+  slate: '#94a3b8',
   neutral: '#8a8e96',
   info: '#26c6da',
   success: '#7cb342',
@@ -54,8 +77,19 @@ function authRedirectTo() {
   return `${window.location.origin}${import.meta.env.BASE_URL}`
 }
 
+function tabFromHash() {
+  if (typeof window === 'undefined') return 'overview'
+  const hash = window.location.hash.replace(/^#/, '').trim()
+  return tabIds.has(hash) ? hash : 'overview'
+}
+
 function today() {
   return new Date().toISOString().slice(0, 10)
+}
+
+function resolveTagColor(color, fallback) {
+  if (!color) return fallback
+  return tagColorMap[color] ?? color
 }
 
 function latestPrices(rows) {
@@ -67,6 +101,20 @@ function latestPrices(rows) {
     result.push(row)
   }
   return result
+}
+
+function fxTickerForCurrency(currency) {
+  if (!currency || currency === 'KRW') return null
+  return `${currency}KRW=X`
+}
+
+function effectiveKrwValue(row, latestPriceByTicker) {
+  if (Number.isFinite(row?.market_value_krw)) return row.market_value_krw
+  if (!Number.isFinite(row?.market_value_native)) return 0
+  const fxTicker = fxTickerForCurrency(row?.currency)
+  if (!fxTicker) return row.market_value_native
+  const fxRate = latestPriceByTicker.get(fxTicker)?.close_price
+  return Number.isFinite(fxRate) ? row.market_value_native * fxRate : 0
 }
 
 async function writeClipboard(text) {
@@ -89,7 +137,7 @@ async function writeClipboard(text) {
 function App() {
   const [session, setSession] = useState(null)
   const [authStatus, setAuthStatus] = useState('loading')
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(() => tabFromHash())
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [accountModal, setAccountModal] = useState(null)
@@ -168,6 +216,27 @@ function App() {
     }
   }, [menuOpen])
 
+  useEffect(() => {
+    const handleHashChange = () => {
+      const nextTab = tabFromHash()
+      setActiveTab((current) => (current === nextTab ? current : nextTab))
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    handleHashChange()
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    const nextHash = `#${activeTab}`
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, '', nextHash)
+    }
+  }, [activeTab])
+
   async function refreshState() {
     setLoadError('')
     const results = await Promise.all([
@@ -207,14 +276,14 @@ function App() {
     })
   }, [session])
 
-  const totalValue = useMemo(
-    () => state.positions.reduce((sum, row) => sum + (row.market_value_krw ?? 0), 0),
-    [state.positions],
-  )
-
   const latestPriceByTicker = useMemo(() => {
     return new Map(state.prices.map((row) => [row.ticker, row]))
   }, [state.prices])
+
+  const totalValue = useMemo(
+    () => state.positions.reduce((sum, row) => sum + effectiveKrwValue(row, latestPriceByTicker), 0),
+    [state.positions, latestPriceByTicker],
+  )
 
   const tagMapByTicker = useMemo(() => {
     const map = new Map()
@@ -253,11 +322,14 @@ function App() {
         return {
           ...account,
           count: rows.length,
-          market_value_krw: rows.reduce((sum, row) => sum + (row.market_value_krw ?? 0), 0),
+          market_value_krw: rows.reduce(
+            (sum, row) => sum + effectiveKrwValue(row, latestPriceByTicker),
+            0,
+          ),
         }
       })
       .sort((a, b) => b.market_value_krw - a.market_value_krw)
-  }, [state.accounts, state.positions])
+  }, [state.accounts, state.positions, latestPriceByTicker])
 
   const instrumentRows = useMemo(() => {
     const aggregated = new Map()
@@ -273,7 +345,7 @@ function App() {
       }
       current.quantity += pos.quantity ?? 0
       current.market_value_native += pos.market_value_native ?? 0
-      current.market_value_krw += pos.market_value_krw ?? 0
+      current.market_value_krw += effectiveKrwValue(pos, latestPriceByTicker)
       if (pos.account_id) current.accounts.add(pos.account_id)
       aggregated.set(pos.ticker, current)
     }
@@ -319,7 +391,7 @@ function App() {
     return [...byTag.values()]
       .map((tag, index) => ({
         ...tag,
-        color: tag.color || chartPalette[index % chartPalette.length],
+        color: resolveTagColor(tag.color, chartPalette[index % chartPalette.length]),
         holdings: tag.holdings.sort((a, b) => b.market_value_krw - a.market_value_krw),
       }))
       .sort((a, b) => b.value - a.value)
@@ -724,7 +796,7 @@ function App() {
 
   if (!session) {
     return (
-      <main className="min-h-screen px-5 py-8 text-stone-950">
+      <main className="min-h-screen px-5 py-8 text-[var(--ink)]">
         <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-sm content-center gap-6">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
@@ -748,25 +820,30 @@ function App() {
     )
   }
 
+  const pageTitle =
+    activeTab === 'overview'
+      ? '자산'
+      : activeTab === 'accounts'
+        ? '계좌'
+        : activeTab === 'instruments'
+          ? '종목'
+          : '설정'
+
   return (
     <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
       <div className="mx-auto max-w-6xl">
-        <header className="relative flex items-start justify-between gap-4" ref={menuRef}>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-              Total Value
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal sm:text-5xl">
-              {formatKrw(totalValue)}
-            </h1>
-            <p className="mt-3 text-sm text-[var(--muted-ink)]">
-              {state.accounts.length}개 계좌 · {state.positions.length}개 보유 항목
-            </p>
-          </div>
+        <header className="relative mb-6" ref={menuRef}>
+          <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
+                Portfolio
+              </p>
+              <h1 className="text-2xl font-semibold">{pageTitle}</h1>
+            </div>
           <button
             aria-expanded={menuOpen}
             aria-label="메뉴 열기"
-            className="inline-flex h-10 w-10 flex-col items-center justify-center gap-1 rounded-2xl border border-[var(--line)] bg-white/65 text-[var(--ink)] shadow-sm backdrop-blur"
+            className="inline-flex h-12 w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] text-[var(--ink)]"
             onClick={() => setMenuOpen((open) => !open)}
             type="button"
           >
@@ -774,14 +851,15 @@ function App() {
             <span className="h-0.5 w-4 rounded-full bg-current" />
             <span className="h-0.5 w-4 rounded-full bg-current" />
           </button>
+          </div>
           {menuOpen && (
-            <nav className="absolute right-0 top-12 z-10 grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[rgba(255,250,244,0.96)] p-1.5 shadow-2xl shadow-[rgba(70,52,35,0.12)] backdrop-blur">
+            <nav className="absolute right-0 top-[calc(100%+10px)] z-10 grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-1.5 shadow-2xl shadow-black/40 backdrop-blur">
               {tabs.map((tab) => (
                 <button
                   className={`rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
                     activeTab === tab.id
                       ? 'bg-[var(--accent)] text-white'
-                      : 'text-[var(--muted-ink)] hover:bg-white hover:text-[var(--ink)]'
+                      : 'text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'
                   }`}
                   key={tab.id}
                   onClick={() => {
@@ -794,7 +872,7 @@ function App() {
                 </button>
               ))}
               <button
-                className="rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--muted-ink)] transition hover:bg-white hover:text-[var(--ink)]"
+                className="rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                 onClick={signOut}
                 type="button"
               >
@@ -858,12 +936,6 @@ function App() {
             accountError={accountError}
             accountSaving={accountSaving}
             draft={accountModal}
-            holdings={holdingsByAccountId.get(accountModal.id) ?? []}
-            onAddHolding={() => {
-              const accountId = accountModal.id
-              setAccountModal(null)
-              if (accountId) openHoldingModal({ accountId })
-            }}
             onChange={(field, value) => {
               setAccountError('')
               setAccountModal((current) => ({ ...current, [field]: value }))
@@ -875,10 +947,6 @@ function App() {
               }
             }}
             onDelete={handleDeleteAccount}
-            onEditHolding={(holding) => {
-              setAccountModal(null)
-              openHoldingModal({ holding })
-            }}
             onSave={handleSaveAccount}
           />
         )}
@@ -886,14 +954,8 @@ function App() {
         {instrumentModal && (
           <InstrumentEditorModal
             draft={instrumentModal}
-            holdings={holdingsByTicker.get(instrumentModal.ticker) ?? []}
             instrumentError={instrumentError}
             instrumentSaving={instrumentSaving}
-            onAddHolding={() => {
-              const ticker = instrumentModal.ticker
-              setInstrumentModal(null)
-              if (ticker) openHoldingModal({ ticker })
-            }}
             onChange={(field, value) => {
               setInstrumentError('')
               setInstrumentModal((current) => ({ ...current, [field]: value }))
@@ -905,10 +967,6 @@ function App() {
               }
             }}
             onDelete={handleDeleteInstrument}
-            onEditHolding={(holding) => {
-              setInstrumentModal(null)
-              openHoldingModal({ holding })
-            }}
             onSave={handleSaveInstrument}
             tags={state.tags}
           />
@@ -988,7 +1046,7 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
               className={`inline-flex h-11 items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition ${
                 copied
                   ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                  : 'border-[var(--line)] bg-white/75 text-[var(--muted-ink)] hover:text-[var(--ink)]'
+                  : 'border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted-ink)] hover:text-[var(--ink)]'
               }`}
               onClick={onCopy}
               type="button"
@@ -998,13 +1056,13 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
             </button>
           </div>
 
-          <div className="grid items-center gap-5 rounded-[28px] bg-white/70 p-4 md:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="grid items-center gap-5 rounded-[28px] bg-[var(--surface-2)] p-4 md:grid-cols-[220px_minmax(0,1fr)]">
             <div className="mx-auto flex h-[220px] w-[220px] items-center justify-center rounded-full bg-[var(--panel)] shadow-[inset_0_0_0_18px_rgba(255,255,255,0.82)]">
               <div
                 className="relative h-[184px] w-[184px] rounded-full"
                 style={{ backgroundImage: pieGradient }}
               >
-                <div className="absolute inset-[26px] grid place-items-center rounded-full bg-[var(--panel)] text-center shadow-[0_10px_30px_rgba(95,77,56,0.08)]">
+                <div className="absolute inset-[26px] grid place-items-center rounded-full bg-[var(--panel)] text-center shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
                   <div>
                     <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
                       Total
@@ -1039,7 +1097,7 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
         <div className="grid gap-4 sm:grid-cols-2">
           {cards.map((card) => (
             <article
-              className="grid min-h-[320px] content-start gap-4 rounded-[28px] border border-[var(--line)] bg-[rgba(255,255,255,0.72)] p-5 shadow-[0_24px_60px_rgba(91,69,44,0.08)]"
+              className="grid min-h-[320px] content-start gap-4 rounded-[28px] border border-[var(--line)] bg-[var(--surface-2)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
               key={card.id}
               style={{ borderTop: `4px solid ${card.color}` }}
             >
@@ -1110,15 +1168,11 @@ function AccountsPage({
       {accounts.map((account) => {
         const holdings = holdingsByAccountId.get(account.id) ?? []
         return (
-          <div
+          <article
             className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]"
             key={account.id}
           >
-            <button
-              className="grid w-full gap-3 text-left transition hover:-translate-y-[1px] sm:grid-cols-[1fr_auto] sm:items-center"
-              onClick={() => onEditAccount(account)}
-              type="button"
-            >
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
               <div>
                 <h2 className="text-base font-semibold">{account.name}</h2>
                 <p className="mt-1 text-sm text-[var(--muted-ink)]">
@@ -1138,40 +1192,56 @@ function AccountsPage({
                     totalValue > 0 ? (account.market_value_krw / totalValue) * 100 : NaN,
                   )}
                 </p>
+                <button
+                  className="mt-3 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                  onClick={() => onEditAccount(account)}
+                  type="button"
+                >
+                  편집
+                </button>
               </div>
-            </button>
+            </div>
 
             {!!holdings.length && (
               <div className="mt-4 grid gap-2">
                 {holdings.map((holding) => (
-                  <button
-                    className="rounded-2xl border border-[var(--line)] bg-white/70 px-3 py-3 text-left transition hover:bg-white"
+                  <div
+                    className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-3 py-3"
                     key={holding.id}
-                    onClick={() => onEditHolding(holding)}
-                    type="button"
                   >
-                    <div className="text-sm font-semibold">
-                      {holding.instruments?.display_name ?? holding.ticker}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold leading-5">
+                          {holding.instruments?.display_name ?? holding.ticker}
+                        </div>
+                        <div className="mt-1 text-sm leading-5 text-[var(--muted-ink)]">
+                          {holding.ticker} · 수량 {formatNumber(holding.quantity)} · 평균단가{' '}
+                          {formatMoney(holding.avg_price, holding.instruments?.currency)}
+                        </div>
+                      </div>
+                      <button
+                        className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+                        onClick={() => onEditHolding(holding)}
+                        type="button"
+                      >
+                        편집
+                      </button>
                     </div>
-                    <div className="mt-1 text-sm text-[var(--muted-ink)]">
-                      {holding.ticker} · 수량 {formatNumber(holding.quantity)} · 평균단가{' '}
-                      {formatMoney(holding.avg_price, holding.instruments?.currency)}
-                    </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
 
             <div className="mt-4 flex justify-end">
               <button
-                className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-white hover:text-[var(--ink)]"
+                className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                 onClick={() => onCreateHolding(account.id)}
                 type="button"
               >
                 이 계좌에 보유 추가
               </button>
             </div>
-          </div>
+          </article>
         )
       })}
     </section>
@@ -1201,18 +1271,14 @@ function InstrumentsPage({
       {instruments.map((instrument) => {
         const linkedHoldings = holdingsByTicker.get(instrument.ticker) ?? []
         return (
-          <div
+          <article
             className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]"
             key={instrument.ticker}
           >
-            <button
-              className="grid w-full gap-3 text-left transition hover:-translate-y-[1px] sm:grid-cols-[1fr_auto] sm:items-center"
-              onClick={() => onEditInstrument(instrument)}
-              type="button"
-            >
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-[var(--line)] bg-white/80 px-2.5 py-1 text-xs font-semibold text-[var(--ink)]">
+                  <span className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-2.5 py-1 text-xs font-semibold text-[var(--ink)]">
                     {instrument.ticker}
                   </span>
                   <span className="text-sm font-semibold text-[var(--accent)]">
@@ -1246,39 +1312,55 @@ function InstrumentsPage({
                     totalValue > 0 ? (instrument.market_value_krw / totalValue) * 100 : NaN,
                   )}
                 </p>
+                <button
+                  className="mt-3 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                  onClick={() => onEditInstrument(instrument)}
+                  type="button"
+                >
+                  편집
+                </button>
               </div>
-            </button>
+            </div>
 
             {!!linkedHoldings.length && (
               <div className="mt-4 grid gap-2">
                 {linkedHoldings.map((holding) => (
-                  <button
-                    className="rounded-2xl border border-[var(--line)] bg-white/70 px-3 py-3 text-left transition hover:bg-white"
+                  <div
+                    className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-3 py-3"
                     key={holding.id}
-                    onClick={() => onEditHolding(holding)}
-                    type="button"
                   >
-                    <div className="text-sm font-semibold">
-                      계좌 {holding.account_id} · 수량 {formatNumber(holding.quantity)}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold leading-5">
+                          계좌 {holding.account_id} · 수량 {formatNumber(holding.quantity)}
+                        </div>
+                        <div className="mt-1 text-sm leading-5 text-[var(--muted-ink)]">
+                          평균단가 {formatMoney(holding.avg_price, instrument.currency)}
+                        </div>
+                      </div>
+                      <button
+                        className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+                        onClick={() => onEditHolding(holding)}
+                        type="button"
+                      >
+                        편집
+                      </button>
                     </div>
-                    <div className="mt-1 text-sm text-[var(--muted-ink)]">
-                      평균단가 {formatMoney(holding.avg_price, instrument.currency)}
-                    </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
 
             <div className="mt-4 flex justify-end">
               <button
-                className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-white hover:text-[var(--ink)]"
+                className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                 onClick={() => onCreateHolding(instrument.ticker)}
                 type="button"
               >
                 이 종목 보유 추가
               </button>
             </div>
-          </div>
+          </article>
         )
       })}
     </section>
@@ -1306,7 +1388,7 @@ function SettingsPage({ onCreateTag, onEditTag, onSyncPrices, syncingPrices, syn
           </button>
         </div>
         {syncMessage && (
-          <p className="mt-4 rounded-2xl bg-white/75 px-3 py-3 text-sm text-[var(--muted-ink)]">
+          <p className="mt-4 rounded-2xl bg-[var(--surface-2)] px-3 py-3 text-sm text-[var(--muted-ink)]">
             {syncMessage}
           </p>
         )}
@@ -1321,7 +1403,7 @@ function SettingsPage({ onCreateTag, onEditTag, onSyncPrices, syncingPrices, syn
             </p>
           </div>
           <button
-            className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-white hover:text-[var(--ink)]"
+            className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
             onClick={onCreateTag}
             type="button"
           >
@@ -1331,7 +1413,7 @@ function SettingsPage({ onCreateTag, onEditTag, onSyncPrices, syncingPrices, syn
         <div className="mt-4 grid gap-2">
           {tags.map((tag) => (
             <button
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-[var(--line)] bg-white/72 px-3 py-3 text-left transition hover:bg-white"
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-3 py-3 text-left transition hover:bg-[var(--surface-2)]"
               key={tag.id}
               onClick={() => onEditTag(tag)}
               type="button"
@@ -1375,12 +1457,9 @@ function AccountEditorModal({
   accountError,
   accountSaving,
   draft,
-  holdings,
-  onAddHolding,
   onChange,
   onClose,
   onDelete,
-  onEditHolding,
   onSave,
 }) {
   return (
@@ -1391,7 +1470,7 @@ function AccountEditorModal({
             계좌명
           </span>
           <input
-            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onChange('name', event.target.value)}
             value={draft.name}
           />
@@ -1402,7 +1481,7 @@ function AccountEditorModal({
             증권사
           </span>
           <input
-            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onChange('broker', event.target.value)}
             value={draft.broker}
           />
@@ -1413,52 +1492,11 @@ function AccountEditorModal({
             메모
           </span>
           <textarea
-            className="min-h-24 rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className="min-h-24 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onChange('note', event.target.value)}
             value={draft.note}
           />
         </label>
-
-        {!!draft.id && (
-          <div className="grid gap-3 rounded-[24px] border border-[var(--line)] bg-white/65 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold">이 계좌의 보유 종목</h3>
-              <button
-                className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-white hover:text-[var(--ink)]"
-                onClick={onAddHolding}
-                type="button"
-              >
-                보유 추가
-              </button>
-            </div>
-            {holdings.length ? (
-              <div className="grid gap-2.5">
-                {holdings.map((holding) => (
-                  <button
-                    className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] px-3 py-3 text-left"
-                    key={holding.id}
-                    onClick={() => onEditHolding(holding)}
-                    type="button"
-                  >
-                    <div className="text-sm font-semibold text-[var(--ink)]">
-                      {holding.instruments?.display_name ?? holding.ticker}
-                    </div>
-                    <div className="mt-1 text-sm text-[var(--muted-ink)]">
-                      {holding.ticker} · 수량 {formatNumber(holding.quantity)}
-                    </div>
-                    <div className="mt-1 text-sm text-[var(--muted-ink)]">
-                      평균단가 {formatMoney(holding.avg_price, holding.instruments?.currency)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm leading-6 text-[var(--muted-ink)]">
-                아직 보유 종목이 없습니다.
-              </p>
-            )}
-          </div>
-        )}
 
         {accountError && (
           <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
@@ -1482,14 +1520,11 @@ function AccountEditorModal({
 
 function InstrumentEditorModal({
   draft,
-  holdings,
   instrumentError,
   instrumentSaving,
-  onAddHolding,
   onChange,
   onClose,
   onDelete,
-  onEditHolding,
   onSave,
   tags,
 }) {
@@ -1501,7 +1536,7 @@ function InstrumentEditorModal({
             티커
           </span>
           <input
-            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:bg-stone-100"
+            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:bg-black/30"
             disabled={!!draft.id}
             onChange={(event) => onChange('ticker', event.target.value.trim().toUpperCase())}
             value={draft.ticker}
@@ -1513,7 +1548,7 @@ function InstrumentEditorModal({
             종목명
           </span>
           <input
-            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onChange('display_name', event.target.value)}
             value={draft.display_name}
           />
@@ -1525,11 +1560,11 @@ function InstrumentEditorModal({
               통화
             </span>
             <select
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
               onChange={(event) => onChange('currency', event.target.value)}
               value={draft.currency}
             >
-              {['KRW', 'USD'].map((value) => (
+              {['KRW', 'USD', 'JPY'].map((value) => (
                 <option key={value} value={value}>
                   {value}
                 </option>
@@ -1542,7 +1577,7 @@ function InstrumentEditorModal({
               종류
             </span>
             <select
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
               onChange={(event) => onChange('instrument_type', event.target.value)}
               value={draft.instrument_type}
             >
@@ -1561,7 +1596,7 @@ function InstrumentEditorModal({
               현재가
             </span>
             <input
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
               onChange={(event) => onChange('price', event.target.value)}
               step="any"
               type="number"
@@ -1574,7 +1609,7 @@ function InstrumentEditorModal({
               가격일
             </span>
             <input
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
               onChange={(event) => onChange('price_date', event.target.value)}
               type="date"
               value={draft.price_date}
@@ -1587,7 +1622,7 @@ function InstrumentEditorModal({
             대표 태그
           </span>
           <select
-            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onChange('tag_id', event.target.value)}
             value={draft.tag_id}
           >
@@ -1599,45 +1634,6 @@ function InstrumentEditorModal({
             ))}
           </select>
         </label>
-
-        {!!draft.id && (
-          <div className="grid gap-3 rounded-[24px] border border-[var(--line)] bg-white/65 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold">이 종목의 보유 목록</h3>
-              <button
-                className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-white hover:text-[var(--ink)]"
-                onClick={onAddHolding}
-                type="button"
-              >
-                보유 추가
-              </button>
-            </div>
-            {holdings.length ? (
-              <div className="grid gap-2.5">
-                {holdings.map((holding) => (
-                  <button
-                    className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] px-3 py-3 text-left"
-                    key={holding.id}
-                    onClick={() => onEditHolding(holding)}
-                    type="button"
-                  >
-                    <div className="text-sm font-semibold text-[var(--ink)]">
-                      계좌 {holding.account_id}
-                    </div>
-                    <div className="mt-1 text-sm text-[var(--muted-ink)]">
-                      수량 {formatNumber(holding.quantity)} · 평균단가{' '}
-                      {formatMoney(holding.avg_price, draft.currency)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm leading-6 text-[var(--muted-ink)]">
-                아직 연결된 보유가 없습니다.
-              </p>
-            )}
-          </div>
-        )}
 
         {instrumentError && (
           <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
@@ -1678,7 +1674,7 @@ function HoldingEditorModal({
             계좌
           </span>
           <select
-            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onChange('account_id', event.target.value)}
             value={draft.account_id}
           >
@@ -1696,7 +1692,7 @@ function HoldingEditorModal({
             종목
           </span>
           <select
-            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onChange('ticker', event.target.value)}
             value={draft.ticker}
           >
@@ -1715,7 +1711,7 @@ function HoldingEditorModal({
               수량
             </span>
             <input
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
               onChange={(event) => onChange('quantity', event.target.value)}
               step="any"
               type="number"
@@ -1728,7 +1724,7 @@ function HoldingEditorModal({
               평균 단가
             </span>
             <input
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
               onChange={(event) => onChange('avg_price', event.target.value)}
               step="any"
               type="number"
@@ -1742,7 +1738,7 @@ function HoldingEditorModal({
             메모
           </span>
           <textarea
-            className="min-h-24 rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className="min-h-24 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onChange('note', event.target.value)}
             value={draft.note}
           />
@@ -1777,7 +1773,7 @@ function TagEditorModal({ draft, onChange, onClose, onSave, tagError, tagSaving 
             태그명
           </span>
           <input
-            className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
             onChange={(event) => onChange('name', event.target.value)}
             value={draft.name}
           />
@@ -1789,13 +1785,13 @@ function TagEditorModal({ draft, onChange, onClose, onSave, tagError, tagSaving 
               색상
             </span>
             <select
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
               onChange={(event) => onChange('color', event.target.value)}
               value={draft.color}
             >
-              {tagColorOptions.map((value) => (
-                <option key={value} value={value}>
-                  {value}
+              {tagColorOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -1806,7 +1802,7 @@ function TagEditorModal({ draft, onChange, onClose, onSave, tagError, tagSaving 
               순서
             </span>
             <input
-              className="rounded-2xl border border-[var(--line)] bg-white/80 px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
               onChange={(event) => onChange('sort_order', event.target.value)}
               type="number"
               value={draft.sort_order}
@@ -1822,7 +1818,7 @@ function TagEditorModal({ draft, onChange, onClose, onSave, tagError, tagSaving 
 
         <div className="flex justify-end gap-2 pt-1">
           <button
-            className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
             disabled={tagSaving}
             onClick={onClose}
             type="button"
@@ -1853,11 +1849,11 @@ function ModalActions({
   saveLabel,
 }) {
   return (
-    <div className="flex flex-wrap justify-between gap-3 pt-1">
-      <div>
+    <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap sm:justify-between">
+      <div className="sm:flex-1">
         {canDelete && (
           <button
-            className="rounded-2xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-2xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-950/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             disabled={disabled}
             onClick={onDelete}
             type="button"
@@ -1866,9 +1862,9 @@ function ModalActions({
           </button>
         )}
       </div>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:grid-cols-none">
         <button
-          className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={disabled}
           onClick={onClose}
           type="button"
@@ -1899,20 +1895,30 @@ function ModalShell({ children, onClose, title }) {
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-30 bg-[rgba(71,49,28,0.18)] px-3 py-4 backdrop-blur-sm sm:px-6 sm:py-8">
-      <div className="mx-auto flex h-full max-w-2xl items-start justify-center">
-        <section className="max-h-full w-full overflow-y-auto rounded-[30px] border border-[var(--line)] bg-[rgba(255,248,241,0.98)] p-5 shadow-[0_30px_70px_rgba(79,55,29,0.2)] sm:p-6">
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <h2 className="text-xl font-semibold">{title}</h2>
+    <div className="fixed inset-0 z-30 bg-[rgba(13,14,18,0.96)] sm:bg-[rgba(71,49,28,0.18)] sm:px-6 sm:py-8 sm:backdrop-blur-sm">
+      <div className="mx-auto flex h-full max-w-2xl min-w-0 items-start justify-center">
+        <section className="flex h-full w-full min-w-0 flex-col overflow-hidden bg-[var(--panel)] sm:max-h-full sm:rounded-[30px] sm:border sm:border-[var(--line)] sm:shadow-[0_30px_70px_rgba(0,0,0,0.45)]">
+          <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel)] px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:border-b-0 sm:px-6 sm:pb-0 sm:pt-6">
+            <h2 className="pt-1 text-xl font-semibold">{title}</h2>
             <button
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--line)] bg-white/75 text-[var(--muted-ink)] transition hover:text-[var(--ink)]"
+              aria-label="닫기"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted-ink)] transition hover:text-[var(--ink)]"
               onClick={onClose}
               type="button"
             >
-              ×
+              <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <path
+                  d="M6 6l12 12M18 6 6 18"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.8"
+                />
+              </svg>
             </button>
           </div>
-          {children}
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-6 sm:pt-5">
+            {children}
+          </div>
         </section>
       </div>
     </div>
