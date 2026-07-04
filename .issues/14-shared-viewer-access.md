@@ -2,30 +2,33 @@
 
 ## Goal
 
-Allow a user to share a read-only view of their portfolio with another logged-in user by giving them:
+Allow a user to share a read-only view of their portfolio with a guest viewer by giving them:
 
 - a public search name
 - a viewer password
 
 The viewer can inspect the owner's assets, accounts, and instruments, but must not be able to create, edit, or delete the owner's data.
 
+Guest access should use Supabase anonymous auth internally. To the user this feels like "guest login", but the database still receives an `auth.uid()` for RLS checks.
+
 ## User Story
 
 As a portfolio owner, I want to set a public name and a viewer password so that someone I trust can find me and inspect my portfolio without receiving edit permissions.
 
-As a viewer, I want to enter an owner's public name and viewer password, then browse that owner's portfolio in read-only mode.
+As a viewer, I want to enter an owner's public name and viewer password without creating a Google account, then browse that owner's portfolio in read-only mode.
 
 ## Non-Goals
 
 - No friend request workflow for the first version.
 - No write permissions for viewers.
-- No public unauthenticated access.
+- No fully unauthenticated public access. Guest access must still create a Supabase anonymous auth session.
 - No social feed, comments, or sharing links yet.
 - No portfolio comparison feature yet.
 
 ## Current Context
 
 - The app already requires Supabase auth.
+- Supabase anonymous auth should be enabled for guest viewing.
 - Existing portfolio data appears to be scoped by `user_id`.
 - Current screens assume "current session user" as the owner.
 - React/Vite app reads:
@@ -59,7 +62,12 @@ Rules:
 
 ### Viewer Access
 
-Add a new menu item:
+Add a guest entry point on the login screen:
+
+- `내 포트폴리오 로그인`
+- `친구 포트폴리오 보기`
+
+Logged-in owners can also access shared view from a menu item later:
 
 - `공유 보기` or `친구 보기`
 
@@ -67,8 +75,10 @@ Flow:
 
 1. Viewer enters public name.
 2. Viewer enters viewer password.
-3. If valid, app stores a viewer session in DB.
-4. Viewer can browse the owner's `자산`, `계좌`, `종목` screens in read-only mode.
+3. If there is no current Supabase session, app calls `supabase.auth.signInAnonymously()`.
+4. App calls `unlock_viewer_access(public_name, viewer_password)`.
+5. If valid, app stores a viewer session in DB.
+6. Viewer can browse the owner's `자산`, `계좌`, `종목` screens in read-only mode.
 
 Read-only behavior:
 
@@ -101,7 +111,9 @@ Notes:
 
 ### New Table: `public.viewer_sessions`
 
-Records that one logged-in user has unlocked read-only access to another user's portfolio.
+Records that one logged-in or anonymous Supabase user has unlocked read-only access to another user's portfolio.
+
+For guest viewing, `viewer_user_id` is the anonymous Supabase auth user id.
 
 Columns:
 
@@ -155,7 +167,7 @@ Behavior:
 Security:
 
 - `security definer`
-- Requires `auth.uid()` not null.
+- Requires `auth.uid()` not null. The caller may be an anonymous auth user.
 
 Behavior:
 
@@ -225,6 +237,7 @@ Introduce a viewing context:
 - `viewMode: 'owner' | 'shared'`
 - `viewOwnerId`
 - `viewOwnerName`
+- `viewerKind: 'authenticated' | 'anonymous'`
 - `canEdit = viewMode === 'owner'`
 
 Current data fetch should accept an owner filter when in shared mode.
@@ -246,16 +259,27 @@ Also show:
 
 ### Shared View Screen
 
-Add menu item:
+Add login screen entry:
+
+- `친구 포트폴리오 보기`
+
+Optional owner-mode menu item:
 
 - `공유 보기`
 
 States:
 
 - Public name/password form
+- Anonymous sign-in bootstrap if needed
 - Loading
 - Invalid password/error
 - Active shared portfolio
+
+Guest session behavior:
+
+- If the visitor is not signed in, call `supabase.auth.signInAnonymously()` before unlock.
+- If anonymous sign-in fails, show a clear message that guest viewing is not enabled.
+- Guest sign-out should clear the anonymous session and return to the login screen.
 
 ### Read-Only UI
 
@@ -292,6 +316,18 @@ Acceptance:
 - Wrong password does not create a session.
 - Correct password creates a viewer session.
 
+### 14-B2. Supabase Anonymous Auth Setup
+
+- Confirm anonymous sign-ins are enabled in Supabase Auth settings.
+- Document any dashboard setting that cannot be managed via migration.
+- Ensure anonymous users do not receive owner write permissions.
+
+Acceptance:
+
+- A visitor without Google login can obtain an anonymous Supabase session.
+- Anonymous session alone cannot read any portfolio data.
+- Anonymous session plus valid viewer password can read only the unlocked owner.
+
 ### 14-C. Read-Only Access RLS
 
 - Add `can_view_owner(owner_id)`.
@@ -315,9 +351,11 @@ Acceptance:
 - Owner can set or update public name/password.
 - Duplicate public name shows a clear error.
 
-### 14-E. Shared View UI
+### 14-E. Guest Shared View UI
 
-- Add menu item and unlock form.
+- Add login screen `친구 포트폴리오 보기` entry.
+- Add public name/password unlock form.
+- Bootstrap anonymous auth when no session exists.
 - Load selected owner's read-only data.
 - Show owner label in header.
 
@@ -325,6 +363,7 @@ Acceptance:
 
 - Valid public name/password enters shared view.
 - Invalid credentials show a clear error.
+- Guest user does not need Google login.
 
 ### 14-F. Read-Only Guards
 
@@ -341,7 +380,8 @@ Acceptance:
 Use at least two Supabase users:
 
 - Owner user
-- Viewer user
+- Anonymous guest viewer
+- Optional authenticated viewer user
 
 Test cases:
 
@@ -353,6 +393,8 @@ Test cases:
 - Owner can still edit own data.
 - Password rotation invalidates old viewer access.
 - Sharing disabled blocks new and existing viewer sessions.
+- Anonymous session without unlock cannot read owner data.
+- Guest sign-out clears shared view state.
 
 Frontend checks:
 
@@ -368,3 +410,5 @@ Frontend checks:
 - Should shared view include exact money amounts, or should there be an optional percentage-only mode?
 - Should public name be editable after other people know it?
 - Should owner be able to see active viewers/session history?
+- Should anonymous guest sessions expire after a shorter period than authenticated viewer sessions?
+- Should there be rate limiting for wrong viewer password attempts?
