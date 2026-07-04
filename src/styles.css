@@ -49,3 +49,9 @@ select {
   background-size: 1rem;
   padding-right: 2.75rem !important;
 }
+
+select option,
+select optgroup {
+  background: #1b1d23;
+  color: var(--ink);
+}

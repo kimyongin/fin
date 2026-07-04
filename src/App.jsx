@@ -3,9 +3,12 @@ import { isSupabaseConfigured, supabase } from './lib/supabase'
 
 const allTabs = [
   { id: 'overview', label: '자산' },
-  { id: 'accounts', label: '계좌' },
-  { id: 'instruments', label: '종목' },
   { id: 'settings', label: '설정' },
+]
+const assetViewOptions = [
+  { id: 'tags', label: '태그 기준' },
+  { id: 'accounts', label: '계좌 기준' },
+  { id: 'instruments', label: '종목 기준' },
 ]
 
 const chartPalette = ['#db6a21', '#26c6da', '#7dd3fc', '#f97316', '#84cc16', '#facc15', '#fb7185']
@@ -53,12 +56,34 @@ const USD = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
 })
 
+const JPY = new Intl.NumberFormat('ja-JP', {
+  style: 'currency',
+  currency: 'JPY',
+  currencyDisplay: 'narrowSymbol',
+  maximumFractionDigits: 0,
+})
+
+const comparablePriceMetricTickers = new Set([
+  'AUD',
+  'CAD',
+  'CHF',
+  'CNY',
+  'EUR',
+  'GBP',
+  'HKD',
+  'JPY',
+  'KRW',
+  'SGD',
+  'USD',
+])
+
 function formatKrw(value) {
   return Number.isFinite(value) ? KRW.format(Math.round(value)) : '-'
 }
 
 function formatMoney(value, currency = 'KRW') {
   if (!Number.isFinite(value)) return '-'
+  if (currency === 'JPY') return JPY.format(Math.round(value))
   if (currency === 'USD') return USD.format(value)
   return formatKrw(value)
 }
@@ -67,10 +92,39 @@ function formatPercent(value) {
   return Number.isFinite(value) ? `${value.toFixed(1)}%` : '-'
 }
 
+function formatSignedPercent(value) {
+  if (!Number.isFinite(value)) return '-'
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${value.toFixed(1)}%`
+}
+
+function returnToneClass(value) {
+  if (value > 0) return 'text-red-400'
+  if (value < 0) return 'text-blue-300'
+  return 'text-[var(--muted-ink)]'
+}
+
 function formatNumber(value) {
   return Number.isFinite(value)
     ? Number(value).toLocaleString(undefined, { maximumFractionDigits: 4 })
     : '-'
+}
+
+function formattedValueWithConversion(nativeValue, currency, krwValue = null) {
+  if (!Number.isFinite(nativeValue)) return '-'
+  const converted =
+    currency !== 'KRW' && Number.isFinite(krwValue) ? ` (${formatKrw(krwValue)} 환산)` : ''
+  return `${formatMoney(nativeValue, currency)}${converted}`
+}
+
+function hasComparablePriceMetrics(item) {
+  if (!item) return true
+  const instrumentType = item.instrument_type ?? item.instruments?.instrument_type ?? ''
+  const ticker = String(item.ticker ?? '').toUpperCase()
+  if ((instrumentType === 'cash' || instrumentType === 'other') && comparablePriceMetricTickers.has(ticker)) {
+    return false
+  }
+  return true
 }
 
 function authRedirectTo() {
@@ -80,11 +134,22 @@ function authRedirectTo() {
 function tabFromHash() {
   if (typeof window === 'undefined') return 'overview'
   const hash = window.location.hash.replace(/^#/, '').trim()
+  if (hash === 'accounts' || hash === 'instruments') return 'overview'
   return tabIds.has(hash) ? hash : 'overview'
+}
+
+function assetViewFromHash() {
+  if (typeof window === 'undefined') return 'tags'
+  const hash = window.location.hash.replace(/^#/, '').trim()
+  return hash === 'accounts' || hash === 'instruments' ? hash : 'tags'
 }
 
 function today() {
   return new Date().toISOString().slice(0, 10)
+}
+
+function normalizeTickerInput(value) {
+  return String(value ?? '').trim().toUpperCase()
 }
 
 function createViewerProfileDraft(profile = null) {
@@ -133,6 +198,28 @@ function formatSupabaseError(error, fallback) {
   return error?.code ? `${message} (${error.code})` : message
 }
 
+async function formatFunctionInvokeError(error, fallback) {
+  const response = error?.context
+  if (response && typeof response.text === 'function') {
+    try {
+      const rawBody = await response.text()
+      if (rawBody) {
+        try {
+          const parsed = JSON.parse(rawBody)
+          if (parsed?.error) return parsed.error
+          if (parsed?.message) return parsed.message
+        } catch {
+          return rawBody
+        }
+      }
+    } catch {
+      // ignore parse failures and fall back below
+    }
+  }
+
+  return formatSupabaseError(error, fallback)
+}
+
 function resolveTagColor(color, fallback) {
   if (!color) return fallback
   return tagColorMap[color] ?? color
@@ -154,13 +241,18 @@ function fxTickerForCurrency(currency) {
   return `${currency}KRW=X`
 }
 
+function nativeToKrw(value, currency, latestPriceByTicker) {
+  if (!Number.isFinite(value)) return 0
+  const fxTicker = fxTickerForCurrency(currency)
+  if (!fxTicker) return value
+  const fxRate = latestPriceByTicker.get(fxTicker)?.close_price
+  return Number.isFinite(fxRate) ? value * fxRate : 0
+}
+
 function effectiveKrwValue(row, latestPriceByTicker) {
   if (Number.isFinite(row?.market_value_krw)) return row.market_value_krw
   if (!Number.isFinite(row?.market_value_native)) return 0
-  const fxTicker = fxTickerForCurrency(row?.currency)
-  if (!fxTicker) return row.market_value_native
-  const fxRate = latestPriceByTicker.get(fxTicker)?.close_price
-  return Number.isFinite(fxRate) ? row.market_value_native * fxRate : 0
+  return nativeToKrw(row.market_value_native, row?.currency, latestPriceByTicker)
 }
 
 function matchesTagFilter(ticker, selectedTagId, tagMapByTicker) {
@@ -191,6 +283,7 @@ function App() {
   const [session, setSession] = useState(null)
   const [authStatus, setAuthStatus] = useState('loading')
   const [activeTab, setActiveTab] = useState(() => tabFromHash())
+  const [assetView, setAssetView] = useState(() => assetViewFromHash())
   const [loginMode, setLoginMode] = useState('owner')
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -203,6 +296,9 @@ function App() {
   const [holdingModal, setHoldingModal] = useState(null)
   const [holdingSaving, setHoldingSaving] = useState(false)
   const [holdingError, setHoldingError] = useState('')
+  const [holdingLookupSaving, setHoldingLookupSaving] = useState(false)
+  const [holdingLookupError, setHoldingLookupError] = useState('')
+  const [holdingLookupResult, setHoldingLookupResult] = useState(null)
   const [tagModal, setTagModal] = useState(null)
   const [tagSaving, setTagSaving] = useState(false)
   const [tagError, setTagError] = useState('')
@@ -294,7 +390,11 @@ function App() {
 
   useEffect(() => {
     const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#/, '').trim()
       const nextTab = tabFromHash()
+      if (hash === 'accounts' || hash === 'instruments') {
+        setAssetView(hash)
+      }
       setActiveTab((current) => (current === nextTab ? current : nextTab))
     }
 
@@ -480,7 +580,15 @@ function App() {
       const fallbackPrice = Number.isFinite(holding.avg_price) ? holding.avg_price : 0
       const marketPrice = Number.isFinite(latestPrice) ? latestPrice : fallbackPrice
       const quantity = Number(holding.quantity ?? 0)
+      const avgPrice = Number(holding.avg_price ?? 0)
       const marketValueNative = quantity * marketPrice
+      const costBasisNative = quantity * (Number.isFinite(avgPrice) ? avgPrice : 0)
+      const marketValueKrw = nativeToKrw(marketValueNative, instrument?.currency ?? 'KRW', latestPriceByTicker)
+      const costBasisKrw = nativeToKrw(costBasisNative, instrument?.currency ?? 'KRW', latestPriceByTicker)
+      const priceChangePercent =
+        Number.isFinite(latestPrice) && Number.isFinite(avgPrice) && avgPrice > 0
+          ? ((latestPrice - avgPrice) / avgPrice) * 100
+          : null
 
       return {
         ...holding,
@@ -488,7 +596,13 @@ function App() {
         currency: instrument?.currency ?? 'KRW',
         instrument_type: instrument?.instrument_type ?? null,
         quantity,
+        avgCost: Number.isFinite(avgPrice) ? avgPrice : null,
+        cost_basis_native: costBasisNative,
+        cost_basis_krw: costBasisKrw,
+        latestPrice: Number.isFinite(latestPrice) ? latestPrice : null,
         market_value_native: marketValueNative,
+        market_value_krw: marketValueKrw,
+        priceChangePercent,
       }
     })
   }, [state.holdings, state.instruments, latestPriceByTicker])
@@ -510,35 +624,43 @@ function App() {
 
   const holdingsByAccountId = useMemo(() => {
     const map = new Map()
-    for (const row of state.holdings) {
+    for (const row of computedPositions) {
       const items = map.get(row.account_id) ?? []
       items.push(row)
       map.set(row.account_id, items)
     }
     return map
-  }, [state.holdings])
+  }, [computedPositions])
 
   const holdingsByTicker = useMemo(() => {
     const map = new Map()
-    for (const row of state.holdings) {
+    for (const row of computedPositions) {
       const items = map.get(row.ticker) ?? []
       items.push(row)
       map.set(row.ticker, items)
     }
     return map
-  }, [state.holdings])
+  }, [computedPositions])
+
+  const accountById = useMemo(() => {
+    return new Map(state.accounts.map((account) => [account.id, account]))
+  }, [state.accounts])
 
   const accountCards = useMemo(() => {
     return state.accounts
       .map((account) => {
         const rows = computedPositions.filter((pos) => pos.account_id === account.id)
+        const marketValueKrw = rows.reduce(
+          (sum, row) => sum + effectiveKrwValue(row, latestPriceByTicker),
+          0,
+        )
+        const costBasisKrw = rows.reduce((sum, row) => sum + (row.cost_basis_krw ?? 0), 0)
         return {
           ...account,
           count: rows.length,
-          market_value_krw: rows.reduce(
-            (sum, row) => sum + effectiveKrwValue(row, latestPriceByTicker),
-            0,
-          ),
+          market_value_krw: marketValueKrw,
+          returnPercent:
+            costBasisKrw > 0 ? ((marketValueKrw - costBasisKrw) / costBasisKrw) * 100 : null,
         }
       })
       .sort((a, b) => b.market_value_krw - a.market_value_krw)
@@ -562,11 +684,13 @@ function App() {
         display_name: pos.display_name,
         currency: pos.currency,
         quantity: 0,
+        cost_basis_native: 0,
         market_value_native: 0,
         market_value_krw: 0,
         accounts: new Set(),
       }
       current.quantity += pos.quantity ?? 0
+      current.cost_basis_native += (pos.quantity ?? 0) * (Number(pos.avg_price) || 0)
       current.market_value_native += pos.market_value_native ?? 0
       current.market_value_krw += effectiveKrwValue(pos, latestPriceByTicker)
       if (pos.account_id) current.accounts.add(pos.account_id)
@@ -579,11 +703,20 @@ function App() {
         const position = aggregated.get(instrument.ticker)
         const latestPrice = latestPriceByTicker.get(instrument.ticker)
         const tag = tagMapByTicker.get(instrument.ticker)
+        const quantity = position?.quantity ?? 0
+        const avgCost = quantity > 0 ? (position?.cost_basis_native ?? 0) / quantity : null
+        const priceChangePercent =
+          Number.isFinite(latestPrice?.close_price) && Number.isFinite(avgCost) && avgCost > 0
+            ? ((latestPrice.close_price - avgCost) / avgCost) * 100
+            : null
         return {
           ...instrument,
           tagId: tag?.id ? String(tag.id) : '',
           tagName: tag?.name ?? '태그 없음',
-          quantity: position?.quantity ?? 0,
+          quantity,
+          avgCost,
+          cost_basis_native: position?.cost_basis_native ?? 0,
+          priceChangePercent,
           market_value_native: position?.market_value_native ?? 0,
           market_value_krw: position?.market_value_krw ?? 0,
           accountCount: position?.accounts.size ?? 0,
@@ -618,9 +751,15 @@ function App() {
       const current = byTag.get(tag.id) ?? {
         ...tag,
         value: 0,
+        costBasisKrw: 0,
         holdings: [],
       }
       current.value += row.market_value_krw ?? 0
+      current.costBasisKrw += nativeToKrw(
+        row.cost_basis_native ?? 0,
+        row.currency,
+        latestPriceByTicker,
+      )
       current.holdings.push(row)
       byTag.set(tag.id, current)
     }
@@ -629,10 +768,12 @@ function App() {
       .map((tag, index) => ({
         ...tag,
         color: resolveTagColor(tag.color, chartPalette[index % chartPalette.length]),
+        returnPercent:
+          tag.costBasisKrw > 0 ? ((tag.value - tag.costBasisKrw) / tag.costBasisKrw) * 100 : null,
         holdings: tag.holdings.sort((a, b) => b.market_value_krw - a.market_value_krw),
       }))
       .sort((a, b) => b.value - a.value)
-  }, [instrumentRows, tagMapByTicker])
+  }, [instrumentRows, tagMapByTicker, latestPriceByTicker])
 
   const chartSlices = useMemo(() => {
     if (!totalValue) return []
@@ -664,7 +805,7 @@ function App() {
       const percent = totalValue > 0 ? (tag.value / totalValue) * 100 : NaN
       return [
         `## ${tag.name} · ${formatPercent(percent)}`,
-        `${formatKrw(tag.value)} · ${tag.holdings.length}개 통합 종목`,
+        `${formatKrw(tag.value)} · ${tag.holdings.length}개 통합 종목 · 평균단가 대비 ${formatSignedPercent(tag.returnPercent)}`,
         '',
         ...tag.holdings.flatMap((holding) => {
           const holdingPercent =
@@ -674,7 +815,7 @@ function App() {
               ? ` (${formatKrw(holding.market_value_krw)} 환산)`
               : ''
           return [
-            `### ${holding.ticker} · ${formatPercent(holdingPercent)}`,
+            `### ${holding.ticker} · ${formatPercent(holdingPercent)} · ${formatSignedPercent(holding.priceChangePercent)}`,
             holding.display_name ?? holding.ticker,
             `${formatMoney(holding.market_value_native, holding.currency)}${converted}`,
             '',
@@ -713,16 +854,35 @@ function App() {
       price: latestPrice?.close_price?.toString?.() ?? '',
       price_date: latestPrice?.price_date ?? today(),
       tag_id: tagId ? String(tagId) : '',
+      linked_account_id: '',
     })
   }
 
   function openHoldingModal({ holding = null, accountId = null, ticker = '' } = {}) {
     if (!canEdit) return
     setHoldingError('')
+    setHoldingLookupError('')
+    const initialTicker = normalizeTickerInput(holding?.ticker ?? ticker ?? '')
+    const initialInstrument =
+      state.instruments.find((item) => item.ticker === initialTicker) ?? holding?.instruments ?? null
+    const initialLatestPrice = initialTicker ? latestPriceByTicker.get(initialTicker) : null
+    setHoldingLookupResult(
+      initialTicker
+        ? {
+            ticker: initialTicker,
+            display_name: initialInstrument?.display_name ?? initialTicker,
+            currency: initialInstrument?.currency ?? 'KRW',
+            instrument_type: initialInstrument?.instrument_type ?? 'stock',
+            price: Number.isFinite(initialLatestPrice?.close_price) ? initialLatestPrice.close_price : null,
+            price_date: initialLatestPrice?.price_date ?? today(),
+            source: initialInstrument ? 'existing' : 'manual',
+          }
+        : null,
+    )
     setHoldingModal({
       id: holding?.id ?? null,
       account_id: String(holding?.account_id ?? accountId ?? ''),
-      ticker: holding?.ticker ?? ticker ?? '',
+      ticker: initialTicker,
       quantity: holding?.quantity?.toString?.() ?? '',
       avg_price: holding?.avg_price?.toString?.() ?? '',
       note: holding?.note ?? '',
@@ -869,6 +1029,8 @@ function App() {
   async function handleSaveInstrument() {
     if (!canEdit) return
     if (!instrumentModal) return
+    const linkedAccountId = Number(instrumentModal.linked_account_id)
+    const shouldOpenHoldingAfterSave = !instrumentModal.id && Number.isFinite(linkedAccountId) && linkedAccountId > 0
 
     const tickerValue = instrumentModal.ticker.trim()
     const payload = {
@@ -943,6 +1105,9 @@ function App() {
     setInstrumentSaving(false)
     await refreshState()
     setInstrumentModal(null)
+    if (shouldOpenHoldingAfterSave) {
+      openHoldingModal({ accountId: linkedAccountId, ticker: tickerValue })
+    }
   }
 
   async function handleDeleteInstrument() {
@@ -980,13 +1145,65 @@ function App() {
     setInstrumentModal(null)
   }
 
+  async function handleLookupHoldingTicker() {
+    if (!canEdit) return
+    if (!holdingModal) return
+
+    const ticker = normalizeTickerInput(holdingModal.ticker)
+    if (!ticker) {
+      setHoldingLookupResult(null)
+      setHoldingLookupError('티커를 먼저 입력해 주세요.')
+      return
+    }
+
+    const existingInstrument = state.instruments.find((item) => item.ticker === ticker) ?? null
+    const existingLatestPrice = latestPriceByTicker.get(ticker)
+    if (existingInstrument) {
+      setHoldingLookupError('')
+      setHoldingLookupResult({
+        ticker,
+        display_name: existingInstrument.display_name ?? ticker,
+        currency: existingInstrument.currency ?? 'KRW',
+        instrument_type: existingInstrument.instrument_type ?? 'stock',
+        price: Number.isFinite(existingLatestPrice?.close_price) ? existingLatestPrice.close_price : null,
+        price_date: existingLatestPrice?.price_date ?? today(),
+        source: 'existing',
+      })
+      setHoldingModal((current) => (current ? { ...current, ticker } : current))
+      return
+    }
+
+    setHoldingLookupSaving(true)
+    setHoldingLookupError('')
+    setHoldingLookupResult(null)
+
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-ticker', {
+        body: { ticker },
+      })
+      if (error) throw error
+      if (!data?.ticker) {
+        throw new Error('조회된 종목 정보가 없습니다.')
+      }
+
+      await refreshState()
+      setHoldingLookupResult(data)
+      setHoldingModal((current) => (current ? { ...current, ticker } : current))
+    } catch (error) {
+      setHoldingLookupError(await formatFunctionInvokeError(error, '티커 조회에 실패했습니다.'))
+    } finally {
+      setHoldingLookupSaving(false)
+    }
+  }
+
   async function handleSaveHolding() {
     if (!canEdit) return
     if (!holdingModal) return
 
+    const normalizedTicker = normalizeTickerInput(holdingModal.ticker)
     const payload = {
       account_id: Number(holdingModal.account_id),
-      ticker: holdingModal.ticker,
+      ticker: normalizedTicker,
       quantity: Number(holdingModal.quantity),
       avg_price: Number(holdingModal.avg_price),
       note: holdingModal.note.trim() || null,
@@ -1004,19 +1221,30 @@ function App() {
 
     setHoldingSaving(true)
     setHoldingError('')
-    const query = holdingModal.id
-      ? supabase.from('holdings').update(payload).eq('id', holdingModal.id)
-      : supabase.from('holdings').upsert(payload, { onConflict: 'account_id,ticker' })
-    const { error } = await query
-    setHoldingSaving(false)
+    try {
+      const existingInstrument = state.instruments.find((item) => item.ticker === normalizedTicker) ?? null
+      if (!existingInstrument) {
+        if (!holdingLookupResult || holdingLookupResult.ticker !== normalizedTicker) {
+          throw new Error('새 티커는 먼저 조회한 뒤 추가해 주세요.')
+        }
+        await refreshState()
+      }
 
-    if (error) {
-      setHoldingError(error.message)
-      return
+      const query = holdingModal.id
+        ? supabase.from('holdings').update(payload).eq('id', holdingModal.id)
+        : supabase.from('holdings').upsert(payload, { onConflict: 'account_id,ticker' })
+      const { error } = await query
+      if (error) throw error
+
+      await refreshState()
+      setHoldingModal(null)
+      setHoldingLookupResult(null)
+      setHoldingLookupError('')
+    } catch (error) {
+      setHoldingError(error.message ?? '보유 저장에 실패했습니다.')
+    } finally {
+      setHoldingSaving(false)
     }
-
-    await refreshState()
-    setHoldingModal(null)
   }
 
   async function handleDeleteHolding() {
@@ -1202,60 +1430,7 @@ function App() {
 
   
 
-  const pageTitle =
-    activeTab === 'overview'
-      ? '자산'
-      : activeTab === 'accounts'
-        ? '계좌'
-        : activeTab === 'instruments'
-          ? '종목'
-          : '설정'
-
-  const headerAction =
-    activeTab === 'accounts' ? (
-      <TagActionToolbar
-        buttonLabel="계좌 추가"
-        className="hidden min-w-0 items-center gap-2 md:flex"
-        onAction={() => openAccountModal()}
-        onTagFilterChange={setAccountTagFilter}
-        selectedTagId={accountTagFilter}
-        selectClassName="w-44 lg:w-56"
-        tags={state.tags}
-      />
-    ) : activeTab === 'instruments' ? (
-      <TagActionToolbar
-        buttonLabel="종목 추가"
-        className="hidden min-w-0 items-center gap-2 md:flex"
-        onAction={() => openInstrumentModal()}
-        onTagFilterChange={setInstrumentTagFilter}
-        selectedTagId={instrumentTagFilter}
-        selectClassName="w-44 lg:w-56"
-        tags={state.tags}
-      />
-    ) : null
-
-  const readonlyHeaderAction =
-    activeTab === 'accounts' ? (
-      <TagActionToolbar
-        buttonLabel=""
-        className="hidden min-w-0 items-center gap-2 md:flex"
-        onAction={undefined}
-        onTagFilterChange={setAccountTagFilter}
-        selectedTagId={accountTagFilter}
-        selectClassName="w-44 lg:w-56"
-        tags={state.tags}
-      />
-    ) : activeTab === 'instruments' ? (
-      <TagActionToolbar
-        buttonLabel=""
-        className="hidden min-w-0 items-center gap-2 md:flex"
-        onAction={undefined}
-        onTagFilterChange={setInstrumentTagFilter}
-        selectedTagId={instrumentTagFilter}
-        selectClassName="w-44 lg:w-56"
-        tags={state.tags}
-      />
-    ) : null
+  const pageTitle = activeTab === 'overview' ? '자산' : '설정'
 
   return (
     <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
@@ -1276,7 +1451,6 @@ function App() {
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {canEdit ? headerAction : readonlyHeaderAction}
               <button
                 aria-expanded={menuOpen}
                 aria-label="메뉴 열기"
@@ -1327,42 +1501,32 @@ function App() {
         )}
 
         {activeTab === 'overview' && (
-          <Overview
-            cards={tagCards}
-            copied={copied}
-            onCopy={handleCopyMarkdown}
-            pieGradient={chartGradient}
-            slices={chartSlices}
-            totalValue={totalValue}
-          />
-        )}
-        {activeTab === 'accounts' && (
-          <AccountsPage
+          <AssetsPage
+            accountTagFilter={accountTagFilter}
+            accountById={accountById}
             accounts={filteredAccountCards}
+            assetView={assetView}
             canEdit={canEdit}
+            copied={copied}
             holdingsByAccountId={holdingsByAccountId}
-            onCreateAccount={() => openAccountModal()}
-            onCreateHolding={(accountId) => openHoldingModal({ accountId })}
-            onEditAccount={(account) => openAccountModal(account)}
-            onEditHolding={(holding) => openHoldingModal({ holding })}
-            onTagFilterChange={setAccountTagFilter}
-            selectedTagId={accountTagFilter}
-            tagMapByTicker={tagMapByTicker}
-            tags={state.tags}
-            totalValue={totalValue}
-          />
-        )}
-        {activeTab === 'instruments' && (
-          <InstrumentsPage
-            canEdit={canEdit}
             holdingsByTicker={holdingsByTicker}
+            instrumentTagFilter={instrumentTagFilter}
             instruments={filteredInstrumentRows}
+            onAssetViewChange={setAssetView}
+            onCopy={handleCopyMarkdown}
+            onCreateAccount={() => openAccountModal()}
             onCreateHolding={(ticker) => openHoldingModal({ ticker })}
             onCreateInstrument={() => openInstrumentModal()}
+            onCreateHoldingForAccount={(accountId) => openHoldingModal({ accountId })}
+            onEditAccount={(account) => openAccountModal(account)}
             onEditHolding={(holding) => openHoldingModal({ holding })}
             onEditInstrument={(instrument) => openInstrumentModal(instrument)}
-            onTagFilterChange={setInstrumentTagFilter}
-            selectedTagId={instrumentTagFilter}
+            onAccountTagFilterChange={setAccountTagFilter}
+            onInstrumentTagFilterChange={setInstrumentTagFilter}
+            pieGradient={chartGradient}
+            slices={chartSlices}
+            tagCards={tagCards}
+            tagMapByTicker={tagMapByTicker}
             tags={state.tags}
             totalValue={totalValue}
           />
@@ -1412,6 +1576,7 @@ function App() {
 
         {instrumentModal && (
           <InstrumentEditorModal
+            accounts={state.accounts}
             draft={instrumentModal}
             instrumentError={instrumentError}
             instrumentSaving={instrumentSaving}
@@ -1436,18 +1601,30 @@ function App() {
             accounts={state.accounts}
             draft={holdingModal}
             holdingError={holdingError}
+            holdingLookupError={holdingLookupError}
+            holdingLookupResult={holdingLookupResult}
+            holdingLookupSaving={holdingLookupSaving}
             holdingSaving={holdingSaving}
             instruments={state.instruments.filter((item) => item.instrument_type !== 'fx')}
             onChange={(field, value) => {
               setHoldingError('')
+              setHoldingLookupError('')
+              if (field === 'ticker') {
+                setHoldingLookupResult((current) =>
+                  current?.ticker === normalizeTickerInput(value) ? current : null,
+                )
+              }
               setHoldingModal((current) => ({ ...current, [field]: value }))
             }}
             onClose={() => {
               if (!holdingSaving) {
                 setHoldingError('')
+                setHoldingLookupError('')
+                setHoldingLookupResult(null)
                 setHoldingModal(null)
               }
             }}
+            onLookupTicker={handleLookupHoldingTicker}
             onDelete={handleDeleteHolding}
             onSave={handleSaveHolding}
           />
@@ -1476,10 +1653,143 @@ function App() {
   )
 }
 
-function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
+function AssetsPage({
+  accountTagFilter,
+  accountById,
+  accounts,
+  assetView,
+  canEdit,
+  copied,
+  holdingsByAccountId,
+  holdingsByTicker,
+  instrumentTagFilter,
+  instruments,
+  onAccountTagFilterChange,
+  onAssetViewChange,
+  onCopy,
+  onCreateAccount,
+  onCreateHolding,
+  onCreateHoldingForAccount,
+  onCreateInstrument,
+  onEditAccount,
+  onEditHolding,
+  onEditInstrument,
+  onInstrumentTagFilterChange,
+  pieGradient,
+  slices,
+  tagCards,
+  tagMapByTicker,
+  tags,
+  totalValue,
+}) {
+  const subviewAction =
+    assetView === 'tags' ? (
+      <button
+        className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4 ${
+          copied
+            ? 'bg-[rgba(255,255,255,0.22)]'
+            : 'bg-[var(--accent)]'
+        }`}
+        onClick={onCopy}
+        type="button"
+      >
+        <CopyIcon />
+        {copied ? '복사됨' : '복사'}
+      </button>
+    ) : assetView === 'accounts' ? (
+      <TagActionToolbar
+        buttonLabel={canEdit ? '계좌 추가' : ''}
+        className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
+        onAction={canEdit ? onCreateAccount : undefined}
+        onTagFilterChange={onAccountTagFilterChange}
+        selectedTagId={accountTagFilter}
+        selectClassName="w-full sm:w-44 lg:w-52"
+        tags={tags}
+      />
+    ) : assetView === 'instruments' ? (
+      <TagActionToolbar
+        buttonLabel={canEdit ? '보유 추가' : ''}
+        className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
+        onAction={canEdit ? () => onCreateHolding() : undefined}
+        onTagFilterChange={onInstrumentTagFilterChange}
+        selectedTagId={instrumentTagFilter}
+        selectClassName="w-full sm:w-44 lg:w-52"
+        tags={tags}
+      />
+    ) : null
+
+  return (
+    <section className="mt-8 grid gap-5">
+      <div className="flex flex-col gap-3 border-b border-[var(--line)] pb-4 md:flex-row md:items-center md:justify-between">
+        <div className="grid grid-cols-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-1">
+          {assetViewOptions.map((option) => (
+            <button
+              className={`min-h-10 rounded-xl px-2 text-xs font-semibold transition sm:min-h-11 sm:px-3 sm:text-sm ${
+                assetView === option.id
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--muted-ink)] hover:bg-[var(--surface-3)] hover:text-[var(--ink)]'
+              }`}
+              key={option.id}
+              onClick={() => onAssetViewChange(option.id)}
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        {subviewAction}
+      </div>
+
+      {assetView === 'tags' && (
+        <Overview
+          cards={tagCards}
+          pieGradient={pieGradient}
+          slices={slices}
+          totalValue={totalValue}
+        />
+      )}
+
+      {assetView === 'accounts' && (
+        <AccountsPage
+          accounts={accounts}
+          canEdit={canEdit}
+          holdingsByAccountId={holdingsByAccountId}
+          onCreateAccount={onCreateAccount}
+          onCreateHolding={onCreateHoldingForAccount}
+          onEditAccount={onEditAccount}
+          onEditHolding={onEditHolding}
+          onTagFilterChange={onAccountTagFilterChange}
+          selectedTagId={accountTagFilter}
+          tagMapByTicker={tagMapByTicker}
+          tags={tags}
+          totalValue={totalValue}
+        />
+      )}
+
+      {assetView === 'instruments' && (
+        <InstrumentsPage
+          canEdit={canEdit}
+          accountById={accountById}
+          holdingsByTicker={holdingsByTicker}
+          instruments={instruments}
+          onCreateHolding={onCreateHolding}
+          onCreateInstrument={onCreateInstrument}
+          onEditHolding={onEditHolding}
+          onEditInstrument={onEditInstrument}
+          onTagFilterChange={onInstrumentTagFilterChange}
+          selectedTagId={instrumentTagFilter}
+          tags={tags}
+          totalValue={totalValue}
+        />
+      )}
+    </section>
+  )
+}
+
+function Overview({ cards, pieGradient, slices, totalValue }) {
   if (!cards.length) {
     return (
-      <section className="mt-8 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)]">
+      <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)]">
         <h2 className="text-lg font-semibold">자산</h2>
         <p className="mt-3 text-sm leading-6 text-[var(--muted-ink)]">
           아직 보유 항목이 없습니다. 계좌와 종목을 만든 뒤 보유 수량을 넣으면 태그 비중이
@@ -1490,117 +1800,200 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
   }
 
   return (
-    <section className="mt-8 grid gap-6">
-      <div className="grid gap-4 rounded-[32px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)] sm:p-5 lg:p-6">
-        <div className="grid gap-4">
-          <div className="grid gap-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
-            <div className="min-w-0">
-              <h2 className="text-xl font-semibold">태그 비중</h2>
-              <p className="mt-2 max-w-md text-sm leading-6 text-[var(--muted-ink)]">
-                각 종목은 하나의 대표 태그만 기준으로 잡습니다. 그래서 태그 비중 합계는 전체
-                자산 100%와 맞습니다.
-              </p>
-            </div>
-            <button
-              className={`inline-flex h-10 w-fit items-center gap-2 rounded-2xl border px-3 text-sm font-medium transition sm:h-11 ${
-                copied
-                  ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                  : 'border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted-ink)] hover:text-[var(--ink)]'
-              }`}
-              onClick={onCopy}
-              type="button"
-            >
-              <CopyIcon />
-              {copied ? '복사됨' : '복사'}
-            </button>
-          </div>
-
-          <div className="grid items-center gap-4 rounded-[28px] bg-[var(--surface-2)] p-4 md:grid-cols-[200px_minmax(0,1fr)]">
-            <div className="mx-auto flex h-[190px] w-[190px] items-center justify-center rounded-full bg-[var(--surface-3)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] sm:h-[210px] sm:w-[210px]">
+    <section className="grid gap-3">
+      <div className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]">
+        <div className="grid gap-6 px-5 py-5 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] lg:items-start">
+          <div className="grid justify-items-center gap-4 lg:justify-items-start">
+            <div className="flex aspect-square w-[clamp(220px,62vw,340px)] max-w-full items-center justify-center rounded-full bg-[var(--surface-2)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] lg:w-full">
               <div
-                className="relative h-[162px] w-[162px] rounded-full sm:h-[180px] sm:w-[180px]"
+                className="relative aspect-square w-[82%] rounded-full"
                 style={{ backgroundImage: pieGradient }}
               >
-                <div className="absolute inset-[24px] grid place-items-center rounded-full bg-[var(--panel)] text-center shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
+                <div className="absolute inset-[16%] grid place-items-center rounded-full bg-[var(--panel)] text-center shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
                   <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
                       Total
                     </div>
-                    <div className="mt-2 text-base font-semibold sm:text-lg">{formatKrw(totalValue)}</div>
+                    <div className="mt-1 text-sm font-semibold">{formatKrw(totalValue)}</div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="grid gap-2.5">
-              {slices.map((slice) => (
+          <div className="grid min-w-0 gap-0">
+            {cards.map((card) => {
+              const percent = totalValue > 0 ? (card.value / totalValue) * 100 : NaN
+              return (
                 <div
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl bg-[var(--panel)] px-3 py-2.5"
-                  key={slice.id}
+                  className="border-b border-[var(--line)] py-3 last:border-b-0"
+                  key={card.id}
                 >
-                  <span
-                    aria-hidden="true"
-                    className="h-3.5 w-3.5 rounded-full"
-                    style={{ backgroundColor: slice.color }}
-                  />
-                  <span className="min-w-0 truncate text-sm font-medium">{slice.name}</span>
-                  <span className="text-sm font-semibold text-[var(--accent)]">
-                    {formatPercent(totalValue > 0 ? (slice.value / totalValue) * 100 : NaN)}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: card.color }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="truncate text-sm font-semibold text-[var(--ink)]">
+                          {card.name}
+                        </span>
+                        <span className="shrink-0 text-sm font-semibold text-[var(--accent)]">
+                          {formatPercent(percent)}
+                        </span>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[rgba(255,255,255,0.05)]">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            backgroundColor: card.color,
+                            width: `${Math.max(0, Math.min(Number.isFinite(percent) ? percent : 0, 100))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-2">
         {cards.map((card) => (
           <article
-            className="grid min-h-[320px] content-start gap-4 rounded-[28px] border border-[var(--line)] bg-[var(--surface-2)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
+            className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]"
             key={card.id}
-            style={{ borderTop: `4px solid ${card.color}` }}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold">{card.name}</h3>
-                <p className="mt-2 text-2xl font-semibold">{formatKrw(card.value)}</p>
+            <div className="relative border-b border-[var(--line)] bg-[rgba(255,255,255,0.045)] px-5 pb-5 pt-6 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 h-1"
+                style={{ backgroundColor: card.color }}
+              />
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 rounded-full"
+                      style={{ backgroundColor: card.color }}
+                    />
+                    <h2 className="text-base font-semibold">{card.name}</h2>
+                  </div>
+                  <p className="mt-1 text-sm text-[var(--muted-ink)]">
+                    {card.holdings.length}개 통합 종목
+                  </p>
+                </div>
+                <strong className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-sm font-semibold text-[var(--accent)]">
+                  {formatPercent(totalValue > 0 ? (card.value / totalValue) * 100 : NaN)}
+                </strong>
               </div>
-              <strong className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-sm font-semibold text-[var(--accent)]">
-                {formatPercent(totalValue > 0 ? (card.value / totalValue) * 100 : NaN)}
-              </strong>
+
+              <MetricSummary
+                avgCostText="-"
+                currentPriceText="-"
+                returnPercent={card.returnPercent}
+                valueText={formatKrw(card.value)}
+              />
             </div>
-            <p className="text-sm text-[var(--muted-ink)]">{card.holdings.length}개 통합 종목</p>
-            <div className="grid gap-3">
-              {card.holdings.map((holding) => (
-                <article
-                  className="rounded-[22px] border border-[var(--line)] bg-[var(--panel)] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
-                  key={holding.ticker}
-                >
-                  <div className="text-sm font-semibold text-[var(--muted-ink)]">
-                    [{holding.ticker}] ·{' '}
-                    {formatPercent(
-                      totalValue > 0 ? (holding.market_value_krw / totalValue) * 100 : NaN,
-                    )}
-                  </div>
-                  <div className="mt-2 text-[15px] font-medium leading-6 text-[var(--ink)] break-words">
-                    {holding.display_name ?? holding.ticker}
-                  </div>
-                  <div className="mt-3 text-sm font-semibold text-[var(--ink)]">
-                    {formatMoney(holding.market_value_native, holding.currency)}
-                    {holding.currency !== 'KRW' && (
-                      <span className="ml-1 font-medium text-[var(--muted-ink)]">
-                        ({formatKrw(holding.market_value_krw)} 환산)
+
+            {!!card.holdings.length && (
+              <div className="px-5 py-4">
+                <CardSectionLabel count={card.holdings.length} label="종목 목록" />
+                <div className="mt-2 divide-y divide-[var(--line)]">
+                {card.holdings.map((holding) => (
+                  <div className="py-3 first:pt-0 last:pb-0" key={holding.ticker}>
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-5">
+                      <span className="font-semibold text-[var(--ink)]">
+                        {holding.display_name ?? holding.ticker}
                       </span>
-                    )}
+                      <span className="font-medium text-[var(--muted-ink)]">{holding.ticker}</span>
+                    </div>
+                    <MetricSummary
+                      avgCostText={Number.isFinite(holding.avgCost)
+                        ? formatMoney(holding.avgCost, holding.currency)
+                        : '-'}
+                      currentPriceText={holding.latestPrice != null
+                        ? formatMoney(holding.latestPrice, holding.currency)
+                        : '-'}
+                      returnPercent={holding.priceChangePercent}
+                      showPriceMetrics={hasComparablePriceMetrics(holding)}
+                      valueText={formattedValueWithConversion(
+                        holding.market_value_native,
+                        holding.currency,
+                        holding.market_value_krw,
+                      )}
+                    />
                   </div>
-                </article>
-              ))}
-            </div>
+                ))}
+                </div>
+              </div>
+            )}
           </article>
         ))}
       </div>
     </section>
+  )
+}
+
+function MetricSummary({
+  avgCostText = '-',
+  currentPriceText = '-',
+  returnPercent,
+  showPriceMetrics = true,
+  valueText,
+}) {
+  return (
+    <div className="mt-2 grid gap-2">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="text-sm leading-5 text-[var(--muted-ink)]">평가금</span>
+        <span className="text-sm font-semibold leading-5 text-[var(--ink)]">{valueText}</span>
+      </div>
+      {showPriceMetrics && (
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm leading-5 text-[var(--muted-ink)]">
+          <MetricInline label="평균가" value={avgCostText} />
+          <MetricInline
+            accentText={formatSignedPercent(returnPercent)}
+            accentToneClass={returnToneClass(returnPercent)}
+            label="현재가"
+            value={currentPriceText}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MetricInline({ accentText = null, accentToneClass = '', label, value }) {
+  return (
+    <span className="inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap text-sm leading-5">
+      <span className="text-[var(--muted-ink)]">{label}</span>{' '}
+      <span className="font-semibold text-[var(--ink)]">{value}</span>
+      {accentText && (
+        <span className="ml-2 inline-flex items-baseline gap-1">
+          <span className="text-[var(--muted-ink)]">등락</span>
+          <span className={`font-semibold ${accentToneClass}`}>{accentText}</span>
+        </span>
+      )}
+    </span>
+  )
+}
+
+function CardSectionLabel({ count, label }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+      <span className="flex items-center gap-2">
+        <span aria-hidden="true" className="h-4 w-1 rounded-full bg-[var(--accent)]" />
+        <span>{label}</span>
+      </span>
+      <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[var(--ink)]">
+        {count}
+      </span>
+    </div>
   )
 }
 
@@ -1615,10 +2008,10 @@ function TagActionToolbar({
 }) {
   return (
     <div className={className}>
-      <label className="min-w-0 flex-1 md:flex-none">
+      <label className="min-w-0 flex-1 sm:flex-none">
         <span className="sr-only">태그 필터</span>
         <select
-          className={`h-11 min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] ${selectClassName}`}
+          className={`h-10 min-w-0 rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.03)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] ${selectClassName}`}
           onChange={(event) => onTagFilterChange(event.target.value)}
           value={selectedTagId}
         >
@@ -1633,7 +2026,7 @@ function TagActionToolbar({
       </label>
       {buttonLabel && onAction && (
         <button
-          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
+          className="h-10 shrink-0 rounded-xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
           onClick={onAction}
           type="button"
         >
@@ -1659,98 +2052,107 @@ function AccountsPage({
   totalValue,
 }) {
   return (
-    <section className="mt-8 grid gap-3">
-      <TagActionToolbar
-        buttonLabel="계좌 추가"
-        className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] md:hidden"
-        onAction={canEdit ? onCreateAccount : undefined}
-        onTagFilterChange={onTagFilterChange}
-        selectedTagId={selectedTagId}
-        selectClassName="w-full"
-        tags={tags}
-      />
+    <section className="grid gap-3">
       {!accounts.length && (
         <div className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-5 text-sm leading-6 text-[var(--muted-ink)] shadow-[var(--shadow-soft)]">
           선택한 태그에 해당하는 계좌가 없습니다.
         </div>
       )}
-      {accounts.map((account) => {
-        const allHoldings = holdingsByAccountId.get(account.id) ?? []
-        const holdings = allHoldings.filter((holding) =>
-          matchesTagFilter(holding.ticker, selectedTagId, tagMapByTicker),
-        )
-        return (
-          <article
-            className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]"
-            key={account.id}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-base font-semibold">{account.name}</h2>
-                <p className="mt-1 text-sm text-[var(--muted-ink)]">
-                  {account.broker || '증권사 없음'} · {account.count}개 보유
-                </p>
-                {account.note && (
-                  <p className="mt-2 text-sm text-[var(--muted-ink)]">{account.note}</p>
+      <div className="grid gap-3 lg:grid-cols-2">
+        {accounts.map((account) => {
+          const allHoldings = holdingsByAccountId.get(account.id) ?? []
+          const holdings = allHoldings.filter((holding) =>
+            matchesTagFilter(holding.ticker, selectedTagId, tagMapByTicker),
+          )
+          return (
+            <article
+              className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]"
+              key={account.id}
+            >
+            <div className="relative border-b border-[var(--line)] bg-[rgba(255,255,255,0.045)] px-5 pb-5 pt-6 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 h-1 bg-[var(--accent)]"
+              />
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold">{account.name}</h2>
+                  <p className="mt-1 text-sm text-[var(--muted-ink)]">
+                    {account.broker || '증권사 없음'} · {account.count}개 보유
+                  </p>
+                  {account.note && (
+                    <p className="mt-2 text-sm text-[var(--muted-ink)]">{account.note}</p>
+                  )}
+                </div>
+                {canEdit && (
+                  <button
+                    aria-label="계좌 편집"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                    onClick={() => onEditAccount(account)}
+                    type="button"
+                  >
+                    <PencilIcon />
+                  </button>
                 )}
-                <p className="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-[var(--muted-ink)]">
-                  보유 레코드 {holdings.length}
-                </p>
               </div>
-              {canEdit && (
-                <button
-                  className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                  onClick={() => onEditAccount(account)}
-                  type="button"
-                >
-                편집
-                </button>
-              )}
-            </div>
 
-            <div className="mt-4">
-              <p className="text-lg font-semibold">{formatKrw(account.market_value_krw)}</p>
-              <p className="mt-1 text-sm text-[var(--accent)]">
-                {formatPercent(
-                  totalValue > 0 ? (account.market_value_krw / totalValue) * 100 : NaN,
-                )}
-              </p>
+              <MetricSummary
+                avgCostText="-"
+                currentPriceText="-"
+                returnPercent={account.returnPercent}
+                valueText={formatKrw(account.market_value_krw)}
+              />
             </div>
 
             {!!holdings.length && (
-              <div className="mt-4 grid gap-2">
+              <div className="px-5 py-4">
+                <CardSectionLabel count={holdings.length} label="보유 목록" />
+                <div className="mt-2 divide-y divide-[var(--line)]">
                 {holdings.map((holding) => (
-                  <div
-                    className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-3 py-3"
-                    key={holding.id}
-                  >
+                  <div className="py-3 first:pt-0 last:pb-0" key={holding.id}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold leading-5">
-                          {holding.instruments?.display_name ?? holding.ticker}
+                        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-5">
+                          <span className="font-semibold text-[var(--ink)]">
+                            {holding.instruments?.display_name ?? holding.ticker}
+                          </span>
+                          <span className="font-medium text-[var(--muted-ink)]">{holding.ticker}</span>
                         </div>
-                        <div className="mt-1 text-sm leading-5 text-[var(--muted-ink)]">
-                          {holding.ticker} · 수량 {formatNumber(holding.quantity)} · 평균단가{' '}
-                          {formatMoney(holding.avg_price, holding.instruments?.currency)}
-                        </div>
+                        <MetricSummary
+                          avgCostText={Number.isFinite(holding.avgCost)
+                            ? formatMoney(holding.avgCost, holding.currency)
+                            : '-'}
+                          currentPriceText={holding.latestPrice != null
+                            ? formatMoney(holding.latestPrice, holding.currency)
+                            : '-'}
+                          returnPercent={holding.priceChangePercent}
+                          showPriceMetrics={hasComparablePriceMetrics(holding)}
+                          valueText={formattedValueWithConversion(
+                            holding.market_value_native,
+                            holding.currency,
+                            holding.market_value_krw,
+                          )}
+                        />
                       </div>
                       {canEdit && (
                         <button
-                          className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+                          aria-label="보유 편집"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
                           onClick={() => onEditHolding(holding)}
                           type="button"
                         >
-                        편집
+                          <PencilIcon />
                         </button>
                       )}
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             )}
 
             {canEdit && (
-              <div className="mt-4 flex justify-end">
+              <div className="flex justify-end border-t border-[var(--line)] bg-[rgba(255,255,255,0.025)] px-5 py-3">
                 <button
                   className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                   onClick={() => onCreateHolding(account.id)}
@@ -1760,14 +2162,16 @@ function AccountsPage({
                 </button>
               </div>
             )}
-          </article>
-        )
-      })}
+            </article>
+          )
+        })}
+      </div>
     </section>
   )
 }
 
 function InstrumentsPage({
+  accountById,
   canEdit,
   holdingsByTicker,
   instruments,
@@ -1781,111 +2185,121 @@ function InstrumentsPage({
   totalValue,
 }) {
   return (
-    <section className="mt-8 grid gap-3">
-      <TagActionToolbar
-        buttonLabel="종목 추가"
-        className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] md:hidden"
-        onAction={canEdit ? onCreateInstrument : undefined}
-        onTagFilterChange={onTagFilterChange}
-        selectedTagId={selectedTagId}
-        selectClassName="w-full"
-        tags={tags}
-      />
+    <section className="grid gap-3">
       {!instruments.length && (
         <div className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-5 text-sm leading-6 text-[var(--muted-ink)] shadow-[var(--shadow-soft)]">
           선택한 태그에 해당하는 종목이 없습니다.
         </div>
       )}
-      {instruments.map((instrument) => {
-        const linkedHoldings = holdingsByTicker.get(instrument.ticker) ?? []
-        return (
-          <article
-            className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]"
-            key={instrument.ticker}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-2.5 py-1 text-xs font-semibold text-[var(--ink)]">
-                    {instrument.ticker}
-                  </span>
-                  <span className="text-sm font-semibold text-[var(--accent)]">
-                    {instrument.tagName}
-                  </span>
-                  <span className="text-sm text-[var(--muted-ink)]">{instrument.currency}</span>
+      <div className="grid gap-3 lg:grid-cols-2">
+        {instruments.map((instrument) => {
+          const linkedHoldings = holdingsByTicker.get(instrument.ticker) ?? []
+          return (
+            <article
+              className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]"
+              key={instrument.ticker}
+            >
+            <div className="relative border-b border-[var(--line)] bg-[rgba(255,255,255,0.045)] px-5 pb-5 pt-6 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 h-1 bg-[var(--accent)]"
+              />
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-2.5 py-1 text-xs font-semibold text-[var(--ink)]">
+                      {instrument.ticker}
+                    </span>
+                    <span className="text-sm font-semibold text-[var(--accent)]">
+                      {instrument.tagName}
+                    </span>
+                    <span className="text-sm text-[var(--muted-ink)]">{instrument.currency}</span>
+                  </div>
+                  <h2 className="mt-3 text-base font-semibold leading-6">{instrument.display_name}</h2>
+                  <p className="mt-1 text-sm text-[var(--muted-ink)]">
+                    {instrument.accountCount}개 계좌 · 수량 {formatNumber(instrument.quantity)}
+                  </p>
                 </div>
-                <h2 className="mt-3 text-base font-semibold leading-6">{instrument.display_name}</h2>
-                <p className="mt-1 text-sm text-[var(--muted-ink)]">
-                  {instrument.accountCount}개 계좌 · 수량 {formatNumber(instrument.quantity)}
-                </p>
-                <p className="mt-1 text-sm text-[var(--muted-ink)]">
-                  현재가{' '}
-                  {instrument.latestPrice != null
-                    ? formatMoney(instrument.latestPrice, instrument.currency)
-                    : '가격 없음'}
-                  {instrument.latestPriceDate ? ` · ${instrument.latestPriceDate}` : ''}
-                </p>
-              </div>
-              {canEdit && (
-                <button
-                  className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                  onClick={() => onEditInstrument(instrument)}
-                  type="button"
-                >
-                편집
-                </button>
-              )}
-            </div>
-
-            <div className="mt-4">
-              <p className="text-lg font-semibold">
-                {formatMoney(instrument.market_value_native, instrument.currency)}
-              </p>
-              {instrument.currency !== 'KRW' && (
-                <p className="mt-1 text-sm text-[var(--muted-ink)]">
-                  {formatKrw(instrument.market_value_krw)} 환산
-                </p>
-              )}
-              <p className="mt-1 text-sm text-[var(--accent)]">
-                {formatPercent(
-                  totalValue > 0 ? (instrument.market_value_krw / totalValue) * 100 : NaN,
+                {canEdit && (
+                  <button
+                    aria-label="종목 편집"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                    onClick={() => onEditInstrument(instrument)}
+                    type="button"
+                  >
+                    <PencilIcon />
+                  </button>
                 )}
-              </p>
+              </div>
+
+              <MetricSummary
+                avgCostText={Number.isFinite(instrument.avgCost)
+                  ? formatMoney(instrument.avgCost, instrument.currency)
+                  : '-'}
+                currentPriceText={instrument.latestPrice != null
+                  ? formatMoney(instrument.latestPrice, instrument.currency)
+                  : '-'}
+                returnPercent={instrument.priceChangePercent}
+                showPriceMetrics={hasComparablePriceMetrics(instrument)}
+                valueText={formattedValueWithConversion(
+                  instrument.market_value_native,
+                  instrument.currency,
+                  instrument.market_value_krw,
+                )}
+              />
             </div>
 
             {!!linkedHoldings.length && (
-              <div className="mt-4 grid gap-2">
-                {linkedHoldings.map((holding) => (
-                  <div
-                    className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-3 py-3"
-                    key={holding.id}
-                  >
+              <div className="px-5 py-4">
+                <CardSectionLabel count={linkedHoldings.length} label="계좌별 보유" />
+                <div className="mt-2 divide-y divide-[var(--line)]">
+                {linkedHoldings.map((holding) => {
+                  const account = accountById.get(holding.account_id)
+                  const accountName = account?.name ?? `계좌 ${holding.account_id}`
+                  return (
+                  <div className="py-3 first:pt-0 last:pb-0" key={holding.id}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold leading-5">
-                          계좌 {holding.account_id} · 수량 {formatNumber(holding.quantity)}
+                        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-5">
+                          <span className="font-semibold text-[var(--ink)]">{accountName}</span>
+                          <span className="font-medium text-[var(--muted-ink)]">{holding.ticker}</span>
                         </div>
-                        <div className="mt-1 text-sm leading-5 text-[var(--muted-ink)]">
-                          평균단가 {formatMoney(holding.avg_price, instrument.currency)}
-                        </div>
+                        <MetricSummary
+                          avgCostText={Number.isFinite(holding.avgCost)
+                            ? formatMoney(holding.avgCost, holding.currency)
+                            : '-'}
+                          currentPriceText={holding.latestPrice != null
+                            ? formatMoney(holding.latestPrice, holding.currency)
+                            : '-'}
+                          returnPercent={holding.priceChangePercent}
+                          showPriceMetrics={hasComparablePriceMetrics(holding)}
+                          valueText={formattedValueWithConversion(
+                            holding.market_value_native,
+                            holding.currency,
+                            holding.market_value_krw,
+                          )}
+                        />
                       </div>
                       {canEdit && (
                         <button
-                          className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+                          aria-label="보유 편집"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
                           onClick={() => onEditHolding(holding)}
                           type="button"
                         >
-                        편집
+                          <PencilIcon />
                         </button>
                       )}
                     </div>
                   </div>
-                ))}
+                  )
+                })}
+                </div>
               </div>
             )}
 
             {canEdit && (
-              <div className="mt-4 flex justify-end">
+              <div className="flex justify-end border-t border-[var(--line)] bg-[rgba(255,255,255,0.025)] px-5 py-3">
                 <button
                   className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                   onClick={() => onCreateHolding(instrument.ticker)}
@@ -1895,9 +2309,10 @@ function InstrumentsPage({
                 </button>
               </div>
             )}
-          </article>
-        )
-      })}
+            </article>
+          )
+        })}
+      </div>
     </section>
   )
 }
@@ -2317,6 +2732,7 @@ function AccountEditorModal({
 }
 
 function InstrumentEditorModal({
+  accounts,
   draft,
   instrumentError,
   instrumentSaving,
@@ -2351,6 +2767,26 @@ function InstrumentEditorModal({
             value={draft.display_name}
           />
         </label>
+
+        {!draft.id && (
+          <label className="grid gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+              보유 계좌
+            </span>
+            <select
+              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              onChange={(event) => onChange('linked_account_id', event.target.value)}
+              value={draft.linked_account_id}
+            >
+              <option value="">나중에 연결</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
@@ -2457,15 +2893,43 @@ function HoldingEditorModal({
   accounts,
   draft,
   holdingError,
+  holdingLookupError,
+  holdingLookupResult,
+  holdingLookupSaving,
   holdingSaving,
   instruments,
   onChange,
   onClose,
+  onLookupTicker,
   onDelete,
   onSave,
 }) {
+  const [tickerMenuOpen, setTickerMenuOpen] = useState(false)
+  const tickerMenuRef = useRef(null)
+  const suggestedInstruments = draft.ticker
+    ? instruments
+        .filter((instrument) => {
+          const query = normalizeTickerInput(draft.ticker)
+          const ticker = normalizeTickerInput(instrument.ticker)
+          const name = normalizeTickerInput(instrument.display_name)
+          return ticker.includes(query) || name.includes(query)
+        })
+        .slice(0, 6)
+    : instruments.slice(0, 6)
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (!tickerMenuRef.current?.contains(event.target)) {
+        setTickerMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   return (
-    <ModalShell onClose={onClose} title={draft.id ? '보유 수정' : '보유 추가'}>
+    <ModalShell onClose={onClose} title={draft.id ? '보유 수정' : '보유 종목 추가'}>
       <div className="grid gap-4">
         <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
@@ -2485,23 +2949,101 @@ function HoldingEditorModal({
           </select>
         </label>
 
-        <label className="grid gap-2">
+        <div className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-            종목
+            티커
           </span>
-          <select
-            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => onChange('ticker', event.target.value)}
-            value={draft.ticker}
-          >
-            <option value="">종목 선택</option>
-            {instruments.map((instrument) => (
-              <option key={instrument.ticker} value={instrument.ticker}>
-                {instrument.display_name} ({instrument.ticker})
-              </option>
-            ))}
-          </select>
-        </label>
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1" ref={tickerMenuRef}>
+              <div className="flex min-w-0 items-center rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] pr-2 focus-within:border-[var(--accent)]">
+                <input
+                  className="min-w-0 flex-1 bg-transparent px-3 py-3 outline-none"
+                  autoComplete="off"
+                  onChange={(event) => {
+                    onChange('ticker', normalizeTickerInput(event.target.value))
+                    setTickerMenuOpen(true)
+                  }}
+                  onFocus={() => setTickerMenuOpen(true)}
+                  placeholder="예: AAPL, 360750, JPYKRW=X"
+                  value={draft.ticker}
+                />
+                <button
+                  aria-label="티커 목록 열기"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                  onClick={() => setTickerMenuOpen((current) => !current)}
+                  type="button"
+                >
+                  <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="m6 9 6 6 6-6"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                </button>
+              </div>
+              {tickerMenuOpen && !!suggestedInstruments.length && (
+                <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-[var(--line)] bg-[#1b1d23] shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+                  {suggestedInstruments.map((instrument) => (
+                    <button
+                      className="flex w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left text-sm transition hover:bg-[var(--surface-3)] last:border-b-0"
+                      key={instrument.ticker}
+                      onClick={() => {
+                        onChange('ticker', instrument.ticker)
+                        setTickerMenuOpen(false)
+                      }}
+                      type="button"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold text-[var(--ink)]">
+                          {instrument.display_name}
+                        </span>
+                        <span className="block truncate text-[var(--muted-ink)]">{instrument.ticker}</span>
+                      </span>
+                      <span className="shrink-0 text-xs font-medium text-[var(--muted-ink)]">
+                        {instrument.currency}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={holdingSaving || holdingLookupSaving}
+              onClick={onLookupTicker}
+              type="button"
+            >
+              {holdingLookupSaving ? '조회 중' : '조회'}
+            </button>
+          </div>
+        </div>
+
+        {holdingLookupResult && (
+          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+              <span className="font-semibold text-[var(--ink)]">{holdingLookupResult.display_name}</span>
+              <span className="text-[var(--muted-ink)]">{holdingLookupResult.ticker}</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--muted-ink)]">
+              <span>통화 {holdingLookupResult.currency}</span>
+              <span>종류 {holdingLookupResult.instrument_type}</span>
+              {Number.isFinite(holdingLookupResult.price) && (
+                <span>
+                  현재가 {formatMoney(holdingLookupResult.price, holdingLookupResult.currency)}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {holdingLookupError && (
+          <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+            {holdingLookupError}
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
@@ -2733,6 +3275,21 @@ function CopyIcon() {
         strokeLinecap="round"
         strokeWidth="1.8"
       />
+    </svg>
+  )
+}
+
+function PencilIcon() {
+  return (
+    <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M4 20h4l10-10a2 2 0 0 0-4-4L4 16v4Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path d="m12.5 7.5 4 4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
     </svg>
   )
 }
