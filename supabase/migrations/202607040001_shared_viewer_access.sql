@@ -247,6 +247,64 @@ begin
 end;
 $$;
 
+create or replace function public.get_active_viewer_access()
+returns table (
+    owner_user_id uuid,
+    owner_public_name text,
+    expires_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select
+        vs.owner_user_id,
+        p.public_name,
+        vs.expires_at
+    from public.viewer_sessions vs
+    join public.profiles p
+      on p.user_id = vs.owner_user_id
+    where vs.viewer_user_id = auth.uid()
+      and vs.expires_at > now()
+      and p.sharing_enabled
+      and vs.password_version = p.viewer_password_updated_at
+    order by vs.expires_at desc
+    limit 1;
+$$;
+
+do $$
+declare
+    target_table text;
+begin
+    foreach target_table in array array[
+        'accounts',
+        'holdings',
+        'instruments',
+        'tags',
+        'instrument_tags',
+        'holding_prices_daily'
+    ]
+    loop
+        if exists (
+            select 1
+            from information_schema.columns
+            where table_schema = 'public'
+              and table_name = target_table
+              and column_name = 'user_id'
+        ) then
+            execute format('alter table public.%I enable row level security', target_table);
+            execute format('drop policy if exists %I on public.%I', target_table || '_shared_select', target_table);
+            execute format(
+                'create policy %I on public.%I for select to authenticated, anon using (public.can_view_owner(user_id))',
+                target_table || '_shared_select',
+                target_table
+            );
+        end if;
+    end loop;
+end $$;
+
 grant execute on function public.set_viewer_profile(text, text, boolean) to authenticated, anon;
 grant execute on function public.unlock_viewer_access(text, text) to authenticated, anon;
+grant execute on function public.get_active_viewer_access() to authenticated, anon;
 grant execute on function public.can_view_owner(uuid) to authenticated, anon;

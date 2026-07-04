@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
-const tabs = [
+const allTabs = [
   { id: 'overview', label: '자산' },
   { id: 'accounts', label: '계좌' },
   { id: 'instruments', label: '종목' },
@@ -24,7 +24,7 @@ const tagColorOptions = [
   { value: 'warning', label: 'Warning' },
   { value: 'danger', label: 'Danger' },
 ]
-const tabIds = new Set(tabs.map((tab) => tab.id))
+const tabIds = new Set(allTabs.map((tab) => tab.id))
 const tagColorMap = {
   orange: '#ff8a00',
   cyan: '#26c6da',
@@ -96,6 +96,13 @@ function createViewerProfileDraft(profile = null) {
   }
 }
 
+function createGuestUnlockDraft() {
+  return {
+    public_name: '',
+    viewer_password: '',
+  }
+}
+
 function resolveTagColor(color, fallback) {
   if (!color) return fallback
   return tagColorMap[color] ?? color
@@ -154,6 +161,7 @@ function App() {
   const [session, setSession] = useState(null)
   const [authStatus, setAuthStatus] = useState('loading')
   const [activeTab, setActiveTab] = useState(() => tabFromHash())
+  const [loginMode, setLoginMode] = useState('owner')
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [accountModal, setAccountModal] = useState(null)
@@ -176,6 +184,14 @@ function App() {
   const [viewerProfileMessage, setViewerProfileMessage] = useState('')
   const [viewerProfile, setViewerProfile] = useState(() => createViewerProfileDraft())
   const [viewerProfileDraft, setViewerProfileDraft] = useState(() => createViewerProfileDraft())
+  const [guestUnlockDraft, setGuestUnlockDraft] = useState(() => createGuestUnlockDraft())
+  const [guestUnlockSaving, setGuestUnlockSaving] = useState(false)
+  const [guestUnlockError, setGuestUnlockError] = useState('')
+  const [viewContext, setViewContext] = useState({
+    mode: 'owner',
+    ownerUserId: null,
+    ownerPublicName: '',
+  })
   const [accountTagFilter, setAccountTagFilter] = useState('all')
   const [instrumentTagFilter, setInstrumentTagFilter] = useState('all')
   const [state, setState] = useState({
@@ -189,6 +205,12 @@ function App() {
   })
   const [loadError, setLoadError] = useState('')
   const menuRef = useRef(null)
+  const isAnonymousSession = Boolean(session?.user?.is_anonymous)
+  const canEdit = viewContext.mode === 'owner' && !isAnonymousSession
+  const tabs = useMemo(
+    () => allTabs.filter((tab) => canEdit || tab.id !== 'settings'),
+    [canEdit],
+  )
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -261,6 +283,12 @@ function App() {
     }
   }, [activeTab])
 
+  useEffect(() => {
+    if (!tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab('overview')
+    }
+  }, [activeTab, tabs])
+
   async function refreshState() {
     setLoadError('')
     const results = await Promise.all([
@@ -269,7 +297,6 @@ function App() {
         .from('holdings')
         .select('*, instruments(display_name, currency, instrument_type)')
         .order('account_id'),
-      supabase.from('portfolio_view').select('*'),
       supabase.from('instruments').select('*').order('display_name'),
       supabase.from('tags').select('*').order('sort_order'),
       supabase.from('instrument_tags').select('ticker, tag_id, tags(id, name, color)'),
@@ -284,12 +311,26 @@ function App() {
     setState({
       accounts: results[0].data ?? [],
       holdings: results[1].data ?? [],
-      positions: results[2].data ?? [],
-      instruments: results[3].data ?? [],
-      tags: results[4].data ?? [],
-      instrumentTags: results[5].data ?? [],
-      prices: latestPrices(results[6].data ?? []),
+      positions: [],
+      instruments: results[2].data ?? [],
+      tags: results[3].data ?? [],
+      instrumentTags: results[4].data ?? [],
+      prices: latestPrices(results[5].data ?? []),
     })
+  }
+
+  async function loadActiveViewerAccess() {
+    const { data, error } = await supabase.rpc('get_active_viewer_access')
+
+    if (error) {
+      if (error.code === '42P01' || error.code === '42883') {
+        setViewerProfileSchemaReady(false)
+        return null
+      }
+      throw error
+    }
+
+    return Array.isArray(data) ? data[0] ?? null : data
   }
 
   async function loadViewerProfile() {
@@ -318,20 +359,112 @@ function App() {
   }
 
   useEffect(() => {
-    if (!session) return
+    if (!session) {
+      setViewContext({
+        mode: 'owner',
+        ownerUserId: null,
+        ownerPublicName: '',
+      })
+      setState({
+        accounts: [],
+        holdings: [],
+        positions: [],
+        instruments: [],
+        tags: [],
+        instrumentTags: [],
+        prices: [],
+      })
+      setViewerProfile(createViewerProfileDraft())
+      setViewerProfileDraft(createViewerProfileDraft())
+      return
+    }
 
-    Promise.all([refreshState(), loadViewerProfile()]).catch((error) => {
-      setLoadError(error.message ?? String(error))
+    let cancelled = false
+
+    async function bootstrapSession() {
+      setLoadError('')
+
+      if (session.user?.is_anonymous) {
+        setViewerProfile(createViewerProfileDraft())
+        setViewerProfileDraft(createViewerProfileDraft())
+        const access = await loadActiveViewerAccess()
+        if (cancelled) return
+
+        if (!access?.owner_user_id) {
+          setViewContext({
+            mode: 'guest',
+            ownerUserId: null,
+            ownerPublicName: '',
+          })
+          setState({
+            accounts: [],
+            holdings: [],
+            positions: [],
+            instruments: [],
+            tags: [],
+            instrumentTags: [],
+            prices: [],
+          })
+          return
+        }
+
+        setViewContext({
+          mode: 'shared',
+          ownerUserId: access.owner_user_id,
+          ownerPublicName: access.owner_public_name ?? '',
+        })
+        await refreshState()
+        return
+      }
+
+      setViewContext({
+        mode: 'owner',
+        ownerUserId: session.user.id,
+        ownerPublicName: '',
+      })
+      await Promise.all([refreshState(), loadViewerProfile()])
+    }
+
+    bootstrapSession().catch((error) => {
+      if (!cancelled) {
+        setLoadError(error.message ?? String(error))
+      }
     })
+
+    return () => {
+      cancelled = true
+    }
   }, [session])
 
   const latestPriceByTicker = useMemo(() => {
     return new Map(state.prices.map((row) => [row.ticker, row]))
   }, [state.prices])
 
+  const computedPositions = useMemo(() => {
+    const instrumentByTicker = new Map(state.instruments.map((instrument) => [instrument.ticker, instrument]))
+
+    return state.holdings.map((holding) => {
+      const instrument = holding.instruments ?? instrumentByTicker.get(holding.ticker) ?? null
+      const latestPrice = latestPriceByTicker.get(holding.ticker)?.close_price
+      const fallbackPrice = Number.isFinite(holding.avg_price) ? holding.avg_price : 0
+      const marketPrice = Number.isFinite(latestPrice) ? latestPrice : fallbackPrice
+      const quantity = Number(holding.quantity ?? 0)
+      const marketValueNative = quantity * marketPrice
+
+      return {
+        ...holding,
+        display_name: instrument?.display_name ?? holding.ticker,
+        currency: instrument?.currency ?? 'KRW',
+        instrument_type: instrument?.instrument_type ?? null,
+        quantity,
+        market_value_native: marketValueNative,
+      }
+    })
+  }, [state.holdings, state.instruments, latestPriceByTicker])
+
   const totalValue = useMemo(
-    () => state.positions.reduce((sum, row) => sum + effectiveKrwValue(row, latestPriceByTicker), 0),
-    [state.positions, latestPriceByTicker],
+    () => computedPositions.reduce((sum, row) => sum + effectiveKrwValue(row, latestPriceByTicker), 0),
+    [computedPositions, latestPriceByTicker],
   )
 
   const tagMapByTicker = useMemo(() => {
@@ -367,7 +500,7 @@ function App() {
   const accountCards = useMemo(() => {
     return state.accounts
       .map((account) => {
-        const rows = state.positions.filter((pos) => pos.account_id === account.id)
+        const rows = computedPositions.filter((pos) => pos.account_id === account.id)
         return {
           ...account,
           count: rows.length,
@@ -378,7 +511,7 @@ function App() {
         }
       })
       .sort((a, b) => b.market_value_krw - a.market_value_krw)
-  }, [state.accounts, state.positions, latestPriceByTicker])
+  }, [state.accounts, computedPositions, latestPriceByTicker])
 
   const filteredAccountCards = useMemo(() => {
     if (accountTagFilter === 'all') return accountCards
@@ -392,7 +525,7 @@ function App() {
 
   const instrumentRows = useMemo(() => {
     const aggregated = new Map()
-    for (const pos of state.positions) {
+    for (const pos of computedPositions) {
       const current = aggregated.get(pos.ticker) ?? {
         ticker: pos.ticker,
         display_name: pos.display_name,
@@ -428,7 +561,7 @@ function App() {
         }
       })
       .sort((a, b) => b.market_value_krw - a.market_value_krw || a.display_name.localeCompare(b.display_name))
-  }, [state.instruments, state.positions, latestPriceByTicker, tagMapByTicker])
+  }, [state.instruments, computedPositions, latestPriceByTicker, tagMapByTicker])
 
   const filteredInstrumentRows = useMemo(() => {
     if (instrumentTagFilter === 'all') return instrumentRows
@@ -525,6 +658,7 @@ function App() {
   }
 
   function openAccountModal(account = null) {
+    if (!canEdit) return
     setAccountError('')
     setAccountModal({
       id: account?.id ?? null,
@@ -535,6 +669,7 @@ function App() {
   }
 
   function openInstrumentModal(instrument = null) {
+    if (!canEdit) return
     const latestPrice = instrument?.ticker ? latestPriceByTicker.get(instrument.ticker) : null
     const tagId = instrument?.ticker ? tagMapByTicker.get(instrument.ticker)?.id ?? '' : ''
     setInstrumentError('')
@@ -551,6 +686,7 @@ function App() {
   }
 
   function openHoldingModal({ holding = null, accountId = null, ticker = '' } = {}) {
+    if (!canEdit) return
     setHoldingError('')
     setHoldingModal({
       id: holding?.id ?? null,
@@ -563,6 +699,7 @@ function App() {
   }
 
   function openTagModal(tag = null) {
+    if (!canEdit) return
     setTagError('')
     setTagModal({
       id: tag?.id ?? null,
@@ -582,10 +719,65 @@ function App() {
   }
 
   async function signOut() {
+    setGuestUnlockError('')
+    setGuestUnlockDraft(createGuestUnlockDraft())
+    setViewContext({
+      mode: 'owner',
+      ownerUserId: null,
+      ownerPublicName: '',
+    })
     await supabase.auth.signOut()
   }
 
+  async function handleGuestUnlock() {
+    setGuestUnlockSaving(true)
+    setGuestUnlockError('')
+
+    try {
+      let nextSession = session
+
+      if (!nextSession) {
+        const { data, error } = await supabase.auth.signInAnonymously()
+        if (error) throw error
+        nextSession = data.session
+        setSession(data.session ?? null)
+        setAuthStatus(data.session ? 'signed-in' : 'signed-out')
+      }
+
+      if (!nextSession) {
+        throw new Error('게스트 세션을 시작하지 못했습니다.')
+      }
+
+      const { data, error } = await supabase.rpc('unlock_viewer_access', {
+        input_public_name: guestUnlockDraft.public_name,
+        input_viewer_password: guestUnlockDraft.viewer_password,
+      })
+
+      if (error) throw error
+
+      const access = Array.isArray(data) ? data[0] : data
+      setViewContext({
+        mode: 'shared',
+        ownerUserId: access?.owner_user_id ?? null,
+        ownerPublicName: access?.owner_public_name ?? guestUnlockDraft.public_name.trim(),
+      })
+      await refreshState()
+      setGuestUnlockDraft(createGuestUnlockDraft())
+    } catch (error) {
+      if (error.code === 'anonymous_provider_disabled') {
+        setGuestUnlockError('Supabase에서 anonymous auth가 아직 비활성화되어 있습니다.')
+      } else if (error.code === '42P01' || error.code === '42883') {
+        setGuestUnlockError('공유 보기용 데이터베이스 마이그레이션이 아직 적용되지 않았습니다.')
+      } else {
+        setGuestUnlockError(error.message ?? '공유 보기를 시작하지 못했습니다.')
+      }
+    } finally {
+      setGuestUnlockSaving(false)
+    }
+  }
+
   async function handleSaveAccount() {
+    if (!canEdit) return
     if (!accountModal) return
 
     const payload = {
@@ -618,6 +810,7 @@ function App() {
   }
 
   async function handleDeleteAccount() {
+    if (!canEdit) return
     if (!accountModal?.id) return
 
     const holdingCount = holdingsByAccountId.get(accountModal.id)?.length ?? 0
@@ -643,6 +836,7 @@ function App() {
   }
 
   async function handleSaveInstrument() {
+    if (!canEdit) return
     if (!instrumentModal) return
 
     const tickerValue = instrumentModal.ticker.trim()
@@ -721,6 +915,7 @@ function App() {
   }
 
   async function handleDeleteInstrument() {
+    if (!canEdit) return
     if (!instrumentModal?.id || !instrumentModal?.ticker) return
 
     const holdingCount = holdingsByTicker.get(instrumentModal.ticker)?.length ?? 0
@@ -755,6 +950,7 @@ function App() {
   }
 
   async function handleSaveHolding() {
+    if (!canEdit) return
     if (!holdingModal) return
 
     const payload = {
@@ -793,6 +989,7 @@ function App() {
   }
 
   async function handleDeleteHolding() {
+    if (!canEdit) return
     if (!holdingModal?.id) return
     if (!window.confirm('이 보유 항목을 삭제할까요?')) return
 
@@ -811,6 +1008,7 @@ function App() {
   }
 
   async function handleSaveTag() {
+    if (!canEdit) return
     if (!tagModal) return
 
     const payload = {
@@ -840,6 +1038,7 @@ function App() {
   }
 
   async function handleSyncPrices() {
+    if (!canEdit) return
     setSyncingPrices(true)
     setSyncMessage('')
     try {
@@ -855,6 +1054,7 @@ function App() {
   }
 
   async function handleSaveViewerProfile() {
+    if (!canEdit) return
     setViewerProfileSaving(true)
     setViewerProfileError('')
     setViewerProfileMessage('')
@@ -898,6 +1098,38 @@ function App() {
       <CenteredMessage
         title="Supabase 설정이 필요합니다"
         body="VITE_SUPABASE_URL과 VITE_SUPABASE_ANON_KEY를 설정해주세요."
+      />
+    )
+  }
+
+  if (!session) {
+    return (
+      <LoginScreen
+        guestUnlockDraft={guestUnlockDraft}
+        guestUnlockError={guestUnlockError}
+        guestUnlockSaving={guestUnlockSaving}
+        loginMode={loginMode}
+        onGuestUnlock={handleGuestUnlock}
+        onGuestUnlockChange={(field, value) =>
+          setGuestUnlockDraft((current) => ({ ...current, [field]: value }))
+        }
+        onLoginModeChange={setLoginMode}
+        onSignInWithGoogle={signInWithGoogle}
+      />
+    )
+  }
+
+  if (isAnonymousSession && viewContext.mode === 'guest') {
+    return (
+      <GuestUnlockScreen
+        guestUnlockDraft={guestUnlockDraft}
+        guestUnlockError={guestUnlockError}
+        guestUnlockSaving={guestUnlockSaving}
+        onExit={signOut}
+        onGuestUnlock={handleGuestUnlock}
+        onGuestUnlockChange={(field, value) =>
+          setGuestUnlockDraft((current) => ({ ...current, [field]: value }))
+        }
       />
     )
   }
@@ -960,6 +1192,29 @@ function App() {
       />
     ) : null
 
+  const readonlyHeaderAction =
+    activeTab === 'accounts' ? (
+      <TagActionToolbar
+        buttonLabel=""
+        className="hidden min-w-0 items-center gap-2 md:flex"
+        onAction={undefined}
+        onTagFilterChange={setAccountTagFilter}
+        selectedTagId={accountTagFilter}
+        selectClassName="w-44 lg:w-56"
+        tags={state.tags}
+      />
+    ) : activeTab === 'instruments' ? (
+      <TagActionToolbar
+        buttonLabel=""
+        className="hidden min-w-0 items-center gap-2 md:flex"
+        onAction={undefined}
+        onTagFilterChange={setInstrumentTagFilter}
+        selectedTagId={instrumentTagFilter}
+        selectClassName="w-44 lg:w-56"
+        tags={state.tags}
+      />
+    ) : null
+
   return (
     <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
       <div className="mx-auto max-w-6xl">
@@ -967,12 +1222,19 @@ function App() {
           <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-3">
             <div className="flex min-w-0 flex-wrap items-center gap-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
-                Portfolio
+                {viewContext.mode === 'shared' ? 'Shared View' : 'Portfolio'}
               </p>
-              <h1 className="text-2xl font-semibold">{pageTitle}</h1>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-semibold">{pageTitle}</h1>
+                {viewContext.mode === 'shared' && (
+                  <p className="mt-1 text-sm text-[var(--muted-ink)]">
+                    {`${viewContext.ownerPublicName || '공유 포트폴리오'} 읽기 전용 보기`}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {headerAction}
+              {canEdit ? headerAction : readonlyHeaderAction}
               <button
                 aria-expanded={menuOpen}
                 aria-label="메뉴 열기"
@@ -1035,6 +1297,7 @@ function App() {
         {activeTab === 'accounts' && (
           <AccountsPage
             accounts={filteredAccountCards}
+            canEdit={canEdit}
             holdingsByAccountId={holdingsByAccountId}
             onCreateAccount={() => openAccountModal()}
             onCreateHolding={(accountId) => openHoldingModal({ accountId })}
@@ -1049,6 +1312,7 @@ function App() {
         )}
         {activeTab === 'instruments' && (
           <InstrumentsPage
+            canEdit={canEdit}
             holdingsByTicker={holdingsByTicker}
             instruments={filteredInstrumentRows}
             onCreateHolding={(ticker) => openHoldingModal({ ticker })}
@@ -1325,19 +1589,22 @@ function TagActionToolbar({
           <option value="untagged">태그 없음</option>
         </select>
       </label>
-      <button
-        className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
-        onClick={onAction}
-        type="button"
-      >
-        {buttonLabel}
-      </button>
+      {buttonLabel && onAction && (
+        <button
+          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
+          onClick={onAction}
+          type="button"
+        >
+          {buttonLabel}
+        </button>
+      )}
     </div>
   )
 }
 
 function AccountsPage({
   accounts,
+  canEdit,
   holdingsByAccountId,
   onCreateAccount,
   onCreateHolding,
@@ -1354,7 +1621,7 @@ function AccountsPage({
       <TagActionToolbar
         buttonLabel="계좌 추가"
         className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] md:hidden"
-        onAction={onCreateAccount}
+        onAction={canEdit ? onCreateAccount : undefined}
         onTagFilterChange={onTagFilterChange}
         selectedTagId={selectedTagId}
         selectClassName="w-full"
@@ -1388,13 +1655,15 @@ function AccountsPage({
                   보유 레코드 {holdings.length}
                 </p>
               </div>
-              <button
-                className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                onClick={() => onEditAccount(account)}
-                type="button"
-              >
+              {canEdit && (
+                <button
+                  className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                  onClick={() => onEditAccount(account)}
+                  type="button"
+                >
                 편집
-              </button>
+                </button>
+              )}
             </div>
 
             <div className="mt-4">
@@ -1423,28 +1692,32 @@ function AccountsPage({
                           {formatMoney(holding.avg_price, holding.instruments?.currency)}
                         </div>
                       </div>
-                      <button
-                        className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
-                        onClick={() => onEditHolding(holding)}
-                        type="button"
-                      >
+                      {canEdit && (
+                        <button
+                          className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+                          onClick={() => onEditHolding(holding)}
+                          type="button"
+                        >
                         편집
-                      </button>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="mt-4 flex justify-end">
-              <button
-                className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                onClick={() => onCreateHolding(account.id)}
-                type="button"
-              >
+            {canEdit && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                  onClick={() => onCreateHolding(account.id)}
+                  type="button"
+                >
                 이 계좌에 보유 추가
-              </button>
-            </div>
+                </button>
+              </div>
+            )}
           </article>
         )
       })}
@@ -1453,6 +1726,7 @@ function AccountsPage({
 }
 
 function InstrumentsPage({
+  canEdit,
   holdingsByTicker,
   instruments,
   onCreateHolding,
@@ -1469,7 +1743,7 @@ function InstrumentsPage({
       <TagActionToolbar
         buttonLabel="종목 추가"
         className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] md:hidden"
-        onAction={onCreateInstrument}
+        onAction={canEdit ? onCreateInstrument : undefined}
         onTagFilterChange={onTagFilterChange}
         selectedTagId={selectedTagId}
         selectClassName="w-full"
@@ -1510,13 +1784,15 @@ function InstrumentsPage({
                   {instrument.latestPriceDate ? ` · ${instrument.latestPriceDate}` : ''}
                 </p>
               </div>
-              <button
-                className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                onClick={() => onEditInstrument(instrument)}
-                type="button"
-              >
+              {canEdit && (
+                <button
+                  className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                  onClick={() => onEditInstrument(instrument)}
+                  type="button"
+                >
                 편집
-              </button>
+                </button>
+              )}
             </div>
 
             <div className="mt-4">
@@ -1551,28 +1827,32 @@ function InstrumentsPage({
                           평균단가 {formatMoney(holding.avg_price, instrument.currency)}
                         </div>
                       </div>
-                      <button
-                        className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
-                        onClick={() => onEditHolding(holding)}
-                        type="button"
-                      >
+                      {canEdit && (
+                        <button
+                          className="shrink-0 rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+                          onClick={() => onEditHolding(holding)}
+                          type="button"
+                        >
                         편집
-                      </button>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="mt-4 flex justify-end">
-              <button
-                className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                onClick={() => onCreateHolding(instrument.ticker)}
-                type="button"
-              >
+            {canEdit && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                  onClick={() => onCreateHolding(instrument.ticker)}
+                  type="button"
+                >
                 이 종목 보유 추가
-              </button>
-            </div>
+                </button>
+              </div>
+            )}
           </article>
         )
       })}
@@ -1772,6 +2052,149 @@ function SettingsPage({
         </p>
       </article>
     </section>
+  )
+}
+
+function LoginScreen({
+  guestUnlockDraft,
+  guestUnlockError,
+  guestUnlockSaving,
+  loginMode,
+  onGuestUnlock,
+  onGuestUnlockChange,
+  onLoginModeChange,
+  onSignInWithGoogle,
+}) {
+  return (
+    <main className="min-h-screen px-5 py-8 text-[var(--ink)]">
+      <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-sm content-center gap-6">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+            Portfolio
+          </p>
+          <h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">{'포트폴리오'}</h1>
+          <p className="mt-4 text-sm leading-6 text-[var(--muted-ink)]">
+            {'여러 계좌에 흩어진 보유 종목을 한 화면에서 통합해서 보고, 태그 기준 비중까지 빠르게 확인합니다.'}
+          </p>
+        </div>
+
+        <div className="grid gap-3 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]">
+          <div className="flex rounded-2xl bg-[var(--surface-2)] p-1">
+            <button
+              className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                loginMode === 'owner' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-ink)]'
+              }`}
+              onClick={() => onLoginModeChange('owner')}
+              type="button"
+            >
+              {'내 계정'}
+            </button>
+            <button
+              className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                loginMode === 'guest' ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-ink)]'
+              }`}
+              onClick={() => onLoginModeChange('guest')}
+              type="button"
+            >
+              {'친구 보기'}
+            </button>
+          </div>
+
+          {loginMode === 'owner' ? (
+            <button
+              className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95"
+              onClick={onSignInWithGoogle}
+              type="button"
+            >
+              {'Google로 로그인'}
+            </button>
+          ) : (
+            <GuestUnlockForm
+              error={guestUnlockError}
+              onChange={onGuestUnlockChange}
+              onSubmit={onGuestUnlock}
+              saving={guestUnlockSaving}
+              value={guestUnlockDraft}
+            />
+          )}
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function GuestUnlockScreen({
+  guestUnlockDraft,
+  guestUnlockError,
+  guestUnlockSaving,
+  onExit,
+  onGuestUnlock,
+  onGuestUnlockChange,
+}) {
+  return (
+    <main className="min-h-screen px-5 py-8 text-[var(--ink)]">
+      <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-sm content-center gap-6">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+            Shared View
+          </p>
+          <h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">{'친구 포트폴리오 보기'}</h1>
+          <p className="mt-4 text-sm leading-6 text-[var(--muted-ink)]">
+            {'공개 이름과 보기 전용 비밀번호를 입력하면 읽기 전용으로 자산 현황을 볼 수 있어요.'}
+          </p>
+        </div>
+
+        <div className="grid gap-3 rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]">
+          <GuestUnlockForm
+            error={guestUnlockError}
+            onChange={onGuestUnlockChange}
+            onSubmit={onGuestUnlock}
+            saving={guestUnlockSaving}
+            value={guestUnlockDraft}
+          />
+          <button
+            className="rounded-2xl border border-[var(--line)] px-4 py-3 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+            onClick={onExit}
+            type="button"
+          >
+            {'나가기'}
+          </button>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function GuestUnlockForm({ error, onChange, onSubmit, saving, value }) {
+  return (
+    <div className="grid gap-3">
+      <input
+        className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+        onChange={(event) => onChange('public_name', event.target.value)}
+        placeholder="공개 이름"
+        value={value.public_name}
+      />
+      <input
+        className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+        onChange={(event) => onChange('viewer_password', event.target.value)}
+        placeholder="보기 전용 비밀번호"
+        type="password"
+        value={value.viewer_password}
+      />
+      {error && (
+        <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          {error}
+        </div>
+      )}
+      <button
+        className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={saving}
+        onClick={onSubmit}
+        type="button"
+      >
+        {saving ? '입장 중' : '친구 포트폴리오 보기'}
+      </button>
+    </div>
   )
 }
 
