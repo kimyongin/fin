@@ -103,6 +103,20 @@ function createGuestUnlockDraft() {
   }
 }
 
+function isViewerSchemaMissingError(error) {
+  const code = error?.code ?? ''
+  const message = `${error?.message ?? ''} ${error?.details ?? ''} ${error?.hint ?? ''}`
+  return (
+    code === '42P01' ||
+    code === '42883' ||
+    code === 'PGRST202' ||
+    code === 'PGRST205' ||
+    /schema cache/i.test(message) ||
+    /Could not find the table/i.test(message) ||
+    /Could not find the function/i.test(message)
+  )
+}
+
 function resolveTagColor(color, fallback) {
   if (!color) return fallback
   return tagColorMap[color] ?? color
@@ -323,7 +337,7 @@ function App() {
     const { data, error } = await supabase.rpc('get_active_viewer_access')
 
     if (error) {
-      if (error.code === '42P01' || error.code === '42883') {
+      if (isViewerSchemaMissingError(error)) {
         setViewerProfileSchemaReady(false)
         return null
       }
@@ -340,10 +354,10 @@ function App() {
     const { data, error } = await supabase
       .from('profiles')
       .select('public_name, sharing_enabled, viewer_password_updated_at')
-      .maybeSingle()
+      .limit(1)
 
     if (error) {
-      if (error.code === '42P01') {
+      if (isViewerSchemaMissingError(error)) {
         setViewerProfileSchemaReady(false)
         setViewerProfile(createViewerProfileDraft())
         setViewerProfileDraft(createViewerProfileDraft())
@@ -353,7 +367,7 @@ function App() {
     }
 
     setViewerProfileSchemaReady(true)
-    const nextProfile = createViewerProfileDraft(Array.isArray(data) ? data[0] : data)
+    const nextProfile = createViewerProfileDraft(Array.isArray(data) ? data[0] ?? null : data)
     setViewerProfile(nextProfile)
     setViewerProfileDraft(nextProfile)
   }
@@ -1078,7 +1092,7 @@ function App() {
           : '공유 보기 설정을 저장했습니다.',
       )
     } catch (error) {
-      if (error.code === '42P01' || error.code === '42883') {
+      if (isViewerSchemaMissingError(error)) {
         setViewerProfileSchemaReady(false)
         setViewerProfileError('공유 보기용 데이터베이스 마이그레이션이 아직 적용되지 않았습니다.')
       } else {
