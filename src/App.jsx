@@ -862,6 +862,29 @@ function App() {
           ? '종목'
           : '설정'
 
+  const headerAction =
+    activeTab === 'accounts' ? (
+      <TagActionToolbar
+        buttonLabel="계좌 추가"
+        className="hidden min-w-0 items-center gap-2 md:flex"
+        onAction={() => openAccountModal()}
+        onTagFilterChange={setAccountTagFilter}
+        selectedTagId={accountTagFilter}
+        selectClassName="w-44 lg:w-56"
+        tags={state.tags}
+      />
+    ) : activeTab === 'instruments' ? (
+      <TagActionToolbar
+        buttonLabel="종목 추가"
+        className="hidden min-w-0 items-center gap-2 md:flex"
+        onAction={() => openInstrumentModal()}
+        onTagFilterChange={setInstrumentTagFilter}
+        selectedTagId={instrumentTagFilter}
+        selectClassName="w-44 lg:w-56"
+        tags={state.tags}
+      />
+    ) : null
+
   return (
     <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
       <div className="mx-auto max-w-6xl">
@@ -873,17 +896,20 @@ function App() {
               </p>
               <h1 className="text-2xl font-semibold">{pageTitle}</h1>
             </div>
-          <button
-            aria-expanded={menuOpen}
-            aria-label="메뉴 열기"
-            className="inline-flex h-12 w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] text-[var(--ink)]"
-            onClick={() => setMenuOpen((open) => !open)}
-            type="button"
-          >
-            <span className="h-0.5 w-4 rounded-full bg-current" />
-            <span className="h-0.5 w-4 rounded-full bg-current" />
-            <span className="h-0.5 w-4 rounded-full bg-current" />
-          </button>
+            <div className="flex shrink-0 items-center gap-2">
+              {headerAction}
+              <button
+                aria-expanded={menuOpen}
+                aria-label="메뉴 열기"
+                className="inline-flex h-12 w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] text-[var(--ink)]"
+                onClick={() => setMenuOpen((open) => !open)}
+                type="button"
+              >
+                <span className="h-0.5 w-4 rounded-full bg-current" />
+                <span className="h-0.5 w-4 rounded-full bg-current" />
+                <span className="h-0.5 w-4 rounded-full bg-current" />
+              </button>
+            </div>
           </div>
           {menuOpen && (
             <nav className="absolute right-0 top-[calc(100%+10px)] z-10 grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-1.5 shadow-2xl shadow-black/40 backdrop-blur">
@@ -1185,6 +1211,44 @@ function Overview({ cards, copied, onCopy, pieGradient, slices, totalValue }) {
   )
 }
 
+function TagActionToolbar({
+  buttonLabel,
+  className,
+  onAction,
+  onTagFilterChange,
+  selectedTagId,
+  selectClassName,
+  tags,
+}) {
+  return (
+    <div className={className}>
+      <label className="min-w-0 flex-1 md:flex-none">
+        <span className="sr-only">태그 필터</span>
+        <select
+          className={`h-11 min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] ${selectClassName}`}
+          onChange={(event) => onTagFilterChange(event.target.value)}
+          value={selectedTagId}
+        >
+          <option value="all">전체 태그</option>
+          {tags.map((tag) => (
+            <option key={tag.id} value={String(tag.id)}>
+              {tag.name}
+            </option>
+          ))}
+          <option value="untagged">태그 없음</option>
+        </select>
+      </label>
+      <button
+        className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
+        onClick={onAction}
+        type="button"
+      >
+        {buttonLabel}
+      </button>
+    </div>
+  )
+}
+
 function AccountsPage({
   accounts,
   holdingsByAccountId,
@@ -1200,31 +1264,15 @@ function AccountsPage({
 }) {
   return (
     <section className="mt-8 grid gap-3">
-      <div className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)]">
-        <label className="min-w-0 flex-1 sm:max-w-sm">
-          <span className="sr-only">태그 필터</span>
-          <select
-            className="h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => onTagFilterChange(event.target.value)}
-            value={selectedTagId}
-          >
-            <option value="all">전체 태그</option>
-            {tags.map((tag) => (
-              <option key={tag.id} value={String(tag.id)}>
-                {tag.name}
-              </option>
-            ))}
-            <option value="untagged">태그 없음</option>
-          </select>
-        </label>
-        <button
-          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
-          onClick={onCreateAccount}
-          type="button"
-        >
-          계좌 추가
-        </button>
-      </div>
+      <TagActionToolbar
+        buttonLabel="계좌 추가"
+        className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] md:hidden"
+        onAction={onCreateAccount}
+        onTagFilterChange={onTagFilterChange}
+        selectedTagId={selectedTagId}
+        selectClassName="w-full"
+        tags={tags}
+      />
       {!accounts.length && (
         <div className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-5 text-sm leading-6 text-[var(--muted-ink)] shadow-[var(--shadow-soft)]">
           선택한 태그에 해당하는 계좌가 없습니다.
@@ -1331,31 +1379,15 @@ function InstrumentsPage({
 }) {
   return (
     <section className="mt-8 grid gap-3">
-      <div className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)]">
-        <label className="min-w-0 flex-1 sm:max-w-sm">
-          <span className="sr-only">태그 필터</span>
-          <select
-            className="h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => onTagFilterChange(event.target.value)}
-            value={selectedTagId}
-          >
-            <option value="all">전체 태그</option>
-            {tags.map((tag) => (
-              <option key={tag.id} value={String(tag.id)}>
-                {tag.name}
-              </option>
-            ))}
-            <option value="untagged">태그 없음</option>
-          </select>
-        </label>
-        <button
-          className="h-11 shrink-0 rounded-2xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
-          onClick={onCreateInstrument}
-          type="button"
-        >
-          종목 추가
-        </button>
-      </div>
+      <TagActionToolbar
+        buttonLabel="종목 추가"
+        className="flex items-center gap-2 rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-soft)] md:hidden"
+        onAction={onCreateInstrument}
+        onTagFilterChange={onTagFilterChange}
+        selectedTagId={selectedTagId}
+        selectClassName="w-full"
+        tags={tags}
+      />
       {!instruments.length && (
         <div className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-5 text-sm leading-6 text-[var(--muted-ink)] shadow-[var(--shadow-soft)]">
           선택한 태그에 해당하는 종목이 없습니다.
