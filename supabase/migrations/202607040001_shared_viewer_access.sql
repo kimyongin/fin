@@ -74,6 +74,21 @@ for select
 to authenticated, anon
 using (user_id = auth.uid());
 
+drop policy if exists profiles_insert_own on public.profiles;
+create policy profiles_insert_own
+on public.profiles
+for insert
+to authenticated
+with check (user_id = auth.uid());
+
+drop policy if exists profiles_update_own on public.profiles;
+create policy profiles_update_own
+on public.profiles
+for update
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
 drop policy if exists viewer_sessions_select_own on public.viewer_sessions;
 create policy viewer_sessions_select_own
 on public.viewer_sessions
@@ -226,8 +241,15 @@ begin
         raise exception 'Cannot unlock your own profile as a viewer';
     end if;
 
-    if coalesce(owner_profile.viewer_password_hash, '') = ''
-       or owner_profile.viewer_password_hash <> crypt(coalesce(input_viewer_password, ''), owner_profile.viewer_password_hash) then
+    if coalesce(owner_profile.viewer_password_hash, '') = '' then
+        raise exception 'Invalid viewer password';
+    end if;
+
+    if owner_profile.viewer_password_hash like '$2%' then
+        if owner_profile.viewer_password_hash <> crypt(coalesce(input_viewer_password, ''), owner_profile.viewer_password_hash) then
+            raise exception 'Invalid viewer password';
+        end if;
+    elsif owner_profile.viewer_password_hash <> encode(digest(coalesce(input_viewer_password, ''), 'sha256'), 'hex') then
         raise exception 'Invalid viewer password';
     end if;
 

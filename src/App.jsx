@@ -103,6 +103,12 @@ function createGuestUnlockDraft() {
   }
 }
 
+async function sha256Hex(value) {
+  const data = new TextEncoder().encode(value)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  return [...new Uint8Array(hashBuffer)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 function isViewerSchemaMissingError(error) {
   const code = error?.code ?? ''
   const message = `${error?.message ?? ''} ${error?.details ?? ''} ${error?.hint ?? ''}`
@@ -1074,11 +1080,42 @@ function App() {
     setViewerProfileMessage('')
 
     try {
-      const { data, error } = await supabase.rpc('set_viewer_profile', {
-        input_public_name: viewerProfileDraft.public_name,
-        input_viewer_password: viewerProfileDraft.viewer_password,
-        input_sharing_enabled: viewerProfileDraft.sharing_enabled,
-      })
+      const trimmedPublicName = viewerProfileDraft.public_name.trim()
+      const trimmedPassword = viewerProfileDraft.viewer_password.trim()
+
+      if (viewerProfileDraft.sharing_enabled && !trimmedPublicName) {
+        throw new Error('공개 이름은 공유 활성화 시 필수입니다.')
+      }
+
+      if (trimmedPassword && trimmedPassword.length < 4) {
+        throw new Error('보기 전용 비밀번호는 4자 이상이어야 합니다.')
+      }
+
+      if (
+        viewerProfileDraft.sharing_enabled &&
+        !trimmedPassword &&
+        !viewerProfile.viewer_password_updated_at
+      ) {
+        throw new Error('공유를 켜려면 보기 전용 비밀번호를 먼저 입력해주세요.')
+      }
+
+      const payload = {
+        user_id: session.user.id,
+        public_name: trimmedPublicName || null,
+        public_name_normalized: trimmedPublicName ? trimmedPublicName.toLowerCase() : null,
+        sharing_enabled: Boolean(viewerProfileDraft.sharing_enabled),
+      }
+
+      if (trimmedPassword) {
+        payload.viewer_password_hash = await sha256Hex(trimmedPassword)
+        payload.viewer_password_updated_at = new Date().toISOString()
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert(payload, { onConflict: 'user_id' })
+        .select('public_name, sharing_enabled, viewer_password_updated_at')
+        .limit(1)
 
       if (error) throw error
 
