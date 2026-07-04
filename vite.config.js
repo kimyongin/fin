@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-export default defineConfig({
-  base: '/fin/',
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/' : '/fin/',
   plugins: [react(), tailwindcss()],
-})
+}))

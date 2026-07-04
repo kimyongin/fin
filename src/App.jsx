@@ -112,15 +112,25 @@ async function sha256Hex(value) {
 function isViewerSchemaMissingError(error) {
   const code = error?.code ?? ''
   const message = `${error?.message ?? ''} ${error?.details ?? ''} ${error?.hint ?? ''}`
+  const mentionsViewerSchema =
+    /profiles/i.test(message) ||
+    /viewer_sessions/i.test(message) ||
+    /set_viewer_profile/i.test(message) ||
+    /unlock_viewer_access/i.test(message) ||
+    /get_active_viewer_access/i.test(message)
+
   return (
-    code === '42P01' ||
-    code === '42883' ||
-    code === 'PGRST202' ||
-    code === 'PGRST205' ||
-    /schema cache/i.test(message) ||
-    /Could not find the table/i.test(message) ||
-    /Could not find the function/i.test(message)
+    ((code === '42P01' || code === '42883') && mentionsViewerSchema) ||
+    ((/schema cache/i.test(message) ||
+      /Could not find the table/i.test(message) ||
+      /Could not find the function/i.test(message)) &&
+      mentionsViewerSchema)
   )
+}
+
+function formatSupabaseError(error, fallback) {
+  const message = error?.message ?? fallback
+  return error?.code ? `${message} (${error.code})` : message
 }
 
 function resolveTagColor(color, fallback) {
@@ -411,6 +421,7 @@ function App() {
         if (cancelled) return
 
         if (!access?.owner_user_id) {
+          setGuestUnlockError('')
           setViewContext({
             mode: 'guest',
             ownerUserId: null,
@@ -785,11 +796,11 @@ function App() {
       setGuestUnlockDraft(createGuestUnlockDraft())
     } catch (error) {
       if (error.code === 'anonymous_provider_disabled') {
-        setGuestUnlockError('Supabase에서 anonymous auth가 아직 비활성화되어 있습니다.')
-      } else if (error.code === '42P01' || error.code === '42883') {
-        setGuestUnlockError('공유 보기용 데이터베이스 마이그레이션이 아직 적용되지 않았습니다.')
+        setGuestUnlockError(
+          '친구 보기를 사용하려면 Supabase Auth의 anonymous sign-ins를 활성화해야 합니다.',
+        )
       } else {
-        setGuestUnlockError(error.message ?? '공유 보기를 시작하지 못했습니다.')
+        setGuestUnlockError(formatSupabaseError(error, '공유 보기를 시작하지 못했습니다.'))
       }
     } finally {
       setGuestUnlockSaving(false)
@@ -1131,7 +1142,9 @@ function App() {
     } catch (error) {
       if (isViewerSchemaMissingError(error)) {
         setViewerProfileSchemaReady(false)
-        setViewerProfileError('공유 보기용 데이터베이스 마이그레이션이 아직 적용되지 않았습니다.')
+        setViewerProfileError(
+          formatSupabaseError(error, '공유 보기 설정을 불러오는 중 데이터베이스 오류가 발생했습니다.'),
+        )
       } else {
         setViewerProfileError(error.message ?? '공유 보기 설정을 저장하지 못했습니다.')
       }
@@ -1161,9 +1174,10 @@ function App() {
         guestUnlockSaving={guestUnlockSaving}
         loginMode={loginMode}
         onGuestUnlock={handleGuestUnlock}
-        onGuestUnlockChange={(field, value) =>
+        onGuestUnlockChange={(field, value) => {
+          setGuestUnlockError('')
           setGuestUnlockDraft((current) => ({ ...current, [field]: value }))
-        }
+        }}
         onLoginModeChange={setLoginMode}
         onSignInWithGoogle={signInWithGoogle}
       />
@@ -1178,9 +1192,10 @@ function App() {
         guestUnlockSaving={guestUnlockSaving}
         onExit={signOut}
         onGuestUnlock={handleGuestUnlock}
-        onGuestUnlockChange={(field, value) =>
+        onGuestUnlockChange={(field, value) => {
+          setGuestUnlockError('')
           setGuestUnlockDraft((current) => ({ ...current, [field]: value }))
-        }
+        }}
       />
     )
   }

@@ -37,6 +37,20 @@ create table if not exists public.viewer_sessions (
 create unique index if not exists viewer_sessions_viewer_owner_key
     on public.viewer_sessions (viewer_user_id, owner_user_id);
 
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_constraint
+        where conrelid = 'public.viewer_sessions'::regclass
+          and conname = 'viewer_sessions_viewer_owner_key'
+    ) then
+        alter table public.viewer_sessions
+            add constraint viewer_sessions_viewer_owner_key
+            unique using index viewer_sessions_viewer_owner_key;
+    end if;
+end $$;
+
 create index if not exists viewer_sessions_owner_lookup_idx
     on public.viewer_sessions (owner_user_id, viewer_user_id, expires_at desc);
 
@@ -168,7 +182,7 @@ begin
     end if;
 
     if trimmed_password is not null then
-        next_password_hash := crypt(trimmed_password, gen_salt('bf'));
+        next_password_hash := extensions.crypt(trimmed_password, extensions.gen_salt('bf'));
         next_password_updated_at := now();
     else
         next_password_hash := existing_profile.viewer_password_hash;
@@ -246,10 +260,10 @@ begin
     end if;
 
     if owner_profile.viewer_password_hash like '$2%' then
-        if owner_profile.viewer_password_hash <> crypt(coalesce(input_viewer_password, ''), owner_profile.viewer_password_hash) then
+        if owner_profile.viewer_password_hash <> extensions.crypt(coalesce(input_viewer_password, ''), owner_profile.viewer_password_hash) then
             raise exception 'Invalid viewer password';
         end if;
-    elsif owner_profile.viewer_password_hash <> encode(digest(coalesce(input_viewer_password, ''), 'sha256'), 'hex') then
+    elsif owner_profile.viewer_password_hash <> encode(extensions.digest(coalesce(input_viewer_password, ''), 'sha256'), 'hex') then
         raise exception 'Invalid viewer password';
     end if;
 
@@ -265,7 +279,7 @@ begin
         owner_profile.viewer_password_updated_at,
         session_expires_at
     )
-    on conflict (viewer_user_id, owner_user_id) do update
+    on conflict on constraint viewer_sessions_viewer_owner_key do update
     set password_version = excluded.password_version,
         expires_at = excluded.expires_at;
 
