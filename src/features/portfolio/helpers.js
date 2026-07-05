@@ -6,18 +6,18 @@ export function buildPortfolioMarkdown(tagCards, totalValue) {
     .flatMap((tag) => {
       const percent = totalValue > 0 ? (tag.value / totalValue) * 100 : NaN
       return [
-        `## ${tag.name} · ${formatPercent(percent)}`,
-        `${formatKrw(tag.value)} · ${tag.holdings.length}개 통합 종목 · 평균단가 대비 ${formatSignedPercent(tag.returnPercent)}`,
+        `## ${tag.name} \u00b7 ${formatPercent(percent)}`,
+        `${formatKrw(tag.value)} \u00b7 ${tag.holdings.length}\uac1c \ud1b5\ud569 \uc885\ubaa9 \u00b7 \ud3c9\uade0\ub2e8\uac00 \ub300\ube44 ${formatSignedPercent(tag.returnPercent)}`,
         '',
         ...tag.holdings.flatMap((holding) => {
           const holdingPercent =
             totalValue > 0 ? (holding.market_value_krw / totalValue) * 100 : NaN
           const converted =
             holding.currency !== 'KRW'
-              ? ` (${formatKrw(holding.market_value_krw)} 환산)`
+              ? ` (${formatKrw(holding.market_value_krw)} \ud658\uc0b0)`
               : ''
           return [
-            `### ${holding.ticker} · ${formatPercent(holdingPercent)} · ${formatSignedPercent(holding.priceChangePercent)}`,
+            `### ${holding.ticker} \u00b7 ${formatPercent(holdingPercent)} \u00b7 ${formatSignedPercent(holding.priceChangePercent)}`,
             holding.display_name ?? holding.ticker,
             `${formatMoney(holding.market_value_native, holding.currency)}${converted}`,
             '',

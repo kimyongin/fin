@@ -1,5 +1,5 @@
 import { assetViewOptions } from '../../constants/portfolio'
-import { CopyIcon, PencilIcon } from '../../components/icons'
+import { PencilIcon } from '../../components/icons'
 import MetricSummary from '../../components/MetricSummary'
 import {
   formatKrw,
@@ -459,14 +459,12 @@ export default function AssetsPage({
   accounts,
   assetView,
   canEdit,
-  copied,
   holdingsByAccountId,
   holdingsByTicker,
   instrumentTagFilter,
   instruments,
   onAccountTagFilterChange,
   onAssetViewChange,
-  onCopy,
   onCreateAccount,
   onCreateHolding,
   onCreateHoldingForAccount,
@@ -483,38 +481,35 @@ export default function AssetsPage({
 }) {
   return (
     <section className="grid gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="grid gap-3">
+        <div
+          aria-label="자산 보기 전환"
+          className="inline-grid w-full grid-cols-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-1 sm:w-auto"
+          role="tablist"
+        >
           {assetViewOptions.map((option) => (
             <button
-              aria-pressed={assetView === option.id}
-              className={`rounded-2xl px-3 py-2 text-sm font-medium transition ${
+              aria-selected={assetView === option.id}
+              className={`min-w-0 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                 assetView === option.id
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'border border-[var(--line)] bg-[var(--panel)] text-[var(--muted-ink)] hover:text-[var(--ink)]'
+                  ? 'bg-[var(--accent)] text-white shadow-[0_6px_16px_rgba(219,106,33,0.35)]'
+                  : 'text-[var(--muted-ink)] opacity-80 hover:text-[var(--ink)] hover:opacity-100'
               }`}
               key={option.id}
               onClick={() => onAssetViewChange(option.id)}
+              role="tab"
               type="button"
             >
               {option.label}
             </button>
           ))}
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <button
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 text-sm font-medium text-[var(--muted-ink)] transition hover:text-[var(--ink)]"
-            onClick={onCopy}
-            type="button"
-          >
-            <CopyIcon />
-            <span>{copied ? '복사됨' : '마크다운 복사'}</span>
-          </button>
+        <div className="flex flex-col gap-2 border-t border-[var(--line)] pt-3 sm:flex-row sm:items-center sm:justify-end">
           {assetView === 'tags' ? (
             <TagActionToolbar
-              buttonLabel={canEdit ? '계좌 추가' : ''}
+              buttonLabel=""
               className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
-              onAction={canEdit ? onCreateAccount : undefined}
+              onAction={undefined}
               onTagFilterChange={() => {}}
               selectedTagId="all"
               selectClassName="hidden"
@@ -522,9 +517,9 @@ export default function AssetsPage({
             />
           ) : assetView === 'accounts' ? (
             <TagActionToolbar
-              buttonLabel={canEdit ? '보유 추가' : ''}
+              buttonLabel={canEdit ? '계좌 추가' : ''}
               className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
-              onAction={canEdit ? () => onCreateHolding() : undefined}
+              onAction={canEdit ? onCreateAccount : undefined}
               onTagFilterChange={onAccountTagFilterChange}
               selectedTagId={accountTagFilter}
               selectClassName="w-full sm:w-44 lg:w-52"
