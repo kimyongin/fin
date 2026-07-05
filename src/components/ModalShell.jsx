@@ -11,7 +11,7 @@ export default function ModalShell({ children, onClose, title }) {
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-30 bg-[rgba(13,14,18,0.96)] sm:bg-[rgba(71,49,28,0.18)] sm:px-6 sm:py-8 sm:backdrop-blur-sm">
+    <div className="fixed inset-0 z-30 bg-[rgba(13,14,18,0.96)] px-3 py-3 sm:bg-[rgba(71,49,28,0.18)] sm:px-6 sm:py-8 sm:backdrop-blur-sm">
       <div className="mx-auto flex h-full w-full max-w-2xl min-w-0 items-start justify-center sm:h-auto">
         <section className="flex h-full w-full min-w-0 flex-col overflow-hidden bg-[var(--panel)] sm:h-auto sm:max-h-[calc(100vh-4rem)] sm:rounded-[30px] sm:border sm:border-[var(--line)] sm:shadow-[0_30px_70px_rgba(0,0,0,0.45)]">
           <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel)] px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:border-b-0 sm:px-6 sm:pb-0 sm:pt-6">
