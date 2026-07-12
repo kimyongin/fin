@@ -114,38 +114,26 @@ Deno.serve(async (req) => {
       lookup_symbol: resolvedSymbol,
       display_name: displayName,
       currency: meta.currency ?? 'KRW',
-      instrument_type: mapYahooInstrumentType(meta.instrumentType ?? matchedQuote?.quoteType),
+      instrument_type: mapYahooInstrumentType(meta.instrumentType ?? meta.quoteType),
       price: Number.isFinite(meta.regularMarketPrice) ? meta.regularMarketPrice : null,
       price_date: priceDate,
       source: 'registered',
     }
 
-    const { error: instrumentError } = await userClient.from('instruments').upsert(
-      {
-        user_id: user.id,
-        ticker,
-        display_name: result.display_name,
-        currency: result.currency,
-        instrument_type: result.instrument_type,
-        price_source: 'yfinance',
-      },
-      { onConflict: 'user_id,ticker' },
-    )
+    const { error: instrumentError } = await userClient.rpc('app_save_instrument', {
+      input_instrument_id: null,
+      input_ticker: ticker,
+      input_display_name: result.display_name,
+      input_currency: result.currency,
+      input_instrument_type: result.instrument_type,
+      input_price: Number.isFinite(result.price) && result.price > 0 ? result.price : null,
+      input_price_date: result.price_date,
+      input_tag_id: null,
+      input_source: 'user',
+      input_request: `티커 조회: ${ticker}`,
+      input_price_source: 'lookup',
+    })
     if (instrumentError) throw instrumentError
-
-    if (Number.isFinite(result.price) && result.price > 0) {
-      const { error: priceError } = await userClient.from('holding_prices_daily').upsert(
-        {
-          user_id: user.id,
-          ticker,
-          price_date: result.price_date,
-          close_price: result.price,
-          source: 'lookup',
-        },
-        { onConflict: 'user_id,ticker,price_date' },
-      )
-      if (priceError) throw priceError
-    }
 
     return Response.json(result, { headers: corsHeaders })
   } catch (error) {

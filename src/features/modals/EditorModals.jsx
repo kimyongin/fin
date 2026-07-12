@@ -209,6 +209,17 @@ export function InstrumentEditorModal({
           </select>
         </label>
 
+        <label className="grid gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+            메모
+          </span>
+          <textarea
+            className="min-h-24 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            onChange={(event) => onChange('note', event.target.value)}
+            value={draft.note}
+          />
+        </label>
+
         {instrumentError && (
           <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
             {instrumentError}

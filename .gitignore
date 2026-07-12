@@ -5,6 +5,7 @@
 # Node / build
 node_modules/
 dist/
+*.log
 
 # Supabase local link/cache
 supabase/.temp/

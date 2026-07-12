@@ -1,8 +1,126 @@
 import { tagColorMap } from '../../constants/portfolio'
 
+function SettingsSection({ children }) {
+  return (
+    <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+      {children}
+    </article>
+  )
+}
+
+function formatActionTime(value) {
+  if (!value) return ''
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
+function formatAgentAction(action) {
+  if (action.action_type === 'update_holding_avg_price') {
+    const displayName = action.after_data?.display_name ?? action.after_data?.ticker ?? '보유 종목'
+    const previousValue = action.before_data?.avg_price
+    const nextValue = action.after_data?.avg_price
+    return `${displayName} 평균 단가 ${previousValue} -> ${nextValue}`
+  }
+
+  const labels = {
+    create_account: '계좌 추가',
+    update_account: '계좌 수정',
+    delete_account: '계좌 삭제',
+    create_instrument: '종목 추가',
+    update_instrument: '종목 수정',
+    delete_instrument: '종목 삭제',
+    create_holding: '보유 추가',
+    update_holding: '보유 수정',
+    delete_holding: '보유 삭제',
+    create_tag: '태그 추가',
+    update_tag: '태그 수정',
+    sync_prices: '가격 동기화',
+    update_viewer_profile: '공유 보기 설정 수정',
+  }
+
+  return labels[action.action_type] ?? action.action_type
+}
+
+function mcpToken(token) {
+  return token || '<발급된_에이전트_토큰>'
+}
+
+function buildFileConfigCommand(pathExpression, endpoint, token) {
+  return [
+    `$env:PORTFOLIO_MCP_TOKEN = "${mcpToken(token)}"`,
+    `$path = ${pathExpression}`,
+    'New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null',
+    '@{',
+    '  mcpServers = @{',
+    '    portfolio = @{',
+    '      type = "http"',
+    `      url = "${endpoint}"`,
+    '      headers = @{',
+    '        Authorization = "Bearer $env:PORTFOLIO_MCP_TOKEN"',
+    '      }',
+    '    }',
+    '  }',
+    '} | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 $path',
+  ].join('\n')
+}
+
+function buildCodexMcpCommand(endpoint, token) {
+  return [
+    `$env:PORTFOLIO_MCP_TOKEN = "${mcpToken(token)}"`,
+    `codex mcp add portfolio --url "${endpoint}" --bearer-token-env-var PORTFOLIO_MCP_TOKEN`,
+  ].join('\n')
+}
+
+function buildClaudeMcpCommand(endpoint, token) {
+  return [
+    `$env:PORTFOLIO_MCP_TOKEN = "${mcpToken(token)}"`,
+    `claude mcp add --scope user --transport http portfolio "${endpoint}" --header "Authorization: Bearer $env:PORTFOLIO_MCP_TOKEN"`,
+  ].join('\n')
+}
+
+function buildVendorMcpExamples(endpoint, token) {
+  return [
+    {
+      name: 'Cursor',
+      target: 'PowerShell · .cursor/mcp.json',
+      body: buildFileConfigCommand('".cursor/mcp.json"', endpoint, token),
+    },
+    {
+      name: 'Antigravity',
+      target: 'PowerShell · mcp_config.json',
+      body: buildFileConfigCommand('Join-Path $env:USERPROFILE ".gemini\\antigravity-cli\\mcp_config.json"', endpoint, token),
+    },
+    {
+      name: 'Codex',
+      target: 'Codex CLI',
+      body: buildCodexMcpCommand(endpoint, token),
+    },
+    {
+      name: 'Claude',
+      target: 'Claude Code CLI',
+      body: buildClaudeMcpCommand(endpoint, token),
+    },
+  ]
+}
+
 export default function SettingsPage({
+  agentActions = [],
+  agentActionsError = '',
+  agentActionsLoading = false,
+  agentMcpEndpoint = '',
+  agentTokenError = '',
+  agentTokenSaving = false,
+  agentTokens = [],
+  agentTokensLoading = false,
+  issuedAgentToken = '',
   onCreateTag,
   onEditTag,
+  onAgentActionsRefresh,
+  onAgentTokenCreate,
+  onAgentTokenDismiss,
+  onAgentTokenRevoke,
   onSyncPrices,
   onViewerProfileChange,
   onViewerProfileSave,
@@ -16,9 +134,11 @@ export default function SettingsPage({
   viewerProfileSaving,
   viewerProfileSchemaReady,
 }) {
+  const mcpExamples = buildVendorMcpExamples(agentMcpEndpoint, issuedAgentToken)
+
   return (
     <section className="mt-8 grid gap-5">
-      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+      <SettingsSection>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">공유 보기</h2>
@@ -113,9 +233,169 @@ export default function SettingsPage({
             {viewerProfileMessage}
           </div>
         )}
-      </article>
+      </SettingsSection>
 
-      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+      <SettingsSection>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">에이전트에 MCP로 연결</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">
+              Cursor, Antigravity, Codex, Claude 같은 에이전트가 포트폴리오 MCP에 연결할 토큰을 관리합니다.
+            </p>
+          </div>
+          <button
+            className="rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={agentTokenSaving}
+            onClick={onAgentTokenCreate}
+            type="button"
+          >
+            {agentTokenSaving ? '발급 중' : '에이전트 연결하기'}
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--muted-ink)]">
+          <p className="font-semibold text-[var(--ink)]">벤더별 연결 명령어</p>
+          <p className="mt-2">
+            토큰은 발급 직후 한 번만 표시됩니다. 사용하는 에이전트에 맞는 명령어를 실행합니다.
+          </p>
+          <div className="mt-3 grid gap-3">
+            {mcpExamples.map((example) => (
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-3" key={example.name}>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-sm font-semibold text-[var(--ink)]">{example.name}</p>
+                  <p className="text-xs font-medium text-[var(--muted-ink)]">{example.target}</p>
+                </div>
+                <pre className="mt-3 max-h-72 overflow-x-auto rounded-xl border border-[var(--line)] bg-[rgba(0,0,0,0.22)] p-3 text-xs leading-5 text-[var(--ink)]">
+                  <code>{example.body}</code>
+                </pre>
+              </div>
+            ))}
+          </div>
+          {issuedAgentToken && (
+            <div className="mt-3 grid gap-2">
+              <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                <p className="font-semibold">새 토큰</p>
+                <p className="mt-2 break-all font-mono text-xs">{issuedAgentToken}</p>
+              </div>
+              <button
+                className="justify-self-start rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                onClick={onAgentTokenDismiss}
+                type="button"
+              >
+                토큰 숨기기
+              </button>
+            </div>
+          )}
+        </div>
+
+        {agentTokenError && (
+          <div className="mt-4 rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {agentTokenError}
+          </div>
+        )}
+
+        <div className="mt-4 grid gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-[var(--ink)]">연결 토큰</h3>
+            <span className="text-xs text-[var(--muted-ink)]">
+              {agentTokensLoading ? '불러오는 중' : `${agentTokens.length}개`}
+            </span>
+          </div>
+          {!agentTokensLoading && agentTokens.length === 0 && (
+            <p className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--muted-ink)]">
+              아직 발급된 에이전트 토큰이 없습니다.
+            </p>
+          )}
+          {agentTokens.map((token) => (
+            <div
+              className="grid gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+              key={token.id}
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-[var(--ink)]">{token.name}</p>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-xs ${
+                      token.revoked_at
+                        ? 'border-red-400/40 text-red-100'
+                        : 'border-emerald-400/40 text-emerald-100'
+                    }`}
+                  >
+                    {token.revoked_at ? '폐기됨' : '활성'}
+                  </span>
+                </div>
+                <p className="mt-1 truncate font-mono text-xs text-[var(--muted-ink)]">
+                  {token.token_prefix}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted-ink)]">
+                  발급 {formatActionTime(token.created_at)}
+                  {token.last_used_at ? ` · 최근 사용 ${formatActionTime(token.last_used_at)}` : ''}
+                </p>
+              </div>
+              {!token.revoked_at && (
+                <button
+                  className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-3)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={agentTokenSaving}
+                  onClick={() => onAgentTokenRevoke(token.id)}
+                  type="button"
+                >
+                  폐기
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--ink)]">작업 기록</h3>
+            <p className="mt-1 text-sm text-[var(--muted-ink)]">에이전트가 실행한 변경 내역입니다.</p>
+          </div>
+          <button
+            className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={agentActionsLoading}
+            onClick={onAgentActionsRefresh}
+            type="button"
+          >
+            {agentActionsLoading ? '확인 중' : '새로고침'}
+          </button>
+        </div>
+
+        {agentActionsError && (
+          <div className="mt-4 rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {agentActionsError}
+          </div>
+        )}
+
+        <div className="mt-4 grid gap-2">
+          {!agentActionsLoading && agentActions.length === 0 && (
+            <p className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--muted-ink)]">
+              아직 기록된 에이전트 작업이 없습니다.
+            </p>
+          )}
+          {agentActions.map((action) => (
+            <div
+              className="grid gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3"
+              key={action.id}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-[var(--ink)]">{formatAgentAction(action)}</p>
+                  <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--muted-ink)]">
+                    {action.source === 'agent' ? '에이전트' : '사용자'}
+                  </span>
+                </div>
+                <span className="text-xs text-[var(--muted-ink)]">{formatActionTime(action.created_at)}</span>
+              </div>
+              {action.natural_language_request && (
+                <p className="text-sm text-[var(--muted-ink)]">{action.natural_language_request}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </SettingsSection>
+
+      <SettingsSection>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">가격 동기화</h2>
@@ -137,9 +417,9 @@ export default function SettingsPage({
             {syncMessage}
           </p>
         )}
-      </article>
+      </SettingsSection>
 
-      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+      <SettingsSection>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">태그 관리</h2>
@@ -174,14 +454,14 @@ export default function SettingsPage({
             </button>
           ))}
         </div>
-      </article>
+      </SettingsSection>
 
-      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+      <SettingsSection>
         <h2 className="text-lg font-semibold">가져오기</h2>
         <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">
           React 버전에서는 예전 CSV 일괄 가져오기 흐름을 직접 노출하지 않습니다. 현재 구조에서는 계좌, 종목, 보유 수량을 직접 관리하는 쪽으로 단순화했습니다.
         </p>
-      </article>
+      </SettingsSection>
     </section>
   )
 }

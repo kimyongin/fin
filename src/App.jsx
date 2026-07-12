@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import AppHeader from './components/AppHeader'
 import AssetsPageView from './features/assets/AssetsPage'
 import {
@@ -6,15 +6,11 @@ import {
   GuestUnlockScreen as GuestUnlockScreenView,
   LoginScreen as LoginScreenView,
 } from './features/auth/AuthScreens'
+import { useAgentControls } from './features/agent/useAgentControls'
 import { useSupabaseSession } from './features/auth/useSupabaseSession'
-import {
-  AccountEditorModal as AccountEditorModalView,
-  HoldingEditorModal as HoldingEditorModalView,
-  InstrumentEditorModal as InstrumentEditorModalView,
-  TagEditorModal as TagEditorModalView,
-} from './features/modals/EditorModals'
+import PortfolioEditorModals from './features/modals/PortfolioEditorModals'
 import SettingsPageView from './features/settings/SettingsPage'
-import { buildPortfolioMarkdown } from './features/portfolio/helpers'
+import { buildPortfolioCsv } from './features/portfolio/helpers'
 import { createPortfolioActions } from './features/portfolio/actions'
 import {
   createEmptyPortfolioState,
@@ -27,9 +23,11 @@ import { portfolioMessages } from './features/portfolio/messages'
 import { usePortfolioBootstrap } from './features/portfolio/usePortfolioBootstrap'
 import { usePortfolioNavigation } from './features/portfolio/usePortfolioNavigation'
 import { usePortfolioDerivedData } from './features/portfolio/usePortfolioDerivedData'
+import { usePortfolioEditorState } from './features/portfolio/usePortfolioEditorState'
 import { writeClipboard } from './lib/clipboard'
-import { normalizeTickerInput, today } from './lib/portfolioMath'
+import { today } from './lib/portfolioMath'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
+import { SUPABASE_URL } from './lib/config'
 import {
   createGuestUnlockDraft,
   createViewerProfileDraft,
@@ -43,23 +41,7 @@ function authRedirectTo() {
 function App() {
   const [loginMode, setLoginMode] = useState('owner')
   const [copied, setCopied] = useState(false)
-  const [accountModal, setAccountModal] = useState(null)
-  const [accountSaving, setAccountSaving] = useState(false)
-  const [accountError, setAccountError] = useState('')
-  const [instrumentModal, setInstrumentModal] = useState(null)
-  const [instrumentSaving, setInstrumentSaving] = useState(false)
-  const [instrumentError, setInstrumentError] = useState('')
-  const [holdingModal, setHoldingModal] = useState(null)
-  const [holdingSaving, setHoldingSaving] = useState(false)
-  const [holdingError, setHoldingError] = useState('')
-  const [holdingLookupSaving, setHoldingLookupSaving] = useState(false)
-  const [holdingLookupError, setHoldingLookupError] = useState('')
-  const [holdingLookupResult, setHoldingLookupResult] = useState(null)
-  const [tagModal, setTagModal] = useState(null)
-  const [tagSaving, setTagSaving] = useState(false)
-  const [tagError, setTagError] = useState('')
-  const [syncingPrices, setSyncingPrices] = useState(false)
-  const [syncMessage, setSyncMessage] = useState('')
+  const editor = usePortfolioEditorState()
   const [viewerProfileSchemaReady, setViewerProfileSchemaReady] = useState(true)
   const [viewerProfileSaving, setViewerProfileSaving] = useState(false)
   const [viewerProfileError, setViewerProfileError] = useState('')
@@ -81,7 +63,26 @@ function App() {
   const isAnonymousSession = Boolean(session?.user?.is_anonymous)
   const canEdit = viewContext.mode === 'owner' && !isAnonymousSession
   const { activeTab, assetView, setActiveTab, setAssetView, tabs } = usePortfolioNavigation(canEdit)
-
+  const {
+    actions: agentActions,
+    actionsError: agentActionsError,
+    actionsLoading: agentActionsLoading,
+    createToken: handleCreateAgentToken,
+    dismissIssuedToken: handleDismissIssuedAgentToken,
+    issuedToken: issuedAgentToken,
+    loadActions: loadAgentActions,
+    revokeToken: handleRevokeAgentToken,
+    tokenError: agentTokenError,
+    tokenSaving: agentTokenSaving,
+    tokens: agentTokens,
+    tokensLoading: agentTokensLoading,
+  } = useAgentControls({
+    activeTab,
+    isAnonymousSession,
+    isSchemaMissingError: isViewerSchemaMissingError,
+    session,
+    supabase,
+  })
 
   const refreshState = useCallback(async () => {
     setLoadError('')
@@ -141,6 +142,7 @@ function App() {
   const {
     accountById,
     chartGradient,
+    computedPositions,
     filteredAccountCards,
     filteredInstrumentRows,
     holdingsByAccountId,
@@ -155,8 +157,8 @@ function App() {
     state,
   })
 
-  async function handleCopyMarkdown() {
-    await writeClipboard(buildPortfolioMarkdown(tagCards, totalValue))
+  async function handleCopyCsv() {
+    await writeClipboard(buildPortfolioCsv(computedPositions, accountById))
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1200)
   }
@@ -188,42 +190,22 @@ function App() {
     openTag: openTagModal,
     signOut,
   } = createPortfolioActions({
-    accountModal,
     canEdit,
     createGuestUnlockDraft,
     createViewerProfileDraft,
+    ...editor,
     guestUnlockDraft,
-    holdingLookupResult,
-    holdingModal,
     holdingsByAccountId,
     holdingsByTicker,
-    instrumentModal,
     latestPriceByTicker,
     loadActiveViewerAccess,
     refreshState,
     session,
-    setAccountError,
-    setAccountModal,
-    setAccountSaving,
     setAuthStatus,
     setGuestUnlockDraft,
     setGuestUnlockError,
     setGuestUnlockSaving,
-    setHoldingError,
-    setHoldingLookupError,
-    setHoldingLookupResult,
-    setHoldingLookupSaving,
-    setHoldingModal,
-    setHoldingSaving,
-    setInstrumentError,
-    setInstrumentModal,
-    setInstrumentSaving,
     setSession,
-    setSyncMessage,
-    setSyncingPrices,
-    setTagError,
-    setTagModal,
-    setTagSaving,
     setViewContext,
     setViewerProfile,
     setViewerProfileDraft,
@@ -234,7 +216,6 @@ function App() {
     state,
     supabase,
     tagMapByTicker,
-    tagModal,
     today,
     viewerProfile,
     viewerProfileDraft,
@@ -302,8 +283,9 @@ function App() {
         <AppHeader
           activeTab={activeTab}
           copied={activeTab === 'overview' ? copied : false}
-          copyLabel="마크다운 복사"
-          onCopy={activeTab === 'overview' ? handleCopyMarkdown : undefined}
+          copyLabel="CSV 복사"
+          copySuccessLabel="CSV를 복사했어요"
+          onCopy={activeTab === 'overview' ? handleCopyCsv : undefined}
           onSignOut={signOut}
           onTabChange={setActiveTab}
           pageTitle={pageTitle}
@@ -351,8 +333,21 @@ function App() {
         )}
         {activeTab === 'settings' && (
           <SettingsPageView
+            agentActions={agentActions}
+            agentActionsError={agentActionsError}
+            agentActionsLoading={agentActionsLoading}
+            agentMcpEndpoint={`${SUPABASE_URL}/functions/v1/portfolio-mcp`}
+            agentTokenError={agentTokenError}
+            agentTokenSaving={agentTokenSaving}
+            agentTokens={agentTokens}
+            agentTokensLoading={agentTokensLoading}
+            issuedAgentToken={issuedAgentToken}
             onCreateTag={() => openTagModal()}
             onEditTag={(tag) => openTagModal(tag)}
+            onAgentActionsRefresh={loadAgentActions}
+            onAgentTokenCreate={handleCreateAgentToken}
+            onAgentTokenDismiss={handleDismissIssuedAgentToken}
+            onAgentTokenRevoke={handleRevokeAgentToken}
             onSyncPrices={handleSyncPrices}
             onViewerProfileChange={(field, value) => {
               setViewerProfileError('')
@@ -360,8 +355,8 @@ function App() {
               setViewerProfileDraft((current) => ({ ...current, [field]: value }))
             }}
             onViewerProfileSave={handleSaveViewerProfile}
-            syncingPrices={syncingPrices}
-            syncMessage={syncMessage}
+            syncingPrices={editor.syncingPrices}
+            syncMessage={editor.syncMessage}
             tags={state.tags}
             viewerProfile={viewerProfile}
             viewerProfileDraft={viewerProfileDraft}
@@ -372,100 +367,20 @@ function App() {
           />
         )}
 
-        {accountModal && (
-          <AccountEditorModalView
-            accountError={accountError}
-            accountSaving={accountSaving}
-            draft={accountModal}
-            onChange={(field, value) => {
-              setAccountError('')
-              setAccountModal((current) => ({ ...current, [field]: value }))
-            }}
-            onClose={() => {
-              if (!accountSaving) {
-                setAccountError('')
-                setAccountModal(null)
-              }
-            }}
-            onDelete={handleDeleteAccount}
-            onSave={handleSaveAccount}
-          />
-        )}
-
-        {instrumentModal && (
-          <InstrumentEditorModalView
-            accounts={state.accounts}
-            draft={instrumentModal}
-            instrumentError={instrumentError}
-            instrumentSaving={instrumentSaving}
-            onChange={(field, value) => {
-              setInstrumentError('')
-              setInstrumentModal((current) => ({ ...current, [field]: value }))
-            }}
-            onClose={() => {
-              if (!instrumentSaving) {
-                setInstrumentError('')
-                setInstrumentModal(null)
-              }
-            }}
-            onDelete={handleDeleteInstrument}
-            onSave={handleSaveInstrument}
-            tags={state.tags}
-          />
-        )}
-
-        {holdingModal && (
-          <HoldingEditorModalView
-            accounts={state.accounts}
-            draft={holdingModal}
-            holdingError={holdingError}
-            holdingLookupError={holdingLookupError}
-            holdingLookupResult={holdingLookupResult}
-            holdingLookupSaving={holdingLookupSaving}
-            holdingSaving={holdingSaving}
-            instruments={state.instruments.filter((item) => item.instrument_type !== 'fx')}
-            onChange={(field, value) => {
-              setHoldingError('')
-              setHoldingLookupError('')
-              if (field === 'ticker') {
-                setHoldingLookupResult((current) =>
-                  current?.ticker === normalizeTickerInput(value) ? current : null,
-                )
-              }
-              setHoldingModal((current) => ({ ...current, [field]: value }))
-            }}
-            onClose={() => {
-              if (!holdingSaving) {
-                setHoldingError('')
-                setHoldingLookupError('')
-                setHoldingLookupResult(null)
-                setHoldingModal(null)
-              }
-            }}
-            onLookupTicker={handleLookupHoldingTicker}
-            onDelete={handleDeleteHolding}
-            onSave={handleSaveHolding}
-          />
-        )}
-
-        {tagModal && (
-          <TagEditorModalView
-            draft={tagModal}
-            onChange={(field, value) => {
-              setTagError('')
-              setTagModal((current) => ({ ...current, [field]: value }))
-            }}
-            onClose={() => {
-              if (!tagSaving) {
-                setTagError('')
-                setTagModal(null)
-              }
-            }}
-            onSave={handleSaveTag}
-            tagError={tagError}
-            tagSaving={tagSaving}
-          />
-        )}
+        <PortfolioEditorModals
+          {...editor}
+          accounts={state.accounts}
+          instruments={state.instruments}
+          onDeleteAccount={handleDeleteAccount}
+          onDeleteHolding={handleDeleteHolding}
+          onDeleteInstrument={handleDeleteInstrument}
+          onLookupHoldingTicker={handleLookupHoldingTicker}
+          onSaveAccount={handleSaveAccount}
+          onSaveHolding={handleSaveHolding}
+          onSaveInstrument={handleSaveInstrument}
+          onSaveTag={handleSaveTag}
+          tags={state.tags}
+        />
       </div>
     </main>
   )

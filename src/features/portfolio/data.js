@@ -1,5 +1,3 @@
-import { latestPrices } from '../../lib/portfolioMath'
-
 export function createEmptyPortfolioState() {
   return {
     accounts: [],
@@ -21,32 +19,12 @@ export function createOwnerViewContext(ownerUserId = null) {
 }
 
 export async function fetchPortfolioState(supabase) {
-  const results = await Promise.all([
-    supabase.from('accounts').select('*').order('name'),
-    supabase
-      .from('holdings')
-      .select('*, instruments(display_name, currency, instrument_type)')
-      .order('account_id'),
-    supabase.from('instruments').select('*').order('display_name'),
-    supabase.from('tags').select('*').order('sort_order'),
-    supabase.from('instrument_tags').select('ticker, tag_id, tags(id, name, color)'),
-    supabase
-      .from('holding_prices_daily')
-      .select('ticker, price_date, close_price, source')
-      .order('price_date', { ascending: false }),
-  ])
-
-  const failed = results.find((result) => result.error)
-  if (failed) throw failed.error
+  const { data, error } = await supabase.rpc('app_get_portfolio_state')
+  if (error) throw error
 
   return {
-    accounts: results[0].data ?? [],
-    holdings: results[1].data ?? [],
-    positions: [],
-    instruments: results[2].data ?? [],
-    tags: results[3].data ?? [],
-    instrumentTags: results[4].data ?? [],
-    prices: latestPrices(results[5].data ?? []),
+    ...createEmptyPortfolioState(),
+    ...(data ?? {}),
   }
 }
 

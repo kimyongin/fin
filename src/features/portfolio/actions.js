@@ -1,4 +1,5 @@
-import { formatFunctionInvokeError, formatSupabaseError, isViewerSchemaMissingError, sha256Hex } from '../../lib/viewerAccess'
+import { formatFunctionInvokeError, formatSupabaseError, isViewerSchemaMissingError } from '../../lib/viewerAccess'
+import { recordUserActivity } from '../agent/data'
 import {
   createHoldingLookupResult,
   createHoldingModalDraft,
@@ -61,6 +62,24 @@ export function createPortfolioActions(params) {
     viewerProfile,
     viewerProfileDraft,
   } = params
+
+  async function recordActivity(event) {
+    try {
+      await recordUserActivity(supabase, event)
+    } catch {
+      // Activity logging should never block the portfolio edit itself.
+    }
+  }
+
+  async function callRpc(name, args) {
+    const { data, error } = await supabase.rpc(name, args)
+    if (error) throw error
+    return data
+  }
+
+  function draftId(draft) {
+    return draft?.id ? Number(draft.id) : null
+  }
 
   async function signOut() {
     setGuestUnlockError('')
@@ -168,19 +187,22 @@ export function createPortfolioActions(params) {
 
     setAccountSaving(true)
     setAccountError('')
-    const query = accountModal.id
-      ? supabase.from('accounts').update(payload).eq('id', accountModal.id)
-      : supabase.from('accounts').insert(payload)
-    const { error } = await query
-    setAccountSaving(false)
-
-    if (error) {
+    try {
+      await callRpc('app_save_account', {
+        input_account_id: draftId(accountModal),
+        input_name: payload.name,
+        input_broker: payload.broker,
+        input_note: payload.note,
+        input_source: 'user',
+        input_request: null,
+      })
+      await refreshState()
+      setAccountModal(null)
+    } catch (error) {
       setAccountError(error.message)
-      return
+    } finally {
+      setAccountSaving(false)
     }
-
-    await refreshState()
-    setAccountModal(null)
   }
 
   async function handleDeleteAccount() {
@@ -194,16 +216,19 @@ export function createPortfolioActions(params) {
 
     setAccountSaving(true)
     setAccountError('')
-    const { error } = await supabase.from('accounts').delete().eq('id', accountModal.id)
-    setAccountSaving(false)
-
-    if (error) {
+    try {
+      await callRpc('app_delete_account', {
+        input_account_id: Number(accountModal.id),
+        input_source: 'user',
+        input_request: null,
+      })
+      await refreshState()
+      setAccountModal(null)
+    } catch (error) {
       setAccountError(error.message)
-      return
+    } finally {
+      setAccountSaving(false)
     }
-
-    await refreshState()
-    setAccountModal(null)
   }
 
   async function handleSaveInstrument() {
@@ -211,12 +236,13 @@ export function createPortfolioActions(params) {
     const linkedAccountId = Number(instrumentModal.linked_account_id)
     const shouldOpenHoldingAfterSave = !instrumentModal.id && Number.isFinite(linkedAccountId) && linkedAccountId > 0
 
-    const tickerValue = instrumentModal.ticker.trim()
+    const tickerValue = instrumentModal.ticker.trim().toUpperCase()
     const payload = {
       ticker: tickerValue,
       display_name: instrumentModal.display_name.trim(),
       currency: instrumentModal.currency,
       instrument_type: instrumentModal.instrument_type,
+      note: instrumentModal.note.trim() || null,
       price_source: 'yfinance',
     }
 
@@ -227,62 +253,32 @@ export function createPortfolioActions(params) {
 
     setInstrumentSaving(true)
     setInstrumentError('')
-    const query = instrumentModal.id
-      ? supabase.from('instruments').update(payload).eq('id', instrumentModal.id)
-      : supabase.from('instruments').insert(payload)
-    const { error } = await query
-
-    if (error) {
-      setInstrumentSaving(false)
-      setInstrumentError(error.message)
-      return
-    }
-
     const priceValue = Number(instrumentModal.price)
-    if (Number.isFinite(priceValue) && priceValue > 0) {
-      const { error: priceError } = await supabase
-        .from('holding_prices_daily')
-        .upsert(
-          {
-            ticker: tickerValue,
-            price_date: instrumentModal.price_date || today(),
-            close_price: priceValue,
-            source: 'manual',
-          },
-          { onConflict: 'user_id,ticker,price_date' },
-        )
-      if (priceError) {
-        setInstrumentSaving(false)
-        setInstrumentError(priceError.message)
-        return
-      }
-    }
-
-    const { error: deleteTagError } = await supabase.from('instrument_tags').delete().eq('ticker', tickerValue)
-    if (deleteTagError) {
-      setInstrumentSaving(false)
-      setInstrumentError(deleteTagError.message)
-      return
-    }
-
     const tagId = Number(instrumentModal.tag_id)
-    if (Number.isFinite(tagId) && tagId > 0) {
-      const { error: tagError } = await supabase.from('instrument_tags').insert({
-        ticker: tickerValue,
-        tag_id: tagId,
-      })
-      if (tagError) {
-        setInstrumentSaving(false)
-        setInstrumentError(tagError.message)
-        return
-      }
-    }
 
-    setInstrumentSaving(false)
-    await refreshState()
-    setInstrumentModal(null)
-    if (shouldOpenHoldingAfterSave) {
-      openHolding({ accountId: linkedAccountId, ticker: tickerValue })
+    try {
+      await callRpc('app_save_instrument', {
+        input_instrument_id: draftId(instrumentModal),
+        input_ticker: tickerValue,
+        input_display_name: payload.display_name,
+        input_currency: payload.currency,
+        input_instrument_type: payload.instrument_type,
+        input_price: Number.isFinite(priceValue) && priceValue > 0 ? priceValue : null,
+        input_price_date: instrumentModal.price_date || today(),
+        input_tag_id: Number.isFinite(tagId) && tagId > 0 ? tagId : null,
+        input_source: 'user',
+        input_request: null,
+        input_note: payload.note,
+      })
+      await refreshState()
+      setInstrumentModal(null)
+      if (shouldOpenHoldingAfterSave) {
+        openHolding({ accountId: linkedAccountId, ticker: tickerValue })
+      }
+    } catch (error) {
+      setInstrumentError(error.message)
+    } finally {
+      setInstrumentSaving(false)
     }
   }
 
@@ -297,29 +293,19 @@ export function createPortfolioActions(params) {
 
     setInstrumentSaving(true)
     setInstrumentError('')
-    const { error: tagError } = await supabase.from('instrument_tags').delete().eq('ticker', instrumentModal.ticker)
-    if (tagError) {
-      setInstrumentSaving(false)
-      setInstrumentError(tagError.message)
-      return
-    }
-
-    const { error: priceError } = await supabase.from('holding_prices_daily').delete().eq('ticker', instrumentModal.ticker)
-    if (priceError) {
-      setInstrumentSaving(false)
-      setInstrumentError(priceError.message)
-      return
-    }
-
-    const { error } = await supabase.from('instruments').delete().eq('id', instrumentModal.id)
-    setInstrumentSaving(false)
-    if (error) {
+    try {
+      await callRpc('app_delete_instrument', {
+        input_instrument_id: Number(instrumentModal.id),
+        input_source: 'user',
+        input_request: null,
+      })
+      await refreshState()
+      setInstrumentModal(null)
+    } catch (error) {
       setInstrumentError(error.message)
-      return
+    } finally {
+      setInstrumentSaving(false)
     }
-
-    await refreshState()
-    setInstrumentModal(null)
   }
 
   async function handleLookupHoldingTicker() {
@@ -396,11 +382,16 @@ export function createPortfolioActions(params) {
         await refreshState()
       }
 
-      const query = holdingModal.id
-        ? supabase.from('holdings').update(payload).eq('id', holdingModal.id)
-        : supabase.from('holdings').upsert(payload, { onConflict: 'account_id,ticker' })
-      const { error } = await query
-      if (error) throw error
+      await callRpc('app_save_holding', {
+        input_holding_id: draftId(holdingModal),
+        input_account_id: payload.account_id,
+        input_ticker: payload.ticker,
+        input_quantity: payload.quantity,
+        input_avg_price: payload.avg_price,
+        input_note: payload.note,
+        input_source: 'user',
+        input_request: null,
+      })
 
       await refreshState()
       setHoldingModal(null)
@@ -417,16 +408,19 @@ export function createPortfolioActions(params) {
     if (!canEdit || !holdingModal?.id) return
     setHoldingSaving(true)
     setHoldingError('')
-    const { error } = await supabase.from('holdings').delete().eq('id', holdingModal.id)
-    setHoldingSaving(false)
-
-    if (error) {
+    try {
+      await callRpc('app_delete_holding', {
+        input_holding_id: Number(holdingModal.id),
+        input_source: 'user',
+        input_request: null,
+      })
+      await refreshState()
+      setHoldingModal(null)
+    } catch (error) {
       setHoldingError(error.message)
-      return
+    } finally {
+      setHoldingSaving(false)
     }
-
-    await refreshState()
-    setHoldingModal(null)
   }
 
   async function handleSaveTag() {
@@ -444,18 +438,22 @@ export function createPortfolioActions(params) {
 
     setTagSaving(true)
     setTagError('')
-    const query = tagModal.id
-      ? supabase.from('tags').update(payload).eq('id', tagModal.id)
-      : supabase.from('tags').insert(payload)
-    const { error } = await query
-    setTagSaving(false)
-    if (error) {
+    try {
+      await callRpc('app_save_tag', {
+        input_tag_id: draftId(tagModal),
+        input_name: payload.name,
+        input_color: payload.color,
+        input_sort_order: payload.sort_order,
+        input_source: 'user',
+        input_request: null,
+      })
+      await refreshState()
+      setTagModal(null)
+    } catch (error) {
       setTagError(error.message)
-      return
+    } finally {
+      setTagSaving(false)
     }
-
-    await refreshState()
-    setTagModal(null)
   }
 
   async function handleSyncPrices() {
@@ -466,6 +464,10 @@ export function createPortfolioActions(params) {
       const { error } = await supabase.functions.invoke('sync-prices', { body: {} })
       if (error) throw error
       await refreshState()
+      await recordActivity({
+        actionType: 'sync_prices',
+        targetTable: 'holding_prices_daily',
+      })
       setSyncMessage(portfolioMessages.syncPricesSuccess)
     } catch (error) {
       setSyncMessage(error.message ?? portfolioMessages.syncPricesFailed)
@@ -496,27 +498,29 @@ export function createPortfolioActions(params) {
         throw new Error(portfolioMessages.viewerPasswordRequired)
       }
 
-      const payload = {
-        user_id: session.user.id,
-        public_name: trimmedPublicName || null,
-        public_name_normalized: trimmedPublicName ? trimmedPublicName.toLowerCase() : null,
-        sharing_enabled: Boolean(viewerProfileDraft.sharing_enabled),
-      }
-
-      if (trimmedPassword) {
-        payload.viewer_password_hash = await sha256Hex(trimmedPassword)
-        payload.viewer_password_updated_at = new Date().toISOString()
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert(payload, { onConflict: 'user_id' })
-        .select('public_name, sharing_enabled, viewer_password_updated_at')
-        .limit(1)
-
-      if (error) throw error
+      const data = await callRpc('set_viewer_profile', {
+        input_public_name: trimmedPublicName,
+        input_viewer_password: trimmedPassword,
+        input_sharing_enabled: Boolean(viewerProfileDraft.sharing_enabled),
+      })
 
       const nextProfile = createViewerProfileDraft(Array.isArray(data) ? data[0] : data)
+      await recordActivity({
+        actionType: 'update_viewer_profile',
+        targetTable: 'profiles',
+        targetId: session.user.id,
+        beforeData: {
+          public_name: viewerProfile.public_name,
+          sharing_enabled: viewerProfile.sharing_enabled,
+          viewer_password_updated_at: viewerProfile.viewer_password_updated_at,
+        },
+        afterData: {
+          public_name: nextProfile.public_name,
+          sharing_enabled: nextProfile.sharing_enabled,
+          viewer_password_updated_at: nextProfile.viewer_password_updated_at,
+          password_updated: Boolean(viewerProfileDraft.viewer_password),
+        },
+      })
       setViewerProfileSchemaReady(true)
       setViewerProfile(nextProfile)
       setViewerProfileDraft(nextProfile)

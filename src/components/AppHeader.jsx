@@ -7,6 +7,7 @@ function AppHeader({
   pageTitle,
   portfolioLabel = 'Portfolio',
   copyLabel,
+  copySuccessLabel = '복사했어요',
   copied,
   onCopy,
   sharedPortfolioViewLabel,
@@ -77,7 +78,7 @@ function AppHeader({
                 }`}
                 role="status"
               >
-                마크다운을 복사했어요
+                {copySuccessLabel}
               </div>
             </div>
           )}

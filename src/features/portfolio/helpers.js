@@ -1,32 +1,42 @@
-import { formatKrw, formatMoney, formatPercent, formatSignedPercent } from '../../lib/format'
 import { normalizeTickerInput, today } from '../../lib/portfolioMath'
 
-export function buildPortfolioMarkdown(tagCards, totalValue) {
-  return tagCards
-    .flatMap((tag) => {
-      const percent = totalValue > 0 ? (tag.value / totalValue) * 100 : NaN
-      return [
-        `## ${tag.name} \u00b7 ${formatPercent(percent)}`,
-        `${formatKrw(tag.value)} \u00b7 ${tag.holdings.length}\uac1c \ud1b5\ud569 \uc885\ubaa9 \u00b7 \ud3c9\uade0\ub2e8\uac00 \ub300\ube44 ${formatSignedPercent(tag.returnPercent)}`,
-        '',
-        ...tag.holdings.flatMap((holding) => {
-          const holdingPercent =
-            totalValue > 0 ? (holding.market_value_krw / totalValue) * 100 : NaN
-          const converted =
-            holding.currency !== 'KRW'
-              ? ` (${formatKrw(holding.market_value_krw)} \ud658\uc0b0)`
-              : ''
-          return [
-            `### ${holding.ticker} \u00b7 ${formatPercent(holdingPercent)} \u00b7 ${formatSignedPercent(holding.priceChangePercent)}`,
-            holding.display_name ?? holding.ticker,
-            `${formatMoney(holding.market_value_native, holding.currency)}${converted}`,
-            '',
-          ]
-        }),
-      ]
+function escapeCsvCell(value) {
+  const normalized = value == null ? '' : String(value)
+  if (/[",\n\r]/.test(normalized)) {
+    return `"${normalized.replace(/"/g, '""')}"`
+  }
+  return normalized
+}
+
+function formatCsvNumber(value, digits = 2) {
+  if (!Number.isFinite(value)) return ''
+  return Number(value).toFixed(digits).replace(/\.?0+$/, '')
+}
+
+export function buildPortfolioCsv(computedPositions, accountById) {
+  const header = ['계좌', '종목', '티커', '통화', '평가금액', '평균가', '현재가', '수익률']
+  const rows = computedPositions
+    .slice()
+    .sort((a, b) => {
+      const accountNameA = accountById.get(a.account_id)?.name ?? ''
+      const accountNameB = accountById.get(b.account_id)?.name ?? ''
+      const byAccount = accountNameA.localeCompare(accountNameB, 'ko')
+      if (byAccount !== 0) return byAccount
+
+      return (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0)
     })
-    .join('\n')
-    .trim()
+    .map((position) => [
+      accountById.get(position.account_id)?.name ?? '',
+      position.display_name ?? position.ticker,
+      position.ticker ?? '',
+      position.currency ?? 'KRW',
+      formatCsvNumber(position.market_value_native),
+      formatCsvNumber(position.avgCost),
+      formatCsvNumber(position.latestPrice),
+      formatCsvNumber(position.priceChangePercent),
+    ])
+
+  return [header, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\r\n')
 }
 
 export function createAccountModalDraft(account = null) {
@@ -49,6 +59,7 @@ export function createInstrumentModalDraft({
     display_name: instrument?.display_name ?? '',
     currency: instrument?.currency ?? 'KRW',
     instrument_type: instrument?.instrument_type ?? 'etf',
+    note: instrument?.note ?? '',
     price: latestPrice?.close_price?.toString?.() ?? '',
     price_date: latestPrice?.price_date ?? today(),
     tag_id: tagId ? String(tagId) : '',

@@ -351,17 +351,12 @@ function InstrumentsPage({
                 <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[var(--accent)]" />
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-[var(--line)] bg-[var(--surface-3)] px-2.5 py-1 text-xs font-semibold text-[var(--ink)]">
-                        {instrument.ticker}
-                      </span>
-                      <span className="text-sm font-semibold text-[var(--accent)]">{instrument.tagName}</span>
-                      <span className="text-sm text-[var(--muted-ink)]">{instrument.currency}</span>
-                    </div>
-                    <h2 className="mt-3 text-base font-semibold leading-6">{instrument.display_name}</h2>
+                    <h2 className="text-base font-semibold leading-6">{instrument.display_name}</h2>
                     <p className="mt-1 text-sm text-[var(--muted-ink)]">
-                      {instrument.accountCount}개 계좌 · 수량 {formatNumber(instrument.quantity)}
+                      {instrument.ticker} · {instrument.tagName} · {instrument.currency} · {instrument.accountCount}개 계좌 · 수량{' '}
+                      {formatNumber(instrument.quantity)}
                     </p>
+                    {instrument.note && <p className="mt-2 text-sm text-[var(--muted-ink)]">{instrument.note}</p>}
                   </div>
                   {canEdit && (
                     <button
@@ -402,7 +397,6 @@ function InstrumentsPage({
                             <div className="min-w-0">
                               <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-5">
                                 <span className="font-semibold text-[var(--ink)]">{accountName}</span>
-                                <span className="font-medium text-[var(--muted-ink)]">{holding.ticker}</span>
                               </div>
                               <MetricSummary
                                 avgCostText={Number.isFinite(holding.avgCost) ? formatUnitPrice(holding.avgCost, holding.currency) : '-'}
