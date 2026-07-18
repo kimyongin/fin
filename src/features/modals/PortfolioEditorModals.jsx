@@ -24,6 +24,7 @@ export default function PortfolioEditorModals({
   onDeleteAccount,
   onDeleteHolding,
   onDeleteInstrument,
+  onDeleteTag,
   onLookupHoldingTicker,
   onSaveAccount,
   onSaveHolding,
@@ -135,6 +136,7 @@ export default function PortfolioEditorModals({
               setTagModal(null)
             }
           }}
+          onDelete={onDeleteTag}
           onSave={onSaveTag}
           tagError={tagError}
           tagSaving={tagSaving}

@@ -6,14 +6,14 @@ const tabIds = new Set(allTabs.map((tab) => tab.id))
 function tabFromHash() {
   if (typeof window === 'undefined') return 'overview'
   const hash = window.location.hash.replace(/^#/, '').trim()
-  if (hash === 'accounts' || hash === 'instruments') return 'overview'
+  if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet') return 'overview'
   return tabIds.has(hash) ? hash : 'overview'
 }
 
 function assetViewFromHash() {
   if (typeof window === 'undefined') return 'tags'
   const hash = window.location.hash.replace(/^#/, '').trim()
-  return hash === 'accounts' || hash === 'instruments' ? hash : 'tags'
+  return hash === 'accounts' || hash === 'instruments' || hash === 'sheet' ? hash : 'tags'
 }
 
 export function usePortfolioNavigation(canEdit) {
@@ -29,7 +29,7 @@ export function usePortfolioNavigation(canEdit) {
     const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#/, '').trim()
       const nextTab = tabFromHash()
-      if (hash === 'accounts' || hash === 'instruments') {
+      if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet') {
         setAssetView(hash)
       }
       setActiveTab((current) => (current === nextTab ? current : nextTab))

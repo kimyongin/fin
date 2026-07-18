@@ -1,9 +1,15 @@
+import { useState } from 'react'
+import { CopyIcon } from '../../components/icons'
+import { writeClipboard } from '../../lib/clipboard'
+import { buildBulkSnapshotCsv } from './snapshotCsv'
+
 const actionLabels = {
   create_account: '계좌 추가', update_account: '계좌 수정', delete_account: '계좌 삭제',
   create_instrument: '종목 추가', update_instrument: '종목 수정', delete_instrument: '종목 삭제',
   create_holding: '보유 종목 추가', update_holding: '보유 종목 수정', update_holding_avg_price: '평균 단가 수정', delete_holding: '보유 종목 삭제',
   create_tag: '태그 추가', update_tag: '태그 수정', delete_tag: '태그 삭제',
   sync_prices: '가격 동기화', update_viewer_profile: '공유 보기 설정 수정', update_strategy: '전략 수정',
+  bulk_edit_portfolio: '표로 자산 일괄 수정',
 }
 
 const fieldLabels = {
@@ -54,8 +60,36 @@ function eventData(action) {
   return action.after_data ?? action.before_data ?? {}
 }
 
+function SnapshotCopyButton({ label, snapshot }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    await writeClipboard(buildBulkSnapshotCsv(snapshot))
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1200)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        aria-label={`${label} CSV 복사`}
+        className={`inline-flex h-5 items-center gap-0.5 rounded border px-1 font-medium transition [&>svg]:h-3 [&>svg]:w-3 ${copied ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--line)] text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'}`}
+        onClick={handleCopy}
+        style={{ fontSize: '12px', lineHeight: '16px' }}
+        title={`${label} CSV 복사`}
+        type="button"
+      >
+        <CopyIcon />
+        {label}
+      </button>
+      <span aria-live="polite" className="sr-only">{copied ? `${label} CSV를 복사했습니다.` : ''}</span>
+    </div>
+  )
+}
+
 function eventTarget(action) {
   const data = eventData(action)
+  if (action.action_type === 'bulk_edit_portfolio') return `${data.row_count ?? 0}개 보유내역`
   return repairMojibake(data.display_name ?? data.name ?? data.ticker ?? data.account_name ?? action.target_table ?? '포트폴리오')
 }
 
@@ -93,6 +127,10 @@ function groupByDate(actions) {
 }
 
 function ChangeSummary({ action }) {
+  if (action.action_type === 'bulk_edit_portfolio') {
+    const hasBulkSnapshot = action.before_data?.portfolio_snapshot && action.after_data?.portfolio_snapshot
+    return <div className="grid gap-2"><p className="text-sm text-[var(--ink)]">표 편집으로 보유자산 {action.after_data?.row_count ?? 0}개를 저장했습니다.</p>{hasBulkSnapshot && <div className="flex items-center gap-1.5"><SnapshotCopyButton label="Before" snapshot={action.before_data.portfolio_snapshot} /><SnapshotCopyButton label="After" snapshot={action.after_data.portfolio_snapshot} /></div>}</div>
+  }
   const changes = changedFields(action)
   if (changes.length === 0) return null
   return (

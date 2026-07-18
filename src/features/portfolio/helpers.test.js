@@ -74,7 +74,7 @@ describe('portfolio helpers', () => {
       ticker: 'AAPL',
       display_name: 'Apple',
       currency: 'USD',
-      instrument_type: 'stock',
+        instrument_type: 'market',
       note: 'Core position',
       price: '123.45',
       price_date: '2026-07-12',
@@ -85,7 +85,6 @@ describe('portfolio helpers', () => {
     expect(createTagModalDraft({ nextSortOrder: 2 })).toEqual({
       id: null,
       name: '',
-      color: 'neutral',
       sort_order: '2',
     })
   })
@@ -102,13 +101,15 @@ describe('portfolio helpers', () => {
         ticker: 'AAPL',
         quantity: '',
         avg_price: '',
+        purchase_amount: '',
+        valuation_amount: '',
         note: '',
       },
       lookupResult: {
         ticker: 'AAPL',
         display_name: 'Apple',
         currency: 'USD',
-        instrument_type: 'stock',
+        instrument_type: 'market',
         price: 200,
         price_date: '2026-07-12',
         source: 'existing',

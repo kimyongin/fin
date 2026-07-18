@@ -7,7 +7,6 @@ import {
   matchesTagFilter,
   nativeToKrw,
   normalizeTickerInput,
-  resolveTagColor,
 } from './portfolioMath'
 
 describe('portfolioMath', () => {
@@ -52,8 +51,6 @@ describe('portfolioMath', () => {
     expect(matchesTagFilter('AAPL', 'all', tags)).toBe(true)
     expect(matchesTagFilter('AAPL', '7', tags)).toBe(true)
     expect(matchesTagFilter('MSFT', 'untagged', tags)).toBe(true)
-    expect(resolveTagColor('orange', '#fff')).toBe('#ff8a00')
-    expect(resolveTagColor('#123456', '#fff')).toBe('#123456')
     expect(hasComparablePriceMetrics({ ticker: 'USD', instrument_type: 'cash' })).toBe(false)
     expect(hasComparablePriceMetrics({ ticker: 'AAPL', instrument_type: 'stock' })).toBe(true)
   })

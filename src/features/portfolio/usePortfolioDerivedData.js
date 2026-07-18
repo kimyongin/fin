@@ -1,10 +1,8 @@
 import { useMemo } from 'react'
-import { chartPalette } from '../../constants/portfolio'
 import {
   effectiveKrwValue,
   matchesTagFilter,
   nativeToKrw,
-  resolveTagColor,
 } from '../../lib/portfolioMath'
 
 export function usePortfolioDerivedData({
@@ -18,13 +16,26 @@ export function usePortfolioDerivedData({
 
     return state.holdings.map((holding) => {
       const instrument = holding.instruments ?? instrumentByTicker.get(holding.ticker) ?? null
+      const instrumentType = instrument?.instrument_type ?? 'market'
       const latestPrice = latestPriceByTicker.get(holding.ticker)?.close_price
       const fallbackPrice = Number.isFinite(holding.avg_price) ? holding.avg_price : 0
       const marketPrice = Number.isFinite(latestPrice) ? latestPrice : fallbackPrice
       const quantity = Number(holding.quantity ?? 0)
       const avgPrice = Number(holding.avg_price ?? 0)
-      const marketValueNative = quantity * marketPrice
-      const costBasisNative = quantity * (Number.isFinite(avgPrice) ? avgPrice : 0)
+      const directPurchaseAmount = Number(holding.purchase_amount)
+      const directValuationAmount = Number(holding.valuation_amount)
+      const isValuation = instrumentType === 'valuation'
+      const isCash = instrumentType === 'cash'
+      const marketValueNative = isValuation
+        ? (Number.isFinite(directValuationAmount) ? directValuationAmount : 0)
+        : isCash
+          ? (Number.isFinite(directValuationAmount) ? directValuationAmount : 0)
+          : quantity * marketPrice
+      const costBasisNative = isValuation
+        ? (Number.isFinite(directPurchaseAmount) ? directPurchaseAmount : 0)
+        : isCash
+          ? 0
+          : quantity * (Number.isFinite(avgPrice) ? avgPrice : 0)
       const marketValueKrw = nativeToKrw(marketValueNative, instrument?.currency ?? 'KRW', latestPriceByTicker)
       const costBasisKrw = nativeToKrw(costBasisNative, instrument?.currency ?? 'KRW', latestPriceByTicker)
       const priceChangePercent =
@@ -36,15 +47,17 @@ export function usePortfolioDerivedData({
         ...holding,
         display_name: instrument?.display_name ?? holding.ticker,
         currency: instrument?.currency ?? 'KRW',
-        instrument_type: instrument?.instrument_type ?? null,
+        instrument_type: instrumentType,
         quantity,
-        avgCost: Number.isFinite(avgPrice) ? avgPrice : null,
+        avgCost: !isValuation && !isCash && Number.isFinite(avgPrice) ? avgPrice : null,
         cost_basis_native: costBasisNative,
         cost_basis_krw: costBasisKrw,
-        latestPrice: Number.isFinite(latestPrice) ? latestPrice : null,
+        latestPrice: !isValuation && !isCash && Number.isFinite(latestPrice) ? latestPrice : null,
         market_value_native: marketValueNative,
         market_value_krw: marketValueKrw,
-        priceChangePercent,
+        priceChangePercent: isValuation || isCash
+          ? (costBasisNative > 0 ? ((marketValueNative - costBasisNative) / costBasisNative) * 100 : null)
+          : priceChangePercent,
       }
     })
   }, [state.holdings, state.instruments, latestPriceByTicker])
@@ -100,6 +113,7 @@ export function usePortfolioDerivedData({
         return {
           ...account,
           count: rows.length,
+          cost_basis_krw: costBasisKrw,
           market_value_krw: marketValueKrw,
           returnPercent:
             costBasisKrw > 0 ? ((marketValueKrw - costBasisKrw) / costBasisKrw) * 100 : null,
@@ -132,7 +146,7 @@ export function usePortfolioDerivedData({
         accounts: new Set(),
       }
       current.quantity += pos.quantity ?? 0
-      current.cost_basis_native += (pos.quantity ?? 0) * (Number(pos.avg_price) || 0)
+      current.cost_basis_native += pos.cost_basis_native ?? 0
       current.market_value_native += pos.market_value_native ?? 0
       current.market_value_krw += effectiveKrwValue(pos, latestPriceByTicker)
       if (pos.account_id) current.accounts.add(pos.account_id)
@@ -146,7 +160,7 @@ export function usePortfolioDerivedData({
         const latestPrice = latestPriceByTicker.get(instrument.ticker)
         const tag = tagMapByTicker.get(instrument.ticker)
         const quantity = position?.quantity ?? 0
-        const avgCost = quantity > 0 ? (position?.cost_basis_native ?? 0) / quantity : null
+        const avgCost = instrument.instrument_type === 'market' && quantity > 0 ? (position?.cost_basis_native ?? 0) / quantity : null
         const priceChangePercent =
           Number.isFinite(latestPrice?.close_price) && Number.isFinite(avgCost) && avgCost > 0
             ? ((latestPrice.close_price - avgCost) / avgCost) * 100
@@ -162,7 +176,7 @@ export function usePortfolioDerivedData({
           market_value_native: position?.market_value_native ?? 0,
           market_value_krw: position?.market_value_krw ?? 0,
           accountCount: position?.accounts.size ?? 0,
-          latestPrice: latestPrice?.close_price ?? null,
+          latestPrice: instrument.instrument_type === 'market' ? latestPrice?.close_price ?? null : null,
           latestPriceDate: latestPrice?.price_date ?? '',
         }
       })
@@ -188,7 +202,6 @@ export function usePortfolioDerivedData({
       const tag = tagMapByTicker.get(row.ticker) ?? {
         id: 'untagged',
         name: 'Untagged',
-        color: '#8a8e96',
       }
       const current = byTag.get(tag.id) ?? {
         ...tag,
@@ -207,9 +220,8 @@ export function usePortfolioDerivedData({
     }
 
     return [...byTag.values()]
-      .map((tag, index) => ({
+      .map((tag) => ({
         ...tag,
-        color: resolveTagColor(tag.color, chartPalette[index % chartPalette.length]),
         returnPercent:
           tag.costBasisKrw > 0 ? ((tag.value - tag.costBasisKrw) / tag.costBasisKrw) * 100 : null,
         holdings: tag.holdings.sort((a, b) => b.market_value_krw - a.market_value_krw),
@@ -217,34 +229,8 @@ export function usePortfolioDerivedData({
       .sort((a, b) => b.value - a.value)
   }, [instrumentRows, tagMapByTicker, latestPriceByTicker])
 
-  const chartSlices = useMemo(() => {
-    if (!totalValue) return []
-
-    let cursor = 0
-    return tagCards.map((tag, index) => {
-      const value = Math.min((tag.value / totalValue) * 100, 100)
-      const start = cursor
-      const end = cursor + value
-      cursor = end
-      return {
-        ...tag,
-        start,
-        end,
-        color: tag.color || chartPalette[index % chartPalette.length],
-      }
-    })
-  }, [tagCards, totalValue])
-
-  const chartGradient = useMemo(() => {
-    if (!chartSlices.length) return 'conic-gradient(#e7ddd2 0% 100%)'
-    return `conic-gradient(${chartSlices
-      .map((slice) => `${slice.color} ${slice.start}% ${slice.end}%`)
-      .join(', ')})`
-  }, [chartSlices])
-
   return {
     accountById,
-    chartGradient,
     computedPositions,
     filteredAccountCards,
     filteredInstrumentRows,

@@ -62,6 +62,7 @@ function App() {
   const [viewContext, setViewContext] = useState(() => createOwnerViewContext())
   const [accountTagFilter, setAccountTagFilter] = useState('all')
   const [instrumentTagFilter, setInstrumentTagFilter] = useState('all')
+  const [spreadsheetSaving, setSpreadsheetSaving] = useState(false)
   const [state, setState] = useState(() => createEmptyPortfolioState())
   const [loadError, setLoadError] = useState('')
   const { authStatus, session, setAuthStatus, setSession } = useSupabaseSession({
@@ -228,7 +229,6 @@ function App() {
 
   const {
     accountById,
-    chartGradient,
     computedPositions,
     filteredAccountCards,
     filteredInstrumentRows,
@@ -250,6 +250,34 @@ function App() {
     window.setTimeout(() => setCopied(false), 1200)
   }
 
+  const handleSpreadsheetSave = useCallback(async (rows) => {
+    if (!canEdit) throw new Error('읽기 전용 포트폴리오에서는 수정할 수 없습니다.')
+    setSpreadsheetSaving(true)
+    try {
+      const { data, error } = await supabase.rpc('app_bulk_save_portfolio_rows', {
+        input_rows: rows.map((row) => ({
+          account_name: row.account_name.trim(),
+          broker: row.broker.trim(),
+          ticker: row.ticker.trim().toUpperCase(),
+          display_name: row.display_name.trim(),
+          currency: row.currency,
+          instrument_type: row.instrument_type,
+          quantity: row.quantity === '' ? null : Number(row.quantity),
+          avg_price: row.avg_price === '' ? null : Number(row.avg_price),
+          purchase_amount: row.purchase_amount === '' ? null : Number(row.purchase_amount),
+          valuation_amount: row.valuation_amount === '' ? null : Number(row.valuation_amount),
+          tag_id: row.tag_id || null,
+          note: row.note.trim(),
+        })),
+      })
+      if (error) throw error
+      await refreshState()
+      return Array.isArray(data) ? data[0] : data
+    } finally {
+      setSpreadsheetSaving(false)
+    }
+  }, [canEdit, refreshState])
+
   async function signInWithGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -263,6 +291,7 @@ function App() {
     handleDeleteAccount,
     handleDeleteHolding,
     handleDeleteInstrument,
+    handleDeleteTag,
     handleGuestUnlock,
     handleLookupHoldingTicker,
     handleSaveAccount,
@@ -413,7 +442,12 @@ function App() {
             onEditInstrument={(instrument) => openInstrumentModal(instrument)}
             onAccountTagFilterChange={setAccountTagFilter}
             onInstrumentTagFilterChange={setInstrumentTagFilter}
-            pieGradient={chartGradient}
+            onSpreadsheetSave={handleSpreadsheetSave}
+            spreadsheetSaving={spreadsheetSaving}
+            sheetAccounts={state.accounts}
+            sheetInstruments={state.instruments}
+            holdings={state.holdings}
+            instrumentTags={state.instrumentTags}
             tagCards={tagCards}
             tagMapByTicker={tagMapByTicker}
             tags={state.tags}
@@ -487,6 +521,7 @@ function App() {
           onDeleteAccount={handleDeleteAccount}
           onDeleteHolding={handleDeleteHolding}
           onDeleteInstrument={handleDeleteInstrument}
+          onDeleteTag={handleDeleteTag}
           onLookupHoldingTicker={handleLookupHoldingTicker}
           onSaveAccount={handleSaveAccount}
           onSaveHolding={handleSaveHolding}

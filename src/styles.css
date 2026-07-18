@@ -22,6 +22,7 @@
 
 html {
   background: transparent;
+  overflow-x: hidden;
   scrollbar-width: none;
 }
 
@@ -29,6 +30,7 @@ body {
   margin: 0;
   min-width: 320px;
   background: transparent;
+  overflow-x: hidden;
   scrollbar-width: none;
 }
 
@@ -45,6 +47,28 @@ body {
   width: 0;
   height: 0;
   display: none;
+}
+
+.spreadsheet-scroll {
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-ink) var(--surface-2);
+}
+
+.spreadsheet-scroll::-webkit-scrollbar {
+  display: block;
+  height: 10px;
+  width: 10px;
+}
+
+.spreadsheet-scroll::-webkit-scrollbar-track {
+  background: var(--surface-2);
+}
+
+.spreadsheet-scroll::-webkit-scrollbar-thumb {
+  background: var(--muted-ink);
+  border: 2px solid var(--surface-2);
+  border-radius: 999px;
 }
 
 button,

@@ -35,7 +35,7 @@ export function useAgentControls({
   const [issuedToken, setIssuedToken] = useState('')
 
   const loadActions = useCallback(async () => {
-    if (!session || isAnonymousSession) {
+    if (!session || (isAnonymousSession && !ownerUserId)) {
       setActions([])
       setActionsError('')
       return

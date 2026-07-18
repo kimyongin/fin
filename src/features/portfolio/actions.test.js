@@ -111,6 +111,23 @@ describe('createPortfolioActions', () => {
     expect(params.setAccountError).toHaveBeenCalledWith(expect.any(String))
   })
 
+  it('saves a tag without a color', async () => {
+    const params = createParams({
+      tagModal: { id: null, name: '현금', sort_order: '1' },
+    })
+    const actions = createPortfolioActions(params)
+
+    await actions.handleSaveTag()
+
+    expect(params.supabase.rpc).toHaveBeenCalledWith('app_save_tag', {
+      input_name: '현금',
+      input_request: null,
+      input_sort_order: 1,
+      input_source: 'user',
+      input_tag_id: null,
+    })
+  })
+
   it('saves an instrument with price and tag through the app_save_instrument RPC', async () => {
     const params = createParams({
       instrumentModal: {
@@ -135,7 +152,7 @@ describe('createPortfolioActions', () => {
       input_ticker: 'AAPL',
       input_display_name: 'Apple',
       input_currency: 'USD',
-      input_instrument_type: 'stock',
+      input_instrument_type: 'market',
       input_price: 210.5,
       input_price_date: '2026-07-12',
       input_tag_id: 7,
@@ -183,6 +200,64 @@ describe('createPortfolioActions', () => {
     expect(params.setHoldingLookupResult).toHaveBeenCalledWith(null)
   })
 
+  it('saves a valuation holding without quantity or average price', async () => {
+    const params = createParams({
+      holdingModal: {
+        id: 19,
+        account_id: '2',
+        ticker: 'VALUATION:BOND',
+        quantity: '',
+        avg_price: '',
+        purchase_amount: '17914440',
+        valuation_amount: '19319396',
+        note: ' short bond ',
+      },
+      state: {
+        accounts: [], holdings: [],
+        instruments: [{ ticker: 'VALUATION:BOND', display_name: '단기채', currency: 'KRW', instrument_type: 'valuation' }],
+        tags: [],
+      },
+    })
+    const actions = createPortfolioActions(params)
+
+    await actions.handleSaveHolding()
+
+    expect(params.supabase.rpc).toHaveBeenCalledWith('app_save_valuation_holding', {
+      input_holding_id: 19,
+      input_account_id: 2,
+      input_ticker: 'VALUATION:BOND',
+      input_purchase_amount: 17914440,
+      input_valuation_amount: 19319396,
+      input_note: 'short bond',
+      input_source: 'user',
+      input_request: null,
+    })
+  })
+
+  it('saves a cash holding as a balance without average price', async () => {
+    const params = createParams({
+      holdingModal: { id: null, account_id: '2', ticker: 'KRW', quantity: '', avg_price: '', valuation_amount: '3000000', note: '' },
+      state: {
+        accounts: [], holdings: [],
+        instruments: [{ ticker: 'KRW', display_name: '예수금', currency: 'KRW', instrument_type: 'cash' }],
+        tags: [],
+      },
+    })
+    const actions = createPortfolioActions(params)
+
+    await actions.handleSaveHolding()
+
+    expect(params.supabase.rpc).toHaveBeenCalledWith('app_save_cash_holding', {
+      input_holding_id: null,
+      input_account_id: 2,
+      input_ticker: 'KRW',
+      input_balance: 3000000,
+      input_note: null,
+      input_source: 'user',
+      input_request: null,
+    })
+  })
+
   it('invokes sync-prices and records activity', async () => {
     const params = createParams()
     const actions = createPortfolioActions(params)
@@ -199,5 +274,28 @@ describe('createPortfolioActions', () => {
     })
     expect(params.refreshState).toHaveBeenCalledOnce()
     expect(params.setSyncingPrices.mock.calls.map(([value]) => value)).toEqual([true, false])
+  })
+
+  it('loads the unlocked owner portfolio after a guest enters shared view', async () => {
+    const params = createParams({
+      guestUnlockDraft: { public_name: 'friend', viewer_password: 'secret' },
+      session: { user: { id: 'guest', is_anonymous: true } },
+      supabase: {
+        ...createSupabaseMock(),
+        rpc: vi.fn(async (name) => name === 'unlock_viewer_access'
+          ? { data: { owner_user_id: 'owner-1', owner_public_name: 'friend' }, error: null }
+          : { data: null, error: null }),
+      },
+    })
+    const actions = createPortfolioActions(params)
+
+    await actions.handleGuestUnlock()
+
+    expect(params.refreshState).toHaveBeenCalledWith('owner-1')
+    expect(params.setViewContext).toHaveBeenCalledWith({
+      mode: 'shared',
+      ownerUserId: 'owner-1',
+      ownerPublicName: 'friend',
+    })
   })
 })

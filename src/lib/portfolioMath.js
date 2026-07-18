@@ -1,4 +1,4 @@
-import { comparablePriceMetricTickers, tagColorMap } from '../constants/portfolio'
+import { comparablePriceMetricTickers } from '../constants/portfolio'
 
 export function hasComparablePriceMetrics(item) {
   if (!item) return true
@@ -16,11 +16,6 @@ export function today() {
 
 export function normalizeTickerInput(value) {
   return String(value ?? '').trim().toUpperCase()
-}
-
-export function resolveTagColor(color, fallback) {
-  if (!color) return fallback
-  return tagColorMap[color] ?? color
 }
 
 export function latestPrices(rows) {

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "stocks:merge": "node scripts/merge-stocks-csv.mjs",
     "check:encoding": "node scripts/check-encoding.mjs",
     "prebuild": "npm run check:encoding",
     "build": "vite build",

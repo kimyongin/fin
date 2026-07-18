@@ -124,11 +124,8 @@ function normalizeTickerInput(value: unknown) {
 
 function mapYahooInstrumentType(value: unknown) {
   const normalized = String(value ?? '').toUpperCase()
-  if (normalized === 'ETF') return 'etf'
-  if (normalized === 'MUTUALFUND') return 'fund'
   if (normalized === 'CURRENCY') return 'fx'
-  if (normalized === 'EQUITY') return 'stock'
-  return 'other'
+  return 'market'
 }
 
 function yahooTickerCandidates(ticker: string) {
@@ -359,7 +356,7 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_ticker: stringArg(args, 'ticker'),
       input_display_name: stringArg(args, 'display_name'),
       input_currency: stringArg(args, 'currency', 'KRW'),
-      input_instrument_type: stringArg(args, 'instrument_type', 'etf'),
+      input_instrument_type: stringArg(args, 'instrument_type', 'market'),
       input_price: nullableNumberArg(args, 'price'),
       input_price_date: nullableDateArg(args, 'price_date'),
       input_tag_id: nullableIntegerArg(args, 'tag_id'),
@@ -383,8 +380,10 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_holding_id: nullableIntegerArg(args, 'holding_id'),
       input_account_id: Number(args.account_id),
       input_ticker: stringArg(args, 'ticker'),
-      input_quantity: Number(args.quantity),
-      input_avg_price: Number(args.avg_price),
+      input_quantity: nullableNumberArg(args, 'quantity'),
+      input_avg_price: nullableNumberArg(args, 'avg_price'),
+      input_purchase_amount: nullableNumberArg(args, 'purchase_amount'),
+      input_valuation_amount: nullableNumberArg(args, 'valuation_amount'),
       input_note: nullableStringArg(args, 'note'),
       input_request: nullableStringArg(args, 'request'),
     })
@@ -403,8 +402,15 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_token_hash: tokenHash,
       input_tag_id: nullableIntegerArg(args, 'tag_id'),
       input_name: stringArg(args, 'name'),
-      input_color: stringArg(args, 'color', 'neutral'),
       input_sort_order: nullableIntegerArg(args, 'sort_order') ?? 0,
+      input_request: nullableStringArg(args, 'request'),
+    })
+  },
+
+  async delete_tag({ args, supabase, tokenHash }) {
+    return rpcFirstRow(supabase, 'mcp_delete_tag', {
+      input_token_hash: tokenHash,
+      input_tag_id: Number(args.tag_id),
       input_request: nullableStringArg(args, 'request'),
     })
   },
@@ -506,7 +512,7 @@ function toolDefinitions() {
           ticker: { type: 'string', description: 'Ticker symbol.' },
           display_name: { type: 'string', description: 'Display name.' },
           currency: { type: 'string', description: 'Currency such as KRW, USD, or JPY.' },
-          instrument_type: { type: 'string', description: 'Type such as etf, stock, fund, fx, cash, or other.' },
+          instrument_type: { type: 'string', description: 'market, valuation, or cash. Exchange-rate instruments are system-managed.' },
           price: { type: 'number', description: 'Optional latest/manual price.' },
           price_date: { type: 'string', description: 'Optional price date in YYYY-MM-DD format.' },
           tag_id: { type: 'number', description: 'Optional tag id to assign.' },
@@ -531,19 +537,21 @@ function toolDefinitions() {
     },
     {
       name: 'save_holding',
-      description: 'Create or update a holding. Omit holding_id to create or upsert by account and ticker.',
+      description: 'Create or update a holding. Market investments use quantity and avg_price; valuation investments use purchase_amount and valuation_amount; cash uses valuation_amount only.',
       inputSchema: {
         type: 'object',
         properties: {
           holding_id: { type: 'number', description: 'Existing holding id to update.' },
           account_id: { type: 'number', description: 'Account id.' },
           ticker: { type: 'string', description: 'Ticker symbol.' },
-          quantity: { type: 'number', description: 'Quantity. Must be zero or greater.' },
+          quantity: { type: 'number', description: 'Quantity for a market investment. Must be zero or greater.' },
           avg_price: { type: 'number', description: 'Average price. Must be zero or greater.' },
+          purchase_amount: { type: 'number', description: 'Purchase amount for a valuation investment.' },
+          valuation_amount: { type: 'number', description: 'Current valuation amount for a valuation investment or cash balance.' },
           note: { type: 'string', description: 'Optional note.' },
           request: { type: 'string', description: 'Original user request for the activity log.' },
         },
-        required: ['account_id', 'ticker', 'quantity', 'avg_price'],
+        required: ['account_id', 'ticker'],
       },
     },
     {
@@ -566,11 +574,22 @@ function toolDefinitions() {
         properties: {
           tag_id: { type: 'number', description: 'Existing tag id to update.' },
           name: { type: 'string', description: 'Tag name.' },
-          color: { type: 'string', description: 'Tag color key.' },
           sort_order: { type: 'number', description: 'Sort order.' },
           request: { type: 'string', description: 'Original user request for the activity log.' },
         },
         required: ['name'],
+      },
+    },
+    {
+      name: 'delete_tag',
+      description: 'Delete a tag and unlink it from its instruments and strategy buckets.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tag_id: { type: 'number', description: 'Tag id to delete.' },
+          request: { type: 'string', description: 'Original user request for the activity log.' },
+        },
+        required: ['tag_id'],
       },
     },
     {

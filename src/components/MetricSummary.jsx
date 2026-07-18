@@ -16,27 +16,32 @@ function MetricInline({ accentText = null, accentToneClass = '', label, value })
 }
 
 export default function MetricSummary({
+  avgCostLabel = '평균가',
   avgCostText = '-',
+  currentPriceLabel = '현재가',
   currentPriceText = '-',
   returnPercent,
   showPriceMetrics = true,
+  showValueSummary = true,
   valueMeta = '',
   valueText,
 }) {
   return (
     <div className="mt-2 grid gap-2">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="text-sm leading-5 text-[var(--muted-ink)]">평가금액</span>
-        <span className="text-sm font-semibold leading-5 text-[var(--ink)]">{valueText}</span>
-        {valueMeta && <span className="text-sm font-medium leading-5 text-[var(--muted-ink)]">{valueMeta}</span>}
-      </div>
+      {showValueSummary && (
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="text-sm leading-5 text-[var(--muted-ink)]">평가금액</span>
+          <span className="text-sm font-semibold leading-5 text-[var(--ink)]">{valueText}</span>
+          {valueMeta && <span className="text-sm font-medium leading-5 text-[var(--muted-ink)]">{valueMeta}</span>}
+        </div>
+      )}
       {showPriceMetrics && (
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm leading-5 text-[var(--muted-ink)]">
-          <MetricInline label="평균가" value={avgCostText} />
+          <MetricInline label={avgCostLabel} value={avgCostText} />
           <MetricInline
             accentText={formatSignedPercent(returnPercent)}
             accentToneClass={returnToneClass(returnPercent)}
-            label="현재가"
+            label={currentPriceLabel}
             value={currentPriceText}
           />
         </div>

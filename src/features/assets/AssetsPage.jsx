@@ -11,6 +11,28 @@ import {
   formattedValueWithConversion,
 } from '../../lib/format'
 import { hasComparablePriceMetrics, matchesTagFilter } from '../../lib/portfolioMath'
+import SpreadsheetEditor from './SpreadsheetEditor'
+
+function metricProps(item) {
+  if (item.instrument_type === 'valuation') {
+    return {
+      avgCostLabel: '매입금액',
+      avgCostText: formatUnitPrice(item.cost_basis_native, item.currency),
+      currentPriceLabel: '평가금액',
+      currentPriceText: formatUnitPrice(item.market_value_native, item.currency),
+    }
+  }
+  if (item.instrument_type === 'cash') return { showPriceMetrics: false }
+  return {
+    avgCostText: Number.isFinite(item.avgCost) ? formatUnitPrice(item.avgCost, item.currency) : '-',
+    currentPriceText: item.latestPrice != null ? formatUnitPrice(item.latestPrice, item.currency) : '-',
+  }
+}
+
+function holdingValueMeta(holding) {
+  if (holding.instrument_type !== 'market') return ''
+  return <><span>수량</span>{' '}<span className="font-semibold text-[var(--ink)]">{formatNumber(holding.quantity)}</span></>
+}
 
 function CardSectionLabel({ count, label }) {
   return (
@@ -66,7 +88,7 @@ function TagActionToolbar({
   )
 }
 
-function Overview({ cards, pieGradient, totalValue }) {
+function Overview({ cards, totalValue }) {
   if (!cards.length) {
     return (
       <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)]">
@@ -81,56 +103,26 @@ function Overview({ cards, pieGradient, totalValue }) {
 
   return (
     <section className="grid gap-3">
-      <div className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]">
-        <div className="grid gap-6 px-5 py-5 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] lg:items-start">
-          <div className="grid justify-items-center gap-4 lg:justify-items-start">
-            <div className="flex aspect-square w-[clamp(220px,62vw,340px)] max-w-full items-center justify-center rounded-full bg-[var(--surface-2)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] lg:w-full">
-              <div className="relative aspect-square w-[82%] rounded-full" style={{ backgroundImage: pieGradient }}>
-                <div className="absolute inset-[16%] grid place-items-center rounded-full bg-[var(--panel)] text-center shadow-[0_10px_30px_rgba(0,0,0,0.28)]">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted-ink)]">
-                      Total
-                    </div>
-                    <div className="mt-1 text-sm font-semibold">{formatKrw(totalValue)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid min-w-0 gap-0">
+      <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]">
+        <div className="flex items-baseline justify-between gap-4 border-b border-[var(--line)] px-4 py-2.5">
+          <h2 className="text-sm font-semibold">태그별 비중</h2>
+          <span className="shrink-0 text-xs font-semibold text-[var(--accent)]">{formatKrw(totalValue)}</span>
+        </div>
+        <div className="grid min-w-0 gap-0 px-4">
             {cards.map((card) => {
               const percent = totalValue > 0 ? (card.value / totalValue) * 100 : NaN
               return (
-                <div className="border-b border-[var(--line)] py-3 last:border-b-0" key={card.id}>
-                  <div className="flex items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="h-3.5 w-3.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: card.color }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <span className="truncate text-sm font-semibold text-[var(--ink)]">{card.name}</span>
-                        <span className="shrink-0 text-sm font-semibold text-[var(--accent)]">
-                          {formatPercent(percent)}
-                        </span>
-                      </div>
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[rgba(255,255,255,0.05)]">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            backgroundColor: card.color,
-                            width: `${Math.max(0, Math.min(Number.isFinite(percent) ? percent : 0, 100))}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 border-b border-[var(--line)] py-2 last:border-b-0" key={card.id}>
+                  <div className="min-w-0">
+                    <span className="truncate text-sm font-medium text-[var(--ink)]">{card.name}</span>
+                  </div>
+                  <div className="flex shrink-0 items-baseline gap-2 text-right">
+                    <span className="text-sm font-semibold">{formatKrw(card.value)}</span>
+                    <span className="text-xs text-[var(--muted-ink)]">{formatPercent(percent)}</span>
                   </div>
                 </div>
               )
             })}
-          </div>
         </div>
       </div>
 
@@ -140,22 +132,10 @@ function Overview({ cards, pieGradient, totalValue }) {
             className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]"
             key={card.id}
           >
-            <div className="relative border-b border-[var(--line)] bg-[rgba(255,255,255,0.045)] px-5 pb-5 pt-6 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
-              <span
-                aria-hidden="true"
-                className="absolute inset-x-0 top-0 h-1"
-                style={{ backgroundColor: card.color }}
-              />
+            <div className="border-b border-[var(--line)] bg-[rgba(255,255,255,0.045)] px-5 py-5 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      aria-hidden="true"
-                      className="h-3.5 w-3.5 rounded-full"
-                      style={{ backgroundColor: card.color }}
-                    />
-                    <h2 className="text-base font-semibold">{card.name}</h2>
-                  </div>
+                  <h2 className="text-base font-semibold">{card.name}</h2>
                   <p className="mt-1 text-sm text-[var(--muted-ink)]">{card.holdings.length}개 통합 종목</p>
                 </div>
                 <strong className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-sm font-semibold text-[var(--accent)]">
@@ -183,16 +163,15 @@ function Overview({ cards, pieGradient, totalValue }) {
                         <span className="font-medium text-[var(--muted-ink)]">{holding.ticker}</span>
                       </div>
                       <MetricSummary
-                        avgCostText={Number.isFinite(holding.avgCost) ? formatUnitPrice(holding.avgCost, holding.currency) : '-'}
-                        currentPriceText={holding.latestPrice != null ? formatUnitPrice(holding.latestPrice, holding.currency) : '-'}
+                        {...metricProps(holding)}
                         returnPercent={holding.priceChangePercent}
-                        showPriceMetrics={hasComparablePriceMetrics(holding)}
+                        showPriceMetrics={holding.instrument_type !== 'cash' && hasComparablePriceMetrics(holding)}
                         valueText={formattedValueWithConversion(
                           holding.market_value_native,
                           holding.currency,
                           holding.market_value_krw,
                         )}
-                        valueMeta={holding.quantity != null ? <><span>수량</span>{' '}<span className="font-semibold text-[var(--ink)]">{formatNumber(holding.quantity)}</span></> : ''}
+                        valueMeta={holdingValueMeta(holding)}
                       />
                     </div>
                   ))}
@@ -251,9 +230,12 @@ function AccountsPage({
                 </div>
 
                 <MetricSummary
-                  avgCostText="-"
-                  currentPriceText="-"
+                  avgCostLabel="매입금액"
+                  avgCostText={formatKrw(account.cost_basis_krw)}
+                  currentPriceLabel="평가금액"
+                  currentPriceText={formatKrw(account.market_value_krw)}
                   returnPercent={account.returnPercent}
+                  showValueSummary={false}
                   valueText={formatKrw(account.market_value_krw)}
                   valueMeta={`${account.count}개 보유`}
                 />
@@ -274,16 +256,15 @@ function AccountsPage({
                               <span className="font-medium text-[var(--muted-ink)]">{holding.ticker}</span>
                             </div>
                             <MetricSummary
-                              avgCostText={Number.isFinite(holding.avgCost) ? formatUnitPrice(holding.avgCost, holding.currency) : '-'}
-                              currentPriceText={holding.latestPrice != null ? formatUnitPrice(holding.latestPrice, holding.currency) : '-'}
+                              {...metricProps(holding)}
                               returnPercent={holding.priceChangePercent}
-                              showPriceMetrics={hasComparablePriceMetrics(holding)}
+                              showPriceMetrics={holding.instrument_type !== 'cash' && hasComparablePriceMetrics(holding)}
                               valueText={formattedValueWithConversion(
                                 holding.market_value_native,
                                 holding.currency,
                                 holding.market_value_krw,
                               )}
-                              valueMeta={holding.quantity != null ? <><span>수량</span>{' '}<span className="font-semibold text-[var(--ink)]">{formatNumber(holding.quantity)}</span></> : ''}
+                              valueMeta={holdingValueMeta(holding)}
                             />
                           </div>
                           {canEdit && (
@@ -365,10 +346,9 @@ function InstrumentsPage({
                 </div>
 
                 <MetricSummary
-                  avgCostText={Number.isFinite(instrument.avgCost) ? formatUnitPrice(instrument.avgCost, instrument.currency) : '-'}
-                  currentPriceText={instrument.latestPrice != null ? formatUnitPrice(instrument.latestPrice, instrument.currency) : '-'}
+                  {...metricProps(instrument)}
                   returnPercent={instrument.priceChangePercent}
-                  showPriceMetrics={hasComparablePriceMetrics(instrument)}
+                  showPriceMetrics={instrument.instrument_type !== 'cash' && hasComparablePriceMetrics(instrument)}
                   valueText={formattedValueWithConversion(
                     instrument.market_value_native,
                     instrument.currency,
@@ -394,16 +374,15 @@ function InstrumentsPage({
                                 <span className="font-semibold text-[var(--ink)]">{accountName}</span>
                               </div>
                               <MetricSummary
-                                avgCostText={Number.isFinite(holding.avgCost) ? formatUnitPrice(holding.avgCost, holding.currency) : '-'}
-                                currentPriceText={holding.latestPrice != null ? formatUnitPrice(holding.latestPrice, holding.currency) : '-'}
+                                {...metricProps(holding)}
                                 returnPercent={holding.priceChangePercent}
-                                showPriceMetrics={hasComparablePriceMetrics(holding)}
+                                showPriceMetrics={holding.instrument_type !== 'cash' && hasComparablePriceMetrics(holding)}
                                 valueText={formattedValueWithConversion(
                                   holding.market_value_native,
                                   holding.currency,
                                   holding.market_value_krw,
                                 )}
-                                valueMeta={holding.quantity != null ? <><span>수량</span>{' '}<span className="font-semibold text-[var(--ink)]">{formatNumber(holding.quantity)}</span></> : ''}
+                                  valueMeta={holdingValueMeta(holding)}
                               />
                             </div>
                             {canEdit && (
@@ -463,7 +442,12 @@ export default function AssetsPage({
   onEditHolding,
   onEditInstrument,
   onInstrumentTagFilterChange,
-  pieGradient,
+  onSpreadsheetSave,
+  spreadsheetSaving,
+  sheetAccounts,
+  sheetInstruments,
+  holdings,
+  instrumentTags,
   tagCards,
   tagMapByTicker,
   tags,
@@ -474,13 +458,13 @@ export default function AssetsPage({
       <div className="grid gap-3">
         <div
           aria-label="자산 보기 전환"
-          className="inline-grid w-full grid-cols-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-1 sm:w-auto"
+          className="inline-grid w-full grid-cols-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-1 sm:w-auto"
           role="tablist"
         >
           {assetViewOptions.map((option) => (
             <button
               aria-selected={assetView === option.id}
-              className={`min-w-0 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+              className={`min-w-0 whitespace-nowrap rounded-xl px-2 py-2.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
                 assetView === option.id
                   ? 'bg-[var(--accent)] text-white shadow-[0_6px_16px_rgba(219,106,33,0.35)]'
                   : 'text-[var(--muted-ink)] opacity-80 hover:text-[var(--ink)] hover:opacity-100'
@@ -515,7 +499,7 @@ export default function AssetsPage({
               selectClassName="w-full sm:w-44 lg:w-52"
               tags={tags}
             />
-          ) : (
+          ) : assetView === 'instruments' ? (
             <TagActionToolbar
               buttonLabel={canEdit ? '보유 추가' : ''}
               className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
@@ -525,11 +509,11 @@ export default function AssetsPage({
               selectClassName="w-full sm:w-44 lg:w-52"
               tags={tags}
             />
-          )}
+          ) : null}
         </div>
       </div>
 
-      {assetView === 'tags' && <Overview cards={tagCards} pieGradient={pieGradient} totalValue={totalValue} />}
+        {assetView === 'tags' && <Overview cards={tagCards} totalValue={totalValue} />}
       {assetView === 'accounts' && (
         <AccountsPage
           accounts={accounts}
@@ -551,6 +535,18 @@ export default function AssetsPage({
           onCreateHolding={onCreateHolding}
           onEditHolding={onEditHolding}
           onEditInstrument={onEditInstrument}
+        />
+      )}
+      {assetView === 'sheet' && (
+        <SpreadsheetEditor
+          accounts={sheetAccounts}
+          canSave={canEdit}
+          holdings={holdings}
+          instrumentTags={instrumentTags}
+          instruments={sheetInstruments}
+          onSave={onSpreadsheetSave}
+          saving={spreadsheetSaving}
+          tags={tags}
         />
       )}
     </section>

@@ -47,7 +47,7 @@ export function usePortfolioBootstrap({
           ownerUserId: access.owner_user_id,
           ownerPublicName: access.owner_public_name ?? '',
         })
-        await refreshState()
+        await refreshState(access.owner_user_id)
         return
       }
 

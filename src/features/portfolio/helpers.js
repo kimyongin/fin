@@ -1,4 +1,5 @@
 import { normalizeTickerInput, today } from '../../lib/portfolioMath'
+import { normalizeEditableInstrumentType } from '../../constants/portfolio'
 
 function escapeCsvCell(value) {
   const normalized = value == null ? '' : String(value)
@@ -58,7 +59,7 @@ export function createInstrumentModalDraft({
     ticker: instrument?.ticker ?? '',
     display_name: instrument?.display_name ?? '',
     currency: instrument?.currency ?? 'KRW',
-    instrument_type: instrument?.instrument_type ?? 'etf',
+    instrument_type: normalizeEditableInstrumentType(instrument?.instrument_type),
     note: instrument?.note ?? '',
     price: latestPrice?.close_price?.toString?.() ?? '',
     price_date: latestPrice?.price_date ?? today(),
@@ -74,7 +75,7 @@ export function createHoldingLookupResult({ instrument = null, latestPrice = nul
     ticker,
     display_name: instrument?.display_name ?? ticker,
     currency: instrument?.currency ?? 'KRW',
-    instrument_type: instrument?.instrument_type ?? 'stock',
+    instrument_type: normalizeEditableInstrumentType(instrument?.instrument_type),
     price: Number.isFinite(latestPrice?.close_price) ? latestPrice.close_price : null,
     price_date: latestPrice?.price_date ?? today(),
     source: instrument ? 'existing' : 'manual',
@@ -100,6 +101,8 @@ export function createHoldingModalDraft({
       ticker: initialTicker,
       quantity: holding?.quantity?.toString?.() ?? '',
       avg_price: holding?.avg_price?.toString?.() ?? '',
+      purchase_amount: holding?.purchase_amount?.toString?.() ?? '',
+      valuation_amount: holding?.valuation_amount?.toString?.() ?? '',
       note: holding?.note ?? '',
     },
     lookupResult: createHoldingLookupResult({
@@ -114,7 +117,6 @@ export function createTagModalDraft({ nextSortOrder, tag = null }) {
   return {
     id: tag?.id ?? null,
     name: tag?.name ?? '',
-    color: tag?.color ?? 'neutral',
     sort_order: String(tag?.sort_order ?? nextSortOrder),
   }
 }

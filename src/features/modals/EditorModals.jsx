@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { tagColorOptions } from '../../constants/portfolio'
+import { editableInstrumentTypeOptions } from '../../constants/portfolio'
 import ModalActions from '../../components/ModalActions'
 import ModalShell from '../../components/ModalShell'
 import { formatUnitPrice } from '../../lib/format'
@@ -85,7 +85,7 @@ export function InstrumentEditorModal({
   return (
     <ModalShell onClose={onClose} title={draft.id ? '종목 수정' : '종목 추가'}>
       <div className="grid gap-4">
-        <label className="grid gap-2">
+        {draft.instrument_type === 'market' ? <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
             티커
           </span>
@@ -95,7 +95,7 @@ export function InstrumentEditorModal({
             onChange={(event) => onChange('ticker', event.target.value.trim().toUpperCase())}
             value={draft.ticker}
           />
-        </label>
+        </label> : <p className="text-sm text-[var(--muted-ink)]">평가형 투자와 현금성 자산의 내부 식별자는 자동으로 생성됩니다.</p>}
 
         <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
@@ -155,16 +155,16 @@ export function InstrumentEditorModal({
               onChange={(event) => onChange('instrument_type', event.target.value)}
               value={draft.instrument_type}
             >
-              {['stock', 'etf', 'fund', 'cash', 'other', 'fx'].map((value) => (
-                <option key={value} value={value}>
-                  {value}
+              {editableInstrumentTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
           </label>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        {draft.instrument_type === 'market' && <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
               현재가
@@ -189,7 +189,7 @@ export function InstrumentEditorModal({
               value={draft.price_date}
             />
           </label>
-        </div>
+        </div>}
 
         <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
@@ -264,6 +264,10 @@ export function HoldingEditorModal({
     holdingLookupResult?.ticker === normalizedDraftTicker
       ? holdingLookupResult.currency
       : selectedInstrument?.currency
+  const selectedInstrumentType =
+    holdingLookupResult?.ticker === normalizedDraftTicker
+      ? holdingLookupResult.instrument_type
+      : selectedInstrument?.instrument_type ?? 'market'
   const suggestedInstruments = draft.ticker
     ? instruments
         .filter((instrument) => {
@@ -432,7 +436,19 @@ export function HoldingEditorModal({
           </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2">
+        {selectedInstrumentType === 'valuation' ? <div className="grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">매입금액</span>
+            <input className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]" onChange={(event) => onChange('purchase_amount', event.target.value)} step="any" type="number" value={draft.purchase_amount} />
+          </label>
+          <label className="grid gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">평가금액</span>
+            <input className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]" onChange={(event) => onChange('valuation_amount', event.target.value)} step="any" type="number" value={draft.valuation_amount} />
+          </label>
+        </div> : selectedInstrumentType === 'cash' ? <label className="grid gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">평가금액</span>
+          <input className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]" onChange={(event) => onChange('valuation_amount', event.target.value)} step="any" type="number" value={draft.valuation_amount} />
+        </label> : <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
               수량
@@ -463,7 +479,7 @@ export function HoldingEditorModal({
               value={draft.avg_price}
             />
           </label>
-        </div>
+        </div>}
 
         <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
@@ -497,7 +513,7 @@ export function HoldingEditorModal({
   )
 }
 
-export function TagEditorModal({ draft, onChange, onClose, onSave, tagError, tagSaving }) {
+export function TagEditorModal({ draft, onChange, onClose, onDelete, onSave, tagError, tagSaving }) {
   return (
     <ModalShell onClose={onClose} title={draft.id ? '태그 수정' : '태그 추가'}>
       <div className="grid gap-4">
@@ -512,24 +528,7 @@ export function TagEditorModal({ draft, onChange, onClose, onSave, tagError, tag
           />
         </label>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-              색상
-            </span>
-            <select
-              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => onChange('color', event.target.value)}
-              value={draft.color}
-            >
-              {tagColorOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
+        <div className="grid gap-4">
           <label className="grid gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
               정렬 순서
@@ -549,24 +548,16 @@ export function TagEditorModal({ draft, onChange, onClose, onSave, tagError, tag
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-1">
-          <button
-            className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={tagSaving}
-            onClick={onClose}
-            type="button"
-          >
-            닫기
-          </button>
-          <button
-            className="rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={tagSaving}
-            onClick={onSave}
-            type="button"
-          >
-            {tagSaving ? '저장 중' : '저장'}
-          </button>
-        </div>
+        <ModalActions
+          canDelete={!!draft.id}
+          deleteConfirmMessage="태그를 삭제하면 연결된 종목은 태그 없음으로 바뀌고, 전략 버킷 연결도 해제됩니다. 계속할까요?"
+          deleteLabel="태그 삭제"
+          disabled={tagSaving}
+          onClose={onClose}
+          onDelete={onDelete}
+          onSave={onSave}
+          saveLabel={tagSaving ? '저장 중' : '저장'}
+        />
       </div>
     </ModalShell>
   )

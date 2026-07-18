@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select extensions.plan(18);
+select extensions.plan(25);
 
 create temp table test_context (
   user_id uuid not null
@@ -65,8 +65,14 @@ select extensions.throws_like(
   'app_save_account rejects blank names'
 );
 
-insert into public.tags (user_id, name, color, sort_order)
-values (auth.uid(), 'Growth', 'orange', 1);
+insert into public.tags (user_id, name, sort_order)
+values (auth.uid(), 'Growth', 1);
+
+select extensions.is(
+  (select name from public.app_save_tag(null, 'Income', 2, 'user', 'create tag')),
+  'Income',
+  'app_save_tag saves a tag without a color'
+);
 
 select extensions.is(
   (
@@ -76,7 +82,7 @@ select extensions.is(
       ' aapl ',
       ' Apple ',
       'USD',
-      'stock',
+      'market',
       210.5,
       date '2026-07-12',
       (select id from public.tags where user_id = auth.uid() and name = 'Growth'),
@@ -108,8 +114,30 @@ select extensions.is(
   'app_save_instrument trims and stores instrument note'
 );
 
+select extensions.is(
+  (
+    select ticker
+    from public.app_save_instrument(
+      (select id from public.instruments where user_id = auth.uid() and ticker = 'AAPL'),
+      'AAPL',
+      'Apple',
+      'USD',
+      'market',
+      null,
+      null,
+      (select id from public.tags where user_id = auth.uid() and name = 'Growth'),
+      'user',
+      'update instrument tag',
+      'manual',
+      'core instrument'
+    )
+  ),
+  'AAPL',
+  'app_save_instrument updates an existing instrument without ticker ambiguity'
+);
+
 select extensions.throws_like(
-  $$ select * from public.app_save_instrument(null, '', 'No ticker', 'USD', 'stock', null, null, null, 'user', null, 'manual') $$,
+  $$ select * from public.app_save_instrument(null, '', 'No ticker', 'USD', 'market', null, null, null, 'user', null, 'manual') $$,
   '%Ticker is required%',
   'app_save_instrument rejects blank tickers'
 );
@@ -198,9 +226,65 @@ select extensions.is(
 );
 
 select extensions.is(
+  (
+    select holding_count
+    from public.app_bulk_save_portfolio_rows(
+      jsonb_build_array(jsonb_build_object(
+        'account_name', 'Test Account',
+        'broker', 'Test Broker',
+        'ticker', 'AAPL',
+        'display_name', 'Apple',
+        'currency', 'USD',
+        'instrument_type', 'market',
+        'quantity', 4,
+        'avg_price', 120,
+        'purchase_amount', null,
+        'valuation_amount', null,
+        'tag_id', (select id from public.tags where user_id = auth.uid() and name = 'Growth'),
+        'note', 'snapshot test'
+      ))
+    )
+  ),
+  1,
+  'app_bulk_save_portfolio_rows saves the submitted row'
+);
+
+select extensions.ok(
+  (
+    select before_data -> 'portfolio_snapshot' ?& array['accounts', 'instruments', 'tags', 'instrument_tags', 'holdings']
+    from public.activity_events
+    where user_id = auth.uid() and action_type = 'bulk_edit_portfolio'
+    order by id desc limit 1
+  ),
+  'bulk save records a complete before portfolio snapshot'
+);
+
+select extensions.ok(
+  (
+    select after_data -> 'portfolio_snapshot' ?& array['accounts', 'instruments', 'tags', 'instrument_tags', 'holdings']
+    from public.activity_events
+    where user_id = auth.uid() and action_type = 'bulk_edit_portfolio'
+    order by id desc limit 1
+  ),
+  'bulk save records a complete after portfolio snapshot'
+);
+
+select extensions.is(
   ((select public.app_get_portfolio_state()) -> 'holdings') @> jsonb_build_array(jsonb_build_object('ticker', 'AAPL')),
   true,
   'app_get_portfolio_state includes saved holding'
+);
+
+select extensions.is(
+  (select unlinked_instrument_count from public.app_delete_tag((select id from public.tags where user_id = auth.uid() and name = 'Growth'), 'user', 'remove tag')),
+  1,
+  'app_delete_tag unlinks tagged instruments'
+);
+
+select extensions.is(
+  (select count(*) from public.instrument_tags where user_id = auth.uid() and ticker = 'AAPL'),
+  0::bigint,
+  'app_delete_tag removes the instrument tag link'
 );
 
 select * from extensions.finish();

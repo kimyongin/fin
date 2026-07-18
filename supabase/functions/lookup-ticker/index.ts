@@ -11,11 +11,7 @@ function normalizeTickerInput(value: unknown) {
 
 function mapYahooInstrumentType(value: unknown) {
   const normalized = String(value ?? '').toUpperCase()
-  if (normalized === 'ETF') return 'etf'
-  if (normalized === 'MUTUALFUND') return 'fund'
-  if (normalized === 'CURRENCY') return 'fx'
-  if (normalized === 'EQUITY') return 'stock'
-  return 'other'
+  return normalized === 'CURRENCY' ? 'fx' : 'market'
 }
 
 function yahooTickerCandidates(ticker: string) {
