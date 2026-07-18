@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import AppHeader from './components/AppHeader'
+import ActivityPageView from './features/activity/ActivityPage'
 import AssetsPageView from './features/assets/AssetsPage'
 import {
   CenteredMessage as CenteredMessageView,
@@ -10,12 +11,14 @@ import { useAgentControls } from './features/agent/useAgentControls'
 import { useSupabaseSession } from './features/auth/useSupabaseSession'
 import PortfolioEditorModals from './features/modals/PortfolioEditorModals'
 import SettingsPageView from './features/settings/SettingsPage'
+import StrategyPageView from './features/strategy/StrategyPage'
 import { buildPortfolioCsv } from './features/portfolio/helpers'
 import { createPortfolioActions } from './features/portfolio/actions'
 import {
   createEmptyPortfolioState,
   createOwnerViewContext,
   fetchActiveViewerAccess,
+  fetchFriends,
   fetchPortfolioState,
   fetchViewerProfile,
 } from './features/portfolio/data'
@@ -30,6 +33,7 @@ import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { SUPABASE_URL } from './lib/config'
 import {
   createGuestUnlockDraft,
+  createFriendDraft,
   createViewerProfileDraft,
   isViewerSchemaMissingError,
 } from './lib/viewerAccess'
@@ -51,6 +55,10 @@ function App() {
   const [guestUnlockDraft, setGuestUnlockDraft] = useState(() => createGuestUnlockDraft())
   const [guestUnlockSaving, setGuestUnlockSaving] = useState(false)
   const [guestUnlockError, setGuestUnlockError] = useState('')
+  const [friends, setFriends] = useState([])
+  const [friendDraft, setFriendDraft] = useState(() => createFriendDraft())
+  const [friendError, setFriendError] = useState('')
+  const [friendSaving, setFriendSaving] = useState(false)
   const [viewContext, setViewContext] = useState(() => createOwnerViewContext())
   const [accountTagFilter, setAccountTagFilter] = useState('all')
   const [instrumentTagFilter, setInstrumentTagFilter] = useState('all')
@@ -80,13 +88,29 @@ function App() {
     activeTab,
     isAnonymousSession,
     isSchemaMissingError: isViewerSchemaMissingError,
+    ownerUserId: viewContext.mode === 'shared' ? viewContext.ownerUserId : null,
     session,
     supabase,
   })
 
-  const refreshState = useCallback(async () => {
+  const refreshState = useCallback(async (ownerUserId = null) => {
     setLoadError('')
-    setState(await fetchPortfolioState(supabase))
+    setState(await fetchPortfolioState(supabase, ownerUserId))
+  }, [])
+
+  const loadFriends = useCallback(async () => {
+    try {
+      const nextFriends = await fetchFriends(supabase)
+      setFriends(nextFriends)
+      return nextFriends
+    } catch (error) {
+      if (isViewerSchemaMissingError(error)) {
+        setViewerProfileSchemaReady(false)
+        setFriends([])
+        return []
+      }
+      throw error
+    }
   }, [])
 
   const loadActiveViewerAccess = useCallback(async () => {
@@ -124,6 +148,7 @@ function App() {
   usePortfolioBootstrap({
     createViewerProfileDraft,
     loadActiveViewerAccess,
+    loadFriends,
     loadViewerProfile,
     refreshState,
     session,
@@ -134,6 +159,68 @@ function App() {
     setViewerProfile,
     setViewerProfileDraft,
   })
+
+  const handlePortfolioChange = useCallback(async (ownerUserId) => {
+    if (ownerUserId === 'owner') {
+      setViewContext(createOwnerViewContext(session.user.id))
+      setActiveTab('overview')
+      await refreshState()
+      return
+    }
+
+    const friend = friends.find((item) => item.owner_user_id === ownerUserId)
+    if (!friend) return
+
+    setViewContext({
+      mode: 'shared',
+      ownerUserId: friend.owner_user_id,
+      ownerPublicName: friend.owner_public_name ?? '',
+    })
+    setActiveTab('overview')
+    await refreshState(friend.owner_user_id)
+  }, [friends, refreshState, session?.user?.id, setActiveTab])
+
+  const handleAddFriend = useCallback(async () => {
+    setFriendSaving(true)
+    setFriendError('')
+    try {
+      const { data, error } = await supabase.rpc('add_friend', {
+        input_public_name: friendDraft.public_name.trim(),
+        input_viewer_password: friendDraft.viewer_password,
+      })
+      if (error) throw error
+
+      const friend = Array.isArray(data) ? data[0] : data
+      const nextFriends = await loadFriends()
+      setFriendDraft(createFriendDraft())
+      if (friend?.owner_user_id && nextFriends.some((item) => item.owner_user_id === friend.owner_user_id)) {
+        await handlePortfolioChange(friend.owner_user_id)
+      }
+    } catch (error) {
+      setFriendError(error.message ?? '친구를 추가하지 못했습니다.')
+    } finally {
+      setFriendSaving(false)
+    }
+  }, [friendDraft, handlePortfolioChange, loadFriends])
+
+  const handleRemoveFriend = useCallback(async (ownerUserId) => {
+    setFriendSaving(true)
+    setFriendError('')
+    try {
+      const { error } = await supabase.rpc('remove_friend', { input_owner_user_id: ownerUserId })
+      if (error) throw error
+      await loadFriends()
+      if (viewContext.ownerUserId === ownerUserId) {
+        setViewContext(createOwnerViewContext(session.user.id))
+        setActiveTab('overview')
+        await refreshState()
+      }
+    } catch (error) {
+      setFriendError(error.message ?? '친구를 해제하지 못했습니다.')
+    } finally {
+      setFriendSaving(false)
+    }
+  }, [loadFriends, refreshState, session?.user?.id, setActiveTab, viewContext.ownerUserId])
 
   const latestPriceByTicker = useMemo(() => {
     return new Map(state.prices.map((row) => [row.ticker, row]))
@@ -275,7 +362,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'overview' ? 'Portfolio' : 'Settings'
+  const pageTitle = activeTab === 'overview' ? 'Portfolio' : activeTab === 'strategy' ? 'Strategy' : activeTab === 'activity' ? 'Activity' : 'Settings'
 
   return (
     <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
@@ -285,7 +372,9 @@ function App() {
           copied={activeTab === 'overview' ? copied : false}
           copyLabel="CSV 복사"
           copySuccessLabel="CSV를 복사했어요"
+          friends={friends}
           onCopy={activeTab === 'overview' ? handleCopyCsv : undefined}
+          onPortfolioChange={!isAnonymousSession && friends.length > 0 ? handlePortfolioChange : undefined}
           onSignOut={signOut}
           onTabChange={setActiveTab}
           pageTitle={pageTitle}
@@ -333,18 +422,24 @@ function App() {
         )}
         {activeTab === 'settings' && (
           <SettingsPageView
-            agentActions={agentActions}
-            agentActionsError={agentActionsError}
-            agentActionsLoading={agentActionsLoading}
             agentMcpEndpoint={`${SUPABASE_URL}/functions/v1/portfolio-mcp`}
             agentTokenError={agentTokenError}
             agentTokenSaving={agentTokenSaving}
             agentTokens={agentTokens}
             agentTokensLoading={agentTokensLoading}
             issuedAgentToken={issuedAgentToken}
+            friendDraft={friendDraft}
+            friendError={friendError}
+            friendSaving={friendSaving}
+            friends={friends}
+            onAddFriend={handleAddFriend}
             onCreateTag={() => openTagModal()}
             onEditTag={(tag) => openTagModal(tag)}
-            onAgentActionsRefresh={loadAgentActions}
+            onFriendChange={(field, value) => {
+              setFriendError('')
+              setFriendDraft((current) => ({ ...current, [field]: value }))
+            }}
+            onRemoveFriend={handleRemoveFriend}
             onAgentTokenCreate={handleCreateAgentToken}
             onAgentTokenDismiss={handleDismissIssuedAgentToken}
             onAgentTokenRevoke={handleRevokeAgentToken}
@@ -364,6 +459,24 @@ function App() {
             viewerProfileMessage={viewerProfileMessage}
             viewerProfileSaving={viewerProfileSaving}
             viewerProfileSchemaReady={viewerProfileSchemaReady}
+          />
+        )}
+        {activeTab === 'strategy' && (
+          <StrategyPageView
+            canEdit={canEdit}
+            ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
+            supabase={supabase}
+            tagCards={tagCards}
+            tags={state.tags}
+            totalValue={totalValue}
+          />
+        )}
+        {activeTab === 'activity' && (
+          <ActivityPageView
+            actions={agentActions}
+            error={agentActionsError}
+            loading={agentActionsLoading}
+            onRefresh={loadAgentActions}
           />
         )}
 

@@ -4,6 +4,7 @@ import { createEmptyPortfolioState, createOwnerViewContext } from './data'
 export function usePortfolioBootstrap({
   createViewerProfileDraft,
   loadActiveViewerAccess,
+  loadFriends,
   loadViewerProfile,
   refreshState,
   session,
@@ -51,7 +52,7 @@ export function usePortfolioBootstrap({
       }
 
       setViewContext(createOwnerViewContext(session.user.id))
-      await Promise.all([refreshState(), loadViewerProfile()])
+      await Promise.all([refreshState(), loadViewerProfile(), loadFriends?.()])
     }
 
     bootstrapSession().catch((error) => {
@@ -66,6 +67,7 @@ export function usePortfolioBootstrap({
   }, [
     createViewerProfileDraft,
     loadActiveViewerAccess,
+    loadFriends,
     loadViewerProfile,
     refreshState,
     session,

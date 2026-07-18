@@ -1,5 +1,7 @@
 export const allTabs = [
   { id: 'overview', label: '자산' },
+  { id: 'strategy', label: '전략' },
+  { id: 'activity', label: '기록' },
   { id: 'settings', label: '설정' },
 ]
 

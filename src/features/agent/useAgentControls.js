@@ -21,6 +21,7 @@ export function useAgentControls({
   activeTab,
   isAnonymousSession,
   isSchemaMissingError,
+  ownerUserId,
   session,
   supabase,
 }) {
@@ -43,7 +44,7 @@ export function useAgentControls({
     setActionsLoading(true)
     setActionsError('')
     try {
-      setActions(await fetchRecentAgentActions(supabase, 10))
+      setActions(await fetchRecentAgentActions(supabase, 30, ownerUserId))
     } catch (error) {
       if (isSchemaMissingError(error)) {
         setActions([])
@@ -53,7 +54,7 @@ export function useAgentControls({
     } finally {
       setActionsLoading(false)
     }
-  }, [isAnonymousSession, isSchemaMissingError, session, supabase])
+  }, [isAnonymousSession, isSchemaMissingError, ownerUserId, session, supabase])
 
   const loadTokens = useCallback(async () => {
     if (!session || isAnonymousSession) {
@@ -74,10 +75,8 @@ export function useAgentControls({
   }, [isAnonymousSession, session, supabase])
 
   useEffect(() => {
-    if (activeTab === 'settings') {
-      loadActions()
-      loadTokens()
-    }
+    if (activeTab === 'activity') loadActions()
+    if (activeTab === 'settings') loadTokens()
   }, [activeTab, loadActions, loadTokens])
 
   const createToken = useCallback(async () => {

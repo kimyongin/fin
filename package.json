@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "check:encoding": "node scripts/check-encoding.mjs",
+    "prebuild": "npm run check:encoding",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",

@@ -1,6 +1,8 @@
 import { assetViewOptions } from '../../constants/portfolio'
 import { PencilIcon } from '../../components/icons'
 import MetricSummary from '../../components/MetricSummary'
+import PortfolioEntityHeader from '../../components/PortfolioEntityHeader'
+import { AccountIdentity, InstrumentIdentity } from '../../components/PortfolioEntityIdentity'
 import {
   formatKrw,
   formatNumber,
@@ -166,6 +168,7 @@ function Overview({ cards, pieGradient, totalValue }) {
                 currentPriceText="-"
                 returnPercent={card.returnPercent}
                 valueText={formatKrw(card.value)}
+                valueMeta={`${card.holdings.length}개 종목`}
               />
             </div>
 
@@ -189,6 +192,7 @@ function Overview({ cards, pieGradient, totalValue }) {
                           holding.currency,
                           holding.market_value_krw,
                         )}
+                        valueMeta={holding.quantity != null ? <><span>수량</span>{' '}<span className="font-semibold text-[var(--ink)]">{formatNumber(holding.quantity)}</span></> : ''}
                       />
                     </div>
                   ))}
@@ -231,16 +235,9 @@ function AccountsPage({
               className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]"
               key={account.id}
             >
-              <div className="relative border-b border-[var(--line)] bg-[rgba(255,255,255,0.045)] px-5 pb-5 pt-6 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
-                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[var(--accent)]" />
+              <PortfolioEntityHeader>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-base font-semibold">{account.name}</h2>
-                    <p className="mt-1 text-sm text-[var(--muted-ink)]">
-                      {account.broker || '증권사 없음'} · {account.count}개 보유
-                    </p>
-                    {account.note && <p className="mt-2 text-sm text-[var(--muted-ink)]">{account.note}</p>}
-                  </div>
+                  <AccountIdentity account={account} />
                   {canEdit && (
                     <button
                       aria-label="계좌 편집"
@@ -258,8 +255,9 @@ function AccountsPage({
                   currentPriceText="-"
                   returnPercent={account.returnPercent}
                   valueText={formatKrw(account.market_value_krw)}
+                  valueMeta={`${account.count}개 보유`}
                 />
-              </div>
+              </PortfolioEntityHeader>
 
               {!!holdings.length && (
                 <div className="px-5 py-4">
@@ -285,6 +283,7 @@ function AccountsPage({
                                 holding.currency,
                                 holding.market_value_krw,
                               )}
+                              valueMeta={holding.quantity != null ? <><span>수량</span>{' '}<span className="font-semibold text-[var(--ink)]">{formatNumber(holding.quantity)}</span></> : ''}
                             />
                           </div>
                           {canEdit && (
@@ -347,17 +346,12 @@ function InstrumentsPage({
               className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]"
               key={instrument.ticker}
             >
-              <div className="relative border-b border-[var(--line)] bg-[rgba(255,255,255,0.045)] px-5 pb-5 pt-6 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
-                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[var(--accent)]" />
+              <PortfolioEntityHeader>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-base font-semibold leading-6">{instrument.display_name}</h2>
-                    <p className="mt-1 text-sm text-[var(--muted-ink)]">
-                      {instrument.ticker} · {instrument.tagName} · {instrument.currency} · {instrument.accountCount}개 계좌 · 수량{' '}
-                      {formatNumber(instrument.quantity)}
-                    </p>
-                    {instrument.note && <p className="mt-2 text-sm text-[var(--muted-ink)]">{instrument.note}</p>}
-                  </div>
+                  <InstrumentIdentity
+                    detail={`${instrument.ticker} · ${instrument.tagName} · ${instrument.currency} · ${instrument.accountCount}개 계좌 · 수량 ${formatNumber(instrument.quantity)}`}
+                    instrument={instrument}
+                  />
                   {canEdit && (
                     <button
                       aria-label="종목 편집"
@@ -380,8 +374,9 @@ function InstrumentsPage({
                     instrument.currency,
                     instrument.market_value_krw,
                   )}
+                  valueMeta={`${instrument.accountCount}개 계좌`}
                 />
-              </div>
+              </PortfolioEntityHeader>
 
               {!!linkedHoldings.length && (
                 <div className="px-5 py-4">
@@ -408,6 +403,7 @@ function InstrumentsPage({
                                   holding.currency,
                                   holding.market_value_krw,
                                 )}
+                                valueMeta={holding.quantity != null ? <><span>수량</span>{' '}<span className="font-semibold text-[var(--ink)]">{formatNumber(holding.quantity)}</span></> : ''}
                               />
                             </div>
                             {canEdit && (

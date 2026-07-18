@@ -14,6 +14,13 @@ export function createGuestUnlockDraft() {
   }
 }
 
+export function createFriendDraft() {
+  return {
+    public_name: '',
+    viewer_password: '',
+  }
+}
+
 export async function sha256Hex(value) {
   const data = new TextEncoder().encode(value)
   const hashBuffer = await crypto.subtle.digest('SHA-256', data)
@@ -26,6 +33,10 @@ export function isViewerSchemaMissingError(error) {
   const mentionsViewerSchema =
     /profiles/i.test(message) ||
     /viewer_sessions/i.test(message) ||
+    /friendships/i.test(message) ||
+    /add_friend/i.test(message) ||
+    /list_friends/i.test(message) ||
+    /remove_friend/i.test(message) ||
     /set_viewer_profile/i.test(message) ||
     /unlock_viewer_access/i.test(message) ||
     /get_active_viewer_access/i.test(message)

@@ -9,7 +9,9 @@ function AppHeader({
   copyLabel,
   copySuccessLabel = '복사했어요',
   copied,
+  friends = [],
   onCopy,
+  onPortfolioChange,
   sharedPortfolioViewLabel,
   sharedViewLabel,
   signOutLabel,
@@ -49,6 +51,21 @@ function AppHeader({
       <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-3">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold">{pageTitle}</h1>
+          {onPortfolioChange && (
+            <select
+              aria-label="포트폴리오 전환"
+              className="max-w-48 rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-2 py-1.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+              onChange={(event) => onPortfolioChange(event.target.value)}
+              value={viewContext.mode === 'owner' ? 'owner' : viewContext.ownerUserId}
+            >
+              <option value="owner">내 포트폴리오</option>
+              {friends.map((friend) => (
+                <option key={friend.owner_user_id} value={friend.owner_user_id}>
+                  {friend.owner_public_name || '이름 없는 친구'}
+                </option>
+              ))}
+            </select>
+          )}
           {viewContext.mode === 'shared' && (
             <p className="min-w-0 text-sm text-[var(--muted-ink)]">
               {(viewContext.ownerPublicName || sharedViewLabel) + ' ' + sharedPortfolioViewLabel}

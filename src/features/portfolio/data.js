@@ -18,14 +18,32 @@ export function createOwnerViewContext(ownerUserId = null) {
   }
 }
 
-export async function fetchPortfolioState(supabase) {
-  const { data, error } = await supabase.rpc('app_get_portfolio_state')
-  if (error) throw error
+export async function fetchPortfolioState(supabase, ownerUserId = null) {
+  const { data, error } = await supabase.rpc('app_get_portfolio_state', {
+    input_owner_user_id: ownerUserId,
+  })
+  if (error) {
+    const isLegacyRpc = ownerUserId === null && (error.code === '42883' || error.code === 'PGRST202')
+    if (!isLegacyRpc) throw error
+
+    const legacyResult = await supabase.rpc('app_get_portfolio_state')
+    if (legacyResult.error) throw legacyResult.error
+    return {
+      ...createEmptyPortfolioState(),
+      ...(legacyResult.data ?? {}),
+    }
+  }
 
   return {
     ...createEmptyPortfolioState(),
     ...(data ?? {}),
   }
+}
+
+export async function fetchFriends(supabase) {
+  const { data, error } = await supabase.rpc('list_friends')
+  if (error) throw error
+  return data ?? []
 }
 
 export async function fetchActiveViewerAccess(supabase) {

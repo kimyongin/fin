@@ -20,6 +20,7 @@ export default function MetricSummary({
   currentPriceText = '-',
   returnPercent,
   showPriceMetrics = true,
+  valueMeta = '',
   valueText,
 }) {
   return (
@@ -27,6 +28,7 @@ export default function MetricSummary({
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="text-sm leading-5 text-[var(--muted-ink)]">평가금액</span>
         <span className="text-sm font-semibold leading-5 text-[var(--ink)]">{valueText}</span>
+        {valueMeta && <span className="text-sm font-medium leading-5 text-[var(--muted-ink)]">{valueMeta}</span>}
       </div>
       {showPriceMetrics && (
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm leading-5 text-[var(--muted-ink)]">
