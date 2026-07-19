@@ -8,6 +8,17 @@ Run the suite with:
 npm run test:e2e
 ```
 
+The suite starts and resets `.e2e/supabase`; it never uses the regular local
+development database or remote Supabase project. GitHub Actions runs this same
+command for every pull request and push to `master`.
+
+## Baseline maintenance
+
+`.e2e/supabase/migrations/202607190000_e2e_baseline.sql` is the dedicated E2E
+schema baseline. When an application migration changes the public schema, apply
+the migration to the E2E project too (or regenerate the baseline deliberately),
+then run `npm run test:e2e`. Do not copy production data into the E2E seed.
+
 ## Test users
 
 | User | Purpose |
