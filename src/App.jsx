@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import AppHeader from './components/AppHeader'
 import ActivityPageView from './features/activity/ActivityPage'
 import AssetsPageView from './features/assets/AssetsPage'
+import GuidePageView from './features/guide/GuidePage'
 import {
   CenteredMessage as CenteredMessageView,
   GuestUnlockScreen as GuestUnlockScreenView,
@@ -392,7 +393,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'overview' ? 'Portfolio' : activeTab === 'strategy' ? 'Strategy' : activeTab === 'activity' ? 'Activity' : 'Settings'
+  const pageTitle = activeTab === 'overview' ? 'Portfolio' : activeTab === 'strategy' ? 'Strategy' : activeTab === 'activity' ? 'Activity' : activeTab === 'guide' ? 'Guide' : 'Settings'
 
   return (
     <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
@@ -514,6 +515,7 @@ function App() {
             onRefresh={loadAgentActions}
           />
         )}
+        {activeTab === 'guide' && <GuidePageView />}
 
         <PortfolioEditorModals
           {...editor}

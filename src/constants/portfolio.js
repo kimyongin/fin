@@ -3,6 +3,7 @@ export const allTabs = [
   { id: 'strategy', label: '전략' },
   { id: 'activity', label: '기록' },
   { id: 'settings', label: '설정' },
+  { id: 'guide', label: '가이드' },
 ]
 
 export const assetViewOptions = [

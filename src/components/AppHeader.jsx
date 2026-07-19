@@ -47,7 +47,7 @@ function AppHeader({
   }, [menuOpen])
 
   return (
-    <header className="relative mb-6" ref={menuRef}>
+    <header className="relative z-[60] mb-6" ref={menuRef}>
       <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-3">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold">{pageTitle}</h1>

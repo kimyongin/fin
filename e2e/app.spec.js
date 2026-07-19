@@ -282,6 +282,8 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await openTab(2, 'Activity')
   await openTab(3, 'Settings')
   await expect(page.getByText(/^버전 \d{8}T\d{6}Z$/)).toBeVisible()
+  await openTab(4, 'Guide')
+  await expect(page.getByText('자산 구조 만들기')).toBeVisible()
 })
 
 test('displays strategy contribution allocation and rebalancing guidance', async ({ page }) => {
