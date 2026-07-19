@@ -18,10 +18,18 @@ export async function saveStrategy(supabase, draft) {
     input_drift_threshold: Number(draft.drift_threshold) || 5,
     input_buckets: draft.buckets.map((bucket, index) => ({
       name: bucket.name.trim(),
-      target_percentage: Number(bucket.target_percentage) || 0,
+      target_percentage: Number(bucket.mode_targets?.neutral ?? bucket.target_percentage) || 0,
+      mode_targets: {
+        growth: Number(bucket.mode_targets?.growth ?? bucket.target_percentage) || 0,
+        neutral: Number(bucket.mode_targets?.neutral ?? bucket.target_percentage) || 0,
+        defensive: Number(bucket.mode_targets?.defensive ?? bucket.target_percentage) || 0,
+      },
       sort_order: index,
       tag_ids: bucket.tag_ids.map(Number),
     })),
+    input_mode: draft.mode,
+    input_mode_reason: draft.mode_reason.trim(),
+    input_principles: draft.principles,
   })
   if (error) throw error
   return { ...createEmptyStrategyState(), ...(data ?? {}) }

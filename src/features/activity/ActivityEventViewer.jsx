@@ -176,14 +176,14 @@ export default function ActivityEventViewer({ actions, loading }) {
     return <p className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3 text-sm text-[var(--muted-ink)]">아직 기록된 작업이 없습니다.</p>
   }
   return (
-    <div className="grid gap-7">
+    <div className="grid gap-5">
       {groupByDate(actions).map((group) => (
-        <section key={group.label}>
-          <h3 className="border-b border-[var(--line)] pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">{group.label}</h3>
+        <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]" key={group.label}>
+          <h2 className="border-b border-[var(--line)] pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">{group.label}</h2>
           <ol className="relative mt-4 border-l border-[var(--line)] sm:border-l-0">
             {group.actions.map((action) => <ActivityEvent action={action} key={action.id} />)}
           </ol>
-        </section>
+        </article>
       ))}
     </div>
   )

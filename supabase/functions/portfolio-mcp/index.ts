@@ -309,6 +309,9 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_review_day: nullableIntegerArg(args, 'review_day') ?? 1,
       input_drift_threshold: nullableNumberArg(args, 'drift_threshold') ?? 5,
       input_buckets: Array.isArray(args.buckets) ? args.buckets : [],
+      input_mode: nullableStringArg(args, 'mode') ?? 'neutral',
+      input_mode_reason: nullableStringArg(args, 'mode_reason') ?? '',
+      input_principles: args.principles && typeof args.principles === 'object' && !Array.isArray(args.principles) ? args.principles : {},
     })
   },
 
@@ -491,7 +494,7 @@ function toolDefinitions() {
     },
     {
       name: 'save_strategy',
-      description: 'Save the complete strategy. Bucket target percentages must add up to 100 and each tag can belong to only one bucket.',
+      description: 'Save the complete strategy. Each mode target total must add up to 100, and each tag can belong to only one bucket.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -499,14 +502,18 @@ function toolDefinitions() {
           monthly_contribution: { type: 'number', description: 'Monthly contribution amount.' },
           review_day: { type: 'number', description: 'Monthly review day from 1 to 28.' },
           drift_threshold: { type: 'number', description: 'Rebalancing drift threshold in percentage points.' },
+          mode: { type: 'string', enum: ['growth', 'neutral', 'defensive'], description: 'Active investment mode.' },
+          mode_reason: { type: 'string', description: 'Markdown or plain-text reason for the active mode.' },
+          principles: { type: 'object', description: 'Detailed operating principles, including trade limits and notes.' },
           buckets: {
             type: 'array',
-            description: 'Strategy buckets. Each item needs name, target_percentage, sort_order, and tag_ids.',
+            description: 'Strategy buckets. Each item needs name, mode_targets for growth/neutral/defensive, sort_order, and tag_ids.',
             items: {
               type: 'object',
               properties: {
                 name: { type: 'string' },
                 target_percentage: { type: 'number' },
+                mode_targets: { type: 'object', properties: { growth: { type: 'number' }, neutral: { type: 'number' }, defensive: { type: 'number' } } },
                 sort_order: { type: 'number' },
                 tag_ids: { type: 'array', items: { type: 'number' } },
               },

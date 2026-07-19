@@ -14,7 +14,7 @@ Read this file first for database work. Inspect only the relevant migration file
 | Identity and sharing | `profiles`, `viewer_sessions`, `friendships` | Profiles can enable password-protected sharing. Guest sessions expire after seven days; logged-in friends retain read-only access until removed. |
 | Accounts and holdings | `accounts`, `holdings`, `transactions` | Holdings store market quantities and average prices when applicable, plus direct purchase and valuation amounts for evaluation-based investments. Transactions recalculate the corresponding holding. |
 | Instruments and prices | `instruments`, `instrument_tags`, `tags`, `holding_prices_daily` | An instrument belongs to one user and ticker; tags have a name and sort order, and prices are per user, ticker, and date. |
-| Portfolio outputs | `portfolio_snapshots`, `daily_reports`, `rebalance_suggestions`, `sync_runs`, `strategies`, `strategy_buckets`, `strategy_bucket_tags` | Persisted portfolio analysis, strategy targets, and price-sync results. |
+| Portfolio outputs | `portfolio_snapshots`, `daily_reports`, `rebalance_suggestions`, `sync_runs`, `strategies`, `strategy_buckets`, `strategy_bucket_tags`, `strategy_bucket_mode_targets` | Persisted portfolio analysis, active mode, detailed principles, mode-specific strategy targets, and price-sync results. |
 | News research | `news_facts`, `news_fact_annotations` | Country-, date-, and axis-scoped factual records with separate signal opinions attached as annotations. |
 | Audit and agent access | `activity_events`, `agent_tokens` | User and agent actions are recorded; agent tokens can be revoked. |
 
@@ -32,7 +32,7 @@ Instrument types are constrained to `market` for market-priced investments, `val
 | `agent_*` | Manage tokens and update holding average price. |
 | `set_viewer_profile`, `unlock_viewer_access`, `get_active_viewer_access` | Configure and validate password-protected portfolio sharing. |
 | `add_friend`, `list_friends`, `remove_friend` | Create, list, and remove persistent friend portfolio access after password verification. |
-| `app_get_strategy_state`, `app_save_strategy` | Read a shared strategy or save the owner's strategy buckets, tag mappings, and rules. |
+| `app_get_strategy_state`, `app_save_strategy` | Read a shared strategy or save the owner's active mode, detailed principles, buckets, mode targets, tag mappings, and rules. |
 | `app_get_news_state`, `app_save_news_fact`, `app_update_news_fact`, `app_save_news_fact_annotation`, `app_delete_news_fact`, `app_delete_news_fact_annotation` | Read shared news research, record, update, or delete facts, and attach or remove one signal opinion per fact. |
 
 ## Access Rules
