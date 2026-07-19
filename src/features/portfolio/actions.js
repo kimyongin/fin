@@ -131,8 +131,6 @@ export function createPortfolioActions(params) {
         const { data, error } = await supabase.auth.signInAnonymously()
         if (error) throw error
         nextSession = data.session
-        setSession(data.session ?? null)
-        setAuthStatus(data.session ? 'signed-in' : 'signed-out')
       }
       if (!nextSession) throw new Error(portfolioMessages.guestUnlockStartError)
 
@@ -149,6 +147,10 @@ export function createPortfolioActions(params) {
       })
       await refreshState(access?.owner_user_id ?? null)
       setGuestUnlockDraft(createGuestUnlockDraft())
+      if (!session) {
+        setSession({ ...nextSession })
+        setAuthStatus('signed-in')
+      }
     } catch (error) {
       setGuestUnlockError(error.code === 'anonymous_provider_disabled'
         ? portfolioMessages.guestUnlockAnonymousDisabled

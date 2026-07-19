@@ -3,6 +3,7 @@ import { createEmptyPortfolioState, createOwnerViewContext } from './data'
 
 export function usePortfolioBootstrap({
   createViewerProfileDraft,
+  guestUnlockSaving,
   loadActiveViewerAccess,
   loadFriends,
   loadViewerProfile,
@@ -30,10 +31,17 @@ export function usePortfolioBootstrap({
       setLoadError('')
 
       if (session.user?.is_anonymous) {
+        if (guestUnlockSaving) return
         setViewerProfile(createViewerProfileDraft())
         setViewerProfileDraft(createViewerProfileDraft())
-        const access = await loadActiveViewerAccess()
+        let access = await loadActiveViewerAccess()
         if (cancelled) return
+
+        if (!access?.owner_user_id) {
+          await new Promise((resolve) => window.setTimeout(resolve, 100))
+          access = await loadActiveViewerAccess()
+          if (cancelled) return
+        }
 
         if (!access?.owner_user_id) {
           setGuestUnlockError('')
@@ -66,6 +74,7 @@ export function usePortfolioBootstrap({
     }
   }, [
     createViewerProfileDraft,
+    guestUnlockSaving,
     loadActiveViewerAccess,
     loadFriends,
     loadViewerProfile,

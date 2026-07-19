@@ -6,6 +6,8 @@
 node_modules/
 dist/
 *.log
+test-results/
+playwright-report/
 
 # Supabase local link/cache
 supabase/.temp/

@@ -148,6 +148,7 @@ function App() {
 
   usePortfolioBootstrap({
     createViewerProfileDraft,
+    guestUnlockSaving,
     loadActiveViewerAccess,
     loadFriends,
     loadViewerProfile,

@@ -5,4 +5,7 @@ import { defineConfig } from 'vite'
 export default defineConfig(({ command }) => ({
   base: command === 'serve' ? '/' : '/fin/',
   plugins: [react(), tailwindcss()],
+  test: {
+    exclude: ['e2e/**', 'node_modules/**'],
+  },
 }))
