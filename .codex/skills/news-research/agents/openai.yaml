@@ -1,0 +1,4 @@
+interface:
+  display_name: 뉴스 리서치 워크플로
+  short_description: "공식 소스로 뉴스 분석과 기록을 반복 개선합니다."
+  default_prompt: "Use $news-research to analyze recent Korea and U.S. market news and save concise records."

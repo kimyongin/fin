@@ -31,6 +31,32 @@ export default function GuidePage() {
       </section>
 
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Strategy workflow</p>
+          <h2 className="mt-2 text-lg font-semibold">시장 판단을 수동으로 전략에 반영하는 순서</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">뉴스와 시장 정보를 검토한 뒤, 판단을 기록하고 모드를 선택하세요. 앱은 선택한 목표 비중과 현재 비중의 차이를 보여 주며, 실제 비중 조절과 매매는 본인이 세운 원칙 안에서 직접 결정합니다.</p>
+        </div>
+        <ol className="mt-5 grid gap-3 md:grid-cols-5">
+          {[
+            ['1', '뉴스 분석', '시장·경제·정책 뉴스의 핵심 변화와 내 자산에 미칠 영향을 대화로 정리합니다.'],
+            ['2', '신호 기록', '추세·변동성·금리·경기 등 판단 근거와 결론을 짧게 남깁니다.'],
+            ['3', '모드 선택', '위험선호·중립·위험회피 등 현재 판단에 맞는 모드 프리셋을 선택합니다.'],
+            ['4', '비중 확인', '선택한 모드의 목표 비중과 현재 비중을 비교해 적립금 또는 리밸런싱 대상을 확인합니다.'],
+            ['5', '원칙 안에서 실행', '위험자산 한도, 현금 하한, 태그별 한도, 1회 조정 한도를 확인한 뒤 직접 실행합니다.'],
+          ].map(([number, title, body]) => (
+            <li className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-4" key={number}>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[var(--accent)]">{number}</span>
+                <h3 className="text-sm font-semibold">{title}</h3>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">{body}</p>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-4 rounded-2xl border border-[var(--line)] px-4 py-3 text-sm leading-6 text-[var(--muted-ink)]"><span className="font-semibold text-[var(--ink)]">핵심:</span> 신호는 모드를 선택하는 근거이고, 모드는 실행 목표 비중을 정합니다. 원칙은 모든 비중 조절과 실제 매매에 적용되는 가드레일입니다.</p>
+      </article>
+
+      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
         <h2 className="text-lg font-semibold">주요 기능</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {features.map(([title, body]) => (

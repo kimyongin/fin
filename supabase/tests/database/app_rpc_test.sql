@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select extensions.plan(25);
+select extensions.plan(32);
 
 create temp table test_context (
   user_id uuid not null
@@ -287,7 +287,47 @@ select extensions.is(
   'app_delete_tag removes the instrument tag link'
 );
 
+select extensions.is(
+  (select title from jsonb_to_record(public.app_save_news_fact(current_date, 'us', 'growth', 'US employment increased', 'BLS', 'https://www.bls.gov/', 'Employment increased in the latest release')) as x(title text)),
+  'US employment increased',
+  'app_save_news_fact stores a country-scoped fact'
+);
+
+select extensions.is(
+  (select country_code from public.news_facts where user_id = auth.uid() order by id desc limit 1),
+  'US',
+  'app_save_news_fact normalizes country codes'
+);
+
+select extensions.is(
+  (select signal from jsonb_to_record(public.app_save_news_fact_annotation((select id from public.news_facts where user_id = auth.uid() order by id desc limit 1), 'negative', 'Rate sensitivity increased')) as x(signal text)),
+  'negative',
+  'app_save_news_fact_annotation stores a separate signal opinion'
+);
+
+select extensions.ok(
+  (select public.app_get_news_state() -> 'facts' @> jsonb_build_array(jsonb_build_object('country_code', 'US'))),
+  'app_get_news_state includes saved news facts'
+);
+
+select extensions.throws_like(
+  $$ select public.app_save_news_fact(current_date, 'US', '   ', 'Title', null, null, 'Fact') $$,
+  '%News axis is required%',
+  'app_save_news_fact rejects a blank axis'
+);
+
+select extensions.is(
+  (select signal from jsonb_to_record(public.app_delete_news_fact_annotation((select id from public.news_fact_annotations where user_id = auth.uid() order by id desc limit 1))) as x(signal text)),
+  'negative',
+  'app_delete_news_fact_annotation removes an opinion'
+);
+
+select extensions.is(
+  (select title from jsonb_to_record(public.app_delete_news_fact((select id from public.news_facts where user_id = auth.uid() order by id desc limit 1))) as x(title text)),
+  'US employment increased',
+  'app_delete_news_fact removes a fact'
+);
+
 select * from extensions.finish();
 
 rollback;
-

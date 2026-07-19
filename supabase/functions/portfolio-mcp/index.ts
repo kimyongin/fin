@@ -295,6 +295,38 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
   },
 
+  async get_strategy_state({ supabase, tokenHash }) {
+    return rpcResult(supabase, 'mcp_get_strategy_state', {
+      input_token_hash: tokenHash,
+    })
+  },
+
+  async save_strategy({ args, supabase, tokenHash }) {
+    return rpcResult(supabase, 'mcp_save_strategy', {
+      input_token_hash: tokenHash,
+      input_name: stringArg(args, 'name'),
+      input_monthly_contribution: nullableNumberArg(args, 'monthly_contribution') ?? 0,
+      input_review_day: nullableIntegerArg(args, 'review_day') ?? 1,
+      input_drift_threshold: nullableNumberArg(args, 'drift_threshold') ?? 5,
+      input_buckets: Array.isArray(args.buckets) ? args.buckets : [],
+    })
+  },
+
+  async get_news_state({ supabase, tokenHash }) {
+    return rpcResult(supabase, 'mcp_get_news_state', {
+      input_token_hash: tokenHash,
+    })
+  },
+
+  async save_news_record({ args, supabase, tokenHash }) {
+    return rpcResult(supabase, 'mcp_save_news_record', {
+      input_token_hash: tokenHash,
+      input_country_code: stringArg(args, 'country_code'),
+      input_fact: stringArg(args, 'fact'),
+      input_opinion: nullableStringArg(args, 'opinion'),
+    })
+  },
+
   async find_holdings({ args, supabase, tokenHash }) {
     return rpcResult(
       supabase,
@@ -447,6 +479,63 @@ function toolDefinitions() {
       inputSchema: {
         type: 'object',
         properties: {},
+      },
+    },
+    {
+      name: 'get_strategy_state',
+      description: 'Read the saved strategy, target buckets, and tag mappings for the connected portfolio owner.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+    },
+    {
+      name: 'save_strategy',
+      description: 'Save the complete strategy. Bucket target percentages must add up to 100 and each tag can belong to only one bucket.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Strategy name.' },
+          monthly_contribution: { type: 'number', description: 'Monthly contribution amount.' },
+          review_day: { type: 'number', description: 'Monthly review day from 1 to 28.' },
+          drift_threshold: { type: 'number', description: 'Rebalancing drift threshold in percentage points.' },
+          buckets: {
+            type: 'array',
+            description: 'Strategy buckets. Each item needs name, target_percentage, sort_order, and tag_ids.',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                target_percentage: { type: 'number' },
+                sort_order: { type: 'number' },
+                tag_ids: { type: 'array', items: { type: 'number' } },
+              },
+              required: ['name', 'target_percentage', 'tag_ids'],
+            },
+          },
+        },
+        required: ['name', 'buckets'],
+      },
+    },
+    {
+      name: 'get_news_state',
+      description: 'Read all country-scoped news facts and their single saved opinions for the connected portfolio owner.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+    },
+    {
+      name: 'save_news_record',
+      description: 'Save one Markdown news fact and optional Markdown opinion. Use country_code KR or US.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          country_code: { type: 'string', description: 'KR for Korea or US for the United States.' },
+          fact: { type: 'string', description: 'Markdown factual record without investment opinion.' },
+          opinion: { type: 'string', description: 'Optional Markdown market signal or strategy opinion.' },
+        },
+        required: ['country_code', 'fact'],
       },
     },
     {

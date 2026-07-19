@@ -9,6 +9,9 @@ const actionLabels = {
   create_holding: '보유 종목 추가', update_holding: '보유 종목 수정', update_holding_avg_price: '평균 단가 수정', delete_holding: '보유 종목 삭제',
   create_tag: '태그 추가', update_tag: '태그 수정', delete_tag: '태그 삭제',
   sync_prices: '가격 동기화', update_viewer_profile: '공유 보기 설정 수정', update_strategy: '전략 수정',
+  create_news_fact: '뉴스 팩트 기록', create_news_annotation: '뉴스 신호 의견 기록', update_news_annotation: '뉴스 의견 수정',
+  update_news_fact: '뉴스 팩트 수정',
+  delete_news_fact: '뉴스 팩트 삭제', delete_news_annotation: '뉴스 신호 의견 삭제',
   bulk_edit_portfolio: '표로 자산 일괄 수정',
 }
 

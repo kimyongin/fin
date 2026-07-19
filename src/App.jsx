@@ -3,6 +3,7 @@ import AppHeader from './components/AppHeader'
 import ActivityPageView from './features/activity/ActivityPage'
 import AssetsPageView from './features/assets/AssetsPage'
 import GuidePageView from './features/guide/GuidePage'
+import NewsPageView from './features/news/NewsPage'
 import {
   CenteredMessage as CenteredMessageView,
   GuestUnlockScreen as GuestUnlockScreenView,
@@ -393,7 +394,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'overview' ? 'Portfolio' : activeTab === 'strategy' ? 'Strategy' : activeTab === 'activity' ? 'Activity' : activeTab === 'guide' ? 'Guide' : 'Settings'
+  const pageTitle = activeTab === 'overview' ? 'Portfolio' : activeTab === 'strategy' ? 'Strategy' : activeTab === 'news' ? 'News' : activeTab === 'activity' ? 'Activity' : activeTab === 'guide' ? 'Guide' : 'Settings'
 
   return (
     <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
@@ -505,6 +506,13 @@ function App() {
             tagCards={tagCards}
             tags={state.tags}
             totalValue={totalValue}
+          />
+        )}
+        {activeTab === 'news' && (
+          <NewsPageView
+            canEdit={canEdit}
+            ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
+            supabase={supabase}
           />
         )}
         {activeTab === 'activity' && (
