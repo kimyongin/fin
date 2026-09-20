@@ -1,0 +1,228 @@
+import { useEffect, useState } from 'react'
+
+import MarkdownContent from '../../components/MarkdownContent'
+import ModalShell from '../../components/ModalShell'
+import { fetchDailyBriefing, fetchDailyBriefings } from './data'
+
+const reviewPrompt = '오늘 내 포트폴리오 점검하고 저장해줘'
+
+const coverageLabels = {
+  complete: '조사 완료',
+  partial: '일부 조사',
+  failed: '자료 부족',
+}
+
+const statusLabels = {
+  no_action: '현재 행동 불필요',
+  attention: '확인 필요',
+  insufficient_data: '판단 자료 부족',
+}
+
+function formatMoment(value) {
+  if (!value) return '-'
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
+function summaryText(value) {
+  if (typeof value === 'string') return value
+  return value?.summary ?? value?.title ?? value?.body ?? ''
+}
+
+function StatusPills({ briefing }) {
+  return (
+    <div className="flex flex-wrap gap-2 text-xs">
+      <span className="rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-2.5 py-1 text-[var(--ink)]">
+        {statusLabels[briefing.status] ?? briefing.status}
+      </span>
+      <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--muted-ink)]">
+        {coverageLabels[briefing.coverage_status] ?? briefing.coverage_status}
+      </span>
+    </div>
+  )
+}
+
+function BriefingDetail({ briefing, loading, onClose }) {
+  return (
+    <ModalShell onClose={onClose} title="저장된 점검 상세">
+      {loading || !briefing ? (
+        <p className="py-8 text-sm text-[var(--muted-ink)]">브리핑을 불러오는 중입니다.</p>
+      ) : (
+        <div className="grid gap-7">
+          <section className="grid gap-3">
+            <StatusPills briefing={briefing} />
+            <h3 className="text-xl font-semibold leading-8">{briefing.headline}</h3>
+            <p className="text-xs text-[var(--muted-ink)]">분석 {formatMoment(briefing.analyzed_at)}</p>
+          </section>
+
+          <section className="grid gap-3">
+            <h3 className="text-sm font-semibold">중요한 변화</h3>
+            {briefing.changes?.length ? (
+              <ul className="grid gap-2">
+                {briefing.changes.map((change, index) => (
+                  <li className="rounded-2xl bg-[var(--surface-2)] px-4 py-3 text-sm leading-6" key={index}>
+                    {summaryText(change)}
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-sm text-[var(--muted-ink)]">저장된 중요 변화가 없습니다.</p>}
+          </section>
+
+          {briefing.uncertainties?.length > 0 && (
+            <section className="grid gap-3">
+              <h3 className="text-sm font-semibold">불확실성과 추가 확인</h3>
+              <ul className="grid gap-2 text-sm leading-6 text-[var(--muted-ink)]">
+                {briefing.uncertainties.map((item, index) => <li key={index}>• {summaryText(item)}</li>)}
+              </ul>
+            </section>
+          )}
+
+          <section className="grid gap-3">
+            <h3 className="text-sm font-semibold">확인한 범위</h3>
+            <div className="grid gap-3">
+              {briefing.scopes?.map((scope) => (
+                <article className="rounded-2xl border border-[var(--line)] p-4" key={scope.id}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <strong className="text-sm">{scope.subject_ref || (scope.subject_kind === 'portfolio' ? '전체 포트폴리오' : scope.subject_kind)}</strong>
+                    <span className="text-xs text-[var(--muted-ink)]">{scope.coverage === 'sufficient' ? '충분' : scope.coverage === 'partial' ? '일부' : '미확인'}</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-[var(--muted-ink)]">
+                    {formatMoment(scope.window_from)}부터 {formatMoment(scope.window_to)}까지
+                  </p>
+                  {scope.reason && <p className="mt-2 text-sm leading-6">{scope.reason}</p>}
+                  {scope.checked_sources?.length > 0 && (
+                    <p className="mt-2 text-xs text-[var(--muted-ink)]">확인 출처 {scope.checked_sources.length}개</p>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {briefing.evidence?.length > 0 && (
+            <section className="grid gap-3">
+              <h3 className="text-sm font-semibold">근거 자료</h3>
+              <ul className="grid gap-3">
+                {briefing.evidence.map((evidence) => (
+                  <li className="rounded-2xl bg-[var(--surface-2)] p-4" key={evidence.id}>
+                    <a className="text-sm font-semibold text-[var(--accent)] underline" href={evidence.source_url} rel="noreferrer" target="_blank">
+                      {evidence.title}
+                    </a>
+                    <MarkdownContent className="mt-2 text-sm leading-6 text-[var(--muted-ink)]" content={evidence.summary} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
+export default function DailyReviewPage({ supabase }) {
+  const [briefings, setBriefings] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [selected, setSelected] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function load() {
+    setLoading(true)
+    setError('')
+    try {
+      setBriefings(await fetchDailyBriefings(supabase))
+    } catch (nextError) {
+      setError(nextError.message ?? '저장된 점검을 불러오지 못했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [supabase])
+
+  async function openDetail(briefingId) {
+    setDetailLoading(true)
+    setError('')
+    setSelected({ id: briefingId })
+    try {
+      setSelected(await fetchDailyBriefing(supabase, briefingId))
+    } catch (nextError) {
+      setSelected(null)
+      setError(nextError.message ?? '브리핑 상세를 불러오지 못했습니다.')
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  async function copyPrompt() {
+    await navigator.clipboard.writeText(reviewPrompt)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1200)
+  }
+
+  const latest = briefings[0]
+
+  return (
+    <section className="mt-8 grid gap-5">
+      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">최근 저장된 점검</p>
+            {latest ? (
+              <>
+                <div className="mt-3"><StatusPills briefing={latest} /></div>
+                <h2 className="mt-4 text-xl font-semibold leading-8 sm:text-2xl">{latest.headline}</h2>
+                <p className="mt-2 text-xs text-[var(--muted-ink)]">분석 {formatMoment(latest.analyzed_at)}</p>
+                <button className="mt-5 min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-2)]" onClick={() => openDetail(latest.id)} type="button">
+                  전체 브리핑 보기
+                </button>
+              </>
+            ) : !loading && (
+              <>
+                <h2 className="mt-3 text-xl font-semibold">아직 저장된 점검이 없습니다.</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted-ink)]">ChatGPT가 조사하고 설명한 결과를 Portfolio에 저장하면 여기에서 계속 확인할 수 있습니다.</p>
+              </>
+            )}
+          </div>
+          <div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-4 sm:w-72">
+            <p className="text-sm font-semibold">새 점검은 ChatGPT에서 요청합니다</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">“{reviewPrompt}”</p>
+            <button className="mt-3 min-h-11 w-full rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" onClick={copyPrompt} type="button">
+              {copied ? '요청 문구를 복사했어요' : '요청 문구 복사'}
+            </button>
+          </div>
+        </div>
+      </article>
+
+      {error && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</p>}
+
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold">점검 이력</h2>
+        <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold text-[var(--muted-ink)] disabled:opacity-60" disabled={loading} onClick={load} type="button">
+          {loading ? '불러오는 중' : '새로고침'}
+        </button>
+      </div>
+
+      {!loading && briefings.length > 0 && (
+        <ol className="grid gap-3">
+          {briefings.map((briefing) => (
+            <li key={briefing.id}>
+              <button className="min-h-11 w-full rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-left transition hover:bg-[var(--surface-2)] sm:p-5" onClick={() => openDetail(briefing.id)} type="button">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <StatusPills briefing={briefing} />
+                  <time className="text-xs text-[var(--muted-ink)]">{formatMoment(briefing.analyzed_at)}</time>
+                </div>
+                <strong className="mt-3 block text-sm leading-6 sm:text-base">{briefing.headline}</strong>
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {selected && <BriefingDetail briefing={selected.headline ? selected : null} loading={detailLoading} onClose={() => setSelected(null)} />}
+    </section>
+  )
+}

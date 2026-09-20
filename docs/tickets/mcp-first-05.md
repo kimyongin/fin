@@ -1,5 +1,12 @@
 # [MCP-first] Portfolio 오늘 화면과 지인용 OAuth 온보딩
 
+## 구현 진행 (2026-09-21)
+
+- 소유자의 기본 진입을 `오늘`로 바꾸고 최신 저장 브리핑의 분석 시각·결론·행동 상태·조사 품질을 먼저 표시한다. 새 분석은 앱이 자동 생성하지 않고 ChatGPT 요청 문구를 명확히 복사한다.
+- 브리핑 이력과 상세에서 중요한 변화, 불확실성, 대상별 조사 범위, 확인 출처 수, 근거 링크를 읽는다. 원본 context snapshot은 화면에 그대로 노출하지 않는다.
+- 새 기능의 공유는 아직 기본 거부이므로 친구/익명 공유 화면에서는 `오늘` 메뉴를 숨긴다. 기능별 공유 DTO 구현 후 별도 확장한다.
+- 390×844 E2E에서 브리핑 저장→새로고침→최신 결론→상세와 가로 넘침 없음을 검증했다. 360/768/1024/1440 및 키보드·포커스 검증은 남았다.
+
 ## 구현 인계 확정 사항 (2026-09-20)
 
 - 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).

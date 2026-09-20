@@ -3,11 +3,11 @@ import { allTabs } from '../../constants/portfolio'
 
 const tabIds = new Set(allTabs.map((tab) => tab.id))
 
-function tabFromHash() {
-  if (typeof window === 'undefined') return 'overview'
+function tabFromHash(fallback = 'today') {
+  if (typeof window === 'undefined') return fallback
   const hash = window.location.hash.replace(/^#/, '').trim()
   if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet') return 'overview'
-  return tabIds.has(hash) ? hash : 'overview'
+  return tabIds.has(hash) ? hash : fallback
 }
 
 function assetViewFromHash() {
@@ -17,18 +17,18 @@ function assetViewFromHash() {
 }
 
 export function usePortfolioNavigation(canEdit) {
-  const [activeTab, setActiveTab] = useState(() => tabFromHash())
+  const [activeTab, setActiveTab] = useState(() => tabFromHash(canEdit ? 'today' : 'overview'))
   const [assetView, setAssetView] = useState(() => assetViewFromHash())
 
   const tabs = useMemo(
-    () => allTabs.filter((tab) => canEdit || tab.id !== 'settings'),
+    () => allTabs.filter((tab) => canEdit || !['today', 'settings'].includes(tab.id)),
     [canEdit],
   )
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#/, '').trim()
-      const nextTab = tabFromHash()
+      const nextTab = tabFromHash(canEdit ? 'today' : 'overview')
       if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet') {
         setAssetView(hash)
       }
@@ -41,7 +41,7 @@ export function usePortfolioNavigation(canEdit) {
     return () => {
       window.removeEventListener('hashchange', handleHashChange)
     }
-  }, [])
+  }, [canEdit])
 
   useEffect(() => {
     const nextHash = `#${activeTab}`

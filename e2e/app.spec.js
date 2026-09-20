@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test'
 import { callRpc, signInAs } from './helpers'
 
+async function openMenuTab(page, label) {
+  await page.getByRole('button', { name: 'Open menu' }).click()
+  await page.locator('nav').getByRole('button', { name: label, exact: true }).click()
+}
+
 test('loads the owner portfolio with a virtual Supabase user session', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
 
@@ -12,6 +17,53 @@ test('loads the owner portfolio with a virtual Supabase user session', async ({ 
 
   expect(state.accounts).toContainEqual(expect.objectContaining({ name: 'E2E Account' }))
   expect(state.instruments).toContainEqual(expect.objectContaining({ display_name: 'E2E Apple' }))
+})
+
+test('shows the latest saved daily review first on a mobile-sized screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+
+  const context = await callRpc(page, 'app_create_daily_context', {
+    input_subject_tickers: null,
+    input_timezone: 'Asia/Seoul',
+  })
+  expect(context.status, JSON.stringify(context.body)).toBe(200)
+
+  const now = new Date()
+  const headline = `E2E 오늘의 결론 ${Date.now()}`
+  const saved = await callRpc(page, 'app_save_daily_briefing', {
+    input_context_id: context.body.context_id,
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: {
+      status: 'attention',
+      headline,
+      changes: [{ summary: '확인이 필요한 변화입니다.' }],
+      uncertainties: [{ summary: '외부 조사는 테스트에서 생략했습니다.' }],
+      evidence: [],
+      scopes: [{
+        scope_key: 'portfolio-review',
+        subject_kind: 'portfolio',
+        window_from: new Date(now.getTime() - 86400000).toISOString(),
+        window_to: now.toISOString(),
+        coverage: 'unverified',
+        reason: 'E2E 화면 검증은 외부 조사를 수행하지 않습니다.',
+        checked_at: now.toISOString(),
+        evidence_keys: [],
+        checked_sources: [],
+      }],
+    },
+  })
+  expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+
+  await page.reload()
+  await expect(page).toHaveURL(/#today$/)
+  await expect(page.getByText(headline).first()).toBeVisible()
+  await expect(page.getByText('자료 부족').first()).toBeVisible()
+  await page.getByRole('button', { name: '전체 브리핑 보기' }).click()
+  await expect(page.getByRole('heading', { name: '저장된 점검 상세' })).toBeVisible()
+  await expect(page.getByText('확인이 필요한 변화입니다.')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
 test('starts the Google OAuth authorization redirect without using a Google account', async ({ page }) => {
@@ -272,17 +324,16 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
 
-  async function openTab(index, title) {
-    await page.getByRole('button', { name: 'Open menu' }).click()
-    await page.locator('nav button').nth(index).click()
+  async function openTab(label, title) {
+    await openMenuTab(page, label)
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
   }
 
-  await openTab(1, 'Strategy')
-  await openTab(2, 'Activity')
-  await openTab(3, 'Settings')
+  await openTab('전략', 'Strategy')
+  await openTab('기록', 'Activity')
+  await openTab('설정', 'Settings')
   await expect(page.getByText(/^버전 \d{8}T\d{6}Z$/)).toBeVisible()
-  await openTab(4, 'Guide')
+  await openTab('가이드', 'Guide')
   await expect(page.getByText('자산 구조 만들기')).toBeVisible()
 })
 
@@ -293,8 +344,7 @@ test('displays strategy contribution allocation and rebalancing guidance', async
     input_buckets: [{ name: 'E2E Allocation Bucket', sort_order: 0, tag_ids: [1], target_percentage: 100 }],
     input_drift_threshold: 1, input_monthly_contribution: 100000, input_name: 'E2E Display Strategy', input_review_day: 1,
   })
-  await page.getByRole('button', { name: 'Open menu' }).click()
-  await page.locator('nav button').nth(1).click()
+  await openMenuTab(page, '전략')
   await expect(page.getByText('E2E Display Strategy')).toBeVisible()
   await expect(page.getByText('E2E Allocation Bucket').first()).toBeVisible()
 })
@@ -302,8 +352,7 @@ test('displays strategy contribution allocation and rebalancing guidance', async
 test('handles mocked price-sync Edge Function success and failure in the settings UI', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
-  await page.getByRole('button', { name: 'Open menu' }).click()
-  await page.locator('nav button').nth(3).click()
+  await openMenuTab(page, '설정')
 
   let calls = 0
   await page.route('**/functions/v1/sync-prices', async (route) => {
@@ -322,6 +371,7 @@ test('handles mocked price-sync Edge Function success and failure in the setting
 test('handles mocked ticker-lookup Edge Function success and failure in the holding editor', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
+  await openMenuTab(page, '자산')
   await page.getByRole('tab').nth(2).click()
   await page.getByRole('button', { name: '보유 추가' }).first().click()
   const tickerInput = page.locator('input[placeholder*="AAPL"]')
@@ -345,6 +395,7 @@ test('copies the visible portfolio as CSV from the browser header', async ({ con
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
+  await openMenuTab(page, '자산')
   await page.getByRole('button', { name: 'CSV 복사' }).click()
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('티커')
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('E2EAPL')
@@ -353,6 +404,7 @@ test('copies the visible portfolio as CSV from the browser header', async ({ con
 test('renders saved data in every asset view', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
+  await openMenuTab(page, '자산')
   const tabs = page.getByRole('tab')
   await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true')
   await tabs.nth(1).click()

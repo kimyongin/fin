@@ -43,7 +43,7 @@
 
 - 후속 설계: [24개 사용자 시나리오/API/데이터 대응표](./design/contracts/scenario-api-model-matrix.md), [원칙·판단·할 일·매매 생애주기](./design/contracts/lifecycle-model-api.md). 판단+후속 할 일 원자 저장, 조사 질문 CAS, 체결 취소 preview, 당시 task history 참조, 조사 대상 누락 검증을 보완했다. 문서 점검과 실제 테스트 통과를 구별하며 기술 검증 게이트는 계약 인덱스를 따른다.
 
-- 2026-09-21: 구현 전 모델/API 계약 설계에 착수했다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 먼저 읽는다. 원격 legacy 거래 트리거와 리포트 DDL은 확인했지만 로컬 DB는 동일하지 않다. 현재 첫 슬라이스 모델/API는 1차안이며 서버 임시 context 생명주기·JSON Schema/fixture 검증이 다음 작업이다. 운영 코드/DB 변경은 하지 않았다.
+- 2026-09-21: 첫 수직 슬라이스 구현을 시작했다. 일일 context/브리핑 DB 계약과 테스트, OAuth MCP 일일 점검 4개 도구, 앱의 소유자 전용 `오늘` 읽기 화면까지 로컬에서 연결했다. 운영 배포·웹/모바일 실제 연결 갱신·기능별 공유·판단/task 후속 모델은 아직 남아 있다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 계속 기준으로 삼는다.
 
 - 공유 설계 추가 결정: [ADR-0003](./adr/0003-extensible-feature-sharing.md). 내부 기능별 read 권한 + 단순 묶음 UI. 전역 boolean만으로 구현하지 않으며 친구별 예외/문서별 ACL은 첫 버전에서 제외한다.
 

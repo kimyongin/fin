@@ -4,6 +4,7 @@ import ActivityPageView from './features/activity/ActivityPage'
 import AssetsPageView from './features/assets/AssetsPage'
 import GuidePageView from './features/guide/GuidePage'
 import NewsPageView from './features/news/NewsPage'
+import DailyReviewPageView from './features/review/DailyReviewPage'
 import {
   CenteredMessage as CenteredMessageView,
   GuestUnlockScreen as GuestUnlockScreenView,
@@ -413,7 +414,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'overview' ? 'Portfolio' : activeTab === 'strategy' ? 'Strategy' : activeTab === 'news' ? 'News' : activeTab === 'activity' ? 'Activity' : activeTab === 'guide' ? 'Guide' : 'Settings'
+  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? 'Portfolio' : activeTab === 'strategy' ? 'Strategy' : activeTab === 'news' ? 'News' : activeTab === 'activity' ? 'Activity' : activeTab === 'guide' ? 'Guide' : 'Settings'
 
   return (
     <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
@@ -442,6 +443,8 @@ function App() {
             {loadError}
           </div>
         )}
+
+        {activeTab === 'today' && <DailyReviewPageView supabase={supabase} />}
 
         {activeTab === 'overview' && (
           <AssetsPageView
