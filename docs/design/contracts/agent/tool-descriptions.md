@@ -1,6 +1,6 @@
 # 도구 설명 카탈로그
 
-revision 7 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
+revision 8 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
 
 ## 설명 작성 형식
 
@@ -33,6 +33,7 @@ revision 7 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `su
 | save_investment_policy / observed-local | 사용자가 명시적으로 저장/변경한 개인 기준 필드만 현재 version과 함께 수정합니다. null은 명시적 삭제이며 목표 비중·운용 모드·보유·판단은 변경하지 않습니다. | W02 |
 | get_holding_thesis / observed-local | 종목 공통 보유 이유와 선택한 계좌의 재정의, 실제 적용 출처와 version을 읽습니다. 기존 메모나 미입력 이유를 추론하지 않습니다. | W02 |
 | save_holding_thesis / observed-local | 사용자가 명시적으로 저장/변경한 종목 공통 또는 계좌별 보유 이유만 현재 version과 함께 수정합니다. 메모·잔고·체결·판단·할 일은 변경하지 않습니다. | W02 |
+| link_task_to_holding_thesis / observed-local | 현재 version을 읽은 보유 이유와 할 일을 연결만 합니다. 이유·할 일 상태·잔고·체결은 변경하지 않습니다. | W02,W04 |
 | preview_trade_entry / observed-local | 이미 체결된 시장형 매매 입력이 현재 수량·평균가를 어떻게 바꾸는지 서버에서 미리 계산합니다. 저장·주문·현금 이동·잔고 확인은 하지 않습니다. | W05 |
 | log_completed_trade / observed-local | 사용자가 기록을 요청한 완료 매매의 유효한 preview를 멱등 확정해 로컬 수량·평균가를 갱신합니다. 증권사 주문이나 잔고 확인은 하지 않습니다. | W05 |
 | list_transactions / observed-local | Portfolio 새 원장에 기록한 완료 체결을 읽습니다. 증권사 전체 거래내역이나 legacy/미입력 거래까지 완전하다고 설명하지 않습니다. | W05,W06 |

@@ -21,6 +21,7 @@ const sharedSliceMigrations = [
   'supabase/migrations/202609210016_shared_review_dtos.sql',
   'supabase/migrations/202609210017_holding_thesis_lifecycle.sql',
   'supabase/migrations/202609210018_portfolio_integrity_summary.sql',
+  'supabase/migrations/202609210019_thesis_task_links.sql',
 ]
 
 for (const migration of sharedSliceMigrations) {

@@ -566,6 +566,11 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: idempotentWriteAnnotations,
   },
   {
+    name: 'link_task_to_holding_thesis', title: 'Link a follow-up task to a holding thesis',
+    description: 'Link an existing owner task to an existing holding thesis after reading both current versions. This preserves the relationship only and never changes the thesis, task state, holding, or trades.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, thesis_id: { type: 'string', format: 'uuid' }, task_id: { type: 'string', format: 'uuid' }, expected_thesis_version: { type: 'integer', minimum: 1 }, expected_task_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','thesis_id','task_id','expected_thesis_version','expected_task_version','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
     name: 'preview_trade_entry',
     title: 'Preview a completed trade entry',
     description: 'Preview how a user-reported completed market buy or sell would change one account holding. Use decimal strings for quantity and execution price. This does not place an order, move cash, save a trade, or verify the brokerage balance.',
@@ -677,6 +682,7 @@ export const investmentPolicyToolNames = [
 export const holdingThesisToolNames = [
   'get_holding_thesis',
   'save_holding_thesis',
+  'link_task_to_holding_thesis',
 ] as const
 
 export const tradeEntryToolNames = [

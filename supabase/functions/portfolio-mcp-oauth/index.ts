@@ -603,6 +603,14 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
+  async link_task_to_holding_thesis(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_link_task_to_holding_thesis', {
+      input_thesis_id: requireUuid(args.thesis_id, 'thesis_id'), input_task_id: requireUuid(args.task_id, 'task_id'),
+      input_expected_thesis_version: requirePositiveInteger(args.expected_thesis_version, 'expected_thesis_version'), input_expected_task_version: requirePositiveInteger(args.expected_task_version, 'expected_task_version'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+    }) }
+  },
   async preview_trade_entry(supabase, args) {
     const data = await rpc(supabase, 'app_preview_trade_entry', {
       input_account_id: requirePositiveInteger(args.account_id, 'account_id'),
