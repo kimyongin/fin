@@ -1,0 +1,14 @@
+begin; create extension if not exists pgtap with schema extensions; set local search_path=public,extensions; select extensions.plan(7);
+insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values('00000000-0000-0000-0000-000000001301','authenticated','authenticated','trade-life@example.com','',now(),now(),now());
+set local role postgres; insert into accounts(id,user_id,name) values(9931,'00000000-0000-0000-0000-000000001301','Account');
+insert into instruments(id,user_id,ticker,display_name,currency,instrument_type) values(9931,'00000000-0000-0000-0000-000000001301','ROUND','Round trip','KRW','market');
+insert into holdings(user_id,account_id,ticker,quantity,avg_price) values('00000000-0000-0000-0000-000000001301',9931,'ROUND',2.5,100.25);
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001301',true); set local role authenticated;
+select extensions.is((select ledger_cost_pool from holdings where ticker='ROUND'),250.625::numeric,'initial decimal holding becomes an exact cost checkpoint');
+select extensions.is(public.app_log_completed_trade((public.app_preview_trade_entry(9931,9931,'sell',2.5,110,current_date)->>'preview_id')::uuid,'11111111-1111-4111-8111-111111111111','app')#>>'{holding,quantity}','0.0000000000000000','full sale reaches zero');
+select extensions.is((select avg_price from holdings where ticker='ROUND'),null::real,'full sale clears average price');
+select extensions.is(public.app_log_completed_trade((public.app_preview_trade_entry(9931,9931,'buy',1.25,120.40,current_date)->>'preview_id')::uuid,'22222222-2222-4222-8222-222222222222','app')#>>'{holding,avg_price}','120.4000000000000000','repurchase starts a new exact cost basis');
+select extensions.is((select ledger_cost_pool from holdings where ticker='ROUND'),150.5::numeric,'repurchase cost pool preserves decimal arithmetic');
+select extensions.ok((select min(sequence_no)<max(sequence_no) from trade_entries),'same-day entries retain deterministic sequence order');
+select extensions.is((select count(*) from trade_entries),2::bigint,'full sale and repurchase remain separate ordered entries');
+select * from extensions.finish(); rollback;
