@@ -291,13 +291,16 @@ function App() {
   }, [canEdit, refreshState])
 
   async function signInWithGoogle() {
-    return supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: authRedirectTo(),
         skipBrowserRedirect: true,
       },
     })
+    if (error) throw error
+    if (!data?.url) throw new Error('Google 로그인 주소를 받지 못했습니다.')
+    window.location.assign(data.url)
   }
 
   const {
