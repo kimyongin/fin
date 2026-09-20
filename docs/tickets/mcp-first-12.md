@@ -1,9 +1,24 @@
 # [MCP-first] 점검 범위·사건·검토 질문·판단 이력 데이터 계약
 
+## 계약 설계 진행 (2026-09-21)
+
+- 에이전트 전달 계약을 `docs/design/contracts/agent/`에 추가했다: 공통 규칙, 도구별 설명 후보, W01~W08 작업 가이드와 S/R 시나리오 연결. 현재 로컬 OAuth tools 배열의 읽기 6개와 planned API를 구분하며 실제 MCP 등록/배포는 변경하지 않았다.
+- 지속 관리: #33 공통 정의에서 tools/list/dispatch·스키마를 연결하고, 각 기능 변경 시 시나리오·설명·스키마·테스트를 함께 갱신한다. 설명은 에이전트 안내이며 소유권/버전/원자성 강제는 서버 책임이다.
+
+- 후속 산출물: `docs/design/contracts/lifecycle-model-api.md`, `scenario-api-model-matrix.md`(동일 디렉터리). 24개 사용자 시나리오별 API·변경 모델·불변 조건·담당을 대조하고, 원칙→판단→질문→대체 판단→부분 체결→취소→보정의 연결 사례를 작성했다.
+- 누락 보완: 판단/보유 이유+후속 질문 원자 저장, 질문 CAS 충돌 시 batch rollback, 취소 전용 preview, 실행 control_state/progress 분리, 브리핑의 당시 task history 고정, 문맥 대상 manifest 대비 누락 조사 처리. 새 API 명칭은 서비스 계약안이며 모두 MCP 도구로 노출한다는 뜻이 아니다.
+- 아래의 ‘후속 상세 계약’은 이번에 모델/필드/상태전이 수준까지 확장했다. 완전한 JSON Schema·물리 DDL·자동/DB 테스트와 context receipt 검증은 남아 있으므로 완료 체크는 유지한다.
+
+- 로컬 산출물: `docs/design/schema-audit-20260921.md`, `docs/design/contracts/README.md`, `daily-review-model.md`, `daily-review-api.md`(마지막 두 파일도 contracts 디렉터리). 현재 작업 트리 작성본이며 커밋/푸시 여부는 Git으로 확인한다.
+- 원격 public 스키마 읽기 전용 확인 완료. 기존 transactions 재계산은 절대 보정 정책과 다르고, daily_reports/rebalance_suggestions는 새 구조화 점검 원본으로 사용하지 않고 역사 자료를 보존한다. 로컬 DB에는 해당 legacy 테이블이 없어 원격과 동일한 테스트 환경이 아니다.
+- 첫 ‘문맥 조회 → 분석 저장 → 재조회’ 슬라이스의 모델/필드·소유권·저장 원자성·업무 오류·16개 검증 시나리오를 1차안으로 작성했다. 질문 갱신·결정 채택·체결 API의 상세 계약은 후속이다.
+- 다음 게이트: 순수 문맥 조회와 snapshot 보존을 잇는 receipt 기술 검증 → JSON Schema 및 정상/반례 fixture 자동 검사 → 물리 DDL/RLS/동시성 테스트. 예상 결과 문서화만으로 검증 통과 처리하지 않는다.
+- 운영 코드/DB 변경 없음. 이 티켓과 관련 구현 티켓은 계속 open이며 아래 전체 완료 조건은 아직 충족하지 않았다.
+
 ## 구현 인계 확정 사항 (2026-09-20)
 
 - 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
-- 공유 구조는 ADR-0003을 따른다. 기능별 키·필드와 관계 투영 계약은 여기서 확정하고 실제 권한 기반은 #43에서 구현한다. #35는 이를 소비한다. 친구별 상속/override/문서별 ACL을 설계 범위에 추가하지 않는다. 기존 거래/리포트 정확한 DDL은 아직 미검증이다.
+- 공유 구조는 ADR-0003을 따른다. 기능별 키·필드와 관계 투영 계약은 여기서 확정하고 실제 권한 기반은 #43에서 구현한다. #35는 이를 소비한다. 친구별 상속/override/문서별 ACL을 설계 범위에 추가하지 않는다. 기존 거래/리포트 DDL 후속 확인 결과는 위 2026-09-21 진행 기록을 따른다.
 - 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
 
 ## 기존 모델과 새 책임의 대응표

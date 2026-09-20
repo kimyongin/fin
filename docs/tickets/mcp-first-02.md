@@ -35,6 +35,11 @@ supabase/functions/portfolio-mcp-oauth/index.ts에 OAuth, 읽기 annotations, in
 - instructions는 중요한 짧은 원칙, tool result는 요청 업무에 필요한 가이드만 제공한다.
 
 ## 완료 조건
+
+- [ ] `docs/design/contracts/agent/README.md` 및 behavior/tool-descriptions/workflows 문서를 기준으로 공통 instructions·도구 설명·선택적 가이드 전달을 연결한다. 문서 초안은 배포 증거가 아니다.
+- [ ] description/inputSchema/outputSchema/annotations/handler의 공통 정의를 tools/list와 dispatch에서 사용하고 OAuth/기존 토큰 경로의 수동 복제를 제거한다. 연결 후 설명 Markdown은 생성 참조 또는 정의 링크로 전환해 이중 원본을 남기지 않는다.
+- [ ] 제공 상태를 observed-local/planned/released로 구별하고 계획 도구를 등록하거나 가이드에서 실행 가능하다고 광고하지 않는다. get_workflow_guide는 필요 시 제공하는 읽기 도구 후보이며 필수 안전 규칙은 가이드 호출 없이 유지한다.
+- [ ] 모든 기능 변경 PR은 S/R 시나리오와 W 가이드 ID를 연결하고 설명·스키마·오류 처리·서버 테스트를 동시 점검한다. 원본 일치 CI와 실제 클라이언트 도구 선택 평가를 구분해 기록한다.
 - [ ] 독립 타입 검사와 initialize/tools/list/잘못된 요청 계약 검증을 통과한다.
 - [ ] 웹·실제 모바일 각각 새 세션/메타데이터 갱신 후 도구와 지침 적용 결과를 기록한다.
 - [ ] 테스트용 표식 전달과 서버 discovery 요청을 구분해 관찰 근거를 남긴다.

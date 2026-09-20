@@ -4,6 +4,8 @@
 
 ## 먼저 읽을 것
 
+폴더 지도는 [루트 README](../README.md), 코드 배치/개발 방법은 [architecture](./engineering/architecture.md)와 [development](./engineering/development.md), 설계 문서별 역할은 [design 인덱스](./design/README.md)를 참조한다.
+
 1. 루트 `AGENTS.md`: 작업 규칙과 파일 인코딩.
 2. [PRD](./prd/portfolio.md): 목적·사용 흐름·범위·성공 기준.
 3. [ADR-0001](./adr/0001-mcp-first-product-boundaries.md), [ADR-0002](./adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](./adr/0003-extensible-feature-sharing.md): 책임 분리, 원가·보정 정책, 기능별 공유 구조의 확정 결정.
@@ -33,9 +35,17 @@
 
 ## 현재 상태와 다음 시작점
 
+- 공통 구현 기반 설계: [React 컴포넌트](./design/component-system.md), [백엔드 모듈](./engineering/backend-modules.md). 기존 ModalShell 보완과 호환 재사용, modal drawer/편집 상태 계약, Edge 공통 adapter/registry 및 DB 원자 저장 경계를 정의했다. 코드·라이브러리 설치·배포는 아직 변경하지 않았다.
+
+- 에이전트용 명세: [agent 계약 관리](./design/contracts/agent/README.md). 공통 행동 규칙, 현 OAuth 로컬 읽기 도구 6개와 계획 도구 설명 후보, W01~W08 작업 가이드를 작성했다. 문서만 추가했으며 현재 tools/list는 변경하지 않았다. #33은 공통 도구 정의 연결, 각 기능 티켓은 설명/스키마/시나리오/테스트 동시 갱신을 담당한다.
+
+- 후속 설계: [24개 사용자 시나리오/API/데이터 대응표](./design/contracts/scenario-api-model-matrix.md), [원칙·판단·할 일·매매 생애주기](./design/contracts/lifecycle-model-api.md). 판단+후속 할 일 원자 저장, 조사 질문 CAS, 체결 취소 preview, 당시 task history 참조, 조사 대상 누락 검증을 보완했다. 문서 점검과 실제 테스트 통과를 구별하며 기술 검증 게이트는 계약 인덱스를 따른다.
+
+- 2026-09-21: 구현 전 모델/API 계약 설계에 착수했다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 먼저 읽는다. 원격 legacy 거래 트리거와 리포트 DDL은 확인했지만 로컬 DB는 동일하지 않다. 현재 첫 슬라이스 모델/API는 1차안이며 문맥 증명 방식·JSON Schema/fixture 검증이 다음 작업이다. 운영 코드/DB 변경은 하지 않았다.
+
 - 공유 설계 추가 결정: [ADR-0003](./adr/0003-extensible-feature-sharing.md). 내부 기능별 read 권한 + 단순 묶음 UI. 전역 boolean만으로 구현하지 않으며 친구별 예외/문서별 ACL은 첫 버전에서 제외한다.
 
-- 상세 설계 진행 자료: [구현 계약 초안](./design/implementation-contract-draft.md). [ADR-0002](./adr/0002-cost-basis-reconciliation-and-sharing.md)에서 체결가 평균, 보정 이전 정정의 현재값 유지, 새 정보 선택 공유를 사용자 확정했다. 그 외 초안의 기술·공유 UX 세부는 아직 검토 중이다. 거래/과거 리포트 DDL은 로컬 placeholder 이력만으로 확인되지 않았다.
+- 상세 설계 진행 자료: [구현 계약 초안](./design/implementation-contract-draft.md). [ADR-0002](./adr/0002-cost-basis-reconciliation-and-sharing.md)에서 체결가 평균, 보정 이전 정정의 현재값 유지, 새 정보 선택 공유를 사용자 확정했다. 그 외 초안의 기술·공유 UX 세부는 아직 검토 중이다. 거래/과거 리포트 DDL의 후속 확인 결과는 위 2026-09-21 조사에 있다.
 
 - 계획 티켓 12개(#32~#39, #41~#44) 및 Epic #40은 생성·재정리됐다. 2026-09-20 마지막 감사에서 로컬과 원격 본문이 일치했고 모두 open이었다.
 - 신규 제품 기능은 아직 구현 완료가 아니다. OAuth MCP 실험과 가상 HTML 시안이 있는 것을 제품 완성으로 해석하지 않는다.

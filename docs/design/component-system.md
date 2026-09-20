@@ -1,0 +1,48 @@
+# React 공통 컴포넌트 설계
+
+2026-09-21 · 설계안 / 미구현. 현재 React 19 + Vite + Tailwind를 사용한다(package.json 선언 기준). 별도 Web Components/custom elements 프레임워크를 도입한다는 뜻이 아니다. 기존 어두운 테마와 CSS 변수를 유지한다.
+
+## 현재 기반과 보완
+
+ModalShell, ModalActions, PortfolioEntityHeader/Identity, MetricSummary, MarkdownContent가 이미 src/components에 있다. 이를 폐기하고 새 디자인 시스템을 전면 도입하지 않는다.
+ModalShell 코드에는 Escape 닫기가 있으나 자체 focus trap/복귀, dialog 이름 연결, background inert, scroll lock은 구현되어 있지 않다. 닫기 버튼 h-10/w-10은 기본 40px여서 최소44px 기준과 차이가 있다. 이는 코드 확인 결과이며 실제 화면 접근성 전체 검증은 아니다.
+
+## 공통 UI 계약
+
+| 구성요소 | 책임과 입력 후보 | 하지 않는 일 |
+| --- | --- | --- |
+| DialogSurface | open, title, description?, initialFocusRef?, returnFocusRef?, onRequestClose(reason), children, footer | 도메인 저장·권한·잔고 계산 |
+| ModalShell | 기존 호출자를 유지하는 호환 wrapper. 내부 DialogSurface로 점진 전환 | 각 화면마다 Escape/focus 구현 복제 |
+| DetailSurface | 좁은 화면 full-height, 넓은 화면 오른쪽 drawer. 공통 제목/닫기/본문 | 화면 폭 변경으로 내용/초안 재생성 |
+| ConfirmDialog | 행동명·대상·영향·취소/확인. 삭제/보정/취소를 구체적 문구로 구분 | preview를 사용자 승인으로 간주 |
+| FormField | label/id, hint, error, required, children. aria-describedby 연결 | 금융 규칙의 최종 검증 |
+| ActionButton / FormActions | pending/disabled, 주/보조/위험 행동, 최소44px, 중복 클릭 방지 | API 재시도/idempotency 생성 |
+| AsyncState | loading/empty/error/ready, retry callback; 오래된 데이터와 loading 구별 | 읽기 실패를 빈 목록으로 숨김 |
+| QualityBadge / DataTimestamp | missing/stale/estimated/partial, 날짜와 텍스트 레이블 | 품질 상태를 자체 추론해 변경 |
+
+이름/props는 제안이며 React JSX 기존 방식 유지. 새 UI 라이브러리 채택은 지금 확정하지 않는다. 구현 시 접근성 동작을 검증한 primitive 사용과 자체 구현을 비교하되 저장소 전체 교체를 전제하지 않는다.
+
+## 모달·드로어 공통 동작
+
+- 첫 드로어는 modal 방식으로 통일한다. PC에서도 배경과 동시 편집하는 non-modal 패널은 별도 계약 전 도입하지 않는다. 닫기까지 배경 inert, scroll lock, 포커스 유지, dialog role/aria-modal/label 제공.
+- 초점은 첫 입력 또는 긴 내용의 제목처럼 의미 있는 위치로 이동하고, 닫으면 호출 요소로 복귀한다. 호출 요소가 사라지면 목록 제목 등 안정적인 fallback 사용.
+- Escape/닫기 버튼/외부 클릭/뒤로가기는 동일한 onRequestClose 경로로 처리한다. 최상위 overlay만 처리한다. 모바일 드래그 닫기는 필수 기능에서 제외한다.
+- dirty 편집은 유지/버리기/머무르기 정책에 따라 보호한다. 저장 중 닫기는 진행 상황을 설명하고 중복 저장을 막는다. 네트워크 요청 취소가 서버 rollback을 뜻하지 않는다.
+- 기능 controller가 dirty/pending/저장 결과를 소유한다. shell은 닫기 요청만 전달하며 사용자의 입력을 삭제하지 않는다. 위험 확인을 여러 overlay에 중첩하지 않고 최상위 확인 하나만 허용한다.
+- DetailSurface는 850px 기준안과 실제 가용 폭에 따라 전환한다. 폼의 stable key/상태는 기능 계층에 두어 회전/resize에도 유지한다. 고정 footer는 safe-area/키보드/본문 스크롤을 가리지 않는다.
+- 목록 필터·스크롤·선택 대상과 상세 이동은 기능 navigation이 담당한다. 기존 hash 진입/뒤로가기 보존. 새 router 도입을 선행조건으로 만들지 않는다.
+
+## 업무 컴포넌트와 상태
+
+BriefingSummary, DecisionStatus, TaskProgress, EvidenceList, PositionChangePreview 등은 먼저 해당 features 폴더에 둔다. 실제 여러 소비자가 생기면 공개 props를 정리해 공통화한다. 범용 '모든 엔티티 카드'를 미리 만들지 않는다.
+
+기능 page → feature controller/hooks → data adapter → RPC가 기본 흐름이다. 공통 UI는 feature나 Supabase를 import하지 않는다. 서버 응답/캐시와 사용자 draft를 구분하고 refetch로 미저장 입력을 덮지 않는다. 캐시 키는 인증 사용자/공유 문맥/대상/필터를 포함하고 로그아웃·권한 철회 시 제거한다. 늦은 읽기 응답은 request identity로 무시한다. 금융 문자열을 Number로 바꿔 저장하지 않는다.
+
+## 인수와 적용 순서
+
+1. #36에서 기존 ModalShell 호출부를 조사하고 호환 wrapper부터 개선한다. 기존 자산/표 편집을 한꺼번에 교체하지 않는다.
+2. 판단 상세와 기존 편집 한 곳으로 Dialog/DetailSurface를 검증하고 다른 기능으로 확대한다.
+3. 360/390/768/1024/1440px, 키보드 Tab/Shift+Tab/Escape, 포커스 복귀, 긴 본문·오류, resize 중 draft, dirty 뒤로가기, 저장 중 timeout을 확인한다.
+4. 공통 컴포넌트 테스트는 인터랙션·접근성, feature 테스트는 저장 의도·오류·데이터 연결을 검증한다. 스냅샷만으로 통과하지 않는다. 기존 E2E는 desktop 프로젝트이므로 모바일 검증을 별도로 추가/기록한다.
+
+문서화는 UI 구현/접근성 검증 완료가 아니다. 원칙은 [PRINCIPLES](./PRINCIPLES.md), 코드 책임은 [architecture](../engineering/architecture.md)를 따른다.

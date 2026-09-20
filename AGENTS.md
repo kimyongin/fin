@@ -4,6 +4,10 @@
 - Treat unresolved contracts as work to complete in their owning tickets, not permission to invent behavior. Record decisions, validation results, and next steps in persistent project documents before handing off.
 - Historical prototypes and `tickets/20260718-*.md` are background, not the current implementation specification. Preserve unrelated dirty work and verify Git/GitHub state rather than trusting old session status.
 
+# Engineering Guidance
+
+Before code changes, read `docs/engineering/architecture.md` for placement and responsibilities and `docs/engineering/development.md` for environment/test/deployment safety. `npm run test:db` currently targets the linked remote database; do not treat it as an isolated local test. Keep development-agent instructions separate from product MCP-agent instructions in `docs/design/contracts/agent/`.
+
 # Text Encoding
 
 - Treat every repository text file as UTF-8 without a BOM and use LF line endings.
@@ -19,6 +23,8 @@
 - When a database change affects the facts in `supabase/schema/OVERVIEW.md`, update that index.
 
 # UI Design
+
+- Before introducing shared UI or backend helpers, read `docs/design/component-system.md` or `docs/engineering/backend-modules.md` respectively. Reuse existing components, keep transactional rules in the server, and do not introduce a generic framework ahead of concrete feature needs.
 
 - Before changing UI code, screen specifications, or prototypes, read `docs/design/PRINCIPLES.md` and follow its mobile-first rules and acceptance checklist.
 - For product or navigation changes, also read `docs/design/product-reorganization.md`. Preserve useful workflows and data, not every existing screen; use its explicit keep/restructure/new/relocate decisions.

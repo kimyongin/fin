@@ -1,0 +1,39 @@
+# 코드 구조와 책임
+
+2026-09-21 · 현재 구조 설명 + 앞으로 적용할 배치 원칙. 대규모 폴더 이동을 요구하지 않는다.
+
+컴포넌트 상세: [React 공통 UI](../design/component-system.md). 서버 모듈 상세: [backend-modules](./backend-modules.md). 둘 다 책임/인터페이스 설계안이며 공통 라이브러리를 이미 구현했다는 뜻은 아니다.
+
+## 현재 코드 지도
+
+| 경로 | 현재 역할 / 새 코드 배치 기준 |
+| --- | --- |
+| src/main.jsx, App.jsx | 앱 진입과 인증/화면/기능 조립. 신규 업무 규칙을 계속 App.jsx에 집중시키지 않음 |
+| src/features/assets | 자산 보기와 표 편집. 기존 입력 흐름 유지 |
+| src/features/portfolio | 공통 포트폴리오 data/actions/hooks와 파생 계산. 여러 화면이 소비하는 기존 기반 |
+| src/features/strategy, news, activity | 기능 화면과 기능별 데이터 처리. 승인된 제품 재정리 방향으로 변경 |
+| src/features/auth, agent, settings | 로그인/동의, 앱의 에이전트 토큰 관리, 설정. agent 폴더는 MCP 서버 구현 위치가 아님 |
+| src/components | 여러 기능이 재사용하는 표현 컴포넌트 |
+| src/lib, constants | Supabase 연결/설정, 포맷, 계산 등 공통 유틸리티와 상수 |
+| supabase/functions/portfolio-mcp-oauth | OAuth MCP 진입점. 미커밋 실험 존재 여부 확인 후 작업 |
+| supabase/functions/portfolio-mcp | 기존 토큰 MCP. OAuth와 호환/권한 차이 확인 |
+| supabase/functions/sync-prices, lookup-ticker | 외부 시세·종목 조회 |
+| supabase/functions/chatgpt-mcp-probe | 실험용. 운영 계약의 원본으로 사용하지 않음 |
+| supabase/migrations | 적용 DB 이력. 과거 파일을 바꾸는 대신 incremental migration |
+| supabase/schema/OVERVIEW.md | DB 탐색 시작점. 실제 DDL의 대체물이 아님 |
+
+## 의존성과 저장 책임
+
+- 화면은 사용자 의도/입력/표시를 담당한다. 기능의 data 계층이 RPC/응답 오류를 다루고 actions/hooks가 상태 흐름을 조립한다. 현재 모든 파일이 완벽히 이 규칙으로 분리됐다는 뜻은 아니다.
+- 공통 components/lib가 특정 기능 화면을 역으로 import하지 않도록 한다. 한 기능에서만 쓰는 유틸은 우선 그 기능에 둔다. 공통화만을 위한 범용 프레임워크를 만들지 않는다.
+- 최종 원가/잔고, 소유권, 상태 전이, CAS, idempotency, 원자성은 서버 책임이다. 프런트엔드 계산은 표시/미리보기이며 저장 원본을 확정하지 않는다.
+- 앱과 MCP는 같은 업무 저장 서비스를 사용한다. 인증 adapter의 차이 때문에 계산/권한 검증을 복제하거나 우회하지 않는다.
+- 신규 Today/판단/할 일 기능은 관련 티켓에서 features 하위에 배치하고 기존 자산을 전면 재작성하지 않는다. 공유 서버 모듈과 MCP registry의 정확한 코드 위치는 구현 시 결정하고 여기 기록한다.
+
+## 시나리오·API 문서·코드 관계
+
+사용자 시나리오 원본은 `docs/design/contracts/scenario-api-model-matrix.md`의 S ID다. 입력/출력·변경 의미는 daily-review-api/lifecycle-model-api, 에이전트 사용 흐름은 agent/workflows의 W ID를 참조한다.
+
+지금 MCP 설명은 `docs/design/contracts/agent/tool-descriptions.md`의 문서 초안이다. 구현 시 description/schema/annotations/handler의 공통 정의를 코드에 두고 실제 tools/list가 사용한다. 이후 설명 문서는 생성 참조 또는 코드 링크로 전환한다. 함수 주석에 시나리오 전문을 복사하지 않고 S/W ID와 필요한 설계 링크를 남긴다.
+
+개발 에이전트 지침(AGENTS/engineering)은 코드를 고치는 규칙, 제품 에이전트 지침(design/contracts/agent)은 Portfolio 도구를 사용하는 규칙이다. 서로 런타임 지침으로 혼합하지 않는다.
