@@ -1,5 +1,12 @@
 # [MCP-first] 아침 점검용 get_daily_context 구현
 
+## 구현 진행 (2026-09-21)
+
+- `202609210001_daily_review_foundation.sql`에서 소유자 전용 6시간 임시 context, 만료 정리, 사용자별 활성 context 10개·subject 200개·snapshot 2 MiB 제한, 기존 portfolio/strategy/news/activity/이전 브리핑 snapshot 조립을 구현했다.
+- context 생성은 브리핑·열람·잔고 확인이나 완료 activity를 만들지 않으며, 저장 시 원본 snapshot이 브리핑으로 복사되는 것을 DB 테스트로 검증했다.
+- 이전 조사 scope 요약과 3일 겹침 설정을 context에 포함했다. 열린 질문·판단·보유 이유·실제 잔고 확인은 아직 `unavailable`인 후속 슬라이스다.
+- 남은 범위: 계약의 최종 subject ID/manifest·실제 대용량 fixture와 분할 DTO 확정, OAuth MCP 도구 등록과 앱/MCP 오류 envelope, 후속 모델 연결 및 공유 DTO.
+
 ## 단순화 적용 기준 — ADR-0004 (2026-09-21)
 
 [ADR-0004](https://github.com/kimyongin/fin/blob/master/docs/adr/0004-domain-storage-and-minimal-mutation-contract.md)가 아래 이전 설계의 물리 구조 요구보다 우선한다. 해당 ADR은 현재 작업 트리에서 작성됐으며 원격 링크는 푸시 후 유효하다. 도메인 테이블+공통 변경 규약, 필요한 대상만 version 검사, 현재값+중요 변경 이력/당시 snapshot을 사용한다. 모든 모델에 head/revision 쌍을 만들지 않는다.

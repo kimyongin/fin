@@ -65,8 +65,10 @@ select extensions.throws_like(
   'app_save_account rejects blank names'
 );
 
-insert into public.tags (user_id, name, sort_order)
-values (auth.uid(), 'Growth', 1);
+do $$
+begin
+  perform * from public.app_save_tag(null, 'Growth', 1, 'user', 'create prerequisite tag');
+end $$;
 
 select extensions.is(
   (select name from public.app_save_tag(null, 'Income', 2, 'user', 'create tag')),

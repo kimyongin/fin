@@ -1,5 +1,12 @@
 # [MCP-first] 출처 있는 뉴스·일일 브리핑·판단 결과 저장과 조회
 
+## 구현 진행 (2026-09-21)
+
+- `202609210001_daily_review_foundation.sql`에서 단일 briefing aggregate, 근거 snapshot, 조사 scope, 확인 출처, scope-evidence 관계, 성공 mutation receipt와 owner-only 조회 RPC를 구현했다.
+- `save_daily_briefing`은 context 소유권·만료, 입력 한도, 근거 참조를 검증하고 한 트랜잭션으로 저장한다. 같은 idempotency key+입력은 기존 응답을 반환하고 다른 입력은 거부한다.
+- scope의 `sufficient/partial/unverified`로 전체 `complete/partial/failed`를 서버가 계산하며, partial/failed를 `no_action`으로 저장하지 못하게 했다. 새 기사 없음도 성공적으로 확인한 출처를 별도로 남길 수 있다.
+- DB 인수 테스트는 context 비부작용, snapshot 복사, 원자 저장, 조사 품질, idempotency, 만료, 사용자 격리를 다룬다. 판단/task 상태전이, 공유 DTO, MCP 등록과 최종 JSON envelope는 후속 슬라이스다.
+
 ## 단순화 적용 기준 — ADR-0004 (2026-09-21)
 
 [ADR-0004](https://github.com/kimyongin/fin/blob/master/docs/adr/0004-domain-storage-and-minimal-mutation-contract.md)가 아래 이전 설계의 물리 구조 요구보다 우선한다. 해당 ADR은 현재 작업 트리에서 작성됐으며 원격 링크는 푸시 후 유효하다. 도메인 테이블+공통 변경 규약, 필요한 대상만 version 검사, 현재값+중요 변경 이력/당시 snapshot을 사용한다. 모든 모델에 head/revision 쌍을 만들지 않는다.
