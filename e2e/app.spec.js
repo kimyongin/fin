@@ -242,6 +242,30 @@ test('previews and records a completed trade on mobile', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
+test('reconciles and verifies one holding without broadening the checked fields', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+  await openMenuTab(page, '자산')
+  await page.getByRole('tab').nth(2).click()
+  const card=page.locator('article').filter({hasText:'E2E Apple'}).first()
+  await card.getByRole('button',{name:'잔고 맞추기'}).click()
+  await page.getByRole('textbox',{name:'수량'}).fill('4')
+  await page.getByRole('textbox',{name:'평균가'}).fill('125')
+  await page.getByRole('checkbox',{name:'수량'}).check()
+  await page.getByLabel('보정 이유').fill('증권사 수량과 평균가로 현재값을 맞춥니다.')
+  await page.getByRole('button',{name:'보정 미리보기'}).click()
+  await expect(page.getByText(/2\.0000000000000000 → 4/)).toBeVisible()
+  await page.getByRole('button',{name:'보정 확정'}).click()
+  await expect(page.getByRole('heading',{name:'E2E Apple 잔고 맞추기'})).toBeHidden()
+  const state=await callRpc(page,'app_get_portfolio_state',{input_owner_user_id:null})
+  const holding=state.body.holdings.find((item)=>item.ticker==='E2EAPL')
+  expect(holding).toMatchObject({quantity:4,avg_price:125})
+  const integrity=await callRpc(page,'app_get_holding_integrity',{input_holding_id:holding.id})
+  expect(integrity.body.last_verification.verified_fields).toEqual(['quantity'])
+  expect(integrity.body.last_verification.changed_since).toBe(false)
+})
+
 test('starts the Google OAuth authorization redirect without using a Google account', async ({ page }) => {
   let authorizeUrl = ''
   await page.route('**/auth/v1/authorize**', async (route) => {

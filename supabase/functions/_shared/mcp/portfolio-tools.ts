@@ -586,6 +586,29 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema,
     annotations: readOnlyAnnotations,
   },
+  {
+    name: 'get_holding_integrity', title: 'Holding reconciliation and verification status',
+    description: 'Read the latest absolute correction and explicit brokerage verification for one holding. changed_since means the local holding version changed afterward; missing verification remains unknown rather than incorrect.',
+    inputSchema: { type: 'object', properties: { holding_id: { type: 'integer', minimum: 1 } }, required: ['holding_id'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'preview_holding_reconciliation', title: 'Preview an absolute holding correction',
+    description: 'Preview replacing one holding with user-supplied actual values. Market holdings use quantity and avg_price, valuation holdings use purchase_amount and valuation_amount, and cash uses valuation_amount. This does not modify the holding or imply brokerage verification unless confirmed_fields are explicit.',
+    inputSchema: { type: 'object', properties: {
+      holding_id: { type: 'integer', minimum: 1 }, values: { type: 'object', minProperties: 1 }, reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' }, confirmed_fields: { type: 'array', items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] }, uniqueItems: true },
+    }, required: ['holding_id','values','reason','effective_on','confirmed_fields'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: contextAnnotations,
+  },
+  {
+    name: 'reconcile_holding', title: 'Apply an absolute holding correction',
+    description: 'Use only after the user explicitly confirms a fresh correction preview. It establishes a new absolute local balance checkpoint and optionally records only the fields explicitly compared with the brokerage. It does not create a trade or place an order.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, preview_id: { type: 'string', format: 'uuid' }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','preview_id','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'verify_holdings', title: 'Record explicit brokerage comparison',
+    description: 'Record only the named fields the user explicitly says they compared with the brokerage at the current holding version. This never changes quantities, costs, valuation, trades, prices, or briefing dates.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, holding_id: { type: 'integer', minimum: 1 }, expected_version: { type: 'integer', minimum: 1 }, fields: { type: 'array', minItems: 1, uniqueItems: true, items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] } }, verified_on: { type: 'string', format: 'date' }, note: { type: ['string','null'], maxLength: 1000 }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','holding_id','expected_version','fields','verified_on','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
 ]
 
 export const dailyReviewToolNames = [
@@ -620,3 +643,5 @@ export const tradeEntryToolNames = [
   'log_completed_trade',
   'list_transactions',
 ] as const
+
+export const holdingIntegrityToolNames = ['get_holding_integrity','preview_holding_reconciliation','reconcile_holding','verify_holdings'] as const

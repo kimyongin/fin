@@ -16,6 +16,7 @@ import SpreadsheetEditor from './SpreadsheetEditor'
 import HoldingThesisModal from './HoldingThesisModal'
 import { fetchHoldingTheses, saveHoldingThesis } from './holdingThesisData'
 import TradeEntryModal from './TradeEntryModal'
+import HoldingIntegrityModal from './HoldingIntegrityModal'
 
 function metricProps(item) {
   if (item.instrument_type === 'valuation') {
@@ -317,6 +318,7 @@ function InstrumentsPage({
   onEditInstrument,
   onEditThesis,
   onRecordTrade,
+  onReconcileHolding,
   thesisByInstrumentId,
 }) {
   return (
@@ -395,7 +397,7 @@ function InstrumentsPage({
                               />
                             </div>
                             {canEdit && (
-                              <button
+                              <div className="flex shrink-0 gap-1"><button aria-label="잔고 맞추기" className="rounded-xl border border-[var(--line)] px-2 py-1.5 text-xs text-[var(--muted-ink)]" onClick={()=>onReconcileHolding(instrument,holding)} type="button">맞추기</button><button
                                 aria-label="보유 편집"
                                 className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
                                 onClick={() => onEditHolding(holding)}
@@ -403,6 +405,7 @@ function InstrumentsPage({
                               >
                                 <PencilIcon />
                               </button>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -477,6 +480,7 @@ export default function AssetsPage({
   const [thesisError, setThesisError] = useState('')
   const [thesisSaving, setThesisSaving] = useState(false)
   const [tradeEditor, setTradeEditor] = useState(null)
+  const [integrityEditor, setIntegrityEditor] = useState(null)
   useEffect(() => {
     let active = true
     if (!canEdit || !supabase) return undefined
@@ -590,6 +594,7 @@ export default function AssetsPage({
             accounts: linkedHoldings.map((holding) => accountById.get(holding.account_id)).filter(Boolean),
           })}
           onRecordTrade={(instrument, linkedHoldings) => setTradeEditor({ instrument, accounts: linkedHoldings.map((holding) => accountById.get(holding.account_id)).filter(Boolean) })}
+          onReconcileHolding={(instrument, holding) => setIntegrityEditor({ instrument, holding })}
           thesisByInstrumentId={thesisByInstrumentId}
         />
       )}
@@ -608,6 +613,7 @@ export default function AssetsPage({
       {thesisError && <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">{thesisError}</p>}
       {thesisEditor && <HoldingThesisModal accounts={thesisEditor.accounts} instrument={thesisEditor.instrument} onClose={() => setThesisEditor(null)} onSave={handleThesisSave} saving={thesisSaving} theses={theses} />}
       {tradeEditor && <TradeEntryModal accounts={tradeEditor.accounts} instrument={tradeEditor.instrument} onClose={() => setTradeEditor(null)} onSaved={onTradeSaved} supabase={supabase} />}
+      {integrityEditor && <HoldingIntegrityModal holding={integrityEditor.holding} instrument={integrityEditor.instrument} onClose={()=>setIntegrityEditor(null)} onSaved={onTradeSaved} supabase={supabase}/>}
     </section>
   )
 }

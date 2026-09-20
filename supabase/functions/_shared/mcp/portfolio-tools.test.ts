@@ -4,6 +4,7 @@ import {
   dailyReviewToolNames,
   decisionTaskToolNames,
   holdingThesisToolNames,
+  holdingIntegrityToolNames,
   investmentPolicyToolNames,
   portfolioToolDefinitions,
   tradeEntryToolNames,
@@ -24,6 +25,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingThesisToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
   })
 
   it('does not label temporary context creation as read-only or idempotent', () => {
@@ -121,5 +123,12 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('list_transactions').annotations.readOnlyHint).toBe(true)
     expect((tool('preview_trade_entry').inputSchema as any).properties.quantity.type).toBe('string')
     expect((tool('log_completed_trade').inputSchema as any).properties).not.toHaveProperty('order_id')
+  })
+
+  it('separates absolute correction from field-scoped verification', () => {
+    expect(tool('preview_holding_reconciliation').annotations.idempotentHint).toBe(false)
+    expect(tool('reconcile_holding').annotations.idempotentHint).toBe(true)
+    expect(tool('verify_holdings').annotations.idempotentHint).toBe(true)
+    expect((tool('verify_holdings').inputSchema as any).properties.fields.minItems).toBe(1)
   })
 })
