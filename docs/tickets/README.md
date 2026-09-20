@@ -37,7 +37,7 @@
 - 사용자는 문서 작성 절차를 거치지 않고 평소 대화로 기록·판단·다음 점검을 이어간다.
 
 ## 연속 점검을 위한 데이터 설계
-- [ ] [#44 점검 범위·사건·검토 질문·판단 이력 데이터 계약](https://github.com/kimyongin/fin/issues/44)
+- [x] [#44 점검 범위·사건·검토 질문·판단 이력 데이터 계약](https://github.com/kimyongin/fin/issues/44) — 로컬 설계·구현 대조 완료
 - #32 → #44 및 #43 버전 계약 → #35-A 공통 스키마 → #34 읽기/#35-B 저장 → #36 표시 → #39 연속성 검증으로 연결한다. #44는 설계, 실제 DB/RPC 구현은 #35의 책임이다.
 - #41 보유 이유·#43 개인 기준의 버전을 참조하고 #42 실제 잔고 확인과 조사 시점을 구분한다.
 - 사용자 요청으로 매일 분석한다. 자동 생성·예약 실행은 현재 범위에서 제외하며 기존 알림/자동화 언급은 후속 가능성만 의미한다.
@@ -76,16 +76,16 @@ ChatGPT는 조사하고 생각하고 설명하며, Portfolio는 기억하고 계
 
 ## 작업 티켓
 
-체크박스는 티켓의 전체 인수 조건이 충족됐을 때만 완료한다. 일부 코드가 구현된 티켓을 `[x]`로 과장하지 않고 아래 현황표에서 부분 구현을 구분한다.
+체크박스는 티켓의 전체 인수 조건이 충족됐을 때만 완료한다. `부분 완료`는 로컬 핵심 기능이 있으나 배포·클라이언트·실사용 인수 조건이 남았다는 뜻이다. 상세 근거는 [구현 현황 감사](./implementation-audit-20260921.md)에 있다.
 
-- [ ] [#32 [MCP-first] 제품 계약·잔고 계산 규칙과 사용자 시나리오 확정](https://github.com/kimyongin/fin/issues/32)
-- [ ] [#33 [MCP-first] OAuth MCP 계약 정비와 클라이언트 호환성 검증](https://github.com/kimyongin/fin/issues/33)
-- [ ] [#34 [MCP-first] 아침 점검용 get_daily_context 구현](https://github.com/kimyongin/fin/issues/34)
-- [ ] [#35 [MCP-first] 출처 있는 뉴스·일일 브리핑·판단 결과 저장과 조회](https://github.com/kimyongin/fin/issues/35)
-- [ ] [#36 [MCP-first] Portfolio 오늘 화면과 지인용 OAuth 온보딩](https://github.com/kimyongin/fin/issues/36)
-- [ ] [#37 [MCP-first] 초기 잔고 기반 매매 미리보기·확정·거래 조회](https://github.com/kimyongin/fin/issues/37)
-- [ ] [#38 [MCP-first] 잔고 보정·거래 취소와 기존 편집 경로 통합](https://github.com/kimyongin/fin/issues/38)
-- [ ] [#39 [MCP-first] 5일 출근 사용 파일럿과 릴리스 검증](https://github.com/kimyongin/fin/issues/39)
+- [x] [#32 [MCP-first] 제품 계약·잔고 계산 규칙과 사용자 시나리오 확정](https://github.com/kimyongin/fin/issues/32) — 완료(로컬 계약)
+- [ ] [#33 [MCP-first] OAuth MCP 계약 정비와 클라이언트 호환성 검증](https://github.com/kimyongin/fin/issues/33) — 부분 완료
+- [ ] [#34 [MCP-first] 아침 점검용 get_daily_context 구현](https://github.com/kimyongin/fin/issues/34) — 부분 완료
+- [ ] [#35 [MCP-first] 출처 있는 뉴스·일일 브리핑·판단 결과 저장과 조회](https://github.com/kimyongin/fin/issues/35) — 부분 완료
+- [ ] [#36 [MCP-first] Portfolio 오늘 화면과 지인용 OAuth 온보딩](https://github.com/kimyongin/fin/issues/36) — 부분 완료
+- [x] [#37 [MCP-first] 초기 잔고 기반 매매 미리보기·확정·거래 조회](https://github.com/kimyongin/fin/issues/37) — 완료(로컬 구현)
+- [x] [#38 [MCP-first] 잔고 보정·거래 취소와 기존 편집 경로 통합](https://github.com/kimyongin/fin/issues/38) — 완료(로컬 구현)
+- [ ] [#39 [MCP-first] 5일 출근 사용 파일럿과 릴리스 검증](https://github.com/kimyongin/fin/issues/39) — 미완료(외부 실행 필요)
 
 ## 진행 순서
 1. #32 제품 계약을 확정하고 #33 MCP 계약/호환성을 검증한다.
@@ -95,8 +95,8 @@ ChatGPT는 조사하고 생각하고 설명하며, Portfolio는 기억하고 계
 5. #41 보유 이유와 #42 실제 잔고 확인은 #32/#33 이후 구현한다. #34/#35/#36은 optional 필드 계약으로 먼저 개발 가능하지만 최종 완료에는 두 기능 연동을 포함한다.
 
 ## 사용자 경험 검토로 추가된 작업
-- [ ] [#41 종목별 보유 이유·재검토 조건과 판단 이력](https://github.com/kimyongin/fin/issues/41)
-- [ ] [#42 실제 잔고 확인 시점·범위 기록과 상태 표시](https://github.com/kimyongin/fin/issues/42)
+- [x] [#41 종목별 보유 이유·재검토 조건과 판단 이력](https://github.com/kimyongin/fin/issues/41) — 완료(로컬 구현)
+- [x] [#42 실제 잔고 확인 시점·범위 기록과 상태 표시](https://github.com/kimyongin/fin/issues/42) — 완료(로컬 구현)
 - #32: 대표 아침 응답 4종과 최소 입력·저장 의도 정책을 먼저 확정한다.
 - #34/#35: 보유 이유와 자료 범위를 반영하고 같은 사건/할 일을 반복 생성하지 않는다.
 - #36: 결과를 먼저 보여주고 앱·ChatGPT 왕복을 강요하지 않는다.
@@ -104,7 +104,7 @@ ChatGPT는 조사하고 생각하고 설명하며, Portfolio는 기억하고 계
 - #39: 핵심 파악 시간, 화면 전환·추가 질문 부담, 다시 사용할 의향을 검증한다.
 
 ## 현행 구현 근거
-- supabase/functions/portfolio-mcp-oauth/index.ts: 6개 읽기 도구, OAuth, annotations, instructions, prompt/resource 실험.
+- supabase/functions/portfolio-mcp-oauth/index.ts: 35개 목적 중심 도구, OAuth, annotations, 강화된 instructions, 선택적 prompt/resource 실험.
 - supabase/schema/OVERVIEW.md: 기존 holdings/transactions 및 뉴스/리포트/전략/감사 모델의 조사 시작점. 적용된 SQL의 정확한 동작은 각 구현 티켓에서 확인한다.
 - src/features/portfolio/holdingActions.js: 현행 보유량 직접 편집과 자산 유형별 저장.
 - src/features/news/data.js: 기존 뉴스 사실/해석 CRUD.
@@ -115,17 +115,17 @@ ChatGPT는 조사하고 생각하고 설명하며, Portfolio는 기억하고 계
 
 | 티켓 | 상태 | 완료된 근거 | 티켓을 닫기 전에 남은 것 |
 | --- | --- | --- | --- |
-| #32 제품·계산 계약 | 로컬 계약 검증 | PRD/ADR, 24개 시나리오, 체결가 평균·보정 기준점, 초기/매수/부분·전량 매도/재매수 decimal fixture | 운영 legacy transaction 이관 여부 결정 |
-| #33 OAuth MCP | 부분 완료 | OAuth 다중 사용자 연결, 공통 tool schema/handler, 로컬 Edge 기동 | 기존 토큰 endpoint 중복 제거, 전체 인증 격리, 배포 후 웹·모바일 재검증 |
+| #32 제품·계산 계약 | 완료(로컬 계약) | PRD/ADR, 24개 시나리오, 체결가 평균·보정 기준점, 초기/매수/부분·전량 매도/재매수 decimal fixture | 구현 티켓의 운영 배포 게이트로 이관 |
+| #33 OAuth MCP | 부분 완료 | OAuth 다중 사용자 연결, 공통 tool schema/handler, 로컬 Edge의 인증된 initialize·35개 tools/list·오류 계약 | 배포 후 전체 인증 격리와 웹·모바일 새 세션 재검증 |
 | #34 일일 문맥 | 로컬 핵심 구현 | 임시 context 생명주기, 원칙·판단·열린 질문·보유 이유 포함, DB 테스트 | 누락 시세/복귀/부분 조사/응답 크기 통합 검증 |
-| #35 저장·조회 | 로컬 핵심 구현 | 브리핑+출처+조사 범위, 판단+질문, 실행 계획·부분 체결, 공유 read DTO, 상태 전이, idempotency | 보유 이유/task 관계, 정정 근거와 전체 사용자 흐름 검증 |
+| #35 저장·조회 | 로컬 핵심 구현 | 브리핑+출처+조사 범위, 판단+질문, 실행 계획·부분 체결, 보유 이유/task 관계, 공유 read DTO, 상태 전이, idempotency | 정정 근거와 전체 사용자 흐름 검증 |
 | #36 오늘 화면 | 로컬 핵심 구현 | 오늘·판단·할 일·원칙·보유 이유 UI, 친구 전환, 점검 기록 공유 묶음 설정 | 전체 반응형/빈 상태/왕복 감소 실사용 검증 |
-| #37 매매 기록 | 로컬 핵심 구현 | preview/log/list MCP, numeric 원가 풀, 전체 매매 lifecycle fixture, 실행 task 부분 체결, stale/idempotency, 모바일 UI | legacy 원격 이관 판단 |
-| #38 보정·취소 | 로컬 핵심 구현 | 타입별 보정, 확인 범위, 거래 취소와 task 진행도, 기준점 전후 재생, 단건/표 편집 기준점, 모바일 UI | 붙여넣기·필터·동시 매매 화면 회귀 |
-| #39 파일럿 | 미착수 | 자동 테스트 일부만 존재 | 전체 회귀·보안·실기기 검증과 5일 사용 관찰 |
-| #41 보유 이유 | 로컬 핵심 구현 | 종목 공통/계좌별 재정의, 판단·task 연결, 이력, MCP, 자산 UI, 일일 문맥, 전량 매도 비활성/재매수 재확인 | 전체 사용자 흐름 검증 |
-| #42 잔고 확인 | 로컬 핵심 구현 | 필드별 verification, version 충돌, changed-since, 보정 연계 UI, 계좌/전체 집계와 오늘 요약 | 실사용에서 확인 문구·빈 상태 검증 |
+| #37 매매 기록 | 완료(로컬 구현) | preview/log/list MCP, numeric 원가 풀, 전체 매매 lifecycle fixture, 실행 task 부분 체결, stale/idempotency, 모바일 UI | 운영 legacy 이관은 #39 배포 게이트 |
+| #38 보정·취소 | 완료(로컬 구현) | 타입별 보정, 확인 범위, 거래 취소와 task 진행도, 기준점 전후 재생, 단건/표 편집 기준점, 전체 E2E | 운영 legacy 이관은 #39 배포 게이트 |
+| #39 파일럿 | 미완료 | 로컬 전체 E2E 22개와 자동 검증은 통과 | 운영 보안·실기기 검증과 5일 사용 관찰 |
+| #41 보유 이유 | 완료(로컬 구현) | 종목 공통/계좌별 재정의, 판단·task 연결, 이력, MCP, 자산 UI, 일일 문맥, 전량 매도 비활성/재매수 재확인 | 운영 전체 흐름은 #39에서 확인 |
+| #42 잔고 확인 | 완료(로컬 구현) | 필드별 verification, version 충돌, changed-since, 보정 연계 UI, 계좌/전체 집계와 오늘 요약 | 운영 문구·빈 상태는 #39에서 확인 |
 | #43 개인 기준 | 로컬 핵심 구현 | 선택 필드, 부분 patch, version/history, MCP, 원칙 UI, 기능별 공유 키/CAS | 전략 변경 이력/당시 참조와 개인 기준 공개 UI(현재 기본 비공개) |
-| #44 관계 계약 | 부분 완료 | 관계형 모델·상태 전이·시나리오/API 대응표 | 거래/보정/공유 구현에 맞춘 최종 대조 |
+| #44 관계 계약 | 완료(로컬 계약) | 관계형 모델·상태 전이·24개 시나리오/API 대응표를 실제 거래/보정/공유 구현과 최종 대조 | 운영·파일럿 결과가 계약을 바꾸면 갱신 |
 
 위 표의 “로컬 핵심 구현”은 배포·GitHub 이슈 완료를 뜻하지 않는다. 현재 기능 커밋은 원격보다 앞서 있으며 운영 DB/Edge/App에는 아직 반영하지 않았다.

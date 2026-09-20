@@ -1,6 +1,6 @@
 # 공통 행동 규칙
 
-contract revision: 2 · draft · server instructions 후보. 현재 MCP에 반영되지 않았다.
+contract revision: 3 · observed-local. 핵심 경계는 OAuth MCP `serverInstructions`와 각 도구 description에 반영했다. 아래 전문은 개발·검토 원본이며 런타임에는 짧게 전달한다.
 
 ## 전달할 짧은 지침
 

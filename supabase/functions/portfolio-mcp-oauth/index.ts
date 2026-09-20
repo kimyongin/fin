@@ -17,6 +17,9 @@ const serverInstructions = [
   'Portfolio remembers, calculates, and validates investment records; it never executes brokerage orders or transfers funds.',
   'Use authenticated portfolio tools for quantities, average costs, strategy, saved news, and activity instead of guessing.',
   'Use ChatGPT web research for current news, clearly separate sourced facts from analysis, and do not claim that Portfolio fetched live news.',
+  'A review request is not permission to write: save only when the user explicitly asks, and keep model suggestions, user decisions, plans, completed trades, and brokerage balance verification distinct.',
+  'Do not invent missing preferences or holding reasons, and do not report no meaningful change when research was incomplete.',
+  'Report a write as saved only after its tool returns success; retry a lost response with the same idempotency key and re-read after a version conflict.',
 ].join(' ')
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = `# Daily portfolio review guide

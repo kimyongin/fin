@@ -1,8 +1,8 @@
-# 일일 점검 API와 검증 시나리오 — 1차안
+# 일일 점검 API와 검증 시나리오
 
 적용 기준: [ADR-0004](../../adr/0004-domain-storage-and-minimal-mutation-contract.md). 범용 저장 모델 대신 도메인 테이블+공통 변경 규약을 사용하며, 문맥은 서버 임시 보관, 당시 내용은 snapshot으로 보존한다.
 
-대상 #34/#35/#44. MCP 목적 중심 도구와 앱의 서버 계약은 같고 인증 adapter만 다르다. 아래 이름은 신규 도구 계약안이며 아직 구현된 API가 아니다. 모델/DB 경계는 [모델](./daily-review-model.md)을 따른다.
+대상 #34/#35/#44. MCP 목적 중심 도구와 앱은 동일한 `app_*` RPC 의미를 사용하고 인증 adapter만 다르다. 아래 `get/save/list` 계약은 migration 001~009와 OAuth 도구로 구현·로컬 검증됐다. 운영 제공 여부는 [구현 현황 감사](../../tickets/implementation-audit-20260921.md)를 따른다. 모델/DB 경계는 [모델](./daily-review-model.md)을 따른다.
 
 ## 1. 입출력 공통
 
@@ -56,9 +56,9 @@ changes의 항목은 summary와 evidence_keys로 구성한다. 첫 카드에는 
 
 checked_sources는 source_url/checked_at/outcome/note로 구성한다. 새 기사가 없을 때도 어떤 출처를 확인했는지 남긴다. 검색 실패를 no_action으로 저장하지 않는다. 전부 조회 실패한 실행도 insufficient_data와 사유를 저장할 수 있다.
 
-첫 슬라이스에서는 원칙 수정·판단 채택·매매 생성·질문 상태 변경을 받지 않는다. 기존 task/decision 연결만 허용하고 미지원 관계 입력은 명확한 오류로 거부한다. 질문 해결/새 제안 저장은 후속 API 계약에서 추가하며 #35 전체 완료에는 필요하다.
+`save_daily_briefing` schema v1은 원칙 수정·판단 채택·매매 생성·질문 상태 변경이나 decision/task ID 연결을 받지 않는다. 관계 변경은 별도의 version/idempotency 보호 도구로 처리하며 미지원 필드는 명확한 오류로 거부한다.
 
-후속 제안/조사 질문 batch 계약과 충돌 정책은 [lifecycle-model-api](./lifecycle-model-api.md)를 따른다. 연결 task의 당시 내용/version snapshot을 보존한다. 실제 API 확장 시 schema_version/호환성 검토 없이 v1에 unknown 필드를 추가하지 않는다.
+판단·조사 질문·실행 계획과 충돌 정책은 [lifecycle-model-api](./lifecycle-model-api.md)를 따른다. 첫 버전은 과도한 batch API 대신 목적별 원자 RPC를 택했다. API 확장 시 schema_version/호환성 검토 없이 v1에 unknown 필드를 추가하지 않는다.
 
 서버 처리 순서:
 
@@ -80,9 +80,9 @@ checked_sources는 source_url/checked_at/outcome/note로 구성한다. 새 기�
 - detail은 당시 본문·scope 품질·허용된 근거·당시 policy 참조와 현재 stale 여부를 반환한다. 생성 완료와 사용자 열람을 혼동하지 않는다.
 - 첫 MCP는 본인 전용. 앱 공유용 조회는 별도 DTO/기능별 권한 검사를 사용하며 이 API에 owner 파라미터만 추가해 공개하지 않는다.
 
-## 5. 설계 검토용 시나리오 / 예상 결과
+## 5. 계약 시나리오 / 기대 결과
 
-아래는 실행한 테스트가 아니다. 다음 단계에서 JSON fixture 및 DB 인수 테스트로 옮긴다.
+R01~R10의 핵심 소유권·멱등·만료·부분 범위·정렬 계약은 DB/MCP 테스트에 반영했다. R11~R12의 실제 정정 기사·반복 보도 품질은 운영 대화 파일럿에서 확인한다.
 
 | ID | 입력/상황 | 기대 결과 | 담당 |
 | --- | --- | --- | --- |

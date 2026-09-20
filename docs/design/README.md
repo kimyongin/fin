@@ -13,17 +13,17 @@ design은 화면 디자인뿐 아니라 제품·데이터·API 설계를 포함�
 | product-reorganization.md | 기존 기능 유지/재구성/이동과 책임 |
 | implementation-contract-draft.md | 계산·버전·점검 등의 초기 기술 초안. 후속 계약/조사 링크 우선 확인 |
 | schema-audit-20260921.md | 특정 날짜 원격/로컬 DB 대조 결과. 영구 최신 스키마 명세 아님 |
-| contracts/README.md | 계약 설계 진행 상황과 미통과 게이트 |
+| contracts/README.md | 로컬 계약 구현 상태와 운영 전 게이트 |
 | contracts/scenario-api-model-matrix.md | S01~S24 사용자 시나리오, API, 변경/불변 데이터, 담당 |
 | contracts/daily-review-model.md | 일일 점검·버전·조사 범위·근거 모델 |
 | contracts/daily-review-api.md | 문맥 조회/브리핑 저장/조회, 오류, R01~R16 검증 사례 |
 | contracts/lifecycle-model-api.md | 원칙·판단·질문·체결·보정의 모델/API |
 | contracts/agent/README.md | MCP 에이전트 명세의 원본/갱신/제공 상태 관리 |
-| contracts/agent/behavior.md | 짧은 공통 행동 규칙 후보 |
-| contracts/agent/tool-descriptions.md | 기존/계획 도구 설명 후보. 아직 실제 등록에 연결 안 됨 |
+| contracts/agent/behavior.md | OAuth instructions에 반영한 공통 행동 규칙 원본 |
+| contracts/agent/tool-descriptions.md | OAuth 공통 정의에 연결된 도구 설명 카탈로그와 후순위 후보 |
 | contracts/agent/workflows.md | W01~W08 호출 순서·예외/복구 가이드 |
 
-계약 문서들은 검증 중인 설계안이다. 존재만으로 API 제공/배포 완료를 의미하지 않는다.
+계약 문서는 로컬 구현과 대조됐지만 존재만으로 운영 API 제공·배포 완료를 의미하지 않는다. 실제 상태는 [구현 현황 감사](../tickets/implementation-audit-20260921.md)를 따른다.
 
 ## 과거 화면 검토 자료
 

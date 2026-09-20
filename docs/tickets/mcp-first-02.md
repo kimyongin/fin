@@ -3,9 +3,10 @@
 ## 구현 진행 (2026-09-21)
 
 - 공통 도구 정의를 `supabase/functions/_shared/mcp/portfolio-tools.ts`에 분리하고 OAuth `tools/list`와 handler registry 이름 일치를 서버 시작 시 검사한다.
-- 기존 읽기 6개에 `get_daily_context`, `save_daily_briefing`, `list_daily_briefings`, `get_daily_briefing`을 추가했다. context 생성은 임시 DB 쓰기이므로 read-only/idempotent로 광고하지 않는다.
+- 기존 읽기 6개에 일일 점검, 판단/할 일, 개인 기준, 보유 이유, 완료 매매, 보정/확인/취소 도구를 더해 현재 OAuth 목록은 35개다. context 생성과 preview 생성은 임시 DB 쓰기이므로 read-only/idempotent로 광고하지 않는다.
 - 로컬 OAuth Bearer 인증으로 initialize → tools/list(10개) → context 생성 → briefing 저장 → 상세/목록 재조회를 검증하고 테스트 사용자를 삭제했다.
-- 남은 범위: 기존 토큰 endpoint의 공통 정의 사용, 독립 Edge 타입 검사, 운영 배포, 웹·모바일 새 세션 검증, prompt/resource 지원 수준 최종 결정.
+- 로컬 Edge runtime에서 인증 누락 401, 인증된 initialize/protocol 2025-06-18, 35개 tools/list, 미지원 method -32601을 확인했다. prompt/resource는 선택적 호환 기능으로 유지하고 제품은 instructions/tools만으로 동작한다.
+- 남은 범위: 운영 배포 후 사용자 격리와 웹·모바일 새 세션 검증. 기존 agent-token endpoint는 인증과 RPC 의미가 다른 호환 API로 분리 유지하며 신규 기능을 복제하지 않는다.
 
 ## 단순화 적용 기준 — ADR-0004 (2026-09-21)
 
@@ -35,7 +36,7 @@
 - #32 [MCP-first] 제품 계약·잔고 계산 규칙과 사용자 시나리오 확정
 
 ## 목적
-현재 6개 읽기 도구와 server instructions를 안정적인 MCP 진입점으로 정비한다.
+OAuth의 목적 중심 도구와 server instructions를 안정적인 ChatGPT MCP 진입점으로 정비한다.
 
 ## 근거
 supabase/functions/portfolio-mcp-oauth/index.ts에 OAuth, 읽기 annotations, instructions와 prompt/resource 실험이 이미 존재한다. 재구현하지 않는다.
@@ -51,11 +52,11 @@ supabase/functions/portfolio-mcp-oauth/index.ts에 OAuth, 읽기 annotations, in
 
 ## 완료 조건
 
-- [ ] `docs/design/contracts/agent/README.md` 및 behavior/tool-descriptions/workflows 문서를 기준으로 공통 instructions·도구 설명·선택적 가이드 전달을 연결한다. 문서 초안은 배포 증거가 아니다.
-- [ ] description/inputSchema/outputSchema/annotations/handler의 공통 정의를 tools/list와 dispatch에서 사용하고 OAuth/기존 토큰 경로의 수동 복제를 제거한다. 연결 후 설명 Markdown은 생성 참조 또는 정의 링크로 전환해 이중 원본을 남기지 않는다.
-- [ ] 제공 상태를 observed-local/planned/released로 구별하고 계획 도구를 등록하거나 가이드에서 실행 가능하다고 광고하지 않는다. get_workflow_guide는 필요 시 제공하는 읽기 도구 후보이며 필수 안전 규칙은 가이드 호출 없이 유지한다.
+- [x] `docs/design/contracts/agent/README.md` 및 behavior/tool-descriptions/workflows 문서를 기준으로 공통 instructions·도구 설명·선택적 가이드 전달을 연결한다. 문서 초안은 배포 증거가 아니다.
+- [x] OAuth endpoint는 description/inputSchema/outputSchema/annotations와 handler 목록을 공통 정의로 사용한다. 인증·RPC 의미가 다른 legacy agent-token endpoint는 호환 API로 경계를 문서화하고 신규 기능을 복제하지 않는다.
+- [x] 제공 상태를 observed-local/planned/released로 구별하고 계획 도구를 등록하거나 가이드에서 실행 가능하다고 광고하지 않는다. prompt/resource는 선택적으로 유지하며 필수 안전 규칙은 가이드 호출 없이 유지한다.
 - [ ] 모든 기능 변경 PR은 S/R 시나리오와 W 가이드 ID를 연결하고 설명·스키마·오류 처리·서버 테스트를 동시 점검한다. 원본 일치 CI와 실제 클라이언트 도구 선택 평가를 구분해 기록한다.
-- [ ] 독립 타입 검사와 initialize/tools/list/잘못된 요청 계약 검증을 통과한다.
+- [x] 로컬 Edge runtime 번들/기동과 인증된 initialize/tools/list/잘못된 요청 계약 검증을 통과한다. 별도 Deno CLI는 저장소 환경에 없어 사용하지 않는다.
 - [ ] 웹·실제 모바일 각각 새 세션/메타데이터 갱신 후 도구와 지침 적용 결과를 기록한다.
-- [ ] 테스트용 표식 전달과 서버 discovery 요청을 구분해 관찰 근거를 남긴다.
+- [x] 테스트용 표식 전달과 서버 discovery 요청을 구분해 관찰 근거를 남긴다.
 - [ ] 인증 누락·만료·타 사용자 접근이 차단되고 기존 읽기가 정상 동작한다.

@@ -1,6 +1,6 @@
 # Portfolio 에이전트 계약 관리
 
-2026-09-21 · 구현 진행 중. OAuth 로컬 연결과 일일 점검 4개 도구의 종단간 검증을 완료했다. 판단/할 일 10개, 개인 투자 기준 2개, 보유 이유 3개, 완료 매매 3개, 잔고 무결성 5개, 거래 취소 2개 도구는 DB와 공통 schema/handler 단위까지 검증했으며 OAuth 종단간·운영 배포·웹/모바일 전체 재검증은 아직 하지 않았다.
+2026-09-21 · 로컬 OAuth Edge 런타임에서 인증된 `initialize`, 35개 `tools/list`, 미지원 메서드 오류를 다시 검증했다. 공통 schema/handler와 DB 계약, 웹 앱 E2E는 통과했으며 운영 배포 후 ChatGPT 웹·모바일 새 세션 검증은 아직 하지 않았다.
 
 ## 원본과 전달 경로
 
@@ -15,7 +15,11 @@
 | 데이터·입출력·오류 계약 | [일일 점검](../daily-review-api.md), [생애주기](../lifecycle-model-api.md) | 검증된 JSON Schema와 서버 구현, DB 테스트 |
 | 시나리오 인수 조건 | [S01~S24](../scenario-api-model-matrix.md), 일일 점검 R01~R16 | 도구 선택 평가 + 서버 계약 테스트 |
 
-현재 Markdown은 검토 카탈로그이며 서버가 읽고 있지 않다. 공통 description/inputSchema/outputSchema/annotations는 `supabase/functions/_shared/mcp/portfolio-tools.ts`에 두고 OAuth `tools/list`가 이를 사용한다. OAuth handler registry는 시작 시 정의 이름과 일치하는지 검사한다. 기존 토큰 adapter의 수동 정의 제거는 아직 남았다.
+현재 Markdown은 사람과 구현 에이전트를 위한 검토 카탈로그이며 서버가 직접 읽지 않는다. 공통 description/inputSchema/outputSchema/annotations는 `supabase/functions/_shared/mcp/portfolio-tools.ts`에 두고 OAuth `tools/list`가 이를 사용한다. OAuth handler registry는 시작 시 정의 이름과 일치하는지 검사한다.
+
+기존 `portfolio-mcp`는 사용자가 발급한 agent token과 legacy `mcp_*` RPC를 사용하는 호환 endpoint이고, `portfolio-mcp-oauth`는 사용자 OAuth와 최신 `app_*` RPC를 사용하는 ChatGPT용 기준 endpoint다. 두 endpoint는 인증·도구 의미가 달라 하나의 tools 배열을 억지로 공유하지 않는다. 신규 기능은 OAuth 쪽에만 추가하고 legacy endpoint는 별도 폐기 결정 전까지 안정화 변경만 한다. 이는 중복 방치를 뜻하지 않고 서로 다른 공개 API의 경계를 명시한 것이다.
+
+MCP prompt/resource는 표준 호환성 실험을 위해 유지하지만 제품 동작의 전제는 아니다. 노출되지 않는 클라이언트에서도 짧은 instructions와 self-contained 도구 설명만으로 안전 경계가 유지돼야 한다.
 
 연결 완료 시 이 문서의 도구 설명은 생성된 참조 문서로 전환하거나 실제 정의 링크만 남긴다. 사람이 수정하는 설명 원본을 Markdown과 코드에 영구히 두 개 만들지 않는다. 전체 PRD에서 설명을 자동 추출해 배포하지도 않는다.
 
