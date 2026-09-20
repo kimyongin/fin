@@ -54,4 +54,5 @@
 - 원격에만 존재하는 legacy `transactions`/재계산 트리거를 덮어쓰지 않고 새 `trade_entries` 원장으로 분리했다. 기존 holding은 최초 numeric 원가 풀 기준점으로 보존한다.
 - `preview_trade_entry`, `log_completed_trade`, `list_transactions` 앱 RPC와 OAuth MCP 도구를 연결했다. preview는 15분 만료·holding state version에 묶이고 확정은 idempotency와 DB 잠금을 사용한다.
 - 자산 > 종목별 카드에서 실제 매수/매도의 계좌·수량·체결가·날짜를 입력하고 수량/평균가 변화를 확인한 뒤 저장한다.
-- 실행 task 부분 체결 연결, 거래 취소, 절대 잔고 보정, legacy 원격 이관은 후속 슬라이스다.
+- 수량 기반 실행 계획과 같은 계좌·종목·방향의 체결 연결을 구현했다. 여러 체결 합계로 예정/부분/완료/초과를 계산하며 계획 보류·취소는 잔고를 바꾸지 않는다.
+- 거래 취소와 절대 잔고 보정은 구현했고, legacy 원격 이관과 기존 표 편집 기준점 통합은 후속이다.

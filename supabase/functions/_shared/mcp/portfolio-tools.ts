@@ -471,6 +471,37 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: idempotentWriteAnnotations,
   },
   {
+    name: 'save_execution_task',
+    title: 'Save a quantity execution plan',
+    description: 'Create or revise an explicit market buy/sell quantity plan after the user asks to remember it. This records a plan only: it never records a fill, changes a holding, or places a brokerage order.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 }, task_id: { type: ['string', 'null'], format: 'uuid' },
+        expected_version: { type: ['integer', 'null'], minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
+        title: { type: 'string', minLength: 1, maxLength: 500 }, account_id: { type: 'integer', minimum: 1 }, instrument_id: { type: 'integer', minimum: 1 },
+        side: { type: 'string', enum: ['buy', 'sell'] }, target_quantity: { type: 'string', pattern: '^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,16})?$' },
+        due_date: { type: ['string', 'null'], format: 'date' }, trigger_text: { type: ['string', 'null'], maxLength: 1000 }, timezone: { type: 'string', minLength: 1 }, change_reason: { type: ['string', 'null'], maxLength: 1000 },
+      },
+      required: ['schema_version','task_id','expected_version','idempotency_key','title','account_id','instrument_id','side','target_quantity','timezone'], additionalProperties: false,
+    }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'link_trade_to_task',
+    title: 'Link a completed trade to an execution plan',
+    description: 'Link one already-recorded local fill to a matching account, instrument, and side plan so progress is calculated. This never creates, changes, reverses, or duplicates a trade and one fill can count toward at most one plan.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, trade_id: { type: 'string', format: 'uuid' }, task_id: { type: 'string', format: 'uuid' }, expected_task_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
+    }, required: ['schema_version','trade_id','task_id','expected_task_version','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'transition_execution_task', title: 'Pause, resume, or cancel an execution plan',
+    description: 'Change only the control state of an execution plan after the user explicitly asks. Existing fills and holdings remain unchanged; cancelling a plan does not reverse any trade.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, task_id: { type: 'string', format: 'uuid' }, expected_version: { type: 'integer', minimum: 1 }, action: { type: 'string', enum: ['pause','resume','cancel'] }, reason: { type: 'string', minLength: 1, maxLength: 1000 }, idempotency_key: { type: 'string', format: 'uuid' },
+    }, required: ['schema_version','task_id','expected_version','action','reason','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
     name: 'get_investment_policy',
     title: 'Investment policy and operating strategy',
     description: 'Read the authenticated user\'s explicitly saved personal investment policy together with the existing operating strategy. Missing personal fields remain unknown; do not infer them from portfolio holdings or the active allocation mode.',
@@ -628,6 +659,9 @@ export const decisionTaskToolNames = [
   'get_task',
   'transition_investment_decision',
   'transition_task',
+  'save_execution_task',
+  'link_trade_to_task',
+  'transition_execution_task',
 ] as const
 
 export const investmentPolicyToolNames = [

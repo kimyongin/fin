@@ -1,6 +1,6 @@
 # 도구 설명 카탈로그
 
-revision 5 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
+revision 6 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
 
 ## 설명 작성 형식
 
@@ -42,6 +42,9 @@ revision 5 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `su
 | verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드만 기록합니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
 | preview_trade_reversal / observed-local | 잘못 기록한 체결 취소의 후속 잔고 영향을 계산합니다. 보정 이전 거래이면 현재 잔고 영향이 없을 수 있습니다. 아직 취소하지 않습니다. | W06 |
 | reverse_trade_entry / observed-local | 확인된 preview로 기존 체결 기록을 무효화하고 필요한 잔고를 갱신합니다. 증권사 주문 취소나 반대 방향 실제 매매가 아니며 원본 이력은 보존합니다. | W06 |
+| save_execution_task / observed-local | 사용자가 명시적으로 기억해 달라는 시장형 수량 매수·매도 계획을 저장합니다. 계획만 기록하며 주문·체결·잔고를 만들지 않습니다. | W03,W05 |
+| link_trade_to_task / observed-local | 이미 기록한 체결을 계좌·종목·방향이 같은 실행 계획 하나에 연결해 진행도를 계산합니다. 체결이나 잔고는 변경하지 않습니다. | W05 |
+| transition_execution_task / observed-local | 사용자 요청으로 실행 계획만 보류·재개·취소합니다. 기존 체결과 잔고는 유지하며 계획 취소는 체결 취소가 아닙니다. | W03,W05 |
 
 기존 읽기를 합쳐 문맥을 구성할 수 있어도 새 서버 context/조사 범위와 동등하다고 주장하지 않는다. 쓰기 도구가 없으면 분석만 제공하고 앱에 저장했다고 말하지 않는다.
 
@@ -51,8 +54,7 @@ revision 5 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `su
 
 | 이름 | description 후보 | 가이드 |
 | --- | --- | --- |
-| save_task | 요청한 조사 질문 또는 실행 계획을 저장합니다. 기존 질문을 수정하면 ID/기대 버전을 지정합니다. 매일 같은 질문을 새로 만들지 않고 계획 저장으로 체결을 생성하지 않습니다. | W03,W04 |
-| link_trade_to_task | 이미 기록한 체결을 같은 계좌·종목·방향의 실행 계획에 연결/해제합니다. 잔고는 변경하지 않으며 한 체결을 여러 계획에 중복 집계하지 않습니다. | W05 |
+| save_task | 요청한 조사 질문을 독립 저장합니다. 현재 조사 질문은 판단 기록의 후속 항목으로 만들 수 있고, 독립 생성은 후속입니다. | W03,W04 |
 | get_research_history | 저장된 사건·근거·정정 관계를 대상별로 조회합니다. 인터넷 검색이 아니며 URL 일치만으로 같은 사건이라 단정하지 않습니다. | W01,W04 |
 
 ## 선택적 가이드 도구 계약안 — 첫 버전 후순위

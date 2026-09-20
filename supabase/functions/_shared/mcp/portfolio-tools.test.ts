@@ -98,6 +98,17 @@ describe('portfolio MCP tool definitions', () => {
     expect((task.inputSchema as any).properties).not.toHaveProperty('trade_id')
   })
 
+  it('keeps execution plans separate from completed fills', () => {
+    const save = tool('save_execution_task')
+    const link = tool('link_trade_to_task')
+    const transition = tool('transition_execution_task')
+    expect(save.annotations.idempotentHint).toBe(true)
+    expect((save.inputSchema as any).properties).not.toHaveProperty('unit_price')
+    expect((link.inputSchema as any).required).toContain('trade_id')
+    expect(link.description).toContain('never creates')
+    expect((transition.inputSchema as any).properties.action.enum).toEqual(['pause', 'resume', 'cancel'])
+  })
+
   it('keeps personal policy separate from inferred defaults and strategy mutation', () => {
     const read = tool('get_investment_policy')
     const save = tool('save_investment_policy')

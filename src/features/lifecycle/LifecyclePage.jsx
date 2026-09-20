@@ -23,6 +23,11 @@ const taskStatus = {
 }
 
 function taskStatusLabel(task) {
+  if (task.kind === 'execution') {
+    if (task.control_state === 'paused') return '보류'
+    if (task.control_state === 'cancelled') return '취소'
+    return { planned: '실행 예정', partial: '일부 체결', completed: '체결 완료' }[task.execution_plan?.progress] ?? '실행 예정'
+  }
   if (task.research_state === 'closed') return taskStatus.closed
   if (task.control_state === 'paused') return '보류'
   if (task.control_state === 'cancelled') return '취소'
@@ -80,6 +85,7 @@ function Detail({ item, loading, mode, onClose }) {
           </section>
           {item.trigger_text && <section><h4 className="text-sm font-semibold">확인할 때</h4><p className="mt-2 text-sm leading-6">{item.trigger_text}</p></section>}
           {item.due_date && <section><h4 className="text-sm font-semibold">예정일</h4><p className="mt-2 text-sm">{formatDate(item.due_date)}</p></section>}
+          {item.execution_plan && <section><h4 className="text-sm font-semibold">체결 진행</h4><p className="mt-2 text-sm leading-6">{item.execution_plan.side === 'buy' ? '매수' : '매도'} {Number(item.execution_plan.filled_quantity).toLocaleString()} / {Number(item.execution_plan.target_quantity).toLocaleString()}주</p>{Number(item.execution_plan.overfilled_quantity) > 0 && <p className="mt-1 text-xs text-[var(--muted-ink)]">계획보다 {Number(item.execution_plan.overfilled_quantity).toLocaleString()}주 더 체결됨</p>}</section>}
           {latestTaskHistory?.answer && <section><h4 className="text-sm font-semibold">확인한 답</h4><p className="mt-2 text-sm leading-6">{latestTaskHistory.answer}</p></section>}
           {latestTaskHistory?.evidence?.length > 0 && (
             <section>
@@ -94,7 +100,7 @@ function Detail({ item, loading, mode, onClose }) {
               </ul>
             </section>
           )}
-          <p className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--muted-ink)]">이 항목은 조사·점검할 질문입니다. 매매 주문이나 체결 기록이 아닙니다.</p>
+          <p className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--muted-ink)]">{item.kind === 'execution' ? '이 항목은 실행 계획입니다. 연결된 실제 체결만 진행도에 반영되며 계획 자체는 주문이나 체결이 아닙니다.' : '이 항목은 조사·점검할 질문입니다. 매매 주문이나 체결 기록이 아닙니다.'}</p>
         </div>
       )}
     </ModalShell>

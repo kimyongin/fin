@@ -516,6 +516,46 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
+  async save_execution_task(supabase, args) {
+    requireSchemaVersion(args)
+    const taskId = args.task_id == null ? null : requireUuid(args.task_id, 'task_id')
+    const expectedVersion = args.expected_version == null ? null : requirePositiveInteger(args.expected_version, 'expected_version')
+    if ((taskId == null) !== (expectedVersion == null)) throw new ToolInputError('task_id and expected_version must both be set for an update')
+    const side = requireString(args.side, 'side')
+    if (!['buy', 'sell'].includes(side)) throw new ToolInputError('side is invalid')
+    const data = await rpc(supabase, 'app_save_execution_task', {
+      input_expected_version: expectedVersion,
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_payload: {
+        ...(taskId ? { task_id: taskId } : {}), title: requireString(args.title, 'title'),
+        account_id: requirePositiveInteger(args.account_id, 'account_id'), instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
+        side, target_quantity: requirePositiveDecimalString(args.target_quantity, 'target_quantity'), timezone: requireString(args.timezone, 'timezone'),
+        ...(optionalString(args.due_date) ? { due_date: optionalString(args.due_date) } : {}),
+        ...(optionalString(args.trigger_text) ? { trigger_text: optionalString(args.trigger_text) } : {}),
+        ...(optionalString(args.change_reason) ? { change_reason: optionalString(args.change_reason) } : {}), authored_via: 'agent',
+      },
+    })
+    return { ok: true, data }
+  },
+  async link_trade_to_task(supabase, args) {
+    requireSchemaVersion(args)
+    const data = await rpc(supabase, 'app_link_trade_to_task', {
+      input_trade_entry_id: requireUuid(args.trade_id, 'trade_id'), input_task_id: requireUuid(args.task_id, 'task_id'),
+      input_expected_task_version: requirePositiveInteger(args.expected_task_version, 'expected_task_version'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
+    })
+    return { ok: true, data }
+  },
+  async transition_execution_task(supabase, args) {
+    requireSchemaVersion(args)
+    const action = requireString(args.action, 'action')
+    if (!['pause','resume','cancel'].includes(action)) throw new ToolInputError('action is invalid')
+    const data = await rpc(supabase, 'app_transition_execution_task', {
+      input_task_id: requireUuid(args.task_id, 'task_id'), input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_action: action, input_reason: requireString(args.reason, 'reason'), input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
+    })
+    return { ok: true, data }
+  },
   async get_investment_policy(supabase) {
     const data = await rpc(supabase, 'app_get_investment_policy')
     return { ok: true, data }
