@@ -66,6 +66,50 @@ test('shows the latest saved daily review first on a mobile-sized screen', async
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
+test('shows an adopted decision and its research follow-up without implying a trade', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+
+  const suffix = Date.now()
+  const question = `E2E 보유 판단 ${suffix}`
+  const taskTitle = `E2E 다음 실적 확인 ${suffix}`
+  const recorded = await callRpc(page, 'app_record_investment_decision', {
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: {
+      status: 'adopted',
+      subject: { kind: 'instrument', instrument_id: 'E2EAPL', label: 'E2E Apple' },
+      question,
+      options: ['유지', '축소 검토'],
+      selected_option: '유지',
+      reason: '다음 실적에서 핵심 가설을 다시 확인합니다.',
+      review_condition: '다음 분기 실적 발표',
+      timezone: 'Asia/Seoul',
+      authored_via: 'app',
+      follow_up_tasks: [{
+        title: taskTitle,
+        subject: { kind: 'instrument', instrument_id: 'E2EAPL', label: 'E2E Apple' },
+        trigger_text: '다음 분기 실적 발표',
+      }],
+    },
+  })
+  expect(recorded.status, JSON.stringify(recorded.body)).toBe(200)
+  expect(recorded.body.tasks).toHaveLength(1)
+
+  await openMenuTab(page, '판단')
+  await expect(page.getByText(question)).toBeVisible()
+  await expect(page.getByText('내가 채택함').first()).toBeVisible()
+  await page.getByText(question).click()
+  await expect(page.getByText(taskTitle)).toBeVisible()
+  await page.getByRole('button', { name: '닫기' }).click()
+
+  await openMenuTab(page, '할 일')
+  await expect(page.getByText(taskTitle)).toBeVisible()
+  await page.getByText(taskTitle).click()
+  await expect(page.getByText('매매 주문이나 체결 기록이 아닙니다.')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
 test('starts the Google OAuth authorization redirect without using a Google account', async ({ page }) => {
   let authorizeUrl = ''
   await page.route('**/auth/v1/authorize**', async (route) => {
@@ -344,7 +388,7 @@ test('displays strategy contribution allocation and rebalancing guidance', async
     input_buckets: [{ name: 'E2E Allocation Bucket', sort_order: 0, tag_ids: [1], target_percentage: 100 }],
     input_drift_threshold: 1, input_monthly_contribution: 100000, input_name: 'E2E Display Strategy', input_review_day: 1,
   })
-  await openMenuTab(page, '전략')
+  await openMenuTab(page, '원칙')
   await expect(page.getByText('E2E Display Strategy')).toBeVisible()
   await expect(page.getByText('E2E Allocation Bucket').first()).toBeVisible()
 })

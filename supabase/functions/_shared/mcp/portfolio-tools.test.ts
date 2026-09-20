@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { dailyReviewToolNames, portfolioToolDefinitions } from './portfolio-tools.ts'
+import { dailyReviewToolNames, decisionTaskToolNames, portfolioToolDefinitions } from './portfolio-tools.ts'
 
 function tool(name: string) {
   const definition = portfolioToolDefinitions.find((item) => item.name === name)
@@ -13,6 +13,7 @@ describe('portfolio MCP tool definitions', () => {
     const names = portfolioToolDefinitions.map((definition) => definition.name)
     expect(new Set(names).size).toBe(names.length)
     expect(dailyReviewToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(decisionTaskToolNames.every((name) => names.includes(name))).toBe(true)
   })
 
   it('does not label temporary context creation as read-only or idempotent', () => {
@@ -53,5 +54,21 @@ describe('portfolio MCP tool definitions', () => {
       'partial',
       'unverified',
     ])
+  })
+
+  it('keeps an adopted decision separate from trades and execution plans', () => {
+    const definition = tool('record_investment_decision')
+    const schema = definition.inputSchema as any
+    expect(definition.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
+    expect(schema.properties.status.enum).toEqual(['proposed', 'adopted'])
+    expect(schema.properties.follow_up_tasks.maxItems).toBe(3)
+    expect(schema.properties).not.toHaveProperty('trade')
+    expect(schema.properties).not.toHaveProperty('execution_plan')
+  })
+
+  it('keeps decision and task reads read-only', () => {
+    for (const name of ['list_investment_decisions', 'get_investment_decision', 'list_tasks', 'get_task']) {
+      expect(tool(name).annotations.readOnlyHint).toBe(true)
+    }
   })
 })

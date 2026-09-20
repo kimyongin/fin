@@ -142,6 +142,30 @@ const briefingSchema = {
   additionalProperties: false,
 }
 
+const lifecycleSubjectSchema = {
+  type: 'object',
+  properties: {
+    kind: { type: 'string', enum: ['portfolio', 'instrument', 'position'] },
+    instrument_id: { type: 'string', minLength: 1 },
+    account_id: { type: 'string', minLength: 1 },
+    label: { type: 'string' },
+  },
+  required: ['kind'],
+  additionalProperties: false,
+}
+
+const researchTaskCreateSchema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', minLength: 1, maxLength: 500 },
+    subject: lifecycleSubjectSchema,
+    due_date: { type: ['string', 'null'], format: 'date' },
+    trigger_text: { type: 'string' },
+  },
+  required: ['title', 'subject'],
+  additionalProperties: false,
+}
+
 export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_profile',
@@ -267,6 +291,91 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema,
     annotations: readOnlyAnnotations,
   },
+  {
+    name: 'record_investment_decision',
+    title: 'Record investment decision',
+    description: 'Use only when the user explicitly asks to record a proposed idea or their adopted investment decision. It can atomically create up to three research follow-ups. An adopted decision requires the user-selected option and reason. It never creates an execution plan, trade, order, or holding change.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        idempotency_key: { type: 'string', format: 'uuid' },
+        status: { type: 'string', enum: ['proposed', 'adopted'] },
+        subject: lifecycleSubjectSchema,
+        question: { type: 'string', minLength: 1, maxLength: 1000 },
+        options: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } },
+        selected_option: { type: 'string' },
+        reason: { type: 'string' },
+        uncertainty: { type: 'string' },
+        review_condition: { type: 'string' },
+        policy_snapshot: { type: 'object' },
+        source_briefing_id: { type: 'string', format: 'uuid' },
+        timezone: { type: 'string', minLength: 1, default: 'Asia/Seoul' },
+        follow_up_tasks: { type: 'array', maxItems: 3, items: researchTaskCreateSchema },
+      },
+      required: ['schema_version', 'idempotency_key', 'status', 'subject', 'question', 'options', 'timezone', 'follow_up_tasks'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'list_investment_decisions',
+    title: 'Investment decisions',
+    description: 'List the authenticated user\'s saved investment decisions, newest change first. Proposed ideas are not user-adopted decisions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
+        before: { type: 'string', format: 'date-time' },
+      },
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'get_investment_decision',
+    title: 'Investment decision detail',
+    description: 'Read one owner-only investment decision with its status history and linked research follow-ups. It does not mark the decision as adopted or reviewed.',
+    inputSchema: {
+      type: 'object',
+      properties: { decision_id: { type: 'string', format: 'uuid' } },
+      required: ['decision_id'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'list_tasks',
+    title: 'Portfolio research tasks',
+    description: 'List the authenticated user\'s research and review tasks. These are questions to revisit, not brokerage orders or proof of execution.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        state: { type: 'string', enum: ['open', 'waiting', 'resolved', 'closed'] },
+        limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
+        before: { type: 'string', format: 'date-time' },
+      },
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'get_task',
+    title: 'Portfolio task detail',
+    description: 'Read one owner-only portfolio task with its current state, history, and linked decision IDs. Reading does not complete, pause, or close the task.',
+    inputSchema: {
+      type: 'object',
+      properties: { task_id: { type: 'string', format: 'uuid' } },
+      required: ['task_id'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
 ]
 
 export const dailyReviewToolNames = [
@@ -274,4 +383,12 @@ export const dailyReviewToolNames = [
   'save_daily_briefing',
   'list_daily_briefings',
   'get_daily_briefing',
+] as const
+
+export const decisionTaskToolNames = [
+  'record_investment_decision',
+  'list_investment_decisions',
+  'get_investment_decision',
+  'list_tasks',
+  'get_task',
 ] as const

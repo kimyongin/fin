@@ -11,6 +11,8 @@ playwright-report/
 
 # Supabase local link/cache
 supabase/.temp/
+.e2e/supabase/migrations/202609210002_decision_research_task_slice.sql
+.e2e/supabase/migrations/202609210003_daily_context_lifecycle.sql
 
 # OS
 .DS_Store

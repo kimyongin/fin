@@ -1,9 +1,11 @@
 export const allTabs = [
   { id: 'today', label: '오늘' },
   { id: 'overview', label: '자산' },
-  { id: 'strategy', label: '전략' },
-  { id: 'news', label: '뉴스' },
-  { id: 'activity', label: '기록' },
+  { id: 'decisions', label: '판단' },
+  { id: 'tasks', label: '할 일' },
+  { id: 'strategy', label: '원칙' },
+  { id: 'news', label: '자료' },
+  { id: 'activity', label: '활동' },
   { id: 'settings', label: '설정' },
   { id: 'guide', label: '가이드' },
 ]

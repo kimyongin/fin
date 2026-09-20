@@ -171,12 +171,80 @@ function normalizeDailyBriefingPayload(args: Record<string, unknown>) {
   }
 }
 
+function normalizeLifecycleSubject(value: unknown, field: string) {
+  const subject = requireRecord(value, field)
+  const kind = requireString(subject.kind, `${field}.kind`)
+  if (!['portfolio', 'instrument', 'position'].includes(kind)) {
+    throw new ToolInputError(`${field}.kind is invalid`)
+  }
+  const instrumentId = optionalString(subject.instrument_id)
+  const accountId = optionalString(subject.account_id)
+  if (kind !== 'portfolio' && !instrumentId) {
+    throw new ToolInputError(`${field}.instrument_id is required`)
+  }
+  if (kind === 'position' && !accountId) {
+    throw new ToolInputError(`${field}.account_id is required`)
+  }
+  return {
+    kind,
+    ...(instrumentId ? { instrument_id: instrumentId } : {}),
+    ...(accountId ? { account_id: accountId } : {}),
+    ...(optionalString(subject.label) ? { label: optionalString(subject.label) } : {}),
+  }
+}
+
+function normalizeInvestmentDecisionPayload(args: Record<string, unknown>) {
+  requireSchemaVersion(args)
+  const status = requireString(args.status, 'status')
+  if (!['proposed', 'adopted'].includes(status)) throw new ToolInputError('status is invalid')
+  const selectedOption = optionalString(args.selected_option)
+  const reason = optionalString(args.reason)
+  if (status === 'adopted' && (!selectedOption || !reason)) {
+    throw new ToolInputError('adopted decision needs selected_option and reason')
+  }
+  const options = requireArray(args.options, 'options').map((value, index) =>
+    requireString(value, `options[${index}]`)
+  )
+  const tasks = requireArray(args.follow_up_tasks, 'follow_up_tasks').map((value, index) => {
+    const task = requireRecord(value, `follow_up_tasks[${index}]`)
+    return {
+      title: requireString(task.title, `follow_up_tasks[${index}].title`),
+      subject: normalizeLifecycleSubject(task.subject, `follow_up_tasks[${index}].subject`),
+      ...(optionalString(task.due_date) ? { due_date: optionalString(task.due_date) } : {}),
+      ...(optionalString(task.trigger_text) ? { trigger_text: optionalString(task.trigger_text) } : {}),
+    }
+  })
+  const policySnapshot = args.policy_snapshot == null
+    ? {}
+    : requireRecord(args.policy_snapshot, 'policy_snapshot')
+  return {
+    status,
+    subject: normalizeLifecycleSubject(args.subject, 'subject'),
+    question: requireString(args.question, 'question'),
+    options,
+    ...(selectedOption ? { selected_option: selectedOption } : {}),
+    ...(reason ? { reason } : {}),
+    ...(optionalString(args.uncertainty) ? { uncertainty: optionalString(args.uncertainty) } : {}),
+    ...(optionalString(args.review_condition) ? { review_condition: optionalString(args.review_condition) } : {}),
+    policy_snapshot: policySnapshot,
+    ...(optionalString(args.source_briefing_id)
+      ? { source_briefing_id: requireUuid(args.source_briefing_id, 'source_briefing_id') }
+      : {}),
+    timezone: requireString(args.timezone, 'timezone'),
+    authored_via: 'agent',
+    follow_up_tasks: tasks,
+  }
+}
+
 function toolErrorCode(error: unknown) {
   if (error instanceof ToolInputError) return 'validation_error'
   const message = error instanceof Error ? error.message.toLowerCase() : ''
   if (message.includes('context has expired')) return 'context_expired'
   if (message.includes('context was not found')) return 'not_found_or_forbidden'
   if (message.includes('briefing was not found')) return 'not_found_or_forbidden'
+  if (message.includes('decision was not found')) return 'not_found_or_forbidden'
+  if (message.includes('task was not found')) return 'not_found_or_forbidden'
+  if (message.includes('source briefing was not found')) return 'not_found_or_forbidden'
   if (message.includes('idempotency key')) return 'idempotency_conflict'
   if (message.includes('not supported')) return 'unsupported_operation'
   if (message.includes('exceeds the 2 mib')) return 'payload_too_large'
@@ -254,6 +322,44 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_briefing_id: requireUuid(args.briefing_id, 'briefing_id'),
     })
     if (data == null) throw new Error('Briefing was not found or is not accessible')
+    return { ok: true, data }
+  },
+  async record_investment_decision(supabase, args) {
+    const data = await rpc(supabase, 'app_record_investment_decision', {
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_payload: normalizeInvestmentDecisionPayload(args),
+    })
+    return { ok: true, data }
+  },
+  async list_investment_decisions(supabase, args) {
+    const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50)
+    const data = await rpc(supabase, 'app_list_investment_decisions', {
+      input_limit: limit,
+      input_before: optionalString(args.before) ?? null,
+    })
+    return { ok: true, data }
+  },
+  async get_investment_decision(supabase, args) {
+    const data = await rpc(supabase, 'app_get_investment_decision', {
+      input_decision_id: requireUuid(args.decision_id, 'decision_id'),
+    })
+    if (data == null) throw new Error('Decision was not found or is not accessible')
+    return { ok: true, data }
+  },
+  async list_tasks(supabase, args) {
+    const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50)
+    const data = await rpc(supabase, 'app_list_portfolio_tasks', {
+      input_state: optionalString(args.state) ?? null,
+      input_limit: limit,
+      input_before: optionalString(args.before) ?? null,
+    })
+    return { ok: true, data }
+  },
+  async get_task(supabase, args) {
+    const data = await rpc(supabase, 'app_get_portfolio_task', {
+      input_task_id: requireUuid(args.task_id, 'task_id'),
+    })
+    if (data == null) throw new Error('Task was not found or is not accessible')
     return { ok: true, data }
   },
 }

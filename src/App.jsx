@@ -5,6 +5,7 @@ import AssetsPageView from './features/assets/AssetsPage'
 import GuidePageView from './features/guide/GuidePage'
 import NewsPageView from './features/news/NewsPage'
 import DailyReviewPageView from './features/review/DailyReviewPage'
+import LifecyclePageView from './features/lifecycle/LifecyclePage'
 import {
   CenteredMessage as CenteredMessageView,
   GuestUnlockScreen as GuestUnlockScreenView,
@@ -414,7 +415,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? 'Portfolio' : activeTab === 'strategy' ? 'Strategy' : activeTab === 'news' ? 'News' : activeTab === 'activity' ? 'Activity' : activeTab === 'guide' ? 'Guide' : 'Settings'
+  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : activeTab === 'decisions' ? '판단' : activeTab === 'tasks' ? '할 일' : activeTab === 'strategy' ? '원칙' : activeTab === 'news' ? '자료' : activeTab === 'activity' ? '활동' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
     <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
@@ -445,6 +446,10 @@ function App() {
         )}
 
         {activeTab === 'today' && <DailyReviewPageView supabase={supabase} />}
+
+        {activeTab === 'decisions' && <LifecyclePageView mode="decisions" supabase={supabase} />}
+
+        {activeTab === 'tasks' && <LifecyclePageView mode="tasks" supabase={supabase} />}
 
         {activeTab === 'overview' && (
           <AssetsPageView

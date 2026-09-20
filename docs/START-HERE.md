@@ -39,11 +39,11 @@
 
 - 공통 구현 기반 설계: [React 컴포넌트](./design/component-system.md), [백엔드 모듈](./engineering/backend-modules.md). 기존 ModalShell 보완과 호환 재사용, modal drawer/편집 상태 계약, Edge 공통 adapter/registry 및 DB 원자 저장 경계를 정의했다. 코드·라이브러리 설치·배포는 아직 변경하지 않았다.
 
-- 에이전트용 명세: [agent 계약 관리](./design/contracts/agent/README.md). 공통 행동 규칙과 W01~W08 작업 가이드를 관리한다. OAuth 로컬에는 기존 읽기 6개와 일일 점검 4개가 공통 코드 정의로 연결됐고 종단간 로컬 검증을 통과했다. 운영 배포·웹/모바일 검증과 기존 토큰 endpoint 통합은 남아 있다.
+- 에이전트용 명세: [agent 계약 관리](./design/contracts/agent/README.md). 공통 행동 규칙과 W01~W08 작업 가이드를 관리한다. OAuth 로컬에는 기존 읽기 6개, 일일 점검 4개, 판단/할 일 5개가 공통 코드 정의로 연결됐다. 일일 점검은 로컬 OAuth 종단간 검증, 판단/할 일은 DB·schema/handler 단위 검증까지 완료했다. 운영 배포·웹/모바일 검증과 기존 토큰 endpoint 통합은 남아 있다.
 
 - 후속 설계: [24개 사용자 시나리오/API/데이터 대응표](./design/contracts/scenario-api-model-matrix.md), [원칙·판단·할 일·매매 생애주기](./design/contracts/lifecycle-model-api.md). 판단+후속 할 일 원자 저장, 조사 질문 CAS, 체결 취소 preview, 당시 task history 참조, 조사 대상 누락 검증을 보완했다. 문서 점검과 실제 테스트 통과를 구별하며 기술 검증 게이트는 계약 인덱스를 따른다.
 
-- 2026-09-21: 첫 수직 슬라이스 구현을 시작했다. 일일 context/브리핑 DB 계약과 테스트, OAuth MCP 일일 점검 4개 도구, 앱의 소유자 전용 `오늘` 읽기 화면까지 로컬에서 연결했다. 운영 배포·웹/모바일 실제 연결 갱신·기능별 공유·판단/task 후속 모델은 아직 남아 있다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 계속 기준으로 삼는다.
+- 2026-09-21: 일일 context/브리핑 DB·OAuth MCP·소유자 전용 `오늘` 화면을 연결했다. 이어 “유지하고 다음 실적 때 보자”를 adopted 판단+research task로 원자 저장하는 DB/RPC와 MCP 5개, 앱의 소유자 전용 `판단`·`할 일` 읽기 화면을 구현했다. 다음 context에는 현재 판단/할 일이 포함된다. 판단/task 전이·실행 계획·기능별 공유·운영 배포/클라이언트 종단간 검증은 남아 있다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 계속 기준으로 삼는다.
 
 - 공유 설계 추가 결정: [ADR-0003](./adr/0003-extensible-feature-sharing.md). 내부 기능별 read 권한 + 단순 묶음 UI. 전역 boolean만으로 구현하지 않으며 친구별 예외/문서별 ACL은 첫 버전에서 제외한다.
 

@@ -1,6 +1,16 @@
 import { spawnSync } from 'node:child_process'
+import { copyFileSync } from 'node:fs'
+import { basename, resolve } from 'node:path'
 
 const supabaseArgs = ['--workdir', '.e2e']
+const sharedSliceMigrations = [
+  'supabase/migrations/202609210002_decision_research_task_slice.sql',
+  'supabase/migrations/202609210003_daily_context_lifecycle.sql',
+]
+
+for (const migration of sharedSliceMigrations) {
+  copyFileSync(resolve(migration), resolve('.e2e/supabase/migrations', basename(migration)))
+}
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { encoding: 'utf8', stdio: 'inherit', ...options })
@@ -44,7 +54,7 @@ run('supabase', ['db', 'reset', ...supabaseArgs])
 const localEnv = readSupabaseEnv()
 await waitForAuth(localEnv.API_URL)
 
-const result = spawnSync(process.execPath, ['node_modules/playwright/cli.js', 'test'], {
+const result = spawnSync(process.execPath, ['node_modules/playwright/cli.js', 'test', ...process.argv.slice(2)], {
   env: {
     ...process.env,
     VITE_SUPABASE_ANON_KEY: localEnv.ANON_KEY,

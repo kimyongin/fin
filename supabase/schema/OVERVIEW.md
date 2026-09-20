@@ -17,6 +17,7 @@ Read this file first for database work. Inspect only the relevant migration file
 | Portfolio outputs | `portfolio_snapshots`, `daily_reports`, `rebalance_suggestions`, `sync_runs`, `strategies`, `strategy_buckets`, `strategy_bucket_tags`, `strategy_bucket_mode_targets` | Persisted portfolio analysis, active mode, detailed principles, mode-specific strategy targets, and price-sync results. |
 | News research | `news_facts`, `news_fact_annotations` | Country-, date-, and axis-scoped factual records with separate signal opinions attached as annotations. |
 | Daily review | `daily_review_contexts`, `daily_briefings`, `daily_briefing_evidence`, `daily_briefing_scopes`, `daily_briefing_scope_sources`, `daily_briefing_scope_evidence`, `daily_review_mutation_receipts` | Short-lived server-owned analysis inputs and a single durable briefing aggregate containing the consumed snapshot, conclusions, uncertainties, source evidence, checked sources, and research windows. Mutation receipts make briefing saves idempotent. |
+| Decisions and follow-ups | `investment_decisions`, `investment_decision_state_history`, `portfolio_tasks`, `portfolio_task_history`, `investment_decision_tasks`, `decision_task_mutation_receipts` | Owner-only proposed/adopted decisions and linked research questions. Initial decision plus up to three research tasks is one idempotent transaction; execution plans and task transitions are deferred. |
 | Audit and agent access | `activity_events`, `agent_tokens` | User and agent actions are recorded; agent tokens can be revoked. |
 
 `portfolio_view` joins holdings, accounts, instruments, and the newest price. It converts USD values with the latest available `USDKRW=X` price.
@@ -35,9 +36,11 @@ Instrument types are constrained to `market` for market-priced investments, `val
 | `add_friend`, `list_friends`, `remove_friend` | Create, list, and remove persistent friend portfolio access after password verification. |
 | `app_get_strategy_state`, `app_save_strategy` | Read a shared strategy or save the owner's active mode, detailed principles, buckets, mode targets, tag mappings, and rules. |
 | `app_get_news_state`, `app_save_news_fact`, `app_update_news_fact`, `app_save_news_fact_annotation`, `app_delete_news_fact`, `app_delete_news_fact_annotation` | Read shared news research, record, update, or delete facts, and attach or remove one signal opinion per fact. |
-| `app_create_daily_context` | Assemble the current portfolio, strategy, saved news, recent activity, previous briefing, and last research scopes into a six-hour server-owned context without marking a review complete. It accepts at most 200 subjects, limits snapshots to 2 MiB, and retains at most ten active contexts per user. |
+| `app_create_daily_context` | Assemble the current portfolio, strategy, saved news, recent activity, previous briefing, last research scopes, current decisions, and open follow-ups into a six-hour server-owned context without marking a review complete. It accepts at most 200 subjects, limits snapshots to 2 MiB, and retains at most ten active contexts per user. |
 | `app_save_daily_briefing` | Atomically copy a valid context snapshot into one briefing aggregate, save evidence and research scopes, write an activity event, and return the original result for an identical idempotent retry. |
 | `app_get_daily_briefing`, `app_list_daily_briefings` | Read one complete owner-only briefing aggregate or list compact briefing summaries. |
+| `app_record_investment_decision` | Atomically record a proposed or explicitly adopted decision plus zero to three research follow-ups. It is idempotent and cannot create an execution plan, trade, order, or holding change. |
+| `app_get/list_investment_decision*`, `app_get/list_portfolio_task*` | Read owner-only decision/task detail and compact lists. Initial history and decision-task snapshots preserve what was linked at creation. |
 
 ## Access Rules
 
@@ -46,6 +49,7 @@ Instrument types are constrained to `market` for market-priced investments, `val
 - Selected portfolio data can be read by an authorized guest viewer or friend through `can_view_owner`.
 - Use RPCs for mutations where possible: they enforce ownership and create audit events.
 - Daily review contexts, briefings, evidence, scopes, links, and mutation receipts are owner-only in the first vertical slice. Feature-level sharing is intentionally deferred to the sharing slice.
+- Decisions, research tasks, their histories, links, and mutation receipts are owner-only until their feature-level sharing DTO is implemented.
 
 ## Change Routing
 

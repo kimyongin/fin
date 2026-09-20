@@ -21,7 +21,7 @@ export function usePortfolioNavigation(canEdit) {
   const [assetView, setAssetView] = useState(() => assetViewFromHash())
 
   const tabs = useMemo(
-    () => allTabs.filter((tab) => canEdit || !['today', 'settings'].includes(tab.id)),
+    () => allTabs.filter((tab) => canEdit || !['today', 'decisions', 'tasks', 'settings'].includes(tab.id)),
     [canEdit],
   )
 
