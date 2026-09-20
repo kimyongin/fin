@@ -15,6 +15,8 @@ supabase/.temp/
 .e2e/supabase/migrations/202609210003_daily_context_lifecycle.sql
 .e2e/supabase/migrations/202609210004_decision_task_transitions.sql
 .e2e/supabase/migrations/202609210005_daily_context_open_tasks.sql
+.e2e/supabase/migrations/202609210006_investment_policy_profile.sql
+.e2e/supabase/migrations/202609210007_daily_context_investment_policy.sql
 
 # OS
 .DS_Store

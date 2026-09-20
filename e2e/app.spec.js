@@ -144,6 +144,39 @@ test('shows an adopted decision and its research follow-up without implying a tr
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
+test('saves a private investment policy and includes its version in daily context', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+  await openMenuTab(page, '원칙')
+
+  await page.getByRole('button', { name: '기준 추가' }).click()
+  await page.getByLabel('한 줄로 적는 기본 원칙').fill('장기 투자하고 자주 매매하지 않는다.')
+  await page.getByLabel('투자 목적').fill('은퇴 자산을 장기적으로 늘린다.')
+  await page.getByLabel('투자 기간').fill('10년 이상')
+  await page.getByLabel('하지 않을 것 · 한 줄에 하나').fill('레버리지 상품은 매수하지 않는다.')
+  await page.getByLabel('변경 이유').fill('처음 개인 투자 기준을 정했습니다.')
+  await page.getByRole('button', { name: '기준 저장' }).click()
+
+  await expect(page.getByText('장기 투자하고 자주 매매하지 않는다.')).toBeVisible()
+  await expect(page.getByText('기준 버전 1')).toBeVisible()
+
+  const policy = await callRpc(page, 'app_get_investment_policy')
+  expect(policy.status, JSON.stringify(policy.body)).toBe(200)
+  expect(policy.body.profile).toMatchObject({
+    version: 1,
+    horizon_text: '10년 이상',
+  })
+
+  const context = await callRpc(page, 'app_create_daily_context', {
+    input_subject_tickers: null,
+    input_timezone: 'Asia/Seoul',
+  })
+  expect(context.status, JSON.stringify(context.body)).toBe(200)
+  expect(context.body.snapshot.investment_policy).toMatchObject({ version: 1 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
 test('starts the Google OAuth authorization redirect without using a Google account', async ({ page }) => {
   let authorizeUrl = ''
   await page.route('**/auth/v1/authorize**', async (route) => {

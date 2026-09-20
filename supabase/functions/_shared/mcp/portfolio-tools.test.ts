@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { dailyReviewToolNames, decisionTaskToolNames, portfolioToolDefinitions } from './portfolio-tools.ts'
+import {
+  dailyReviewToolNames,
+  decisionTaskToolNames,
+  investmentPolicyToolNames,
+  portfolioToolDefinitions,
+} from './portfolio-tools.ts'
 
 function tool(name: string) {
   const definition = portfolioToolDefinitions.find((item) => item.name === name)
@@ -14,6 +19,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(new Set(names).size).toBe(names.length)
     expect(dailyReviewToolNames.every((name) => names.includes(name))).toBe(true)
     expect(decisionTaskToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
   })
 
   it('does not label temporary context creation as read-only or idempotent', () => {
@@ -82,5 +88,15 @@ describe('portfolio MCP tool definitions', () => {
       'wait', 'resolve', 'reopen', 'pause', 'resume', 'close',
     ])
     expect((task.inputSchema as any).properties).not.toHaveProperty('trade_id')
+  })
+
+  it('keeps personal policy separate from inferred defaults and strategy mutation', () => {
+    const read = tool('get_investment_policy')
+    const save = tool('save_investment_policy')
+    expect(read.annotations.readOnlyHint).toBe(true)
+    expect(save.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
+    expect((save.inputSchema as any).properties.expected_version.type).toEqual(['integer', 'null'])
+    expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('mode')
+    expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('target_percentage')
   })
 })

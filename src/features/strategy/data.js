@@ -34,3 +34,26 @@ export async function saveStrategy(supabase, draft) {
   if (error) throw error
   return { ...createEmptyStrategyState(), ...(data ?? {}) }
 }
+
+export async function fetchInvestmentPolicy(supabase) {
+  const { data, error } = await supabase.rpc('app_get_investment_policy')
+  if (error) throw error
+  return data?.profile ?? null
+}
+
+export async function saveInvestmentPolicy(supabase, {
+  expectedVersion,
+  idempotencyKey,
+  patch,
+  changeReason,
+}) {
+  const { data, error } = await supabase.rpc('app_save_investment_policy', {
+    input_expected_version: expectedVersion,
+    input_idempotency_key: idempotencyKey,
+    input_patch: patch,
+    input_change_reason: changeReason,
+    input_authored_via: 'app',
+  })
+  if (error) throw error
+  return data?.profile ?? null
+}

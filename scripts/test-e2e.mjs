@@ -8,6 +8,8 @@ const sharedSliceMigrations = [
   'supabase/migrations/202609210003_daily_context_lifecycle.sql',
   'supabase/migrations/202609210004_decision_task_transitions.sql',
   'supabase/migrations/202609210005_daily_context_open_tasks.sql',
+  'supabase/migrations/202609210006_investment_policy_profile.sql',
+  'supabase/migrations/202609210007_daily_context_investment_policy.sql',
 ]
 
 for (const migration of sharedSliceMigrations) {

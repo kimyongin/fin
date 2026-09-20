@@ -178,6 +178,31 @@ const taskTransitionEvidenceSchema = {
   additionalProperties: false,
 }
 
+const policyRestrictionSchema = {
+  type: 'object',
+  properties: {
+    kind: { type: 'string', enum: ['preference', 'prohibition'] },
+    text: { type: 'string', minLength: 1, maxLength: 1000 },
+  },
+  required: ['kind', 'text'],
+  additionalProperties: false,
+}
+
+const policyPatchSchema = {
+  type: 'object',
+  properties: {
+    raw_text: { type: ['string', 'null'], maxLength: 10000 },
+    goal_text: { type: ['string', 'null'], maxLength: 4000 },
+    horizon_text: { type: ['string', 'null'], maxLength: 4000 },
+    liquidity_need_text: { type: ['string', 'null'], maxLength: 4000 },
+    risk_tolerance_text: { type: ['string', 'null'], maxLength: 4000 },
+    trading_preference_text: { type: ['string', 'null'], maxLength: 4000 },
+    restrictions: { type: 'array', maxItems: 20, items: policyRestrictionSchema },
+  },
+  minProperties: 1,
+  additionalProperties: false,
+}
+
 export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_profile',
@@ -431,6 +456,33 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema,
     annotations: idempotentWriteAnnotations,
   },
+  {
+    name: 'get_investment_policy',
+    title: 'Investment policy and operating strategy',
+    description: 'Read the authenticated user\'s explicitly saved personal investment policy together with the existing operating strategy. Missing personal fields remain unknown; do not infer them from portfolio holdings or the active allocation mode.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'save_investment_policy',
+    title: 'Save personal investment policy',
+    description: 'Use only when the user explicitly asks to save or change their personal investment policy. Read the current version first, patch only stated fields, and use null only to clear a field. This does not change target allocations, operating mode, holdings, decisions, or trades.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        expected_version: { type: ['integer', 'null'], minimum: 1 },
+        idempotency_key: { type: 'string', format: 'uuid' },
+        patch: policyPatchSchema,
+        change_reason: { type: 'string', minLength: 1, maxLength: 1000 },
+      },
+      required: ['schema_version', 'expected_version', 'idempotency_key', 'patch', 'change_reason'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
 ]
 
 export const dailyReviewToolNames = [
@@ -448,4 +500,9 @@ export const decisionTaskToolNames = [
   'get_task',
   'transition_investment_decision',
   'transition_task',
+] as const
+
+export const investmentPolicyToolNames = [
+  'get_investment_policy',
+  'save_investment_policy',
 ] as const
