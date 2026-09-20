@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import MarkdownContent from '../../components/MarkdownContent'
 import ModalShell from '../../components/ModalShell'
 import { fetchDailyBriefing, fetchDailyBriefings } from './data'
+import PortfolioIntegritySummary from './PortfolioIntegritySummary'
 
 const reviewPrompt = '오늘 내 포트폴리오 점검하고 저장해줘'
 
@@ -167,6 +168,7 @@ export default function DailyReviewPage({ ownerUserId = null, supabase }) {
 
   return (
     <section className="mt-8 grid gap-5">
+      {!ownerUserId && <PortfolioIntegritySummary supabase={supabase} />}
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">

@@ -51,6 +51,7 @@ describe('portfolio MCP tool definitions', () => {
   it('keeps list and detail tools read-only', () => {
     expect(tool('list_daily_briefings').annotations.readOnlyHint).toBe(true)
     expect(tool('get_daily_briefing').annotations.readOnlyHint).toBe(true)
+    expect(tool('get_portfolio_integrity').annotations.readOnlyHint).toBe(true)
   })
 
   it('publishes the agreed daily-review coverage states', () => {

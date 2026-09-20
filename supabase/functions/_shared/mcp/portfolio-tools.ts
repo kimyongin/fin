@@ -624,6 +624,11 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
   },
   {
+    name: 'get_portfolio_integrity', title: 'Portfolio verification summary',
+    description: 'Summarize which current holdings were explicitly compared with a brokerage, which changed afterward, and which were never checked, grouped by account. It does not verify or change any value, and old status alone is not proof of an error.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
     name: 'preview_holding_reconciliation', title: 'Preview an absolute holding correction',
     description: 'Preview replacing one holding with user-supplied actual values. Market holdings use quantity and avg_price, valuation holdings use purchase_amount and valuation_amount, and cash uses valuation_amount. This does not modify the holding or imply brokerage verification unless confirmed_fields are explicit.',
     inputSchema: { type: 'object', properties: {
@@ -680,5 +685,5 @@ export const tradeEntryToolNames = [
   'list_transactions',
 ] as const
 
-export const holdingIntegrityToolNames = ['get_holding_integrity','preview_holding_reconciliation','reconcile_holding','verify_holdings'] as const
+export const holdingIntegrityToolNames = ['get_holding_integrity','get_portfolio_integrity','preview_holding_reconciliation','reconcile_holding','verify_holdings'] as const
 export const tradeReversalToolNames = ['preview_trade_reversal','reverse_trade_entry'] as const

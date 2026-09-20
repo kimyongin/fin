@@ -633,6 +633,9 @@ const toolHandlers: Record<string, ToolHandler> = {
   async get_holding_integrity(supabase, args) {
     return { ok: true, data: await rpc(supabase, 'app_get_holding_integrity', { input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id') }) }
   },
+  async get_portfolio_integrity(supabase) {
+    return { ok: true, data: await rpc(supabase, 'app_get_portfolio_integrity') }
+  },
   async preview_holding_reconciliation(supabase, args) {
     const values = requireRecord(args.values, 'values')
     const normalizedValues: Record<string,string> = {}

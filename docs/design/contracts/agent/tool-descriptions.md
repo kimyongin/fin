@@ -1,6 +1,6 @@
 # 도구 설명 카탈로그
 
-revision 6 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
+revision 7 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
 
 ## 설명 작성 형식
 
@@ -37,6 +37,7 @@ revision 6 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `su
 | log_completed_trade / observed-local | 사용자가 기록을 요청한 완료 매매의 유효한 preview를 멱등 확정해 로컬 수량·평균가를 갱신합니다. 증권사 주문이나 잔고 확인은 하지 않습니다. | W05 |
 | list_transactions / observed-local | Portfolio 새 원장에 기록한 완료 체결을 읽습니다. 증권사 전체 거래내역이나 legacy/미입력 거래까지 완전하다고 설명하지 않습니다. | W05,W06 |
 | get_holding_integrity / observed-local | 한 보유의 마지막 절대 보정과 명시적 증권사 확인 범위, 확인 뒤 값 변경 여부를 읽습니다. 미확인을 불일치로 해석하지 않습니다. | W06 |
+| get_portfolio_integrity / observed-local | 전체·계좌별로 확인됨, 확인 뒤 변경됨, 미확인 보유 수를 요약합니다. 오래된 상태만으로 오류를 단정하거나 값을 변경하지 않습니다. | W06 |
 | preview_holding_reconciliation / observed-local | 사용자가 제시한 실제 현재값으로 시장형/평가형/현금성 잔고를 바꿀 영향을 미리 계산합니다. 아직 값을 바꾸거나 확인 완료로 기록하지 않습니다. | W06 |
 | reconcile_holding / observed-local | 사용자가 확인한 최신 preview를 절대 기준점으로 저장합니다. 거래를 만들지 않고 명시한 필드만 선택적으로 실제 확인 기록에 포함합니다. | W06 |
 | verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드만 기록합니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
