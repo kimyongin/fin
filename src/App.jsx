@@ -43,7 +43,10 @@ import {
 
 function authRedirectTo() {
   const currentUrl = new URL(window.location.href)
-  if (currentUrl.searchParams.has('authorization_id')) return currentUrl.toString()
+  if (currentUrl.searchParams.has('authorization_id')) {
+    currentUrl.hash = ''
+    return currentUrl.toString()
+  }
   return `${window.location.origin}${import.meta.env.BASE_URL}`
 }
 
@@ -286,10 +289,11 @@ function App() {
   }, [canEdit, refreshState])
 
   async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({
+    return supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: authRedirectTo(),
+        skipBrowserRedirect: true,
       },
     })
   }

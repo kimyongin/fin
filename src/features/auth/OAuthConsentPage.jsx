@@ -19,6 +19,7 @@ export default function OAuthConsentPage({ authorizationId, onSignIn, session, s
   const [details, setDetails] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(Boolean(session))
+  const [signingIn, setSigningIn] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -71,6 +72,31 @@ export default function OAuthConsentPage({ authorizationId, onSignIn, session, s
     setSubmitting(false)
   }
 
+  async function signIn() {
+    setSigningIn(true)
+    setError('')
+
+    try {
+      const { data, error: nextError } = await onSignIn()
+      if (nextError) {
+        setError(nextError.message ?? 'Google 로그인을 시작하지 못했습니다.')
+        setSigningIn(false)
+        return
+      }
+
+      if (data?.url) {
+        window.location.assign(data.url)
+        return
+      }
+
+      setError('Google 로그인 주소를 받지 못했습니다.')
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'Google 로그인을 시작하지 못했습니다.')
+    }
+
+    setSigningIn(false)
+  }
+
   if (!session || session.user?.is_anonymous) {
     return (
       <main className="grid min-h-screen content-center px-5 text-[var(--ink)]">
@@ -80,12 +106,18 @@ export default function OAuthConsentPage({ authorizationId, onSignIn, session, s
           <p className="mt-3 text-sm leading-6 text-[var(--muted-ink)]">
             포트폴리오 계정으로 로그인한 뒤 ChatGPT가 내 데이터에 접근하도록 승인할 수 있습니다.
           </p>
+          {error && (
+            <div className="mt-4 rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+              {error}
+            </div>
+          )}
           <button
             className="mt-6 w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95"
-            onClick={onSignIn}
+            disabled={signingIn}
+            onClick={signIn}
             type="button"
           >
-            Google로 로그인
+            {signingIn ? '로그인 준비 중' : 'Google로 로그인'}
           </button>
         </section>
       </main>
