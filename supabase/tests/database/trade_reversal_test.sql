@@ -1,0 +1,24 @@
+begin; create extension if not exists pgtap with schema extensions; set local search_path=public,extensions; select extensions.plan(12);
+insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values('00000000-0000-0000-0000-000000000901','authenticated','authenticated','reverse-owner@example.com','',now(),now(),now());
+set local role postgres; insert into public.accounts(id,user_id,name) values(9901,'00000000-0000-0000-0000-000000000901','Reverse Account'); insert into public.instruments(id,user_id,ticker,display_name,instrument_type,currency) values(9901,'00000000-0000-0000-0000-000000000901','REV','Reverse Asset','market','KRW'); insert into public.holdings(id,user_id,account_id,ticker,quantity,avg_price) values(9901,'00000000-0000-0000-0000-000000000901',9901,'REV',20,65000);
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000901',true);set local role authenticated;
+create temp table reversal_data(buy uuid,sell uuid,preview uuid) on commit drop;grant select,insert,update on reversal_data to authenticated;insert into reversal_data values(null,null,null);
+with p as(select (public.app_preview_trade_entry(9901,9901,'buy',10,71000,current_date)->>'preview_id')::uuid id) update reversal_data set buy=(select (public.app_log_completed_trade(id,'90000000-0000-0000-0000-000000000001','app')->>'trade_id')::uuid from p);
+with p as(select (public.app_preview_trade_entry(9901,9901,'sell',12,80000,current_date)->>'preview_id')::uuid id) update reversal_data set sell=(select (public.app_log_completed_trade(id,'90000000-0000-0000-0000-000000000002','app')->>'trade_id')::uuid from p);
+select extensions.is((select ledger_quantity from public.holdings where id=9901),18::numeric,'fixture has 18 shares after buy and later sell');
+update reversal_data set preview=(public.app_preview_trade_reversal((select buy from reversal_data),'잘못 입력한 매수')->>'preview_id')::uuid;
+select extensions.is((select after_snapshot->>'quantity' from public.trade_reversal_previews where id=(select preview from reversal_data)),'8.0000000000000000','reversing buy replays the later sell');
+select extensions.is(public.app_reverse_trade_entry((select preview from reversal_data),'90000000-0000-0000-0000-000000000003','app')->>'affects_current','true','reversal reports current impact');
+select extensions.is((select ledger_quantity from public.holdings where id=9901),8::numeric,'reversal updates current quantity after replay');
+select extensions.is(round((select ledger_cost_pool/ledger_quantity from public.holdings where id=9901)),65000::numeric,'later sell preserves baseline average after buy reversal');
+select extensions.is(public.app_reverse_trade_entry((select preview from reversal_data),'90000000-0000-0000-0000-000000000003','app')->>'reversal_id',(select id::text from public.trade_reversals where trade_id=(select buy from reversal_data)),'identical reversal retry is idempotent');
+select extensions.throws_ok($$select public.app_preview_trade_reversal((select buy from reversal_data),'다시 취소')$$,'P0001','Trade was already reversed','already reversed trade cannot be previewed again');
+
+update reversal_data set preview=(public.app_preview_holding_reconciliation(9901,'{"quantity":"25","avg_price":"68000"}','실제값 보정',current_date,'{}')->>'preview_id')::uuid; select public.app_reconcile_holding((select preview from reversal_data),'90000000-0000-0000-0000-000000000004','app');
+update reversal_data set preview=(public.app_preview_trade_reversal((select sell from reversal_data),'보정 전 매도 기록 정정')->>'preview_id')::uuid;
+select extensions.is((select affects_current from public.trade_reversal_previews where id=(select preview from reversal_data)),false,'trade before latest checkpoint has no current impact');
+select extensions.is(public.app_reverse_trade_entry((select preview from reversal_data),'90000000-0000-0000-0000-000000000005','agent')->>'affects_current','false','checkpoint-protected reversal records no current impact');
+select extensions.is((select ledger_quantity from public.holdings where id=9901),25::numeric,'checkpoint-protected reversal keeps corrected quantity');
+select extensions.is(round((select ledger_cost_pool/ledger_quantity from public.holdings where id=9901)),68000::numeric,'checkpoint-protected reversal keeps corrected average');
+select extensions.is((select count(*) from public.trade_reversals where user_id=auth.uid()),2::bigint,'both reversals remain in history');
+select * from extensions.finish();rollback;

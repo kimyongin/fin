@@ -21,6 +21,7 @@ supabase/.temp/
 .e2e/supabase/migrations/202609210009_daily_context_holding_theses.sql
 .e2e/supabase/migrations/202609210010_trade_entry_foundation.sql
 .e2e/supabase/migrations/202609210011_reconciliation_and_verification.sql
+.e2e/supabase/migrations/202609210012_trade_reversal.sql
 
 # OS
 .DS_Store

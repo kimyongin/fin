@@ -8,6 +8,7 @@ import {
   investmentPolicyToolNames,
   portfolioToolDefinitions,
   tradeEntryToolNames,
+  tradeReversalToolNames,
 } from './portfolio-tools.ts'
 
 function tool(name: string) {
@@ -26,6 +27,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(holdingThesisToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(tradeReversalToolNames.every((name) => names.includes(name))).toBe(true)
   })
 
   it('does not label temporary context creation as read-only or idempotent', () => {
@@ -130,5 +132,10 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('reconcile_holding').annotations.idempotentHint).toBe(true)
     expect(tool('verify_holdings').annotations.idempotentHint).toBe(true)
     expect((tool('verify_holdings').inputSchema as any).properties.fields.minItems).toBe(1)
+  })
+  it('models cancellation as previewed reversal rather than an opposite trade',()=>{
+    expect(tool('preview_trade_reversal').annotations.idempotentHint).toBe(false)
+    expect(tool('reverse_trade_entry').annotations.idempotentHint).toBe(true)
+    expect((tool('reverse_trade_entry').inputSchema as any).properties).not.toHaveProperty('side')
   })
 })

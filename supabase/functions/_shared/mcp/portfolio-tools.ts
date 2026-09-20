@@ -609,6 +609,8 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     description: 'Record only the named fields the user explicitly says they compared with the brokerage at the current holding version. This never changes quantities, costs, valuation, trades, prices, or briefing dates.',
     inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, holding_id: { type: 'integer', minimum: 1 }, expected_version: { type: 'integer', minimum: 1 }, fields: { type: 'array', minItems: 1, uniqueItems: true, items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] } }, verified_on: { type: 'string', format: 'date' }, note: { type: ['string','null'], maxLength: 1000 }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','holding_id','expected_version','fields','verified_on','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
+  { name:'preview_trade_reversal',title:'Preview cancelling a recorded trade',description:'Preview invalidating one Portfolio trade record while preserving history. It replays later valid local trades, or reports no current balance impact when a newer absolute correction protects the current value. It does not cancel a brokerage order or create an opposite trade.',inputSchema:{type:'object',properties:{trade_id:{type:'string',format:'uuid'},reason:{type:'string',minLength:1,maxLength:1000}},required:['trade_id','reason'],additionalProperties:false},outputSchema:successEnvelopeSchema,annotations:contextAnnotations },
+  { name:'reverse_trade_entry',title:'Cancel a recorded trade entry',description:'Use only after explicit user confirmation of a fresh reversal preview. It preserves the original and appends a reversal, replays later local trades when applicable, and never cancels a brokerage order.',inputSchema:{type:'object',properties:{schema_version:{const:1},preview_id:{type:'string',format:'uuid'},idempotency_key:{type:'string',format:'uuid'}},required:['schema_version','preview_id','idempotency_key'],additionalProperties:false},outputSchema:successEnvelopeSchema,annotations:idempotentWriteAnnotations },
 ]
 
 export const dailyReviewToolNames = [
@@ -645,3 +647,4 @@ export const tradeEntryToolNames = [
 ] as const
 
 export const holdingIntegrityToolNames = ['get_holding_integrity','preview_holding_reconciliation','reconcile_holding','verify_holdings'] as const
+export const tradeReversalToolNames = ['preview_trade_reversal','reverse_trade_entry'] as const

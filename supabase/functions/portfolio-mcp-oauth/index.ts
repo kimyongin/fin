@@ -607,6 +607,8 @@ const toolHandlers: Record<string, ToolHandler> = {
     requireSchemaVersion(args)
     return { ok: true, data: await rpc(supabase, 'app_verify_holding', { input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id'), input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'), input_fields: requireArray(args.fields, 'fields'), input_verified_on: requireString(args.verified_on, 'verified_on'), input_note: args.note == null ? null : requireString(args.note, 'note'), input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_source: 'agent' }) }
   },
+  async preview_trade_reversal(supabase,args){return{ok:true,data:await rpc(supabase,'app_preview_trade_reversal',{input_trade_id:requireUuid(args.trade_id,'trade_id'),input_reason:requireString(args.reason,'reason')})}},
+  async reverse_trade_entry(supabase,args){requireSchemaVersion(args);return{ok:true,data:await rpc(supabase,'app_reverse_trade_entry',{input_preview_id:requireUuid(args.preview_id,'preview_id'),input_idempotency_key:requireUuid(args.idempotency_key,'idempotency_key'),input_authored_via:'agent'})}},
 }
 
 const definitionNames = portfolioToolDefinitions.map((definition) => definition.name).sort()
