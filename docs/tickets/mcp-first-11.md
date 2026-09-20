@@ -1,5 +1,11 @@
 # [MCP-first] 내 투자 기준·성향 관리와 기존 상세 원칙 화면 확인
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 기능별 공유 구조의 데이터/API/RLS 구현을 이 티켓에서 소유한다. 내부 owner/audience/feature/action, 첫 버전 read와 기존 공유 대상 집합만 지원한다. #44는 관계·공개 필드 계약, #36은 UI, #39는 통합 검증을 담당한다. 기존 버킷 삭제·재생성 및 전략 전체 JSON 공유 경로를 개선해 immutable revision과 allowlist를 적용한다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 기존 전략의 재구성 범위
 - 재사용: StrategyPage의 상세 원칙/운용 한도, 모드별 버킷 목표, 태그 연결, 적립금, 이탈 폭, 모드 변경 사유.
 - 변경: 원칙 화면에서 개인 기준·상세 원칙·운용 계획을 편집한다. 현재/목표 비교·적립금 배분·조정 후보는 자산에서 여는 배분 점검 본문으로 분리한다. #36은 탐색 연결을 담당한다.

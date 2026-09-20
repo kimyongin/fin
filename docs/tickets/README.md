@@ -1,5 +1,13 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 체결가 기준 평균(수수료·세금 제외), 보정 이전 거래 정정의 현재값 유지, 내부 기능별 read 권한과 단순 묶음 UI는 확정 정책이다.
+- 기능별 공유 데이터/API/RLS는 #43, 공개 필드·관계 계약은 #44, 설정 UI는 #36, 소비 경로는 #35, 검증은 #39가 담당한다. #35-A는 권한 계약을 먼저 맞추고 실제 공유 연동 전에 #43 기반과 통합한다.
+- 사용자에게 추가로 확인받을 큰 제품 결정은 현재 없다. 기술 초안은 해당 티켓 첫 단계에서 DDL·예제·테스트로 확정한다. 공개 범위나 데이터 의미를 바꿀 때만 재확인한다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 2026-09-20 재정리 — 기존 앱을 목적에 맞게 재구성
 
 공통 기준: [제품 재정리](../design/product-reorganization.md), [디자인 원칙](../design/PRINCIPLES.md).

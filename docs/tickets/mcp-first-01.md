@@ -1,5 +1,11 @@
 # [MCP-first] 제품 계약·잔고 계산 규칙과 사용자 시나리오 확정
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 수수료·세금 제외 체결가 평균과 보정 이전 거래 정정 시 현재값 유지 정책은 확정했다. 정밀도·시간 순서·누락 평가 계약은 기존 DDL과 숫자 fixture로 구체화한다. 초기 holdings를 불완전 원장으로 덮어쓰지 않는다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 현행 앱을 기준으로 한 재구성 계약
 - 공통 기준: [제품 재정리](../design/product-reorganization.md). 기존 기능을 무조건 보존하거나 전면 재개발하지 않고 유지/재구성/신규/보조 이동을 구분한다.
 - 태그·계좌·종목·표 편집은 유지하고, 전략은 원칙·운용 계획과 배분 점검으로 분리한다. 뉴스는 근거 자료, 활동 기록은 감사 내역으로 재배치한다.

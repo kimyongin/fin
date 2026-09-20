@@ -1,5 +1,11 @@
 # [MCP-first] 출처 있는 뉴스·일일 브리핑·판단 결과 저장과 조회
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 공유 대상 브리핑·판단·할 일은 각각 독립 read 기능 키다. 연결된 비공개 근거/원칙을 자동 포함하지 않는다. 새 연구 근거를 기존 공유 뉴스에 자동 삽입하지 않는다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 기존 자료와 신규 판단의 정리
 - 뉴스 사실/해석 CRUD와 원문은 재사용한다. 뉴스는 연결된 근거 및 자료 보관함으로 조회하며 기존 직접 편집도 유지한다.
 - 활동 기록은 데이터 변경 감사이다. 활동 이벤트를 이름만 바꿔 판단 기록으로 쓰거나 과거 뉴스 의견을 사용자 채택 결정으로 승격하지 않는다.

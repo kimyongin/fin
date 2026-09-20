@@ -1,5 +1,11 @@
 # [MCP-first] 종목별 보유 이유·재검토 조건과 판단 이력
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 보유 이유는 별도 기능 키 holding_theses로 기본 비공개다. 향후 명시적 기능 공유를 지원할 구조를 사용하며 기존 메모/공유 전략과 자동 통합하지 않는다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 기존 자산 화면과의 연결 경계
 - 기존 종목/계좌별 카드와 메모는 유지하며 보유 이유/재검토 조건은 선택적 상세 진입으로 연결한다. 카드 전체를 분석 본문으로 대체하지 않는다.
 - 기존 note의 저장 경로와 새 보유 가설을 구분하고 앱/MCP에서 같은 ID와 버전을 읽는다.

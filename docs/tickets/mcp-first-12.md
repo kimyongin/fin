@@ -1,5 +1,11 @@
 # [MCP-first] 점검 범위·사건·검토 질문·판단 이력 데이터 계약
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 공유 구조는 ADR-0003을 따른다. 기능별 키·필드와 관계 투영 계약은 여기서 확정하고 실제 권한 기반은 #43에서 구현한다. #35는 이를 소비한다. 친구별 상속/override/문서별 ACL을 설계 범위에 추가하지 않는다. 기존 거래/리포트 정확한 DDL은 아직 미검증이다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 기존 모델과 새 책임의 대응표
 - 종목 태그 / 여러 태그를 묶는 전략 버킷 / 모드별 목표 / 원칙 버전을 별도 개념으로 명시한다.
 - 기존 규칙 기반 배분 계산, 저장된 뉴스 사실/해석, 감사 활동, 신규 판단·할 일을 서로 다른 의미로 매핑한다.

@@ -1,5 +1,11 @@
 # [MCP-first] 초기 잔고 기반 매매 미리보기·확정·거래 조회
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 수수료·세금을 제외한 체결가로 원가/평균가를 계산한다. 보정 이전 거래는 과거 이력만 정정한다. 구현 전 기존 트리거/거래 DDL과 정밀도·동일일 순서 계약을 검증한다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 기존 입력을 대체하지 않는 체결 기록
 - 현재값 등록/보정은 기존 보유·표 편집 경로, 이 티켓은 실제 체결 기록 경로다. 기존 수정 내용을 가상의 매매로 변환하지 않는다.
 - 보유값·원장 통합 규칙은 #38과 공유하고 시장형 매매를 평가형/현금성 자산에 강제 적용하지 않는다.

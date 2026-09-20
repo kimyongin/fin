@@ -1,5 +1,11 @@
 # [MCP-first] Portfolio 오늘 화면과 지인용 OAuth 온보딩
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 단순 공유 UI는 기능별 권한 묶음을 조작한다. ‘투자 점검 기록도 공유’는 브리핑/판단/할 일 묶음의 UI 제안이며 본문·기존/향후 기록·대상 범위를 미리 보여준다. 친구별 예외/문서별 ACL은 첫 버전에서 구현하지 않는다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 목적 중심 화면 재구성 — 기존 overview 대체 금지
 - 기준: [제품 재정리](../design/product-reorganization.md), [디자인 원칙](../design/PRINCIPLES.md). prototype v1~v3는 참고 자료이며 v3 자산 구조를 구현 명세로 쓰지 않는다.
 - 주 탐색은 오늘/자산/판단/할 일/원칙. 오늘은 별도 화면이며 기존 자산 overview 위에 큰 브리핑을 삽입하지 않는다.

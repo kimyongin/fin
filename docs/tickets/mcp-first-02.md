@@ -1,5 +1,11 @@
 # [MCP-first] OAuth MCP 계약 정비와 클라이언트 호환성 검증
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- OAuth 본인 접근과 앱 친구 공유를 분리한다. 기능별 공유 설정으로 MCP 타 사용자 읽기를 자동 허용하지 않는다. 기존 미커밋 실험의 실제 존재와 프로토콜 동작부터 확인한다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 재사용 및 회귀 경계
 - 기존 OAuth MCP를 재구현하지 않는다. 제품 재정리의 책임 분리를 지침에 적용하며 규칙 기반 계산을 사용자 결정으로 승격하지 않는다.
 - 신규 필드의 소유자 전용 정책과 기존 공유/토큰 경로의 차이를 #43/#39와 검증한다. 이번 티켓이 공유 정책을 임의로 확대하지 않는다.

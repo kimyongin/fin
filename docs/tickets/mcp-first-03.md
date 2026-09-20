@@ -1,5 +1,11 @@
 # [MCP-first] 아침 점검용 get_daily_context 구현
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 평가·비중·배분의 기술 초안을 검증 후 공통 계약으로 확정한다. 인증된 본인 문맥과 공유용 응답을 분리하며 임의 owner 입력으로 문맥을 얻지 못하게 한다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 기존 계산을 재사용하는 문맥 계약
 - 기존 태그 → 전략 버킷 → 현재 운용 모드 목표를 ID로 구분한다. 태그마다 독립 목표가 있다고 가정하지 않는다.
 - #32에서 확정한 평가·환산·분모·누락값 정책을 공통 계산 경로로 구현하고 #43 배분 점검에 제공한다. 기존 전략 계산을 별도의 MCP 추천 엔진으로 복제하지 않는다.

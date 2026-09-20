@@ -1,5 +1,11 @@
 # [MCP-first] 실제 잔고 확인 시점·범위 기록과 상태 표시
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 실제 확인 시점/범위를 거래·보정·브리핑과 계속 분리한다. 공유된 보유 상태와 개인 점검 기록의 공개 필드를 명시하고 내부 감사 payload를 노출하지 않는다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 자산 유형 및 입력 흐름과의 경계
 - 시장형의 수량/평균가 확인과 평가형·현금성의 실제 입력 필드 확인 범위를 구분한다. 지원하지 않는 확인 유형은 명시한다.
 - 값 없는 확인, 보정, 매매의 UI 의미를 #36/#38과 공유한다. 잔고 확인용 대형 화면으로 기존 자산 조회를 대체하지 않는다.

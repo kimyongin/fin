@@ -1,5 +1,11 @@
 # [MCP-first] 5일 출근 사용 파일럿과 릴리스 검증
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 체결가 평균, 보정 이전 정정의 현재값 유지, 기능별 read 권한을 회귀 항목으로 추가한다. 공유 철회·직접 링크·검색/건수·CSV·비공개 연결 누출과 새 기능 기본 deny를 검증한다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 기존 앱 회귀와 재구성 효과 검증
 - [ ] 기존 태그/계좌/종목/표 편집, 복수 계좌 집계, 외화·평가형·현금성, 직접 보정 흐름이 보존된다.
 - [ ] 표 붙여넣기/검색/필터/이전 값/취소/전체 화면/일괄 저장/전후 CSV를 검증한다.

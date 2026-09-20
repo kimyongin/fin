@@ -1,5 +1,11 @@
 # [MCP-first] 잔고 보정·거래 취소와 기존 편집 경로 통합
 
+## 구현 인계 확정 사항 (2026-09-20)
+
+- 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
+- 최신 절대 보정 기준점보다 이전 거래의 추가/취소는 그 기준점의 현재값을 바꾸지 않는다. 이후 거래는 유효 순서로 재생하고 초과 매도는 원자 거부한다. 메타데이터/무변경 저장은 새 기준점이 아니다.
+- 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
+
 ## 기존 표 편집과 보정 통합의 보존 조건
 - 기존 SpreadsheetEditor의 붙여넣기/기존 행 매칭, 계좌·태그 필터, 검색, 이전 값 표시, 행 취소, 전체 롤백, 전체 화면, 일괄 저장을 유지한다.
 - 수정된 잔고 필드에만 보정 의미를 적용한다. 태그/이름/메모 변경과 변경 없는 행의 재저장은 잔고 기준점·실제 확인 날짜를 바꾸지 않는다.
