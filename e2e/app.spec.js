@@ -542,11 +542,19 @@ test('navigates the authenticated browser through strategy, activity, and settin
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
   }
 
-  await openTab('전략', 'Strategy')
-  await openTab('기록', 'Activity')
-  await openTab('설정', 'Settings')
+  await openTab('원칙', '원칙')
+  await openTab('활동', '활동')
+  await openTab('설정', '설정')
+  const reviewSharing = page.getByRole('button', { name: '투자 점검 기록도 공유' })
+  await expect(reviewSharing).toHaveAttribute('aria-pressed', 'false')
+  await reviewSharing.click()
+  await expect(reviewSharing).toHaveAttribute('aria-pressed', 'true')
+  const sharingPolicy = await callRpc(page, 'app_get_sharing_policy')
+  expect(sharingPolicy.body.grants).toMatchObject({ briefings: true, decisions: true, tasks: true })
+  await reviewSharing.click()
+  await expect(reviewSharing).toHaveAttribute('aria-pressed', 'false')
   await expect(page.getByText(/^버전 \d{8}T\d{6}Z$/)).toBeVisible()
-  await openTab('가이드', 'Guide')
+  await openTab('가이드', '가이드')
   await expect(page.getByText('자산 구조 만들기')).toBeVisible()
 })
 

@@ -445,11 +445,11 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'today' && <DailyReviewPageView supabase={supabase} />}
+        {activeTab === 'today' && <DailyReviewPageView ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null} supabase={supabase} />}
 
-        {activeTab === 'decisions' && <LifecyclePageView mode="decisions" supabase={supabase} />}
+        {activeTab === 'decisions' && <LifecyclePageView mode="decisions" ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null} supabase={supabase} />}
 
-        {activeTab === 'tasks' && <LifecyclePageView mode="tasks" supabase={supabase} />}
+        {activeTab === 'tasks' && <LifecyclePageView mode="tasks" ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null} supabase={supabase} />}
 
         {activeTab === 'overview' && (
           <AssetsPageView
@@ -488,6 +488,7 @@ function App() {
         )}
         {activeTab === 'settings' && (
           <SettingsPageView
+            supabase={supabase}
             agentMcpEndpoint={`${SUPABASE_URL}/functions/v1/portfolio-mcp`}
             agentTokenError={agentTokenError}
             agentTokenSaving={agentTokenSaving}

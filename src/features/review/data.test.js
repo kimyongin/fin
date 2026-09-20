@@ -33,4 +33,12 @@ describe('daily review data adapter', () => {
 
     await expect(fetchDailyBriefing(supabase, 'missing')).rejects.toThrow('접근할 수 없습니다')
   })
+
+  it('uses the allowlisted owner DTO for a friend portfolio', async () => {
+    const supabase = { rpc: vi.fn(async () => ({ data: [], error: null })) }
+    await fetchDailyBriefings(supabase, { ownerUserId: 'owner-1' })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_daily_briefings_for_owner', {
+      input_owner_user_id: 'owner-1', input_limit: 20, input_before: null,
+    })
+  })
 })

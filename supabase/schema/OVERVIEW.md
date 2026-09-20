@@ -11,7 +11,7 @@ Read this file first for database work. Inspect only the relevant migration file
 
 | Area | Tables | Notes |
 | --- | --- | --- |
-| Identity and sharing | `profiles`, `viewer_sessions`, `friendships` | Profiles can enable password-protected sharing. Guest sessions expire after seven days; logged-in friends retain read-only access until removed. |
+| Identity and sharing | `profiles`, `viewer_sessions`, `friendships`, `feature_sharing_policies`, `feature_sharing_grants` | Profiles can enable password-protected sharing. Guest sessions expire after seven days; logged-in friends retain read-only access until removed. Feature grants use stable read keys; the UI currently offers a simple portfolio-only versus portfolio-and-reviews bundle. |
 | Accounts and holdings | `accounts`, `holdings`, legacy `transactions`, `trade_previews`, `trade_entries`, `trade_reversal_previews`, `trade_reversals`, `holding_reconciliation_previews`, `holding_reconciliations`, `holding_verifications`, mutation receipts | Holdings preserve the existing projection and add a numeric quantity/cost pool plus state version. Completed market trades, reversals, and absolute corrections use expiring version-bound previews. Reversals preserve the original entry and replay only changes after the latest absolute checkpoint. Verification snapshots only explicitly checked fields and never mutates values. |
 | Instruments and prices | `instruments`, `instrument_tags`, `tags`, `holding_prices_daily` | An instrument belongs to one user and ticker; tags have a name and sort order, and prices are per user, ticker, and date. |
 | Portfolio outputs | `portfolio_snapshots`, `daily_reports`, `rebalance_suggestions`, `sync_runs`, `strategies`, `strategy_buckets`, `strategy_bucket_tags`, `strategy_bucket_mode_targets` | Persisted portfolio analysis, active mode, detailed principles, mode-specific strategy targets, and price-sync results. |
@@ -36,6 +36,8 @@ Instrument types are constrained to `market` for market-priced investments, `val
 | `agent_*` | Manage tokens and update holding average price. |
 | `set_viewer_profile`, `unlock_viewer_access`, `get_active_viewer_access` | Configure and validate password-protected portfolio sharing. |
 | `add_friend`, `list_friends`, `remove_friend` | Create, list, and remove persistent friend portfolio access after password verification. |
+| `app_get_sharing_policy`, `app_update_sharing_policy`, `can_view_feature` | Read/CAS-update per-feature read grants and combine them with the existing valid viewer/friend relationship. Missing new features default to deny; legacy asset/strategy/news/activity sharing remains enabled for compatibility. |
+| `app_*_for_owner` review DTOs | Return allowlisted briefing, decision, and task reads for the selected owner only when the matching feature grant is enabled. Private policy snapshots, histories, context snapshots, and research evidence are omitted unless separately allowed. |
 | `app_get_strategy_state`, `app_save_strategy` | Read a shared strategy or save the owner's active mode, detailed principles, buckets, mode targets, tag mappings, and rules. |
 | `app_get_news_state`, `app_save_news_fact`, `app_update_news_fact`, `app_save_news_fact_annotation`, `app_delete_news_fact`, `app_delete_news_fact_annotation` | Read shared news research, record, update, or delete facts, and attach or remove one signal opinion per fact. |
 | `app_create_daily_context` | Assemble the current portfolio, strategy, saved news, recent activity, previous briefing, last research scopes, current decisions, and open follow-ups into a six-hour server-owned context without marking a review complete. It accepts at most 200 subjects, limits snapshots to 2 MiB, and retains at most ten active contexts per user. |
@@ -55,10 +57,10 @@ Instrument types are constrained to `market` for market-priced investments, `val
 
 - RLS applies to every application table.
 - Owners have full access to their own rows through `auth.uid() = user_id` policies.
-- Selected portfolio data can be read by an authorized guest viewer or friend through `can_view_owner`.
+- Selected portfolio data can be read by an authorized guest viewer or friend through the relationship check plus `can_view_feature`; new review DTOs deny missing grants.
 - Use RPCs for mutations where possible: they enforce ownership and create audit events.
-- Daily review contexts, briefings, evidence, scopes, links, and mutation receipts are owner-only in the first vertical slice. Feature-level sharing is intentionally deferred to the sharing slice.
-- Decisions, research tasks, their histories, links, and mutation receipts are owner-only until their feature-level sharing DTO is implemented.
+- Daily review mutation/context internals remain owner-only. An explicit briefing grant exposes only the shared DTO; research evidence has a separate feature key.
+- Decision/task mutation, history, and receipt tables remain owner-only. Explicit feature grants expose allowlisted read DTOs only.
 - Personal investment policy profiles and history are owner-only and are not included in existing strategy sharing responses.
 - Holding theses and history are owner-only and are not included in existing portfolio or strategy sharing responses.
 

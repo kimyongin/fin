@@ -107,7 +107,7 @@ function Detail({ item, loading, mode, onClose }) {
   )
 }
 
-export default function LifecyclePage({ mode, supabase }) {
+export default function LifecyclePage({ mode, ownerUserId = null, supabase }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -119,13 +119,13 @@ export default function LifecyclePage({ mode, supabase }) {
     setLoading(true)
     setError('')
     const request = mode === 'decisions'
-      ? fetchInvestmentDecisions(supabase)
-      : fetchPortfolioTasks(supabase)
+      ? fetchInvestmentDecisions(supabase, { ownerUserId })
+      : fetchPortfolioTasks(supabase, { ownerUserId })
     request.then((data) => { if (active) setItems(data) })
       .catch((nextError) => { if (active) setError(nextError.message ?? '기록을 불러오지 못했습니다.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [mode, supabase])
+  }, [mode, ownerUserId, supabase])
 
   async function openDetail(id) {
     setDetailLoading(true)
@@ -133,8 +133,8 @@ export default function LifecyclePage({ mode, supabase }) {
     setError('')
     try {
       setSelected(mode === 'decisions'
-        ? await fetchInvestmentDecision(supabase, id)
-        : await fetchPortfolioTask(supabase, id))
+        ? await fetchInvestmentDecision(supabase, id, ownerUserId)
+        : await fetchPortfolioTask(supabase, id, ownerUserId))
     } catch (nextError) {
       setSelected(null)
       setError(nextError.message ?? '상세 기록을 불러오지 못했습니다.')

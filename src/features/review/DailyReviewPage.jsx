@@ -121,7 +121,7 @@ function BriefingDetail({ briefing, loading, onClose }) {
   )
 }
 
-export default function DailyReviewPage({ supabase }) {
+export default function DailyReviewPage({ ownerUserId = null, supabase }) {
   const [briefings, setBriefings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -133,7 +133,7 @@ export default function DailyReviewPage({ supabase }) {
     setLoading(true)
     setError('')
     try {
-      setBriefings(await fetchDailyBriefings(supabase))
+      setBriefings(await fetchDailyBriefings(supabase, { ownerUserId }))
     } catch (nextError) {
       setError(nextError.message ?? '저장된 점검을 불러오지 못했습니다.')
     } finally {
@@ -141,14 +141,14 @@ export default function DailyReviewPage({ supabase }) {
     }
   }
 
-  useEffect(() => { load() }, [supabase])
+  useEffect(() => { load() }, [ownerUserId, supabase])
 
   async function openDetail(briefingId) {
     setDetailLoading(true)
     setError('')
     setSelected({ id: briefingId })
     try {
-      setSelected(await fetchDailyBriefing(supabase, briefingId))
+      setSelected(await fetchDailyBriefing(supabase, briefingId, ownerUserId))
     } catch (nextError) {
       setSelected(null)
       setError(nextError.message ?? '브리핑 상세를 불러오지 못했습니다.')

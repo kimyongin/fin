@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { appVersion } from '../../lib/version'
+import SharingPolicyPanel from './SharingPolicyPanel'
 
 function SettingsSection({ children }) {
   return (
@@ -51,7 +52,7 @@ export default function SettingsPage({
   friendDraft, friendError = '', friendSaving = false, friends = [], issuedAgentToken = '',
   onAddFriend, onCreateTag, onEditTag, onFriendChange, onRemoveFriend, onAgentTokenCreate, onAgentTokenDismiss,
   onAgentTokenRevoke, onSyncPrices, onViewerProfileChange, onViewerProfileSave, syncingPrices, syncMessage, tags,
-  viewerProfile, viewerProfileDraft, viewerProfileError, viewerProfileMessage, viewerProfileSaving, viewerProfileSchemaReady,
+  viewerProfile, viewerProfileDraft, viewerProfileError, viewerProfileMessage, viewerProfileSaving, viewerProfileSchemaReady, supabase,
 }) {
   const examples = buildMcpExamples(agentMcpEndpoint, issuedAgentToken)
   const [vendor, setVendor] = useState('Codex')
@@ -80,6 +81,7 @@ export default function SettingsPage({
               <button aria-pressed={viewerProfileDraft.sharing_enabled} className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition ${viewerProfileDraft.sharing_enabled ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line)] bg-[var(--surface-3)]'}`} onClick={() => onViewerProfileChange('sharing_enabled', !viewerProfileDraft.sharing_enabled)} type="button"><span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${viewerProfileDraft.sharing_enabled ? 'left-6' : 'left-1'}`} /></button>
             </label>
             <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--muted-ink)]">현재 상태: <span className="font-semibold text-[var(--ink)]">{viewerProfile.sharing_enabled ? '활성화됨' : '비활성화됨'}</span></div>
+            <SharingPolicyPanel disabled={!viewerProfileDraft.sharing_enabled} supabase={supabase} />
           </div>
         )}
         {viewerProfileError && <div className="mt-4 rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">{viewerProfileError}</div>}

@@ -24,6 +24,8 @@ supabase/.temp/
 .e2e/supabase/migrations/202609210012_trade_reversal.sql
 .e2e/supabase/migrations/202609210013_execution_tasks.sql
 .e2e/supabase/migrations/202609210014_direct_edit_checkpoints.sql
+.e2e/supabase/migrations/202609210015_feature_sharing_policy.sql
+.e2e/supabase/migrations/202609210016_shared_review_dtos.sql
 
 # OS
 .DS_Store

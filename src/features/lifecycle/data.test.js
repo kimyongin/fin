@@ -34,4 +34,12 @@ describe('decision and task data adapters', () => {
     await expect(fetchInvestmentDecision(missing, 'missing')).rejects.toThrow('접근할 수 없습니다')
     await expect(fetchPortfolioTask(missing, 'missing')).rejects.toThrow('접근할 수 없습니다')
   })
+
+  it('uses feature-gated DTOs for a selected friend', async () => {
+    const supabase = { rpc: vi.fn(async () => ({ data: [], error: null })) }
+    await fetchInvestmentDecisions(supabase, { ownerUserId: 'owner-1' })
+    await fetchPortfolioTasks(supabase, { ownerUserId: 'owner-1' })
+    expect(supabase.rpc.mock.calls[0][0]).toBe('app_list_investment_decisions_for_owner')
+    expect(supabase.rpc.mock.calls[1][0]).toBe('app_list_portfolio_tasks_for_owner')
+  })
 })
