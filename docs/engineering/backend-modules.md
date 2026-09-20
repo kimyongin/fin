@@ -4,6 +4,14 @@
 
 ## 코드 확인과 목표
 
+### 적용 기준: 공통 데이터 모델이 아닌 공통 변경 규약
+
+[ADR-0004](../adr/0004-domain-storage-and-minimal-mutation-contract.md)를 따른다. 도메인별 테이블·목적별 API를 유지한다. 공통 요청 요소는 operation/key/target/필요한 expected_version/payload이며 owner는 인증에서 얻는다. 모든 항목이 모든 작업의 필수 필드는 아니다. 범용 records(type,payload) 테이블이나 execute-command 엔진을 도입하지 않는다.
+
+공통 절차는 인증·입력 검증 → 동일 요청 성공 확인 → 소유권/필요한 대상 버전 검사 → 도메인 규칙 → 데이터·감사·성공 결과의 DB 원자 저장이다. 읽기에 쓰기 receipt를 만들거나 추가 전용 기록에 수정 충돌 검사를 강제하지 않는다. 소유권 검사는 모든 접근에 유지한다.
+
+아래 7개 모듈은 책임 지도이지 첫 단계에서 만들어야 할 폴더/패키지 목록이 아니다. 기존 helper와 첫 slice가 필요한 만큼만 구현한다. 상태 변경 이력·원칙 이력·당시 snapshot은 목적별로 남기고 일반 head/revision framework는 만들지 않는다.
+
 OAuth MCP index.ts에 도구 정의·응답 포맷·RPC 호출이 함께 있고, 기존 토큰 MCP에도 별도 JSON-RPC/RPC helper가 있다. 두 인증을 하나로 대체하지 않고 업무 의미와 프로토콜의 공통 부분부터 공유한다.
 
 | 제안 모듈 | 책임 | 경계/주요 검증 |

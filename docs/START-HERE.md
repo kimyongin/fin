@@ -35,13 +35,15 @@
 
 ## 현재 상태와 다음 시작점
 
+- 우선 적용 결정: [ADR-0004](./adr/0004-domain-storage-and-minimal-mutation-contract.md). 과한 head/revision·서명 문맥·전역 변경 차단 설계를 단순화했다. 도메인 테이블+공통 변경 규약, 대상별 version, 현재값+중요 이력/당시 snapshot, 서버 임시 context와 단일 briefing이 기준이다. 이전 진행 기록/기술 초안이 다르면 이 결정과 갱신된 계약을 따른다. 첫 개발 게이트는 서버 context 생명주기와 실제 JSON Schema/DB 테스트다.
+
 - 공통 구현 기반 설계: [React 컴포넌트](./design/component-system.md), [백엔드 모듈](./engineering/backend-modules.md). 기존 ModalShell 보완과 호환 재사용, modal drawer/편집 상태 계약, Edge 공통 adapter/registry 및 DB 원자 저장 경계를 정의했다. 코드·라이브러리 설치·배포는 아직 변경하지 않았다.
 
 - 에이전트용 명세: [agent 계약 관리](./design/contracts/agent/README.md). 공통 행동 규칙, 현 OAuth 로컬 읽기 도구 6개와 계획 도구 설명 후보, W01~W08 작업 가이드를 작성했다. 문서만 추가했으며 현재 tools/list는 변경하지 않았다. #33은 공통 도구 정의 연결, 각 기능 티켓은 설명/스키마/시나리오/테스트 동시 갱신을 담당한다.
 
 - 후속 설계: [24개 사용자 시나리오/API/데이터 대응표](./design/contracts/scenario-api-model-matrix.md), [원칙·판단·할 일·매매 생애주기](./design/contracts/lifecycle-model-api.md). 판단+후속 할 일 원자 저장, 조사 질문 CAS, 체결 취소 preview, 당시 task history 참조, 조사 대상 누락 검증을 보완했다. 문서 점검과 실제 테스트 통과를 구별하며 기술 검증 게이트는 계약 인덱스를 따른다.
 
-- 2026-09-21: 구현 전 모델/API 계약 설계에 착수했다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 먼저 읽는다. 원격 legacy 거래 트리거와 리포트 DDL은 확인했지만 로컬 DB는 동일하지 않다. 현재 첫 슬라이스 모델/API는 1차안이며 문맥 증명 방식·JSON Schema/fixture 검증이 다음 작업이다. 운영 코드/DB 변경은 하지 않았다.
+- 2026-09-21: 구현 전 모델/API 계약 설계에 착수했다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 먼저 읽는다. 원격 legacy 거래 트리거와 리포트 DDL은 확인했지만 로컬 DB는 동일하지 않다. 현재 첫 슬라이스 모델/API는 1차안이며 서버 임시 context 생명주기·JSON Schema/fixture 검증이 다음 작업이다. 운영 코드/DB 변경은 하지 않았다.
 
 - 공유 설계 추가 결정: [ADR-0003](./adr/0003-extensible-feature-sharing.md). 내부 기능별 read 권한 + 단순 묶음 UI. 전역 boolean만으로 구현하지 않으며 친구별 예외/문서별 ACL은 첫 버전에서 제외한다.
 

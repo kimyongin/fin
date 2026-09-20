@@ -6,6 +6,10 @@
 
 # Engineering Guidance
 
+- Apply `docs/adr/0004-domain-storage-and-minimal-mutation-contract.md`: keep domain storage and purpose-specific APIs, share mutation rules rather than a universal payload model/command engine, and add conflict versions or history only for their actual purpose. Preserve security, idempotent financial writes, atomicity, and reconciliation guarantees.
+
+- Follow the minimal-foundation plus vertical-slice workflow in `docs/engineering/development.md`. Build only the shared pieces required by a named user scenario, then connect its DB, API/MCP, necessary UI, and tests. Do not finish all layers or build a generic framework before delivering the first slice. Record the consuming slice and exit criteria for foundation tasks; do not report a slice complete based only on isolated layer tests or mock UI.
+
 Before code changes, read `docs/engineering/architecture.md` for placement and responsibilities and `docs/engineering/development.md` for environment/test/deployment safety. `npm run test:db` currently targets the linked remote database; do not treat it as an isolated local test. Keep development-agent instructions separate from product MCP-agent instructions in `docs/design/contracts/agent/`.
 
 # Text Encoding

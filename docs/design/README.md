@@ -4,6 +4,8 @@ design은 화면 디자인뿐 아니라 제품·데이터·API 설계를 포함�
 
 ## 현재 사용하는 문서
 
+구조 단순화의 최신 기준은 [ADR-0004](../adr/0004-domain-storage-and-minimal-mutation-contract.md)다. 과거 초안의 복잡한 구조를 새 계약과 동시에 구현하지 않는다.
+
 | 파일/폴더 | 역할 / 상태 |
 | --- | --- |
 | PRINCIPLES.md | 모바일 우선 반응형 디자인 원칙 |

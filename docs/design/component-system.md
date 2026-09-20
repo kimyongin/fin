@@ -9,6 +9,8 @@ ModalShell 코드에는 Escape 닫기가 있으나 자체 focus trap/복귀, dia
 
 ## 공통 UI 계약
 
+아래 목록 전체를 첫 개발의 필수 기반으로 만들지 않는다. ADR-0004에 따라 기존 ModalShell의 접근성/입력 보호와 첫 상세 화면을 먼저 검증한다. 나머지는 실제 소비 기능에서 필요할 때 추출한다.
+
 | 구성요소 | 책임과 입력 후보 | 하지 않는 일 |
 | --- | --- | --- |
 | DialogSurface | open, title, description?, initialFocusRef?, returnFocusRef?, onRequestClose(reason), children, footer | 도메인 저장·권한·잔고 계산 |

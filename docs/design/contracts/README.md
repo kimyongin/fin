@@ -30,4 +30,4 @@ PRD/ADR는 제품 정책, 이 디렉터리는 데이터·호출 계약, 티켓�
 
 ## 다음 세션 시작점
 
-`daily-review-api.md`의 문맥 증명 방식부터 작은 기술 검증을 한다. 순수 조회에서 저장한 적 없는 context_id를 요구하던 초안의 모순을 먼저 없앤다. 이어 JSON Schema와 계약 fixture를 만들고 성공·반례를 자동 검사한다. 운영 DB나 OAuth 실험 파일은 이 단계에서 변경하지 않는다.
+[ADR-0004](../../adr/0004-domain-storage-and-minimal-mutation-contract.md)의 단순화가 적용 기준이다. 서버 임시 context의 소유권·TTL·생성 제한·정리·저장 snapshot 복사를 먼저 검증한다. 서명 문맥 왕복은 도입하지 않는다. 이어 JSON Schema와 계약 fixture를 만들고 성공·반례를 자동 검사한다. 운영 DB나 OAuth 실험 파일은 이 단계에서 변경하지 않는다.

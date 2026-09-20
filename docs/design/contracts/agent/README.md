@@ -4,6 +4,8 @@
 
 ## 원본과 전달 경로
 
+구조 단순화는 [ADR-0004](../../../adr/0004-domain-storage-and-minimal-mutation-contract.md)를 따른다. 문맥은 context_id로 연결하며 가이드 전용 도구는 첫 버전 선행조건이 아니다. 공통 instructions/도구 설명으로 부족한 실제 사례가 있을 때 도입한다.
+
 | 정보 | 지금의 원본 | 구현 시 전달/검증 |
 | --- | --- | --- |
 | 제품 정책 | PRD / Accepted ADR | 아래 설명이 제품 경계를 바꾸지 않는지 검토 |

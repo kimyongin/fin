@@ -1,9 +1,17 @@
 # [MCP-first] 내 투자 기준·성향 관리와 기존 상세 원칙 화면 확인
 
+## 단순화 적용 기준 — ADR-0004 (2026-09-21)
+
+[ADR-0004](https://github.com/kimyongin/fin/blob/master/docs/adr/0004-domain-storage-and-minimal-mutation-contract.md)가 아래 이전 설계의 물리 구조 요구보다 우선한다. 해당 ADR은 현재 작업 트리에서 작성됐으며 원격 링크는 푸시 후 유효하다. 도메인 테이블+공통 변경 규약, 필요한 대상만 version 검사, 현재값+중요 변경 이력/당시 snapshot을 사용한다. 모든 모델에 head/revision 쌍을 만들지 않는다.
+
+- 문맥은 서버 임시 context_id, 결과는 단일 briefing으로 저장한다. signed receipt·전역 가격/메타데이터 버전 차단은 도입하지 않는다. TTL/정리/생성 제한과 소유권은 테스트한다.
+- 사건 엔진/일반 조사구간 집합 엔진/보유 구간 자동 복원/가이드 전용 도구는 후순위다. 아래 사건·이력 인수 조건은 첫 버전에서 근거 정정 참조, 판단/task 연결, 중요 변경 이력과 snapshot으로 충족한다. 보안·원가·보정 보호·원자성은 줄이지 않는다.
+- 구현되지 않은 과거 진행 기록은 역사다. 신규 완료 게이트는 갱신된 contracts 문서와 이 절을 따른다. 기능 제공/자동 테스트 통과/티켓 완료를 뜻하지 않는다.
+
 ## 구현 인계 확정 사항 (2026-09-20)
 
 - 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
-- 기능별 공유 구조의 데이터/API/RLS 구현을 이 티켓에서 소유한다. 내부 owner/audience/feature/action, 첫 버전 read와 기존 공유 대상 집합만 지원한다. #44는 관계·공개 필드 계약, #36은 UI, #39는 통합 검증을 담당한다. 기존 버킷 삭제·재생성 및 전략 전체 JSON 공유 경로를 개선해 immutable revision과 allowlist를 적용한다.
+- 기능별 공유 구조의 데이터/API/RLS 구현을 이 티켓에서 소유한다. 내부 owner/audience/feature/action, 첫 버전 read와 기존 공유 대상 집합만 지원한다. #44는 관계·공개 필드 계약, #36은 UI, #39는 통합 검증을 담당한다. 기존 버킷 삭제·재생성 및 전략 전체 JSON 공유 경로를 개선해 중요 변경 이력/당시 snapshot과 allowlist를 적용한다.
 - 문서화는 구현/배포/보안 검증 완료가 아니다. 미검증 DDL·정밀도·상태 전이는 해당 티켓의 첫 작업으로 남기며 완료 체크를 앞당기지 않는다.
 
 ## 기존 전략의 재구성 범위
