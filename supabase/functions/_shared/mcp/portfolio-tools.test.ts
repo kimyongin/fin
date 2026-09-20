@@ -71,4 +71,16 @@ describe('portfolio MCP tool definitions', () => {
       expect(tool(name).annotations.readOnlyHint).toBe(true)
     }
   })
+
+  it('publishes guarded decision and task transitions', () => {
+    const decision = tool('transition_investment_decision')
+    const task = tool('transition_task')
+    expect(decision.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
+    expect(task.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
+    expect((decision.inputSchema as any).properties.action.enum).toEqual(['adopt', 'dismiss'])
+    expect((task.inputSchema as any).properties.action.enum).toEqual([
+      'wait', 'resolve', 'reopen', 'pause', 'resume', 'close',
+    ])
+    expect((task.inputSchema as any).properties).not.toHaveProperty('trade_id')
+  })
 })

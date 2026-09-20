@@ -22,6 +22,13 @@ const taskStatus = {
   closed: '종료',
 }
 
+function taskStatusLabel(task) {
+  if (task.research_state === 'closed') return taskStatus.closed
+  if (task.control_state === 'paused') return '보류'
+  if (task.control_state === 'cancelled') return '취소'
+  return taskStatus[task.research_state] ?? task.research_state
+}
+
 function formatDate(value) {
   if (!value) return '-'
   return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium' }).format(new Date(value))
@@ -46,6 +53,9 @@ function EmptyState({ mode }) {
 }
 
 function Detail({ item, loading, mode, onClose }) {
+  const latestTaskHistory = mode === 'tasks' && item?.history?.length
+    ? item.history[item.history.length - 1]
+    : null
   return (
     <ModalShell onClose={onClose} title={mode === 'decisions' ? '판단 상세' : '할 일 상세'}>
       {loading || !item ? <p className="py-8 text-sm text-[var(--muted-ink)]">불러오는 중입니다.</p> : mode === 'decisions' ? (
@@ -64,12 +74,26 @@ function Detail({ item, loading, mode, onClose }) {
       ) : (
         <div className="grid gap-6">
           <section>
-            <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{taskStatus[item.research_state] ?? item.research_state}</span>
+            <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{taskStatusLabel(item)}</span>
             <h3 className="mt-4 text-xl font-semibold leading-8">{item.title}</h3>
             <p className="mt-2 text-xs text-[var(--muted-ink)]">{subjectLabel(item.subject)}</p>
           </section>
           {item.trigger_text && <section><h4 className="text-sm font-semibold">확인할 때</h4><p className="mt-2 text-sm leading-6">{item.trigger_text}</p></section>}
           {item.due_date && <section><h4 className="text-sm font-semibold">예정일</h4><p className="mt-2 text-sm">{formatDate(item.due_date)}</p></section>}
+          {latestTaskHistory?.answer && <section><h4 className="text-sm font-semibold">확인한 답</h4><p className="mt-2 text-sm leading-6">{latestTaskHistory.answer}</p></section>}
+          {latestTaskHistory?.evidence?.length > 0 && (
+            <section>
+              <h4 className="text-sm font-semibold">확인 근거</h4>
+              <ul className="mt-2 grid gap-2">
+                {latestTaskHistory.evidence.map((evidence) => (
+                  <li className="rounded-2xl bg-[var(--surface-2)] p-3" key={evidence.id}>
+                    <a className="text-sm font-semibold text-[var(--accent)] underline" href={evidence.source_url} rel="noreferrer" target="_blank">{evidence.title}</a>
+                    <p className="mt-1 text-sm leading-6 text-[var(--muted-ink)]">{evidence.summary}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <p className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--muted-ink)]">이 항목은 조사·점검할 질문입니다. 매매 주문이나 체결 기록이 아닙니다.</p>
         </div>
       )}
@@ -127,7 +151,7 @@ export default function LifecyclePage({ mode, supabase }) {
             <button className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-left transition hover:bg-[var(--surface-2)] sm:p-5" key={item.id} onClick={() => openDetail(item.id)} type="button">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs text-[var(--muted-ink)]">{subjectLabel(item.subject)}</span>
-                <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{mode === 'decisions' ? decisionStatus[item.status] : taskStatus[item.research_state]}</span>
+                <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{mode === 'decisions' ? decisionStatus[item.status] : taskStatusLabel(item)}</span>
               </div>
               <h3 className="mt-3 font-semibold leading-6">{mode === 'decisions' ? item.question : item.title}</h3>
               {mode === 'decisions' && item.selected_option && <p className="mt-2 text-sm text-[var(--accent)]">{item.selected_option}</p>}

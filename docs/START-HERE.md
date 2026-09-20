@@ -43,7 +43,7 @@
 
 - 후속 설계: [24개 사용자 시나리오/API/데이터 대응표](./design/contracts/scenario-api-model-matrix.md), [원칙·판단·할 일·매매 생애주기](./design/contracts/lifecycle-model-api.md). 판단+후속 할 일 원자 저장, 조사 질문 CAS, 체결 취소 preview, 당시 task history 참조, 조사 대상 누락 검증을 보완했다. 문서 점검과 실제 테스트 통과를 구별하며 기술 검증 게이트는 계약 인덱스를 따른다.
 
-- 2026-09-21: 일일 context/브리핑 DB·OAuth MCP·소유자 전용 `오늘` 화면을 연결했다. 이어 “유지하고 다음 실적 때 보자”를 adopted 판단+research task로 원자 저장하는 DB/RPC와 MCP 5개, 앱의 소유자 전용 `판단`·`할 일` 읽기 화면을 구현했다. 다음 context에는 현재 판단/할 일이 포함된다. 판단/task 전이·실행 계획·기능별 공유·운영 배포/클라이언트 종단간 검증은 남아 있다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 계속 기준으로 삼는다.
+- 2026-09-21: 일일 context/브리핑 DB·OAuth MCP·소유자 전용 `오늘` 화면을 연결했다. 이어 판단+research task 원자 저장, 판단 제안의 채택/거절, 조사 할 일의 대기·근거 있는 해결·재개·보류·종료를 expected version/idempotency로 구현했다. OAuth 공통 정의는 판단/할 일 7개 도구까지 연결됐고 앱은 상태·답·근거를 읽는다. 다음 context에는 미해결 할 일만 포함된다. 실행 계획·기능별 공유·운영 배포/클라이언트 OAuth 종단간 검증은 남아 있다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 계속 기준으로 삼는다.
 
 - 공유 설계 추가 결정: [ADR-0003](./adr/0003-extensible-feature-sharing.md). 내부 기능별 read 권한 + 단순 묶음 UI. 전역 boolean만으로 구현하지 않으며 친구별 예외/문서별 ACL은 첫 버전에서 제외한다.
 

@@ -77,12 +77,10 @@ test('shows an adopted decision and its research follow-up without implying a tr
   const recorded = await callRpc(page, 'app_record_investment_decision', {
     input_idempotency_key: crypto.randomUUID(),
     input_payload: {
-      status: 'adopted',
+      status: 'proposed',
       subject: { kind: 'instrument', instrument_id: 'E2EAPL', label: 'E2E Apple' },
       question,
       options: ['유지', '축소 검토'],
-      selected_option: '유지',
-      reason: '다음 실적에서 핵심 가설을 다시 확인합니다.',
       review_condition: '다음 분기 실적 발표',
       timezone: 'Asia/Seoul',
       authored_via: 'app',
@@ -96,6 +94,39 @@ test('shows an adopted decision and its research follow-up without implying a tr
   expect(recorded.status, JSON.stringify(recorded.body)).toBe(200)
   expect(recorded.body.tasks).toHaveLength(1)
 
+  const adopted = await callRpc(page, 'app_transition_investment_decision', {
+    input_decision_id: recorded.body.id,
+    input_expected_version: 1,
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: {
+      action: 'adopt',
+      selected_option: '유지',
+      reason: '다음 실적에서 핵심 가설을 다시 확인합니다.',
+      authored_via: 'app',
+    },
+  })
+  expect(adopted.status, JSON.stringify(adopted.body)).toBe(200)
+
+  const resolvedAnswer = '공식 실적에서 확인할 지표가 기준을 충족했습니다.'
+  const resolved = await callRpc(page, 'app_transition_portfolio_task', {
+    input_task_id: recorded.body.tasks[0].id,
+    input_expected_version: 1,
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: {
+      action: 'resolve',
+      answer: resolvedAnswer,
+      reason: '공식 실적 발표 확인',
+      authored_via: 'app',
+      evidence: [{
+        title: 'E2E official earnings release',
+        source_url: 'https://example.com/e2e-earnings',
+        summary: 'E2E 상태 전이 검증용 공식 자료입니다.',
+        checked_at: new Date().toISOString(),
+      }],
+    },
+  })
+  expect(resolved.status, JSON.stringify(resolved.body)).toBe(200)
+
   await openMenuTab(page, '판단')
   await expect(page.getByText(question)).toBeVisible()
   await expect(page.getByText('내가 채택함').first()).toBeVisible()
@@ -105,7 +136,10 @@ test('shows an adopted decision and its research follow-up without implying a tr
 
   await openMenuTab(page, '할 일')
   await expect(page.getByText(taskTitle)).toBeVisible()
+  await expect(page.getByText('답을 확인함').first()).toBeVisible()
   await page.getByText(taskTitle).click()
+  await expect(page.getByText(resolvedAnswer)).toBeVisible()
+  await expect(page.getByText('E2E official earnings release')).toBeVisible()
   await expect(page.getByText('매매 주문이나 체결 기록이 아닙니다.')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })

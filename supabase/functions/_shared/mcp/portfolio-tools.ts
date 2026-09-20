@@ -166,6 +166,18 @@ const researchTaskCreateSchema = {
   additionalProperties: false,
 }
 
+const taskTransitionEvidenceSchema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', minLength: 1, maxLength: 500 },
+    source_url: { type: 'string', pattern: '^https?://' },
+    summary: { type: 'string', minLength: 1, maxLength: 4000 },
+    checked_at: { type: 'string', format: 'date-time' },
+  },
+  required: ['title', 'source_url', 'summary', 'checked_at'],
+  additionalProperties: false,
+}
+
 export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_profile',
@@ -376,6 +388,49 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema,
     annotations: readOnlyAnnotations,
   },
+  {
+    name: 'transition_investment_decision',
+    title: 'Adopt or dismiss proposed decision',
+    description: 'Use only after the user explicitly adopts or dismisses an existing proposed decision. Read its current version first. Adoption requires an option already present in the proposal and the user\'s reason. It never records a trade, order, execution plan, or holding change.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        decision_id: { type: 'string', format: 'uuid' },
+        expected_version: { type: 'integer', minimum: 1 },
+        idempotency_key: { type: 'string', format: 'uuid' },
+        action: { type: 'string', enum: ['adopt', 'dismiss'] },
+        selected_option: { type: 'string' },
+        reason: { type: 'string', minLength: 1 },
+      },
+      required: ['schema_version', 'decision_id', 'expected_version', 'idempotency_key', 'action', 'reason'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'transition_task',
+    title: 'Update research task state',
+    description: 'Update one research follow-up after reading its current version. Resolving requires an answer and source evidence; reopening requires a reason and new evidence. Pause, resume, or close only on the user\'s explicit request. It never records a trade, order, execution progress, or holding change.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        task_id: { type: 'string', format: 'uuid' },
+        expected_version: { type: 'integer', minimum: 1 },
+        idempotency_key: { type: 'string', format: 'uuid' },
+        action: { type: 'string', enum: ['wait', 'resolve', 'reopen', 'pause', 'resume', 'close'] },
+        answer: { type: 'string' },
+        reason: { type: 'string' },
+        evidence: { type: 'array', maxItems: 20, items: taskTransitionEvidenceSchema },
+      },
+      required: ['schema_version', 'task_id', 'expected_version', 'idempotency_key', 'action', 'evidence'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
 ]
 
 export const dailyReviewToolNames = [
@@ -391,4 +446,6 @@ export const decisionTaskToolNames = [
   'get_investment_decision',
   'list_tasks',
   'get_task',
+  'transition_investment_decision',
+  'transition_task',
 ] as const

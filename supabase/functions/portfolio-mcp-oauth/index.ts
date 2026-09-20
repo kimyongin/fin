@@ -236,6 +236,64 @@ function normalizeInvestmentDecisionPayload(args: Record<string, unknown>) {
   }
 }
 
+function requirePositiveInteger(value: unknown, field: string) {
+  const normalized = Number(value)
+  if (!Number.isInteger(normalized) || normalized < 1) {
+    throw new ToolInputError(`${field} must be a positive integer`)
+  }
+  return normalized
+}
+
+function normalizeDecisionTransitionPayload(args: Record<string, unknown>) {
+  requireSchemaVersion(args)
+  const action = requireString(args.action, 'action')
+  if (!['adopt', 'dismiss'].includes(action)) throw new ToolInputError('action is invalid')
+  const reason = requireString(args.reason, 'reason')
+  const selectedOption = optionalString(args.selected_option)
+  if (action === 'adopt' && !selectedOption) {
+    throw new ToolInputError('adopting a decision needs selected_option')
+  }
+  return {
+    action,
+    reason,
+    ...(selectedOption ? { selected_option: selectedOption } : {}),
+    authored_via: 'agent',
+  }
+}
+
+function normalizeTaskTransitionPayload(args: Record<string, unknown>) {
+  requireSchemaVersion(args)
+  const action = requireString(args.action, 'action')
+  if (!['wait', 'resolve', 'reopen', 'pause', 'resume', 'close'].includes(action)) {
+    throw new ToolInputError('action is invalid')
+  }
+  const evidence = requireArray(args.evidence, 'evidence').map((value, index) => {
+    const item = requireRecord(value, `evidence[${index}]`)
+    return {
+      title: requireString(item.title, `evidence[${index}].title`),
+      source_url: requireString(item.source_url, `evidence[${index}].source_url`),
+      summary: requireString(item.summary, `evidence[${index}].summary`),
+      checked_at: requireString(item.checked_at, `evidence[${index}].checked_at`),
+    }
+  })
+  const answer = optionalString(args.answer)
+  const reason = optionalString(args.reason)
+  if (action === 'resolve' && (!answer || evidence.length === 0)) {
+    throw new ToolInputError('resolving a task needs an answer and evidence')
+  }
+  if (action === 'reopen' && (!reason || evidence.length === 0)) {
+    throw new ToolInputError('reopening a task needs a reason and new evidence')
+  }
+  if (action === 'close' && !reason) throw new ToolInputError('closing a task needs a reason')
+  return {
+    action,
+    ...(answer ? { answer } : {}),
+    ...(reason ? { reason } : {}),
+    evidence,
+    authored_via: 'agent',
+  }
+}
+
 function toolErrorCode(error: unknown) {
   if (error instanceof ToolInputError) return 'validation_error'
   const message = error instanceof Error ? error.message.toLowerCase() : ''
@@ -246,6 +304,10 @@ function toolErrorCode(error: unknown) {
   if (message.includes('task was not found')) return 'not_found_or_forbidden'
   if (message.includes('source briefing was not found')) return 'not_found_or_forbidden'
   if (message.includes('idempotency key')) return 'idempotency_conflict'
+  if (message.includes('version conflict')) return 'version_conflict'
+  if (message.includes('only a') || message.includes('cannot be') || message.includes('already closed')) {
+    return 'invalid_state'
+  }
   if (message.includes('not supported')) return 'unsupported_operation'
   if (message.includes('exceeds the 2 mib')) return 'payload_too_large'
   if (/invalid|required|must|needs|accepts at most|no-action briefing/.test(message)) return 'validation_error'
@@ -360,6 +422,24 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_task_id: requireUuid(args.task_id, 'task_id'),
     })
     if (data == null) throw new Error('Task was not found or is not accessible')
+    return { ok: true, data }
+  },
+  async transition_investment_decision(supabase, args) {
+    const data = await rpc(supabase, 'app_transition_investment_decision', {
+      input_decision_id: requireUuid(args.decision_id, 'decision_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_payload: normalizeDecisionTransitionPayload(args),
+    })
+    return { ok: true, data }
+  },
+  async transition_task(supabase, args) {
+    const data = await rpc(supabase, 'app_transition_portfolio_task', {
+      input_task_id: requireUuid(args.task_id, 'task_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_payload: normalizeTaskTransitionPayload(args),
+    })
     return { ok: true, data }
   },
 }

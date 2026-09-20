@@ -17,7 +17,7 @@ Read this file first for database work. Inspect only the relevant migration file
 | Portfolio outputs | `portfolio_snapshots`, `daily_reports`, `rebalance_suggestions`, `sync_runs`, `strategies`, `strategy_buckets`, `strategy_bucket_tags`, `strategy_bucket_mode_targets` | Persisted portfolio analysis, active mode, detailed principles, mode-specific strategy targets, and price-sync results. |
 | News research | `news_facts`, `news_fact_annotations` | Country-, date-, and axis-scoped factual records with separate signal opinions attached as annotations. |
 | Daily review | `daily_review_contexts`, `daily_briefings`, `daily_briefing_evidence`, `daily_briefing_scopes`, `daily_briefing_scope_sources`, `daily_briefing_scope_evidence`, `daily_review_mutation_receipts` | Short-lived server-owned analysis inputs and a single durable briefing aggregate containing the consumed snapshot, conclusions, uncertainties, source evidence, checked sources, and research windows. Mutation receipts make briefing saves idempotent. |
-| Decisions and follow-ups | `investment_decisions`, `investment_decision_state_history`, `portfolio_tasks`, `portfolio_task_history`, `investment_decision_tasks`, `decision_task_mutation_receipts` | Owner-only proposed/adopted decisions and linked research questions. Initial decision plus up to three research tasks is one idempotent transaction; execution plans and task transitions are deferred. |
+| Decisions and follow-ups | `investment_decisions`, `investment_decision_state_history`, `portfolio_tasks`, `portfolio_task_history`, `portfolio_task_evidence`, `investment_decision_tasks`, `decision_task_mutation_receipts` | Owner-only proposed/adopted decisions and linked research questions. Creation and version-checked state transitions are idempotent; resolved/reopened questions preserve source evidence. Execution plans remain deferred. |
 | Audit and agent access | `activity_events`, `agent_tokens` | User and agent actions are recorded; agent tokens can be revoked. |
 
 `portfolio_view` joins holdings, accounts, instruments, and the newest price. It converts USD values with the latest available `USDKRW=X` price.
@@ -41,6 +41,7 @@ Instrument types are constrained to `market` for market-priced investments, `val
 | `app_get_daily_briefing`, `app_list_daily_briefings` | Read one complete owner-only briefing aggregate or list compact briefing summaries. |
 | `app_record_investment_decision` | Atomically record a proposed or explicitly adopted decision plus zero to three research follow-ups. It is idempotent and cannot create an execution plan, trade, order, or holding change. |
 | `app_get/list_investment_decision*`, `app_get/list_portfolio_task*` | Read owner-only decision/task detail and compact lists. Initial history and decision-task snapshots preserve what was linked at creation. |
+| `app_transition_investment_decision`, `app_transition_portfolio_task` | Apply idempotent expected-version transitions. Proposed decisions can be adopted/dismissed; research tasks can wait, resolve with evidence, reopen with new evidence, pause, resume, or close. These RPCs never change holdings or record trades. |
 
 ## Access Rules
 

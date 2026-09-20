@@ -6,6 +6,8 @@ const supabaseArgs = ['--workdir', '.e2e']
 const sharedSliceMigrations = [
   'supabase/migrations/202609210002_decision_research_task_slice.sql',
   'supabase/migrations/202609210003_daily_context_lifecycle.sql',
+  'supabase/migrations/202609210004_decision_task_transitions.sql',
+  'supabase/migrations/202609210005_daily_context_open_tasks.sql',
 ]
 
 for (const migration of sharedSliceMigrations) {

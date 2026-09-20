@@ -13,6 +13,8 @@ playwright-report/
 supabase/.temp/
 .e2e/supabase/migrations/202609210002_decision_research_task_slice.sql
 .e2e/supabase/migrations/202609210003_daily_context_lifecycle.sql
+.e2e/supabase/migrations/202609210004_decision_task_transitions.sql
+.e2e/supabase/migrations/202609210005_daily_context_open_tasks.sql
 
 # OS
 .DS_Store
