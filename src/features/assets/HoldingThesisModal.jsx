@@ -61,6 +61,7 @@ export default function HoldingThesisModal({ accounts, instrument, onClose, onSa
               horizon_text: draft.horizon_text.trim() || null,
               review_condition_text: draft.review_condition_text.trim() || null,
               next_review_date: draft.next_review_date || null,
+              is_active: true,
             },
             changeReason: draft.change_reason.trim(),
           })} type="button">{saving ? '저장 중' : '보유 이유 저장'}</button>

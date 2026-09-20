@@ -19,6 +19,7 @@ const sharedSliceMigrations = [
   'supabase/migrations/202609210014_direct_edit_checkpoints.sql',
   'supabase/migrations/202609210015_feature_sharing_policy.sql',
   'supabase/migrations/202609210016_shared_review_dtos.sql',
+  'supabase/migrations/202609210017_holding_thesis_lifecycle.sql',
 ]
 
 for (const migration of sharedSliceMigrations) {

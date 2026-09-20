@@ -488,7 +488,7 @@ export default function AssetsPage({
     return () => { active = false }
   }, [canEdit, supabase])
   const thesisByInstrumentId = useMemo(() => new Map(
-    theses.filter((item) => item.account_id == null).map((item) => [Number(item.instrument_id), item]),
+    theses.filter((item) => item.account_id == null && item.is_active).map((item) => [Number(item.instrument_id), item]),
   ), [theses])
   async function handleThesisSave(payload) {
     setThesisSaving(true)
