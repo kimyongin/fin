@@ -12,7 +12,7 @@ Read this file first for database work. Inspect only the relevant migration file
 | Area | Tables | Notes |
 | --- | --- | --- |
 | Identity and sharing | `profiles`, `viewer_sessions`, `friendships` | Profiles can enable password-protected sharing. Guest sessions expire after seven days; logged-in friends retain read-only access until removed. |
-| Accounts and holdings | `accounts`, `holdings`, `transactions` | Holdings store market quantities and average prices when applicable, plus direct purchase and valuation amounts for evaluation-based investments. Transactions recalculate the corresponding holding. |
+| Accounts and holdings | `accounts`, `holdings`, legacy `transactions`, `trade_previews`, `trade_entries`, `trade_entry_mutation_receipts` | Holdings preserve the existing projection and add a numeric quantity/cost pool plus state version. New completed market trades use expiring previews and an idempotent append-only entry path; they do not reuse or replay the remote-only legacy transaction trigger. |
 | Instruments and prices | `instruments`, `instrument_tags`, `tags`, `holding_prices_daily` | An instrument belongs to one user and ticker; tags have a name and sort order, and prices are per user, ticker, and date. |
 | Portfolio outputs | `portfolio_snapshots`, `daily_reports`, `rebalance_suggestions`, `sync_runs`, `strategies`, `strategy_buckets`, `strategy_bucket_tags`, `strategy_bucket_mode_targets` | Persisted portfolio analysis, active mode, detailed principles, mode-specific strategy targets, and price-sync results. |
 | News research | `news_facts`, `news_fact_annotations` | Country-, date-, and axis-scoped factual records with separate signal opinions attached as annotations. |
@@ -46,6 +46,7 @@ Instrument types are constrained to `market` for market-priced investments, `val
 | `app_transition_investment_decision`, `app_transition_portfolio_task` | Apply idempotent expected-version transitions. Proposed decisions can be adopted/dismissed; research tasks can wait, resolve with evidence, reopen with new evidence, pause, resume, or close. These RPCs never change holdings or record trades. |
 | `app_get_investment_policy`, `app_save_investment_policy` | Read the owner's optional personal policy with the existing strategy, or patch only explicitly supplied personal fields with expected-version history and idempotency. The save RPC does not change strategy buckets, operating mode, holdings, decisions, or trades. |
 | `app_list_holding_theses`, `app_get_holding_thesis`, `app_save_holding_thesis` | List owner-only current theses, resolve an instrument base versus optional account override, or explicitly patch one scoped thesis with history and idempotency. These RPCs do not change notes, quantities, trades, decisions, or tasks. |
+| `app_preview_trade_entry`, `app_log_completed_trade`, `app_list_transactions` | Preview a user-reported completed market buy/sell against the current version, confirm that exact preview idempotently while updating the holding projection, or list the new local trade ledger. These RPCs never place brokerage orders, move cash, or mark balances verified. |
 
 ## Access Rules
 

@@ -6,6 +6,7 @@ import {
   holdingThesisToolNames,
   investmentPolicyToolNames,
   portfolioToolDefinitions,
+  tradeEntryToolNames,
 } from './portfolio-tools.ts'
 
 function tool(name: string) {
@@ -22,6 +23,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(decisionTaskToolNames.every((name) => names.includes(name))).toBe(true)
     expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingThesisToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
   })
 
   it('does not label temporary context creation as read-only or idempotent', () => {
@@ -111,5 +113,13 @@ describe('portfolio MCP tool definitions', () => {
     expect((save.inputSchema as any).properties.expected_version.type).toEqual(['integer', 'null'])
     expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('quantity')
     expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('note')
+  })
+
+  it('separates trade preview, confirmation, and brokerage actions', () => {
+    expect(tool('preview_trade_entry').annotations).toMatchObject({ readOnlyHint: false, idempotentHint: false })
+    expect(tool('log_completed_trade').annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
+    expect(tool('list_transactions').annotations.readOnlyHint).toBe(true)
+    expect((tool('preview_trade_entry').inputSchema as any).properties.quantity.type).toBe('string')
+    expect((tool('log_completed_trade').inputSchema as any).properties).not.toHaveProperty('order_id')
   })
 })

@@ -534,6 +534,58 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema,
     annotations: idempotentWriteAnnotations,
   },
+  {
+    name: 'preview_trade_entry',
+    title: 'Preview a completed trade entry',
+    description: 'Preview how a user-reported completed market buy or sell would change one account holding. Use decimal strings for quantity and execution price. This does not place an order, move cash, save a trade, or verify the brokerage balance.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account_id: { type: 'integer', minimum: 1 },
+        instrument_id: { type: 'integer', minimum: 1 },
+        side: { type: 'string', enum: ['buy', 'sell'] },
+        quantity: { type: 'string', pattern: '^[0-9]+(?:\\.[0-9]{1,16})?$' },
+        unit_price: { type: 'string', pattern: '^[0-9]+(?:\\.[0-9]{1,16})?$' },
+        executed_on: { type: 'string', format: 'date' },
+      },
+      required: ['account_id', 'instrument_id', 'side', 'quantity', 'unit_price', 'executed_on'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: contextAnnotations,
+  },
+  {
+    name: 'log_completed_trade',
+    title: 'Record a completed trade',
+    description: 'Use only after the user explicitly asks to record an already completed trade and after showing a fresh preview. Confirms that exact preview idempotently. It updates the local holding but never places or cancels a brokerage order, moves cash, or marks the balance verified.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        preview_id: { type: 'string', format: 'uuid' },
+        idempotency_key: { type: 'string', format: 'uuid' },
+      },
+      required: ['schema_version', 'preview_id', 'idempotency_key'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'list_transactions',
+    title: 'Recorded completed trades',
+    description: 'List completed trades recorded in Portfolio. This is not a complete brokerage statement and excludes legacy or unrecorded trades, balance corrections, orders, and cash movements.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'integer', minimum: 1, maximum: 100 },
+        before: { type: 'string', format: 'date-time' },
+      },
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
 ]
 
 export const dailyReviewToolNames = [
@@ -561,4 +613,10 @@ export const investmentPolicyToolNames = [
 export const holdingThesisToolNames = [
   'get_holding_thesis',
   'save_holding_thesis',
+] as const
+
+export const tradeEntryToolNames = [
+  'preview_trade_entry',
+  'log_completed_trade',
+  'list_transactions',
 ] as const

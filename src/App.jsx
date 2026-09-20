@@ -483,6 +483,7 @@ function App() {
             tags={state.tags}
             totalValue={totalValue}
             supabase={supabase}
+            onTradeSaved={() => refreshState()}
           />
         )}
         {activeTab === 'settings' && (

@@ -219,6 +219,29 @@ test('saves an instrument holding thesis and includes it in daily context', asyn
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
+test('previews and records a completed trade on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+  await openMenuTab(page, '자산')
+  await page.getByRole('tab').nth(2).click()
+  const card = page.locator('article').filter({ hasText: 'E2E Apple' }).first()
+  await card.getByRole('button', { name: '매매 기록' }).click()
+  await page.getByLabel('체결 수량').fill('1')
+  await page.getByLabel(/체결 단가/).fill('200')
+  await page.getByRole('button', { name: '변경 미리보기' }).click()
+  await expect(page.getByText('2 → 3')).toBeVisible()
+  await page.getByRole('button', { name: '체결 기록 확정' }).click()
+  await expect(page.getByRole('heading', { name: 'E2E Apple 매매 기록' })).toBeHidden()
+
+  const transactions = await callRpc(page, 'app_list_transactions', { input_limit: 10, input_before: null })
+  expect(transactions.status, JSON.stringify(transactions.body)).toBe(200)
+  expect(transactions.body).toContainEqual(expect.objectContaining({ ticker: 'E2EAPL', side: 'buy', quantity: '1.0000000000000000' }))
+  const state = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
+  expect(state.body.holdings.find((item) => item.ticker === 'E2EAPL')).toMatchObject({ quantity: 3 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
 test('starts the Google OAuth authorization redirect without using a Google account', async ({ page }) => {
   let authorizeUrl = ''
   await page.route('**/auth/v1/authorize**', async (route) => {

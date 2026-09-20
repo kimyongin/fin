@@ -15,6 +15,7 @@ import { hasComparablePriceMetrics, matchesTagFilter } from '../../lib/portfolio
 import SpreadsheetEditor from './SpreadsheetEditor'
 import HoldingThesisModal from './HoldingThesisModal'
 import { fetchHoldingTheses, saveHoldingThesis } from './holdingThesisData'
+import TradeEntryModal from './TradeEntryModal'
 
 function metricProps(item) {
   if (item.instrument_type === 'valuation') {
@@ -315,6 +316,7 @@ function InstrumentsPage({
   onEditHolding,
   onEditInstrument,
   onEditThesis,
+  onRecordTrade,
   thesisByInstrumentId,
 }) {
   return (
@@ -412,6 +414,7 @@ function InstrumentsPage({
 
               {canEdit && (
                 <div className="flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[rgba(255,255,255,0.025)] px-5 py-3">
+                  {instrument.instrument_type === 'market' && linkedHoldings.length > 0 && <button className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]" onClick={() => onRecordTrade(instrument, linkedHoldings)} type="button">매매 기록</button>}
                   <button
                     className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                     onClick={() => onEditThesis(instrument, linkedHoldings)}
@@ -467,11 +470,13 @@ export default function AssetsPage({
   tags,
   totalValue,
   supabase,
+  onTradeSaved,
 }) {
   const [theses, setTheses] = useState([])
   const [thesisEditor, setThesisEditor] = useState(null)
   const [thesisError, setThesisError] = useState('')
   const [thesisSaving, setThesisSaving] = useState(false)
+  const [tradeEditor, setTradeEditor] = useState(null)
   useEffect(() => {
     let active = true
     if (!canEdit || !supabase) return undefined
@@ -584,6 +589,7 @@ export default function AssetsPage({
             instrument,
             accounts: linkedHoldings.map((holding) => accountById.get(holding.account_id)).filter(Boolean),
           })}
+          onRecordTrade={(instrument, linkedHoldings) => setTradeEditor({ instrument, accounts: linkedHoldings.map((holding) => accountById.get(holding.account_id)).filter(Boolean) })}
           thesisByInstrumentId={thesisByInstrumentId}
         />
       )}
@@ -601,6 +607,7 @@ export default function AssetsPage({
       )}
       {thesisError && <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">{thesisError}</p>}
       {thesisEditor && <HoldingThesisModal accounts={thesisEditor.accounts} instrument={thesisEditor.instrument} onClose={() => setThesisEditor(null)} onSave={handleThesisSave} saving={thesisSaving} theses={theses} />}
+      {tradeEditor && <TradeEntryModal accounts={tradeEditor.accounts} instrument={tradeEditor.instrument} onClose={() => setTradeEditor(null)} onSaved={onTradeSaved} supabase={supabase} />}
     </section>
   )
 }

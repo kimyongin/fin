@@ -244,6 +244,14 @@ function requirePositiveInteger(value: unknown, field: string) {
   return normalized
 }
 
+function requirePositiveDecimalString(value: unknown, field: string) {
+  const normalized = requireString(value, field)
+  if (!/^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,16})?$/.test(normalized) || Number(normalized) <= 0) {
+    throw new ToolInputError(`${field} must be a positive decimal string with at most 16 decimal places`)
+  }
+  return normalized
+}
+
 function normalizeDecisionTransitionPayload(args: Record<string, unknown>) {
   requireSchemaVersion(args)
   const action = requireString(args.action, 'action')
@@ -552,6 +560,33 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_patch: normalizeHoldingThesisPatch(args.patch),
       input_change_reason: requireString(args.change_reason, 'change_reason'),
       input_authored_via: 'agent',
+    })
+    return { ok: true, data }
+  },
+  async preview_trade_entry(supabase, args) {
+    const data = await rpc(supabase, 'app_preview_trade_entry', {
+      input_account_id: requirePositiveInteger(args.account_id, 'account_id'),
+      input_instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      input_side: requireString(args.side, 'side'),
+      input_quantity: requirePositiveDecimalString(args.quantity, 'quantity'),
+      input_unit_price: requirePositiveDecimalString(args.unit_price, 'unit_price'),
+      input_executed_on: requireString(args.executed_on, 'executed_on'),
+    })
+    return { ok: true, data }
+  },
+  async log_completed_trade(supabase, args) {
+    requireSchemaVersion(args)
+    const data = await rpc(supabase, 'app_log_completed_trade', {
+      input_preview_id: requireUuid(args.preview_id, 'preview_id'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_authored_via: 'agent',
+    })
+    return { ok: true, data }
+  },
+  async list_transactions(supabase, args) {
+    const data = await rpc(supabase, 'app_list_transactions', {
+      input_limit: Math.min(Math.max(Number(args.limit) || 50, 1), 100),
+      input_before: optionalString(args.before) ?? null,
     })
     return { ok: true, data }
   },
