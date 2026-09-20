@@ -16,7 +16,7 @@
     "test:db": "supabase test db --linked supabase/tests/database"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.0",
+    "@supabase/supabase-js": "^2.116.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

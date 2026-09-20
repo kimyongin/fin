@@ -9,6 +9,7 @@ import {
   GuestUnlockScreen as GuestUnlockScreenView,
   LoginScreen as LoginScreenView,
 } from './features/auth/AuthScreens'
+import OAuthConsentPage from './features/auth/OAuthConsentPage'
 import { useAgentControls } from './features/agent/useAgentControls'
 import { useSupabaseSession } from './features/auth/useSupabaseSession'
 import PortfolioEditorModals from './features/modals/PortfolioEditorModals'
@@ -41,10 +42,13 @@ import {
 } from './lib/viewerAccess'
 
 function authRedirectTo() {
+  const currentUrl = new URL(window.location.href)
+  if (currentUrl.searchParams.has('authorization_id')) return currentUrl.toString()
   return `${window.location.origin}${import.meta.env.BASE_URL}`
 }
 
 function App() {
+  const authorizationId = new URLSearchParams(window.location.search).get('authorization_id')
   const [loginMode, setLoginMode] = useState('owner')
   const [copied, setCopied] = useState(false)
   const editor = usePortfolioEditorState()
@@ -354,6 +358,17 @@ function App() {
       <CenteredMessageView
         title={portfolioMessages.missingConfigTitle}
         body={portfolioMessages.missingConfigBody}
+      />
+    )
+  }
+
+  if (authorizationId) {
+    return (
+      <OAuthConsentPage
+        authorizationId={authorizationId}
+        onSignIn={signInWithGoogle}
+        session={session}
+        supabase={supabase}
       />
     )
   }

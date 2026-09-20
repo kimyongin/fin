@@ -366,13 +366,19 @@ enabled = false
 # OAuth server configuration
 [auth.oauth_server]
 # Enable OAuth server functionality
-enabled = false
+enabled = true
 # Path for OAuth consent flow UI
-authorization_url_path = "/oauth/consent"
+authorization_url_path = "/fin/"
 # Allow dynamic client registration
-allow_dynamic_registration = false
+allow_dynamic_registration = true
 
 [functions.portfolio-mcp]
+verify_jwt = false
+
+[functions.chatgpt-mcp-probe]
+verify_jwt = false
+
+[functions.portfolio-mcp-oauth]
 verify_jwt = false
 
 [edge_runtime]
