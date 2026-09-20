@@ -5,7 +5,7 @@
 - `202609210001_daily_review_foundation.sql`에서 소유자 전용 6시간 임시 context, 만료 정리, 사용자별 활성 context 10개·subject 200개·snapshot 2 MiB 제한, 기존 portfolio/strategy/news/activity/이전 브리핑 snapshot 조립을 구현했다.
 - context 생성은 브리핑·열람·잔고 확인이나 완료 activity를 만들지 않으며, 저장 시 원본 snapshot이 브리핑으로 복사되는 것을 DB 테스트로 검증했다.
 - 이전 조사 scope 요약과 3일 겹침 설정을 context에 포함했다. 열린 질문·판단·보유 이유·실제 잔고 확인은 아직 `unavailable`인 후속 슬라이스다.
-- 남은 범위: 계약의 최종 subject ID/manifest·실제 대용량 fixture와 분할 DTO 확정, OAuth MCP 도구 등록과 앱/MCP 오류 envelope, 후속 모델 연결 및 공유 DTO.
+- OAuth MCP `get_daily_context` 등록과 로컬 인증 호출을 검증했다. 계약의 최종 subject ID/manifest·실제 대용량 fixture와 분할 DTO, 운영 배포·클라이언트 검증은 남아 있다.
 
 ## 단순화 적용 기준 — ADR-0004 (2026-09-21)
 

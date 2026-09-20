@@ -5,7 +5,8 @@
 - `202609210001_daily_review_foundation.sql`에서 단일 briefing aggregate, 근거 snapshot, 조사 scope, 확인 출처, scope-evidence 관계, 성공 mutation receipt와 owner-only 조회 RPC를 구현했다.
 - `save_daily_briefing`은 context 소유권·만료, 입력 한도, 근거 참조를 검증하고 한 트랜잭션으로 저장한다. 같은 idempotency key+입력은 기존 응답을 반환하고 다른 입력은 거부한다.
 - scope의 `sufficient/partial/unverified`로 전체 `complete/partial/failed`를 서버가 계산하며, partial/failed를 `no_action`으로 저장하지 못하게 했다. 새 기사 없음도 성공적으로 확인한 출처를 별도로 남길 수 있다.
-- DB 인수 테스트는 context 비부작용, snapshot 복사, 원자 저장, 조사 품질, idempotency, 만료, 사용자 격리를 다룬다. 판단/task 상태전이, 공유 DTO, MCP 등록과 최종 JSON envelope는 후속 슬라이스다.
+- DB 인수 테스트는 context 비부작용, snapshot 복사, 원자 저장, 조사 품질, idempotency, 만료, 사용자 격리를 다룬다.
+- OAuth MCP의 저장·목록·상세 도구를 공통 JSON Schema와 연결하고 로컬 인증 종단간 저장/재조회를 검증했다. 판단/task 상태전이, 공유 DTO, 운영 배포·클라이언트 검증은 후속 슬라이스다.
 
 ## 단순화 적용 기준 — ADR-0004 (2026-09-21)
 

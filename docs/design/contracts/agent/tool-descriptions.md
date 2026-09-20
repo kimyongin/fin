@@ -1,6 +1,6 @@
 # 도구 설명 카탈로그
 
-revision 2 · 설명 초안. 스키마/동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다. 실제 등록 전 각 도구의 완전한 input/output schema, handler, annotations, 오류 fixture를 검증해야 한다.
+revision 3 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
 
 ## 설명 작성 형식
 
@@ -8,7 +8,7 @@ revision 2 · 설명 초안. 스키마/동작의 원본은 상위 API 계약이�
 
 ## 현 OAuth 작업 트리에서 확인한 도구
 
-근거: `supabase/functions/portfolio-mcp-oauth/index.ts` tools 배열, 2026-09-21. 아래는 개선 설명안이지 현재 문자열의 인용이 아니다. 파일은 미커밋 실험 변경을 포함하며 운영 배포 상태는 이번에 검증하지 않았다. prompt/resource 실험 이름은 도구로 세지 않는다. 다른 MCP endpoint 전체 인벤토리를 뜻하지 않는다.
+근거: 공통 도구 정의와 `supabase/functions/portfolio-mcp-oauth/index.ts` handler, 2026-09-21. 로컬 OAuth 종단간 호출을 검증했지만 운영 배포 상태는 아직 검증하지 않았다. prompt/resource 실험 이름은 도구로 세지 않는다. 다른 MCP endpoint 전체 인벤토리를 뜻하지 않는다.
 
 | 이름 / 상태 | description 후보 | 가이드 |
 | --- | --- | --- |
@@ -18,6 +18,10 @@ revision 2 · 설명 초안. 스키마/동작의 원본은 상위 API 계약이�
 | get_strategy_state / observed-local | 저장된 운용 전략·목표 버킷·태그 연결을 읽습니다. 운용 모드를 개인 성향으로 추정하지 않습니다. | W01,W02 |
 | get_news_state / observed-local | 이미 저장된 뉴스 사실과 의견을 읽습니다. 최신 뉴스를 인터넷에서 검색하는 도구가 아닙니다. | W01,W04 |
 | list_recent_activity / observed-local | 본인의 최근 데이터 변경을 조회합니다. 활동 기록을 투자 결정이나 실제 증권사 체결 증명으로 해석하지 않습니다. | W06,W08 |
+| get_daily_context / observed-local | 요청한 점검에 필요한 보유·원칙·이전 분석·과거 조사 범위를 서버 임시 문맥으로 준비합니다. 분석 저장·열람·잔고 확인은 기록하지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
+| save_daily_briefing / observed-local | 명시적 저장 요청에 따라 context_id와 조사 근거·범위·브리핑을 저장합니다. 원칙 수정·사용자 판단 채택·실제 매매는 하지 않으며 실패를 저장 완료로 설명하면 안 됩니다. | W01,W04,W08 |
+| list_daily_briefings / observed-local | 본인의 저장 분석 요약을 분석 시각 역순으로 읽습니다. 조회로 열람이나 잔고 확인을 기록하지 않습니다. | W08 |
+| get_daily_briefing / observed-local | 본인의 브리핑과 당시 문맥·근거·확인 출처·조사 범위를 읽습니다. 현재 데이터와 당시 snapshot을 혼동하지 않습니다. | W08 |
 
 기존 읽기를 합쳐 문맥을 구성할 수 있어도 새 서버 context/조사 범위와 동등하다고 주장하지 않는다. 쓰기 도구가 없으면 분석만 제공하고 앱에 저장했다고 말하지 않는다.
 
@@ -27,9 +31,6 @@ revision 2 · 설명 초안. 스키마/동작의 원본은 상위 API 계약이�
 
 | 이름 | description 후보 | 가이드 |
 | --- | --- | --- |
-| get_daily_context | 요청한 점검에 필요한 보유·원칙·이전 분석·미확인 구간·열린 질문을 읽습니다. 데이터 품질과 조사 대상 범위를 확인하세요. 조회는 분석 저장·열람·잔고 확인을 기록하지 않습니다. | W01 |
-| save_daily_briefing | 명시적 저장 요청에 따라 context_id와 조사 근거·범위·브리핑을 저장합니다. 지원 버전에서 조사 질문 갱신과 제안 저장을 포함할 수 있습니다. 원칙 수정·사용자 채택·실제 매매는 하지 않습니다. 실패 시 저장 완료라고 설명하지 말고 충돌은 재조회하세요. | W01,W04,W08 |
-| list_daily_briefings / get_daily_briefing | 본인의 저장 분석 목록/상세를 읽습니다. 분석 기준시각·부분 실패·현재 상태와의 차이를 구분하세요. 조회로 실제 열람이나 잔고 확인을 기록하지 않습니다. | W08 |
 | get_investment_policy | 본인의 저장 투자 기준과 운용 전략, 각각의 버전을 읽습니다. 미입력을 추론한 성향으로 채우지 않습니다. | W02 |
 | save_investment_policy | 사용자가 명시적으로 저장/변경한 원칙의 지정 필드만 기대 버전과 함께 수정합니다. 과거 분석 기준은 보존합니다. 모델이 추론한 성향을 사용자 원칙으로 저장하지 말고 충돌 시 재조회하세요. | W02 |
 | get_holding_thesis | 종목 기본 및 계좌별 보유 이유와 적용 버전을 읽습니다. 이전 보유 구간의 이유를 재매수에 자동 적용하지 않습니다. | W02 |

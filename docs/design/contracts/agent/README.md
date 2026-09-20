@@ -1,6 +1,6 @@
 # Portfolio 에이전트 계약 관리
 
-2026-09-21 · 문서 설계안. MCP 코드 연결·배포·클라이언트 검증은 아직 하지 않았다.
+2026-09-21 · 구현 진행 중. OAuth 로컬 연결과 일일 점검 4개 도구의 종단간 검증을 완료했으며 운영 배포·웹/모바일 재검증은 아직 하지 않았다.
 
 ## 원본과 전달 경로
 
@@ -15,7 +15,7 @@
 | 데이터·입출력·오류 계약 | [일일 점검](../daily-review-api.md), [생애주기](../lifecycle-model-api.md) | 검증된 JSON Schema와 서버 구현, DB 테스트 |
 | 시나리오 인수 조건 | [S01~S24](../scenario-api-model-matrix.md), 일일 점검 R01~R16 | 도구 선택 평가 + 서버 계약 테스트 |
 
-현재 Markdown은 검토 원본이며 서버가 읽고 있지 않다. 구현 #33에서는 description/inputSchema/outputSchema/annotations/handler 연결을 관리하는 공통 도구 정의 모듈을 만들고 tools/list와 dispatch가 같은 정의를 사용하게 한다. OAuth/기존 토큰 adapter가 설명을 별도 복사하지 않도록 한다. 코드 위치는 기존 구조 확인 후 결정한다.
+현재 Markdown은 검토 카탈로그이며 서버가 읽고 있지 않다. 공통 description/inputSchema/outputSchema/annotations는 `supabase/functions/_shared/mcp/portfolio-tools.ts`에 두고 OAuth `tools/list`가 이를 사용한다. OAuth handler registry는 시작 시 정의 이름과 일치하는지 검사한다. 기존 토큰 adapter의 수동 정의 제거는 아직 남았다.
 
 연결 완료 시 이 문서의 도구 설명은 생성된 참조 문서로 전환하거나 실제 정의 링크만 남긴다. 사람이 수정하는 설명 원본을 Markdown과 코드에 영구히 두 개 만들지 않는다. 전체 PRD에서 설명을 자동 추출해 배포하지도 않는다.
 
@@ -32,7 +32,7 @@
 2. 동작을 바꾸면 데이터/API 계약, 설명, 시나리오의 변경·불변 조건, 테스트를 함께 수정한다. 정책 변경은 ADR도 갱신한다.
 3. 설명 문구만 고치면 계약 revision을 기록한다. 필드/enum/기본값/부수 효과 변경은 API schema version과 구 클라이언트 호환성을 검토한다. workflow revision과 API version은 별개다.
 4. 계획 이름을 바꾸면 모든 가이드 참조를 수정한다. 이미 배포된 이름을 바꾸면 폐기 안내/호환 기간을 정하고 조용히 제거하지 않는다.
-5. tools/list 설명과 스키마, 실제 처리기 등록의 일치 검사 및 fixture 검증을 CI에 추가한다. 현재는 미구현이다.
+5. tools/list 설명과 스키마의 중복 이름·핵심 annotations/enum은 단위 테스트하고 OAuth 처리기 이름은 시작 시 공통 정의와 대조한다. 독립 Edge 타입 검사와 fixture 확대는 남았다.
 6. 배포 후 새 세션/메타데이터 갱신을 거친 웹·모바일에서 도구 선택을 확인한다. 저장소 변경만으로 클라이언트 반영됐다고 하지 않는다.
 
 ## 티켓/PR 완료 체크리스트

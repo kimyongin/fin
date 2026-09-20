@@ -39,7 +39,7 @@
 
 - 공통 구현 기반 설계: [React 컴포넌트](./design/component-system.md), [백엔드 모듈](./engineering/backend-modules.md). 기존 ModalShell 보완과 호환 재사용, modal drawer/편집 상태 계약, Edge 공통 adapter/registry 및 DB 원자 저장 경계를 정의했다. 코드·라이브러리 설치·배포는 아직 변경하지 않았다.
 
-- 에이전트용 명세: [agent 계약 관리](./design/contracts/agent/README.md). 공통 행동 규칙, 현 OAuth 로컬 읽기 도구 6개와 계획 도구 설명 후보, W01~W08 작업 가이드를 작성했다. 문서만 추가했으며 현재 tools/list는 변경하지 않았다. #33은 공통 도구 정의 연결, 각 기능 티켓은 설명/스키마/시나리오/테스트 동시 갱신을 담당한다.
+- 에이전트용 명세: [agent 계약 관리](./design/contracts/agent/README.md). 공통 행동 규칙과 W01~W08 작업 가이드를 관리한다. OAuth 로컬에는 기존 읽기 6개와 일일 점검 4개가 공통 코드 정의로 연결됐고 종단간 로컬 검증을 통과했다. 운영 배포·웹/모바일 검증과 기존 토큰 endpoint 통합은 남아 있다.
 
 - 후속 설계: [24개 사용자 시나리오/API/데이터 대응표](./design/contracts/scenario-api-model-matrix.md), [원칙·판단·할 일·매매 생애주기](./design/contracts/lifecycle-model-api.md). 판단+후속 할 일 원자 저장, 조사 질문 CAS, 체결 취소 preview, 당시 task history 참조, 조사 대상 누락 검증을 보완했다. 문서 점검과 실제 테스트 통과를 구별하며 기술 검증 게이트는 계약 인덱스를 따른다.
 

@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 
 import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
+import { portfolioToolDefinitions } from '../_shared/mcp/portfolio-tools.ts'
 
 type JsonRpcRequest = {
   jsonrpc?: string
@@ -12,84 +13,45 @@ type JsonRpcRequest = {
 
 const protocolVersion = '2025-06-18'
 const oauthSecurity = [{ type: 'oauth2', scopes: ['openid', 'email', 'profile'] }]
-const readOnlyAnnotations = {
-  readOnlyHint: true,
-  destructiveHint: false,
-  idempotentHint: true,
-  openWorldHint: false,
-}
+const serverInstructions = [
+  'Portfolio remembers, calculates, and validates investment records; it never executes brokerage orders or transfers funds.',
+  'Use authenticated portfolio tools for quantities, average costs, strategy, saved news, and activity instead of guessing.',
+  'Use ChatGPT web research for current news, clearly separate sourced facts from analysis, and do not claim that Portfolio fetched live news.',
+].join(' ')
+const dailyReviewResourceUri = 'portfolio://guide/daily-review'
+const dailyReviewGuide = `# Daily portfolio review guide
 
-const profileOutputSchema = {
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
-  type: 'object',
-  properties: {
-    id: { type: 'string', minLength: 1, pattern: '\\S' },
-    name: { type: 'string' },
-    email: { type: 'string' },
-    nickname: { type: 'string' },
-  },
-  required: ['id'],
-  additionalProperties: false,
-}
+Version marker: PORTFOLIO_RESOURCE_DAILY_REVIEW_V1
 
-const toolDefinitions = [
+Use this workflow when the user asks for a daily portfolio check or morning briefing.
+
+1. Read the authenticated portfolio state, active strategy, saved news, and recent activity.
+2. Summarize only decision-relevant changes. Do not invent prices, holdings, returns, or account details.
+3. If current market information is needed, use ChatGPT's own web research and cite the sources. Portfolio does not search the public web.
+4. Separate verified facts, interpretation, and suggested questions or actions.
+5. Never imply that a suggested trade was placed. Portfolio only records completed user-reported activity.
+`
+const toolDefinitions = portfolioToolDefinitions.map((definition) => ({
+  ...definition,
+  securitySchemes: oauthSecurity,
+}))
+
+const promptDefinitions = [
   {
-    name: 'get_profile',
-    title: 'Connected portfolio profile',
-    description: 'Return the profile represented by the authenticated Portfolio account.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    outputSchema: profileOutputSchema,
-    annotations: readOnlyAnnotations,
-    securitySchemes: oauthSecurity,
-    _meta: { 'openai/profile': true },
+    name: 'daily_portfolio_review',
+    title: 'Daily portfolio review',
+    description: 'Start a concise daily review using the authenticated portfolio, strategy, saved news, and recent activity.',
+    arguments: [],
   },
+]
+
+const resourceDefinitions = [
   {
-    name: 'get_portfolio_state',
-    title: 'Portfolio state',
-    description: 'Read accounts, holdings, instruments, tags, and latest prices for the authenticated user.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    annotations: readOnlyAnnotations,
-    securitySchemes: oauthSecurity,
-  },
-  {
-    name: 'find_holdings',
-    title: 'Find holdings',
-    description: 'Find the authenticated user\'s holdings by ticker, display name, or account name.',
-    inputSchema: {
-      type: 'object',
-      properties: { query: { type: 'string', description: 'Ticker, name, or account. Empty means all.' } },
-      additionalProperties: false,
-    },
-    annotations: readOnlyAnnotations,
-    securitySchemes: oauthSecurity,
-  },
-  {
-    name: 'get_strategy_state',
-    title: 'Investment strategy',
-    description: 'Read the authenticated user\'s active strategy, target buckets, and tag mappings.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    annotations: readOnlyAnnotations,
-    securitySchemes: oauthSecurity,
-  },
-  {
-    name: 'get_news_state',
-    title: 'Saved market news',
-    description: 'Read market news facts and opinions saved by the authenticated user.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    annotations: readOnlyAnnotations,
-    securitySchemes: oauthSecurity,
-  },
-  {
-    name: 'list_recent_activity',
-    title: 'Recent portfolio activity',
-    description: 'List recent portfolio changes for the authenticated user.',
-    inputSchema: {
-      type: 'object',
-      properties: { limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
-      additionalProperties: false,
-    },
-    annotations: readOnlyAnnotations,
-    securitySchemes: oauthSecurity,
+    uri: dailyReviewResourceUri,
+    name: 'daily-portfolio-review-guide',
+    title: 'Daily portfolio review guide',
+    description: 'Workflow and responsibility boundaries for a daily portfolio review.',
+    mimeType: 'text/markdown',
   },
 ]
 
@@ -109,10 +71,197 @@ function toolResult(value: unknown) {
   }
 }
 
+function toolErrorResult(code: string, message: string) {
+  const value = { ok: false, error: { code, message, retryable: false } }
+  return {
+    content: [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+    structuredContent: value,
+    isError: true,
+  }
+}
+
+class ToolInputError extends Error {}
+
+function requireSchemaVersion(args: Record<string, unknown>) {
+  if (args.schema_version !== 1) throw new ToolInputError('schema_version must be 1')
+}
+
+function requireString(value: unknown, field: string) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new ToolInputError(`${field} is required`)
+  }
+  return value.trim()
+}
+
+function requireUuid(value: unknown, field: string) {
+  const normalized = requireString(value, field)
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized)) {
+    throw new ToolInputError(`${field} must be a UUID`)
+  }
+  return normalized
+}
+
+function requireRecord(value: unknown, field: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ToolInputError(`${field} must be an object`)
+  }
+  return value as Record<string, unknown>
+}
+
+function requireArray(value: unknown, field: string): unknown[] {
+  if (!Array.isArray(value)) throw new ToolInputError(`${field} must be an array`)
+  return value
+}
+
+function optionalString(value: unknown) {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
+}
+
+function normalizeDailyBriefingPayload(args: Record<string, unknown>) {
+  requireSchemaVersion(args)
+  const briefing = requireRecord(args.briefing, 'briefing')
+  const decisionIds = Array.isArray(briefing.decision_ids) ? briefing.decision_ids : []
+  const taskIds = Array.isArray(briefing.task_ids) ? briefing.task_ids : []
+  if (decisionIds.length > 0 || taskIds.length > 0) {
+    throw new ToolInputError('decision_ids and task_ids are not supported in schema version 1')
+  }
+
+  const evidence = requireArray(args.evidence, 'evidence').map((value, index) => {
+    const item = requireRecord(value, `evidence[${index}]`)
+    const summary = requireString(item.fact_summary, `evidence[${index}].fact_summary`)
+    return {
+      evidence_key: requireString(item.local_key, `evidence[${index}].local_key`),
+      title: requireString(item.source_title, `evidence[${index}].source_title`),
+      source_name: optionalString(item.source_name),
+      source_url: requireString(item.source_url, `evidence[${index}].source_url`),
+      published_at: optionalString(item.published_at),
+      accessed_at: requireString(item.checked_at, `evidence[${index}].checked_at`),
+      summary,
+      facts: Array.isArray(item.facts) ? item.facts : [summary],
+    }
+  })
+
+  const scopes = requireArray(args.scopes, 'scopes').map((value, index) => {
+    const item = requireRecord(value, `scopes[${index}]`)
+    const subject = requireRecord(item.subject, `scopes[${index}].subject`)
+    return {
+      scope_key: requireString(item.local_key, `scopes[${index}].local_key`),
+      subject_kind: requireString(subject.kind, `scopes[${index}].subject.kind`),
+      subject_ref: optionalString(subject.ref),
+      window_from: requireString(item.window_from, `scopes[${index}].window_from`),
+      window_to: requireString(item.window_to, `scopes[${index}].window_to`),
+      coverage: requireString(item.coverage, `scopes[${index}].coverage`),
+      reason: optionalString(item.reason),
+      checked_at: requireString(item.checked_at, `scopes[${index}].checked_at`),
+      evidence_keys: requireArray(item.evidence_keys, `scopes[${index}].evidence_keys`),
+      checked_sources: requireArray(item.checked_sources, `scopes[${index}].checked_sources`),
+    }
+  })
+
+  return {
+    status: requireString(briefing.status, 'briefing.status'),
+    headline: requireString(briefing.headline, 'briefing.headline'),
+    changes: requireArray(briefing.changes, 'briefing.changes'),
+    uncertainties: requireArray(briefing.uncertainties, 'briefing.uncertainties'),
+    evidence,
+    scopes,
+    ...(optionalString(args.supersedes_briefing_id)
+      ? { supersedes_id: requireUuid(args.supersedes_briefing_id, 'supersedes_briefing_id') }
+      : {}),
+  }
+}
+
+function toolErrorCode(error: unknown) {
+  if (error instanceof ToolInputError) return 'validation_error'
+  const message = error instanceof Error ? error.message.toLowerCase() : ''
+  if (message.includes('context has expired')) return 'context_expired'
+  if (message.includes('context was not found')) return 'not_found_or_forbidden'
+  if (message.includes('briefing was not found')) return 'not_found_or_forbidden'
+  if (message.includes('idempotency key')) return 'idempotency_conflict'
+  if (message.includes('not supported')) return 'unsupported_operation'
+  if (message.includes('exceeds the 2 mib')) return 'payload_too_large'
+  if (/invalid|required|must|needs|accepts at most|no-action briefing/.test(message)) return 'validation_error'
+  return 'operation_failed'
+}
+
 async function rpc(supabase: any, name: string, args: Record<string, unknown> = {}) {
   const { data, error } = await supabase.rpc(name, args)
   if (error) throw new Error(error.message)
   return data
+}
+
+type ToolHandler = (supabase: any, args: Record<string, unknown>) => Promise<unknown>
+
+const toolHandlers: Record<string, ToolHandler> = {
+  async get_profile(supabase) {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error(error?.message ?? 'Authenticated user not found')
+    return {
+      id: data.user.id,
+      ...(data.user.user_metadata?.full_name ? { name: String(data.user.user_metadata.full_name) } : {}),
+      ...(data.user.email ? { email: data.user.email } : {}),
+      nickname: 'Portfolio account',
+    }
+  },
+  async get_portfolio_state(supabase) {
+    return await rpc(supabase, 'app_get_portfolio_state', { input_owner_user_id: null })
+  },
+  async find_holdings(supabase, args) {
+    return await rpc(supabase, 'app_find_holdings', { input_query: String(args.query ?? '') })
+  },
+  async get_strategy_state(supabase) {
+    return await rpc(supabase, 'app_get_strategy_state', { input_owner_user_id: null })
+  },
+  async get_news_state(supabase) {
+    return await rpc(supabase, 'app_get_news_state', { input_owner_user_id: null })
+  },
+  async list_recent_activity(supabase, args) {
+    const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100)
+    return await rpc(supabase, 'app_list_recent_activity', { limit_count: limit })
+  },
+  async get_daily_context(supabase, args) {
+    requireSchemaVersion(args)
+    const timezone = requireString(args.timezone, 'timezone')
+    const subjectTickers = args.subject_tickers == null
+      ? null
+      : requireArray(args.subject_tickers, 'subject_tickers').map((value, index) =>
+        requireString(value, `subject_tickers[${index}]`)
+      )
+    const data = await rpc(supabase, 'app_create_daily_context', {
+      input_timezone: timezone,
+      input_subject_tickers: subjectTickers,
+    })
+    return { ok: true, data }
+  },
+  async save_daily_briefing(supabase, args) {
+    const data = await rpc(supabase, 'app_save_daily_briefing', {
+      input_context_id: requireUuid(args.context_id, 'context_id'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_payload: normalizeDailyBriefingPayload(args),
+    })
+    return { ok: true, data }
+  },
+  async list_daily_briefings(supabase, args) {
+    const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50)
+    const data = await rpc(supabase, 'app_list_daily_briefings', {
+      input_limit: limit,
+      input_before: optionalString(args.before) ?? null,
+    })
+    return { ok: true, data }
+  },
+  async get_daily_briefing(supabase, args) {
+    const data = await rpc(supabase, 'app_get_daily_briefing', {
+      input_briefing_id: requireUuid(args.briefing_id, 'briefing_id'),
+    })
+    if (data == null) throw new Error('Briefing was not found or is not accessible')
+    return { ok: true, data }
+  },
+}
+
+const definitionNames = portfolioToolDefinitions.map((definition) => definition.name).sort()
+const handlerNames = Object.keys(toolHandlers).sort()
+if (JSON.stringify(definitionNames) !== JSON.stringify(handlerNames)) {
+  throw new Error('Portfolio MCP tool definitions and handlers do not match')
 }
 
 Deno.serve(
@@ -136,13 +285,79 @@ Deno.serve(
       if (message.method === 'initialize') {
         return jsonRpcResult(message.id, {
           protocolVersion,
-          capabilities: { tools: {} },
-          serverInfo: { name: 'portfolio-mcp', version: '0.2.0' },
+          capabilities: {
+            tools: { listChanged: false },
+            prompts: { listChanged: false },
+            resources: { subscribe: false, listChanged: false },
+          },
+          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.3.0' },
+          instructions: serverInstructions,
         })
       }
 
       if (message.method === 'tools/list') {
         return jsonRpcResult(message.id, { tools: toolDefinitions })
+      }
+
+      if (message.method === 'prompts/list') {
+        return jsonRpcResult(message.id, { prompts: promptDefinitions })
+      }
+
+      if (message.method === 'prompts/get') {
+        const promptName = String(message.params?.name ?? '')
+        if (promptName !== 'daily_portfolio_review') {
+          return jsonRpcError(message.id, -32602, `Unknown prompt: ${promptName}`)
+        }
+
+        return jsonRpcResult(message.id, {
+          description: 'Review the authenticated portfolio and explain only the changes that matter today.',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'resource',
+                resource: {
+                  uri: dailyReviewResourceUri,
+                  mimeType: 'text/markdown',
+                  text: dailyReviewGuide,
+                },
+              },
+            },
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: [
+                  'Prompt marker: PORTFOLIO_PROMPT_DAILY_REVIEW_V1',
+                  'Prepare my daily portfolio review.',
+                  'Use Portfolio tools for stored facts and calculations. Use ChatGPT web research only when current external information is necessary.',
+                  'Separate facts, interpretation, and decisions that require my attention.',
+                ].join('\n'),
+              },
+            },
+          ],
+        })
+      }
+
+      if (message.method === 'resources/list') {
+        return jsonRpcResult(message.id, { resources: resourceDefinitions })
+      }
+
+      if (message.method === 'resources/read') {
+        const uri = String(message.params?.uri ?? '')
+        if (uri !== dailyReviewResourceUri) {
+          return jsonRpcError(message.id, -32602, `Unknown resource: ${uri}`)
+        }
+
+        return jsonRpcResult(message.id, {
+          contents: [
+            {
+              uri: dailyReviewResourceUri,
+              mimeType: 'text/markdown',
+              text: dailyReviewGuide,
+            },
+          ],
+        })
       }
 
       if (message.method !== 'tools/call') {
@@ -151,41 +366,21 @@ Deno.serve(
 
       const toolName = String(message.params?.name ?? '')
       const args = (message.params?.arguments ?? {}) as Record<string, unknown>
+      const handler = toolHandlers[toolName]
+
+      if (!handler) {
+        return jsonRpcError(message.id, -32602, `Unknown tool: ${toolName}`)
+      }
 
       try {
-        if (toolName === 'get_profile') {
-          const { data, error } = await supabase.auth.getUser()
-          if (error || !data.user) throw new Error(error?.message ?? 'Authenticated user not found')
-          const profile = {
-            id: data.user.id,
-            ...(data.user.user_metadata?.full_name ? { name: String(data.user.user_metadata.full_name) } : {}),
-            ...(data.user.email ? { email: data.user.email } : {}),
-            nickname: 'Portfolio account',
-          }
-          return jsonRpcResult(message.id, toolResult(profile))
-        }
-
-        if (toolName === 'get_portfolio_state') {
-          return jsonRpcResult(message.id, toolResult(await rpc(supabase, 'app_get_portfolio_state', { input_owner_user_id: null })))
-        }
-        if (toolName === 'find_holdings') {
-          return jsonRpcResult(message.id, toolResult(await rpc(supabase, 'app_find_holdings', { input_query: String(args.query ?? '') })))
-        }
-        if (toolName === 'get_strategy_state') {
-          return jsonRpcResult(message.id, toolResult(await rpc(supabase, 'app_get_strategy_state', { input_owner_user_id: null })))
-        }
-        if (toolName === 'get_news_state') {
-          return jsonRpcResult(message.id, toolResult(await rpc(supabase, 'app_get_news_state', { input_owner_user_id: null })))
-        }
-        if (toolName === 'list_recent_activity') {
-          const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100)
-          return jsonRpcResult(message.id, toolResult(await rpc(supabase, 'app_list_recent_activity', { limit_count: limit })))
-        }
-
-        return jsonRpcError(message.id, -32602, `Unknown tool: ${toolName}`)
+        return jsonRpcResult(message.id, toolResult(await handler(supabase, args)))
       } catch (error) {
         const messageText = error instanceof Error ? error.message : 'Tool call failed'
-        return jsonRpcError(message.id, -32000, messageText)
+        const code = toolErrorCode(error)
+        return jsonRpcResult(
+          message.id,
+          toolErrorResult(code, code === 'operation_failed' ? 'Portfolio operation failed' : messageText),
+        )
       }
     },
   ),

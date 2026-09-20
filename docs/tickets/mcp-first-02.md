@@ -1,5 +1,12 @@
 # [MCP-first] OAuth MCP 계약 정비와 클라이언트 호환성 검증
 
+## 구현 진행 (2026-09-21)
+
+- 공통 도구 정의를 `supabase/functions/_shared/mcp/portfolio-tools.ts`에 분리하고 OAuth `tools/list`와 handler registry 이름 일치를 서버 시작 시 검사한다.
+- 기존 읽기 6개에 `get_daily_context`, `save_daily_briefing`, `list_daily_briefings`, `get_daily_briefing`을 추가했다. context 생성은 임시 DB 쓰기이므로 read-only/idempotent로 광고하지 않는다.
+- 로컬 OAuth Bearer 인증으로 initialize → tools/list(10개) → context 생성 → briefing 저장 → 상세/목록 재조회를 검증하고 테스트 사용자를 삭제했다.
+- 남은 범위: 기존 토큰 endpoint의 공통 정의 사용, 독립 Edge 타입 검사, 운영 배포, 웹·모바일 새 세션 검증, prompt/resource 지원 수준 최종 결정.
+
 ## 단순화 적용 기준 — ADR-0004 (2026-09-21)
 
 [ADR-0004](https://github.com/kimyongin/fin/blob/master/docs/adr/0004-domain-storage-and-minimal-mutation-contract.md)가 아래 이전 설계의 물리 구조 요구보다 우선한다. 해당 ADR은 현재 작업 트리에서 작성됐으며 원격 링크는 푸시 후 유효하다. 도메인 테이블+공통 변경 규약, 필요한 대상만 version 검사, 현재값+중요 변경 이력/당시 snapshot을 사용한다. 모든 모델에 head/revision 쌍을 만들지 않는다.
