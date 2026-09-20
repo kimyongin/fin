@@ -203,6 +203,20 @@ const policyPatchSchema = {
   additionalProperties: false,
 }
 
+const holdingThesisPatchSchema = {
+  type: 'object',
+  properties: {
+    reason_text: { type: ['string', 'null'], maxLength: 10000 },
+    horizon_text: { type: ['string', 'null'], maxLength: 4000 },
+    review_condition_text: { type: ['string', 'null'], maxLength: 4000 },
+    next_review_date: { type: ['string', 'null'], format: 'date' },
+    related_decision_id: { type: ['string', 'null'], format: 'uuid' },
+    is_active: { type: 'boolean' },
+  },
+  minProperties: 1,
+  additionalProperties: false,
+}
+
 export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_profile',
@@ -483,6 +497,43 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema,
     annotations: idempotentWriteAnnotations,
   },
+  {
+    name: 'get_holding_thesis',
+    title: 'Holding thesis',
+    description: 'Read the explicitly saved reason for holding one instrument. With account_id, returns both the instrument-wide base and any account override, plus the applied source. Missing fields remain unknown and instrument or holding notes are separate.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        instrument_id: { type: 'integer', minimum: 1 },
+        account_id: { type: ['integer', 'null'], minimum: 1 },
+      },
+      required: ['instrument_id'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'save_holding_thesis',
+    title: 'Save holding thesis',
+    description: 'Use only when the user explicitly asks to save or change why they hold an instrument. Omit account_id for the instrument-wide base or provide an account that currently holds it for an override. Read the current version first, patch only stated fields, and never invent a reason or review date. This does not change notes, holdings, trades, decisions, or tasks.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        instrument_id: { type: 'integer', minimum: 1 },
+        account_id: { type: ['integer', 'null'], minimum: 1 },
+        expected_version: { type: ['integer', 'null'], minimum: 1 },
+        idempotency_key: { type: 'string', format: 'uuid' },
+        patch: holdingThesisPatchSchema,
+        change_reason: { type: 'string', minLength: 1, maxLength: 1000 },
+      },
+      required: ['schema_version', 'instrument_id', 'expected_version', 'idempotency_key', 'patch', 'change_reason'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
 ]
 
 export const dailyReviewToolNames = [
@@ -505,4 +556,9 @@ export const decisionTaskToolNames = [
 export const investmentPolicyToolNames = [
   'get_investment_policy',
   'save_investment_policy',
+] as const
+
+export const holdingThesisToolNames = [
+  'get_holding_thesis',
+  'save_holding_thesis',
 ] as const

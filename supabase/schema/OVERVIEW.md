@@ -19,6 +19,7 @@ Read this file first for database work. Inspect only the relevant migration file
 | Daily review | `daily_review_contexts`, `daily_briefings`, `daily_briefing_evidence`, `daily_briefing_scopes`, `daily_briefing_scope_sources`, `daily_briefing_scope_evidence`, `daily_review_mutation_receipts` | Short-lived server-owned analysis inputs and a single durable briefing aggregate containing the consumed snapshot, conclusions, uncertainties, source evidence, checked sources, and research windows. Mutation receipts make briefing saves idempotent. |
 | Decisions and follow-ups | `investment_decisions`, `investment_decision_state_history`, `portfolio_tasks`, `portfolio_task_history`, `portfolio_task_evidence`, `investment_decision_tasks`, `decision_task_mutation_receipts` | Owner-only proposed/adopted decisions and linked research questions. Creation and version-checked state transitions are idempotent; resolved/reopened questions preserve source evidence. Execution plans remain deferred. |
 | Personal investment policy | `investment_policy_profiles`, `investment_policy_history`, `investment_policy_mutation_receipts` | Owner-only optional personal goals, horizon, liquidity needs, risk/trading preferences, and explicit preferences/prohibitions. Partial patches are version-checked and idempotent; missing fields remain unknown. Existing strategy allocations and operating limits stay separate. |
+| Holding theses | `holding_theses`, `holding_thesis_history`, `holding_thesis_mutation_receipts` | Owner-only current reasons for holding an instrument, with an optional account override, horizon, review condition/date, expected-version history, and idempotent writes. Existing instrument/holding notes remain separate. |
 | Audit and agent access | `activity_events`, `agent_tokens` | User and agent actions are recorded; agent tokens can be revoked. |
 
 `portfolio_view` joins holdings, accounts, instruments, and the newest price. It converts USD values with the latest available `USDKRW=X` price.
@@ -44,6 +45,7 @@ Instrument types are constrained to `market` for market-priced investments, `val
 | `app_get/list_investment_decision*`, `app_get/list_portfolio_task*` | Read owner-only decision/task detail and compact lists. Initial history and decision-task snapshots preserve what was linked at creation. |
 | `app_transition_investment_decision`, `app_transition_portfolio_task` | Apply idempotent expected-version transitions. Proposed decisions can be adopted/dismissed; research tasks can wait, resolve with evidence, reopen with new evidence, pause, resume, or close. These RPCs never change holdings or record trades. |
 | `app_get_investment_policy`, `app_save_investment_policy` | Read the owner's optional personal policy with the existing strategy, or patch only explicitly supplied personal fields with expected-version history and idempotency. The save RPC does not change strategy buckets, operating mode, holdings, decisions, or trades. |
+| `app_list_holding_theses`, `app_get_holding_thesis`, `app_save_holding_thesis` | List owner-only current theses, resolve an instrument base versus optional account override, or explicitly patch one scoped thesis with history and idempotency. These RPCs do not change notes, quantities, trades, decisions, or tasks. |
 
 ## Access Rules
 
@@ -54,6 +56,7 @@ Instrument types are constrained to `market` for market-priced investments, `val
 - Daily review contexts, briefings, evidence, scopes, links, and mutation receipts are owner-only in the first vertical slice. Feature-level sharing is intentionally deferred to the sharing slice.
 - Decisions, research tasks, their histories, links, and mutation receipts are owner-only until their feature-level sharing DTO is implemented.
 - Personal investment policy profiles and history are owner-only and are not included in existing strategy sharing responses.
+- Holding theses and history are owner-only and are not included in existing portfolio or strategy sharing responses.
 
 ## Change Routing
 

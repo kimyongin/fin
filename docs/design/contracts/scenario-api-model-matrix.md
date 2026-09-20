@@ -10,7 +10,7 @@ API 상세: [일일 점검](./daily-review-api.md), [원칙·판단·실행](./l
 | S01 | 처음 시작. 기존 보유값부터 사용 | 기존 portfolio 읽기 → 등록/표 저장 서비스 | 기존 holdings + initial checkpoint/stream | 과거 가상 BUY, 허구의 잔고확인일 | #38 |
 | S02 | 장기 투자하고 자주 매매하지 않는 것을 내 기준으로 저장 | get/save_investment_policy | profile 현재값/version+변경 이력 | 목표 비중/상세 전략, 기존 브리핑 기준 | #43 |
 | S03 | 카테고리 목표·적립금·모드 변경 | get/save_investment_policy(strategy patch) | 현재 strategies + 전략 변경 이력, 안정 버킷 키 | 개인 성향, 과거 결정/체결 | #43 |
-| S04 | 이 종목은 장기 적립용. 실적 뒤 다시 확인 | save_holding_thesis(follow_up_tasks) | 보유 이유 현재값/변경 이력+research task/history 원자 저장 | 기존 메모 덮어쓰기, 자동 adopted 판단/매매 | #41/#35 |
+| S04 | 이 종목은 장기 적립용. 실적 뒤 다시 확인 | save_holding_thesis → 필요 시 별도 task 기록 | 보유 이유 현재값/변경 이력; 조사 질문 연결은 후속 슬라이스 | 기존 메모 덮어쓰기, 자동 adopted 판단/매매/task | #41/#35 |
 | S05 | 오늘 점검해줘 | get_daily_context → ChatGPT 외부 조사 | 업무 데이터 변경 없음 | run/열람/실제확인 생성 | #34 |
 | S06 | 오늘 점검하고 저장해줘 | get_daily_context → ChatGPT 조사 → save_daily_briefing | briefing/scopes/근거, 선택 proposed/조사task | 원칙 수정/채택/체결 | #34/#35 |
 | S07 | 새 소식 없고 확인 결과 추가 행동 불필요 | 문맥 조회 → 확인 출처 포함 save_daily_briefing | 충분 scope+checked source+no_action 브리핑 | 가짜 기사·억지 할 일 생성 | #35 |

@@ -177,6 +177,48 @@ test('saves a private investment policy and includes its version in daily contex
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
+test('saves an instrument holding thesis and includes it in daily context', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+  const state = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
+  expect(state.status, JSON.stringify(state.body)).toBe(200)
+  const instrument = state.body.instruments.find((item) => item.ticker === 'E2EAPL')
+  expect(instrument).toBeTruthy()
+
+  await openMenuTab(page, '자산')
+  await page.getByRole('tab').nth(2).click()
+  const card = page.locator('article').filter({ hasText: 'E2E Apple' }).first()
+  await card.getByRole('button', { name: '보유 이유 추가' }).click()
+  await page.getByLabel('왜 보유하는가').fill('장기 서비스 성장성을 보고 보유한다.')
+  await page.getByLabel('예상 보유 기간').fill('3년 이상')
+  await page.getByLabel('다시 판단할 조건').fill('성장률이 두 분기 연속 둔화하면 재검토한다.')
+  await page.getByLabel('변경 이유').fill('종목의 핵심 가설을 처음 기록합니다.')
+  await page.getByRole('button', { name: '보유 이유 저장' }).click()
+
+  await expect(card.getByText('장기 서비스 성장성을 보고 보유한다.')).toBeVisible()
+  const thesis = await callRpc(page, 'app_get_holding_thesis', {
+    input_instrument_id: instrument.id,
+    input_account_id: null,
+  })
+  expect(thesis.status, JSON.stringify(thesis.body)).toBe(200)
+  expect(thesis.body.instrument_base).toMatchObject({
+    version: 1,
+    reason_text: '장기 서비스 성장성을 보고 보유한다.',
+  })
+
+  const context = await callRpc(page, 'app_create_daily_context', {
+    input_subject_tickers: null,
+    input_timezone: 'Asia/Seoul',
+  })
+  expect(context.status, JSON.stringify(context.body)).toBe(200)
+  expect(context.body.snapshot.holding_theses).toContainEqual(expect.objectContaining({
+    instrument_id: instrument.id,
+    version: 1,
+  }))
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
 test('starts the Google OAuth authorization redirect without using a Google account', async ({ page }) => {
   let authorizeUrl = ''
   await page.route('**/auth/v1/authorize**', async (route) => {

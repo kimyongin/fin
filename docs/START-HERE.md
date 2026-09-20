@@ -39,12 +39,13 @@
 
 - 공통 구현 기반 설계: [React 컴포넌트](./design/component-system.md), [백엔드 모듈](./engineering/backend-modules.md). 기존 ModalShell 보완과 호환 재사용, modal drawer/편집 상태 계약, Edge 공통 adapter/registry 및 DB 원자 저장 경계를 정의했다. 코드·라이브러리 설치·배포는 아직 변경하지 않았다.
 
-- 에이전트용 명세: [agent 계약 관리](./design/contracts/agent/README.md). 공통 행동 규칙과 W01~W08 작업 가이드를 관리한다. OAuth 로컬 공통 정의에는 기존 읽기 6개, 일일 점검 4개, 판단/할 일 7개, 개인 투자 기준 2개가 연결됐다. 일일 점검은 로컬 OAuth 종단간 검증, 후속 도구는 DB·schema/handler 단위 검증까지 완료했다. 운영 배포·웹/모바일 OAuth 검증과 기존 토큰 endpoint 통합은 남아 있다.
+- 에이전트용 명세: [agent 계약 관리](./design/contracts/agent/README.md). 공통 행동 규칙과 W01~W08 작업 가이드를 관리한다. OAuth 로컬 공통 정의에는 기존 읽기 6개, 일일 점검 4개, 판단/할 일 7개, 개인 투자 기준 2개, 보유 이유 2개가 연결됐다. 일일 점검은 로컬 OAuth 종단간 검증, 후속 도구는 DB·schema/handler 단위 검증까지 완료했다. 운영 배포·웹/모바일 OAuth 검증과 기존 토큰 endpoint 통합은 남아 있다.
 
 - 후속 설계: [24개 사용자 시나리오/API/데이터 대응표](./design/contracts/scenario-api-model-matrix.md), [원칙·판단·할 일·매매 생애주기](./design/contracts/lifecycle-model-api.md). 판단+후속 할 일 원자 저장, 조사 질문 CAS, 체결 취소 preview, 당시 task history 참조, 조사 대상 누락 검증을 보완했다. 문서 점검과 실제 테스트 통과를 구별하며 기술 검증 게이트는 계약 인덱스를 따른다.
 
 - 2026-09-21: 일일 context/브리핑 DB·OAuth MCP·소유자 전용 `오늘` 화면을 연결했다. 이어 판단+research task 원자 저장, 판단 제안의 채택/거절, 조사 할 일의 대기·근거 있는 해결·재개·보류·종료를 expected version/idempotency로 구현했다. OAuth 공통 정의는 판단/할 일 7개 도구까지 연결됐고 앱은 상태·답·근거를 읽는다. 다음 context에는 미해결 할 일만 포함된다. 실행 계획·기능별 공유·운영 배포/클라이언트 OAuth 종단간 검증은 남아 있다. [계약 설계 인덱스](./design/contracts/README.md)와 [원격/로컬 DB 대조](./design/schema-audit-20260921.md)를 계속 기준으로 삼는다.
-- 2026-09-21: 개인 투자 기준의 선택 입력·부분 수정·버전/이력·MCP 2개·`원칙` 화면을 연결했다. 기존 상세 운용 원칙/목표 비중은 유지하고 개인 기준은 기본 비공개로 분리했다. 일일 context는 현재 기준 version을 포함하며 미입력 필드는 추정하지 않는다. 종목별 보유 이유는 다음 별도 슬라이스다.
+- 2026-09-21: 개인 투자 기준의 선택 입력·부분 수정·버전/이력·MCP 2개·`원칙` 화면을 연결했다. 기존 상세 운용 원칙/목표 비중은 유지하고 개인 기준은 기본 비공개로 분리했다. 일일 context는 현재 기준 version을 포함하며 미입력 필드는 추정하지 않는다.
+- 2026-09-21: 종목별 보유 이유의 종목 공통/계좌별 재정의, 부분 수정·버전/이력·MCP 2개·자산 종목 화면을 연결했다. 기존 종목/보유 메모와 잔고는 변경하지 않고 기본 비공개로 유지한다. 일일 context는 현재 보유 이유를 포함한다. 조사 task 연결, 전량 매도/재매수 구간 정책, 기능별 공유는 후속이다.
 
 - 공유 설계 추가 결정: [ADR-0003](./adr/0003-extensible-feature-sharing.md). 내부 기능별 read 권한 + 단순 묶음 UI. 전역 boolean만으로 구현하지 않으며 친구별 예외/문서별 ACL은 첫 버전에서 제외한다.
 

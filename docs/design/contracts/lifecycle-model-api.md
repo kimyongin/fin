@@ -36,7 +36,7 @@ position_checkpoints/trade_entries는 신규 정밀 원장 후보이며 기존 t
 | --- | --- | --- |
 | get_investment_policy | 없음 | 현재 strategy/profile와 버전. 읽기만 |
 | save_investment_policy | profile_patch?, strategy_patch?, 각각 expected_version, 변경 이유, key | 선택한 부분의 현재값/version+중요 변경 이력만 원자 변경. 양쪽 변경 중 한쪽 충돌이면 전부 취소 |
-| save_holding_thesis | 범위, 이유/조건/날짜 patch, expected_version, follow_up_tasks[], key | 해당 범위 현재값/version+중요 변경 이력와 요청한 후속 조사task 원자 저장. 기존 holding note/개인 전체 기준은 변경 안 함 |
+| save_holding_thesis | 범위, 이유/조건/날짜 patch, expected_version, key | 해당 범위 현재값/version+중요 변경 이력을 저장. 기존 holding note/개인 전체 기준/조사 task는 변경하지 않으며 task 연결은 후속 슬라이스 |
 | get_holding_thesis | instrument_id, account_id? | 종목 기본과 계좌별 재정의를 구분하고 실제 적용 출처 반환 |
 
 patch의 필드 생략은 유지, nullable 필드의 명시적 null은 삭제다. 목표/버킷 목록을 교체하면 별도 replace 의미를 명시하고 태그 중복·목표 합계를 검증한다. 전체 버킷 ID를 매 저장마다 재발급하지 않는다.

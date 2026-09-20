@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   dailyReviewToolNames,
   decisionTaskToolNames,
+  holdingThesisToolNames,
   investmentPolicyToolNames,
   portfolioToolDefinitions,
 } from './portfolio-tools.ts'
@@ -20,6 +21,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(dailyReviewToolNames.every((name) => names.includes(name))).toBe(true)
     expect(decisionTaskToolNames.every((name) => names.includes(name))).toBe(true)
     expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(holdingThesisToolNames.every((name) => names.includes(name))).toBe(true)
   })
 
   it('does not label temporary context creation as read-only or idempotent', () => {
@@ -98,5 +100,16 @@ describe('portfolio MCP tool definitions', () => {
     expect((save.inputSchema as any).properties.expected_version.type).toEqual(['integer', 'null'])
     expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('mode')
     expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('target_percentage')
+  })
+
+  it('keeps holding theses explicit, scoped, and separate from holdings', () => {
+    const read = tool('get_holding_thesis')
+    const save = tool('save_holding_thesis')
+    expect(read.annotations.readOnlyHint).toBe(true)
+    expect(save.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
+    expect((save.inputSchema as any).properties.account_id.type).toEqual(['integer', 'null'])
+    expect((save.inputSchema as any).properties.expected_version.type).toEqual(['integer', 'null'])
+    expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('quantity')
+    expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('note')
   })
 })

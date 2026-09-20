@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react'
 import { assetViewOptions } from '../../constants/portfolio'
 import { PencilIcon } from '../../components/icons'
 import MetricSummary from '../../components/MetricSummary'
@@ -12,6 +13,8 @@ import {
 } from '../../lib/format'
 import { hasComparablePriceMetrics, matchesTagFilter } from '../../lib/portfolioMath'
 import SpreadsheetEditor from './SpreadsheetEditor'
+import HoldingThesisModal from './HoldingThesisModal'
+import { fetchHoldingTheses, saveHoldingThesis } from './holdingThesisData'
 
 function metricProps(item) {
   if (item.instrument_type === 'valuation') {
@@ -311,6 +314,8 @@ function InstrumentsPage({
   onCreateHolding,
   onEditHolding,
   onEditInstrument,
+  onEditThesis,
+  thesisByInstrumentId,
 }) {
   return (
     <section className="grid gap-3">
@@ -322,6 +327,7 @@ function InstrumentsPage({
       <div className="grid gap-3 lg:grid-cols-2">
         {instruments.map((instrument) => {
           const linkedHoldings = holdingsByTicker.get(instrument.ticker) ?? []
+          const thesis = thesisByInstrumentId.get(Number(instrument.id))
           return (
             <article
               className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]"
@@ -356,6 +362,7 @@ function InstrumentsPage({
                   )}
                   valueMeta={`${instrument.accountCount}개 계좌`}
                 />
+                {thesis && <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--muted-ink)]"><span className="font-semibold text-[var(--ink)]">보유 이유</span> · {thesis.reason_text}</p>}
               </PortfolioEntityHeader>
 
               {!!linkedHoldings.length && (
@@ -404,7 +411,14 @@ function InstrumentsPage({
               )}
 
               {canEdit && (
-                <div className="flex justify-end border-t border-[var(--line)] bg-[rgba(255,255,255,0.025)] px-5 py-3">
+                <div className="flex flex-wrap justify-end gap-2 border-t border-[var(--line)] bg-[rgba(255,255,255,0.025)] px-5 py-3">
+                  <button
+                    className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                    onClick={() => onEditThesis(instrument, linkedHoldings)}
+                    type="button"
+                  >
+                    {thesis ? '보유 이유 편집' : '보유 이유 추가'}
+                  </button>
                   <button
                     className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                     onClick={() => onCreateHolding(instrument.ticker)}
@@ -452,7 +466,38 @@ export default function AssetsPage({
   tagMapByTicker,
   tags,
   totalValue,
+  supabase,
 }) {
+  const [theses, setTheses] = useState([])
+  const [thesisEditor, setThesisEditor] = useState(null)
+  const [thesisError, setThesisError] = useState('')
+  const [thesisSaving, setThesisSaving] = useState(false)
+  useEffect(() => {
+    let active = true
+    if (!canEdit || !supabase) return undefined
+    fetchHoldingTheses(supabase).then((items) => { if (active) setTheses(items) }).catch((error) => { if (active) setThesisError(error.message) })
+    return () => { active = false }
+  }, [canEdit, supabase])
+  const thesisByInstrumentId = useMemo(() => new Map(
+    theses.filter((item) => item.account_id == null).map((item) => [Number(item.instrument_id), item]),
+  ), [theses])
+  async function handleThesisSave(payload) {
+    setThesisSaving(true)
+    setThesisError('')
+    try {
+      await saveHoldingThesis(supabase, {
+        ...payload,
+        instrumentId: thesisEditor.instrument.id,
+        idempotencyKey: crypto.randomUUID(),
+      })
+      setTheses(await fetchHoldingTheses(supabase))
+      setThesisEditor(null)
+    } catch (error) {
+      setThesisError(error.message)
+    } finally {
+      setThesisSaving(false)
+    }
+  }
   return (
     <section className="grid gap-4">
       <div className="grid gap-3">
@@ -535,6 +580,11 @@ export default function AssetsPage({
           onCreateHolding={onCreateHolding}
           onEditHolding={onEditHolding}
           onEditInstrument={onEditInstrument}
+          onEditThesis={(instrument, linkedHoldings) => setThesisEditor({
+            instrument,
+            accounts: linkedHoldings.map((holding) => accountById.get(holding.account_id)).filter(Boolean),
+          })}
+          thesisByInstrumentId={thesisByInstrumentId}
         />
       )}
       {assetView === 'sheet' && (
@@ -549,6 +599,8 @@ export default function AssetsPage({
           tags={tags}
         />
       )}
+      {thesisError && <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">{thesisError}</p>}
+      {thesisEditor && <HoldingThesisModal accounts={thesisEditor.accounts} instrument={thesisEditor.instrument} onClose={() => setThesisEditor(null)} onSave={handleThesisSave} saving={thesisSaving} theses={theses} />}
     </section>
   )
 }

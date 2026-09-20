@@ -1,6 +1,6 @@
 # 도구 설명 카탈로그
 
-revision 3 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
+revision 4 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
 
 ## 설명 작성 형식
 
@@ -31,6 +31,8 @@ revision 3 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `su
 | transition_task / observed-local | 현재 version을 읽고 조사 질문을 대기·해결·재개하거나 사용자의 요청으로 보류·재개·종료합니다. 해결은 답과 출처, 재개는 새 근거가 필요하며 매매 진행도를 변경하지 않습니다. | W04,W08 |
 | get_investment_policy / observed-local | 본인이 명시적으로 저장한 개인 투자 기준과 기존 운용 전략을 함께 읽습니다. 미입력을 보유 종목이나 운용 모드에서 추론하지 않습니다. | W02 |
 | save_investment_policy / observed-local | 사용자가 명시적으로 저장/변경한 개인 기준 필드만 현재 version과 함께 수정합니다. null은 명시적 삭제이며 목표 비중·운용 모드·보유·판단은 변경하지 않습니다. | W02 |
+| get_holding_thesis / observed-local | 종목 공통 보유 이유와 선택한 계좌의 재정의, 실제 적용 출처와 version을 읽습니다. 기존 메모나 미입력 이유를 추론하지 않습니다. | W02 |
+| save_holding_thesis / observed-local | 사용자가 명시적으로 저장/변경한 종목 공통 또는 계좌별 보유 이유만 현재 version과 함께 수정합니다. 메모·잔고·체결·판단·할 일은 변경하지 않습니다. | W02 |
 
 기존 읽기를 합쳐 문맥을 구성할 수 있어도 새 서버 context/조사 범위와 동등하다고 주장하지 않는다. 쓰기 도구가 없으면 분석만 제공하고 앱에 저장했다고 말하지 않는다.
 
@@ -40,8 +42,6 @@ revision 3 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `su
 
 | 이름 | description 후보 | 가이드 |
 | --- | --- | --- |
-| get_holding_thesis | 종목 기본 및 계좌별 보유 이유와 적용 버전을 읽습니다. 이전 보유 구간의 이유를 재매수에 자동 적용하지 않습니다. | W02 |
-| save_holding_thesis | 사용자가 저장을 요청한 종목/계좌별 이유와 선택한 후속 조사 질문을 함께 저장합니다. 기존 메모나 전체 투자 기준은 변경하지 않습니다. | W02 |
 | save_task | 요청한 조사 질문 또는 실행 계획을 저장합니다. 기존 질문을 수정하면 ID/기대 버전을 지정합니다. 매일 같은 질문을 새로 만들지 않고 계획 저장으로 체결을 생성하지 않습니다. | W03,W04 |
 | link_trade_to_task | 이미 기록한 체결을 같은 계좌·종목·방향의 실행 계획에 연결/해제합니다. 잔고는 변경하지 않으며 한 체결을 여러 계획에 중복 집계하지 않습니다. | W05 |
 | get_research_history | 저장된 사건·근거·정정 관계를 대상별로 조회합니다. 인터넷 검색이 아니며 URL 일치만으로 같은 사건이라 단정하지 않습니다. | W01,W04 |

@@ -482,6 +482,7 @@ function App() {
             tagMapByTicker={tagMapByTicker}
             tags={state.tags}
             totalValue={totalValue}
+            supabase={supabase}
           />
         )}
         {activeTab === 'settings' && (

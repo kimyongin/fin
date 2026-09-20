@@ -330,6 +330,36 @@ function normalizeInvestmentPolicyPatch(value: unknown) {
   return normalized
 }
 
+function normalizeHoldingThesisPatch(value: unknown) {
+  const patch = requireRecord(value, 'patch')
+  const textFields = ['reason_text', 'horizon_text', 'review_condition_text']
+  const normalized: Record<string, unknown> = {}
+  for (const field of textFields) {
+    if (!Object.prototype.hasOwnProperty.call(patch, field)) continue
+    normalized[field] = patch[field] === null ? null : requireString(patch[field], `patch.${field}`)
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'next_review_date')) {
+    normalized.next_review_date = patch.next_review_date === null
+      ? null
+      : requireString(patch.next_review_date, 'patch.next_review_date')
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'related_decision_id')) {
+    normalized.related_decision_id = patch.related_decision_id === null
+      ? null
+      : requireUuid(patch.related_decision_id, 'patch.related_decision_id')
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'is_active')) {
+    if (typeof patch.is_active !== 'boolean') throw new ToolInputError('patch.is_active must be a boolean')
+    normalized.is_active = patch.is_active
+  }
+  const allowedFields = [...textFields, 'next_review_date', 'related_decision_id', 'is_active']
+  if (Object.keys(patch).some((field) => !allowedFields.includes(field))) {
+    throw new ToolInputError('patch contains an unknown field')
+  }
+  if (Object.keys(normalized).length === 0) throw new ToolInputError('patch must not be empty')
+  return normalized
+}
+
 function toolErrorCode(error: unknown) {
   if (error instanceof ToolInputError) return 'validation_error'
   const message = error instanceof Error ? error.message.toLowerCase() : ''
@@ -491,6 +521,35 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_expected_version: expectedVersion,
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
       input_patch: normalizeInvestmentPolicyPatch(args.patch),
+      input_change_reason: requireString(args.change_reason, 'change_reason'),
+      input_authored_via: 'agent',
+    })
+    return { ok: true, data }
+  },
+  async get_holding_thesis(supabase, args) {
+    const accountId = args.account_id == null
+      ? null
+      : requirePositiveInteger(args.account_id, 'account_id')
+    const data = await rpc(supabase, 'app_get_holding_thesis', {
+      input_instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      input_account_id: accountId,
+    })
+    return { ok: true, data }
+  },
+  async save_holding_thesis(supabase, args) {
+    requireSchemaVersion(args)
+    const accountId = args.account_id == null
+      ? null
+      : requirePositiveInteger(args.account_id, 'account_id')
+    const expectedVersion = args.expected_version === null
+      ? null
+      : requirePositiveInteger(args.expected_version, 'expected_version')
+    const data = await rpc(supabase, 'app_save_holding_thesis', {
+      input_instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      input_account_id: accountId,
+      input_expected_version: expectedVersion,
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_patch: normalizeHoldingThesisPatch(args.patch),
       input_change_reason: requireString(args.change_reason, 'change_reason'),
       input_authored_via: 'agent',
     })
