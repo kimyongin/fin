@@ -12,6 +12,7 @@ design은 화면 디자인뿐 아니라 제품·데이터·API 설계를 포함�
 | screen-structure.md | #59~#62 구현 기준: 헤더·보기·필터·본문·푸터·모달/드로어·전체 화면 편집 |
 | component-system.md | 기존 React 공통 UI 재사용, 모달/드로어·폼·상태와 접근성 계약안 |
 | product-reorganization.md | 기존 기능 유지/재구성/이동과 책임 |
+| product-feedback.md | 계획: 앱 자유 입력·ChatGPT 피드백 제안/접수·운영자 처리 경계 |
 | implementation-contract-draft.md | 계산·버전·점검 등의 초기 기술 초안. 후속 계약/조사 링크 우선 확인 |
 | schema-audit-20260921.md | 특정 날짜 원격/로컬 DB 대조 결과. 영구 최신 스키마 명세 아님 |
 | contracts/README.md | 로컬 계약 구현 상태와 운영 전 게이트 |

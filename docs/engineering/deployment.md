@@ -23,6 +23,23 @@
 
 배포 동시 실행은 branch별 한 건으로 제한하며 새 실행이 이전 실행을 취소한다. 자동 workflow는 운영 DB migration이나 Edge 배포를 실행하지 않는다.
 
+## 피드백 운영자 지정
+
+피드백 관리자 권한은 포트폴리오 공유 권한과 분리한다. 운영 DB에서 서비스 역할 또는 SQL editor로 인증 사용자 UUID를 확인한 뒤 다음처럼 지정한다. 이메일이나 UUID를 앱 코드·migration에 고정하지 않는다.
+
+```sql
+insert into public.product_feedback_admins (user_id)
+values ('<auth.users의 사용자 UUID>')
+on conflict (user_id) do nothing;
+```
+
+해제는 해당 UUID 한 행만 삭제한다. 관리자 역할은 피드백 전체 목록과 처리 RPC에만 효력이 있고 타인의 투자 데이터 접근을 허용하지 않는다. 역할 변경 뒤에는 피드백 화면을 새로고침해 권한을 다시 조회한다.
+
+```sql
+delete from public.product_feedback_admins
+where user_id = '<auth.users의 사용자 UUID>';
+```
+
 ## 배포 기록
 
 매 배포 기록에는 다음을 서로 분리해 남긴다.

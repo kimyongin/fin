@@ -35,6 +35,10 @@ on conflict (provider_id, provider) do update
 set identity_data = excluded.identity_data,
     updated_at = excluded.updated_at;
 
+insert into public.product_feedback_admins (user_id)
+values ('00000000-0000-0000-0000-00000000e201')
+on conflict (user_id) do nothing;
+
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values
   ('00000000-0000-0000-0000-00000000e202', 'authenticated', 'authenticated', 'e2e-friend@example.com', extensions.crypt('e2e-password', extensions.gen_salt('bf')), now(), now(), now()),

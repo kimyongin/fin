@@ -20,6 +20,7 @@ Read this file first for database work. Inspect only the relevant migration file
 | Decisions and follow-ups | `investment_decisions`, `investment_decision_state_history`, `portfolio_tasks`, `portfolio_task_history`, `portfolio_task_evidence`, `investment_decision_tasks`, `execution_plans`, `task_fill_links`, `decision_task_mutation_receipts` | Owner-only decisions, research questions, and quantity-based execution plans. A fill can count toward at most one matching plan; progress is derived from valid linked trades, while plan state changes never mutate holdings. |
 | Personal investment policy | `investment_policy_profiles`, `investment_policy_history`, `investment_policy_mutation_receipts` | Owner-only optional personal goals, horizon, liquidity needs, risk/trading preferences, and explicit preferences/prohibitions. Partial patches are version-checked and idempotent; missing fields remain unknown. Existing strategy allocations and operating limits stay separate. |
 | Holding theses | `holding_theses`, `holding_thesis_history`, `holding_thesis_tasks`, mutation receipts | Owner-only current reasons for holding an instrument, with an optional account override, horizon, review condition/date, related decisions/tasks, expected-version history, and idempotent writes. A fully closed account position deactivates its override; zero total holdings deactivates the instrument thesis. Repurchase never silently reactivates an old thesis. |
+| Product feedback | `product_feedback`, `product_feedback_mutation_receipts`, `product_feedback_admins`, `product_feedback_admin_events` | App-quality feedback is separate from investment decisions and tasks. Reporters can read only their own submissions; allowlisted feedback admins are managed independently from portfolio permissions. Submission context accepts only short operational fields and never captures chat transcripts, holdings, email, or tokens. Admin events preserve status/response/link changes without duplicating feedback bodies. |
 | Audit and agent access | `activity_events`, `agent_tokens` | User and agent actions are recorded; agent tokens can be revoked. |
 
 `portfolio_view` joins holdings, accounts, instruments, and the newest price. It converts USD values with the latest available `USDKRW=X` price.
@@ -59,6 +60,8 @@ Instrument types are constrained to `market` for market-priced investments, `val
 | `app_get_portfolio_integrity` | Summarize verified, changed-since, and never-verified current holdings across the portfolio and by account without changing balances or treating old status as an error. |
 | `app_get_price_sync_targets`, `app_upsert_price_rows`, `app_record_price_sync_run` | Resolve only the owner's held market and FX instruments, store validated Yahoo prices and resolved source symbols through an ownership-scoped contract, and record one auditable web sync result. Non-market holdings and null holiday rows are excluded. |
 | `app_preview_trade_reversal`, `app_reverse_trade_entry` | Preview and idempotently reverse a recorded local trade while preserving the original row. Trades before the latest reconciliation checkpoint do not alter the current holding; later valid trades are replayed and an impossible oversell is rejected atomically. |
+| `app_submit_product_feedback`, `app_list_my_product_feedback`, `app_is_product_feedback_admin` | Idempotently submit app-quality feedback with an allowlisted operational context, list only the reporter's own feedback with keyset pagination, and expose whether the signed-in user has the independent feedback-admin role. |
+| `app_list_product_feedback_admin`, `app_update_product_feedback_admin` | Allow only explicitly allowlisted feedback admins to page/filter the private triage queue and CAS-update status, public response, and one canonical GitHub issue link. Resolving requires a response; changes write a minimal admin event and grant no investment-data access. |
 
 ## Access Rules
 
@@ -70,6 +73,7 @@ Instrument types are constrained to `market` for market-priced investments, `val
 - Decision/task mutation, history, and receipt tables remain owner-only. Explicit feature grants expose allowlisted read DTOs only.
 - Personal investment policy profiles and history are owner-only and are not included in existing strategy sharing responses.
 - Holding theses and history are owner-only and are not included in existing portfolio or strategy sharing responses.
+- Product feedback is never shared with friends or guests and is excluded from portfolio activity, daily-review context, and CSV exports. Direct mutation is denied; submission uses the RPC contract.
 
 ## Change Routing
 

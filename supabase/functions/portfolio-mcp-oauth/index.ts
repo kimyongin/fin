@@ -5,7 +5,7 @@ import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^
 import {
   dailyReviewToolNames, decisionTaskToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
   investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames, tradeReversalToolNames,
-  workflowGuideToolNames,
+  productFeedbackToolNames, workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
 import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
 import { type ToolHandler, validateToolRegistry } from '../_shared/mcp/registry.ts'
@@ -28,6 +28,7 @@ const serverInstructions = [
   'Do not invent missing preferences or holding reasons, and do not report no meaningful change when research was incomplete.',
   'Before a multi-step Portfolio task, use get_workflow_guide when its advertised topic matches the user\'s request; do not repeat the same revision in one conversation.',
   'Report a write as saved only after its tool returns success; retry a lost response with the same idempotency key and re-read after a version conflict.',
+  'Treat feedback about the Portfolio product separately from investment records: explicit clear registration requests may be saved directly, while an agent-initiated suggestion requires one user confirmation and must never include transcripts, portfolio data, credentials, or guessed causes.',
 ].join(' ')
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
@@ -426,6 +427,33 @@ const toolHandlers: Record<string, ToolHandler> = {
     const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100)
     return await rpc(supabase, 'app_list_recent_activity', { limit_count: limit })
   },
+  async submit_product_feedback(supabase, args) {
+    requireSchemaVersion(args)
+    const context = args.context == null ? {} : requireRecord(args.context, 'context')
+    const allowedContext = new Set(['page_key', 'app_version', 'tool_name', 'error_code', 'request_id'])
+    for (const [key, value] of Object.entries(context)) {
+      if (!allowedContext.has(key)) throw new ToolInputError(`context.${key} is not supported`)
+      if (value !== null && (typeof value !== 'string' || value.length > 200)) {
+        throw new ToolInputError(`context.${key} must be a string of at most 200 characters or null`)
+      }
+    }
+    const body = requireString(args.body, 'body')
+    if (body.length > 4000) throw new ToolInputError('body must be at most 4000 characters')
+    const data = await rpc(supabase, 'app_submit_product_feedback', {
+      input_body: body,
+      input_context: context,
+      input_source: 'mcp',
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+    })
+    return { ok: true, data }
+  },
+  async list_my_product_feedback(supabase, args) {
+    const data = await rpc(supabase, 'app_list_my_product_feedback', {
+      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
+      input_limit: Math.min(Math.max(Number(args.limit) || 20, 1), 50),
+    })
+    return { ok: true, data }
+  },
   async get_daily_context(supabase, args) {
     requireSchemaVersion(args)
     const timezone = requireString(args.timezone, 'timezone')
@@ -691,6 +719,7 @@ const toolHandlers: Record<string, ToolHandler> = {
 
 validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   workflowGuides: workflowGuideToolNames,
+  productFeedback: productFeedbackToolNames,
   dailyReview: dailyReviewToolNames,
   decisionsAndTasks: decisionTaskToolNames,
   investmentPolicy: investmentPolicyToolNames,
@@ -729,7 +758,7 @@ Deno.serve(
             prompts: { listChanged: false },
             resources: { subscribe: false, listChanged: false },
           },
-          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.5.0' },
+          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.6.0' },
           instructions: serverInstructions,
         })
       }

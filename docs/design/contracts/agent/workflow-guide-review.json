@@ -1,31 +1,35 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-21",
-  "review_reason": "Implemented and verified six workflow guides with OAuth policy save/read; synchronized current tool, handler, data, and app contracts.",
+  "review_reason": "Added and reviewed the product-feedback workflow, consent boundary, privacy allowlist, MCP tools, app flow, triage contract, and current human-facing source guidance.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
-      "contract_digest": "f53de4153c1bc97d7862ef3bbaa4afe2bd437827e34d13616456218d1cd3c00d"
+      "contract_digest": "10ee9f9c70f67d0cd82ad474fb17bb1f1b6db1f4415eed6d93735ab0abd856a0"
     },
     "holding_thesis": {
       "revision": "fnv1a32:62ae4aff",
-      "contract_digest": "244cc35be9e0e7e3010e16a967c83642ecaaddea885f3d9bb7503301f6493609"
+      "contract_digest": "05ef3d1d2ded0f4fa2e03c78c1ee9fe54ec342ebfa4d1ed9be03f27ea58702c0"
     },
     "daily_review": {
       "revision": "fnv1a32:40650a5d",
-      "contract_digest": "525a9c143c79da81ee9d16f22af1cba56047b3ffccca52f2e56f0df5f5931bcb"
+      "contract_digest": "fe112e8bce86f9f9b41f4de34fa01612aa34c898c890c4b7f5e4ca2e8df97a6b"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "9a154aaf5d379df2221b13b762cb587a5a91d99cfe0079a662f77a06cc828250"
+      "contract_digest": "0d15df66a79df6ee83882629eb3f958b6a2b934fa6bdcf57d9e32b96b35ac698"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "cdcfdddf8b9c5dd002c6e38c9f9d1613b9a9b20f6d35a15e4bb50d5b38066bb0"
+      "contract_digest": "8a4ad5fecb155043e7e9c2ed4fda02bec6099f5aa8e82f97335ecbd119b6102b"
     },
     "reconciliation": {
       "revision": "fnv1a32:8e287fff",
-      "contract_digest": "955bfd3015a933ed0d1465d9fd74a3e3d2305706d7643cef42a04023d210a991"
+      "contract_digest": "262034e4f9c6c897f3673ff2dbbfcfc52d6de9495fc6badfae9f8896dbcb266b"
+    },
+    "product_feedback": {
+      "revision": "fnv1a32:fc0bd71b",
+      "contract_digest": "107dfc703a1829499497d8cfefe744e6333dc2f4714921007d6adc5aa2675d59"
     }
   }
 }

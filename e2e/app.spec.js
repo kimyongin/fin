@@ -26,6 +26,32 @@ test('loads the owner portfolio with a virtual Supabase user session', async ({ 
   expect(state.instruments).toContainEqual(expect.objectContaining({ display_name: 'E2E Apple' }))
 })
 
+test('submits product feedback and lets an allowlisted operator return a result', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#today')
+  await openMenuTab(page, '피드백')
+
+  const body = `E2E 피드백 ${Date.now()} 모바일에서 필터를 더 쉽게 찾고 싶습니다.`
+  await page.getByRole('textbox', { name: '피드백', exact: true }).fill(body)
+  await page.getByRole('button', { name: '피드백 등록', exact: true }).click()
+  await expect(page.getByText('피드백을 접수했습니다.')).toBeVisible()
+  await expect(page.getByText(body, { exact: true })).toBeVisible()
+
+  await page.getByRole('tab', { name: '전체 접수', exact: true }).click()
+  const card = page.locator('article').filter({ hasText: body })
+  await expect(card).toBeVisible()
+  await card.getByLabel('상태').selectOption('resolved')
+  await card.getByLabel('사용자에게 보일 답변').fill('다음 배포에서 모바일 탐색을 개선했습니다.')
+  await card.getByLabel('GitHub 이슈 주소 (선택)').fill('https://github.com/kimyongin/fin/issues/68')
+  await card.getByRole('button', { name: '처리 결과 저장', exact: true }).click()
+  await page.getByRole('tab', { name: '내 피드백', exact: true }).click()
+  await expect(page.getByText('처리 완료')).toBeVisible()
+  await expect(page.getByText('다음 배포에서 모바일 탐색을 개선했습니다.')).toBeVisible()
+  await expect(page.getByRole('link', { name: '연결된 개발 이슈 보기' })).toHaveAttribute('href', 'https://github.com/kimyongin/fin/issues/68')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
 test('shows the latest saved daily review first on a mobile-sized screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
@@ -894,7 +920,7 @@ test('keeps four primary destinations usable without horizontal overflow', async
   await expect(page).toHaveURL(/#overview$/)
   await page.getByRole('button', { name: 'Open menu' }).click()
   const secondary = page.locator('nav[aria-label="보조 메뉴"]')
-  for (const label of ['자료', '활동', '설정', '가이드']) await expect(secondary.getByRole('button', { name: label, exact: true })).toBeVisible()
+  for (const label of ['자료', '활동', '피드백', '설정', '가이드']) await expect(secondary.getByRole('button', { name: label, exact: true })).toBeVisible()
 })
 
 test('keeps shared page controls and editing surfaces consistent', async ({ page }) => {
@@ -942,6 +968,7 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
     ['strategy', '투자 원칙'],
     ['news', '자료'],
     ['activity', '활동'],
+    ['feedback', '피드백'],
     ['settings', '설정'],
     ['guide', '가이드'],
   ]

@@ -3,6 +3,7 @@ import AppHeader from './components/AppHeader'
 import ActivityPageView from './features/activity/ActivityPage'
 import AssetsPageView from './features/assets/AssetsPage'
 import GuidePageView from './features/guide/GuidePage'
+import FeedbackPageView from './features/feedback/FeedbackPage'
 import NewsPageView from './features/news/NewsPage'
 import DailyReviewPageView from './features/review/DailyReviewPage'
 import LifecyclePageView from './features/lifecycle/LifecyclePage'
@@ -90,7 +91,15 @@ function App() {
   const sessionUserIdRef = useRef(sessionUserId)
   sessionUserIdRef.current = sessionUserId
   const canEdit = viewContext.mode === 'owner' && !isAnonymousSession
-  const { activeTab, assetView, setActiveTab, setAssetView, tabs } = usePortfolioNavigation(canEdit, sharedFeatureAccess)
+  const { activeTab, assetView, setActiveTab, setAssetView, tabs } = usePortfolioNavigation(canEdit, sharedFeatureAccess, !isAnonymousSession)
+  const [feedbackSourcePage, setFeedbackSourcePage] = useState('')
+
+  const handleTabChange = useCallback((nextTab) => {
+    if (nextTab === 'feedback' && activeTab !== 'feedback') {
+      setFeedbackSourcePage(activeTab === 'overview' && assetView !== 'tags' ? assetView : activeTab)
+    }
+    setActiveTab(nextTab)
+  }, [activeTab, assetView, setActiveTab])
   const {
     actions: agentActions,
     actionsError: agentActionsError,
@@ -464,7 +473,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : activeTab === 'decisions' || activeTab === 'tasks' ? '판단·할 일' : activeTab === 'strategy' ? '투자 원칙' : activeTab === 'news' ? '자료' : activeTab === 'activity' ? '활동' : activeTab === 'guide' ? '가이드' : '설정'
+  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : activeTab === 'decisions' || activeTab === 'tasks' ? '판단·할 일' : activeTab === 'strategy' ? '투자 원칙' : activeTab === 'news' ? '자료' : activeTab === 'activity' ? '활동' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
     <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6">
@@ -478,7 +487,7 @@ function App() {
           onCopy={activeTab === 'overview' ? handleCopyCsv : undefined}
           onPortfolioChange={!isAnonymousSession && friends.length > 0 ? handlePortfolioChange : undefined}
           onSignOut={signOut}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           pageTitle={pageTitle}
           portfolioLabel="Portfolio"
           sharedPortfolioViewLabel={portfolioMessages.sharedPortfolioView}
@@ -634,6 +643,12 @@ function App() {
             error={agentActionsError}
             loading={agentActionsLoading}
             onRefresh={loadAgentActions}
+          />
+        )}
+        {activeTab === 'feedback' && (
+          <FeedbackPageView
+            context={feedbackSourcePage ? { page_key: feedbackSourcePage } : {}}
+            supabase={supabase}
           />
         )}
         {activeTab === 'guide' && <GuidePageView onNavigate={setActiveTab} />}

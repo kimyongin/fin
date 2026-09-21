@@ -94,6 +94,34 @@ const workflowGuideOutputSchema = successEnvelope({
 })
 const idSchema = { type: 'string', format: 'uuid' }
 const timestampSchema = { type: 'string', format: 'date-time' }
+const feedbackItemSchema = {
+  type: 'object',
+  properties: {
+    id: idSchema,
+    body: { type: 'string' },
+    source: { type: 'string', enum: ['app', 'mcp'] },
+    context: { type: 'object' },
+    status: { type: 'string', enum: ['received', 'reviewing', 'planned', 'resolved', 'deferred'] },
+    response: { type: ['string', 'null'] },
+    github_issue_url: { type: ['string', 'null'] },
+    version: { type: 'integer', minimum: 1 },
+    created_at: timestampSchema,
+    updated_at: timestampSchema,
+  },
+  required: ['id', 'body', 'source', 'context', 'status', 'response', 'github_issue_url', 'version', 'created_at', 'updated_at'],
+  additionalProperties: false,
+}
+const feedbackOutputSchema = successEnvelope(feedbackItemSchema)
+const feedbackPageOutputSchema = successEnvelope({
+  type: 'object',
+  properties: {
+    items: { type: 'array', items: feedbackItemSchema },
+    next_cursor: { oneOf: [{ type: 'null' }, { type: 'object' }] },
+    is_admin: { type: 'boolean' },
+  },
+  required: ['items', 'next_cursor', 'is_admin'],
+  additionalProperties: false,
+})
 const nonNegativeDecimalStringSchema = {
   type: 'string',
   pattern: '^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,16})?$',
@@ -422,7 +450,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_workflow_guide',
     title: 'Portfolio workflow guide',
-    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for a policy interview, holding thesis, daily review, decision/follow-up, completed trade entry, or balance correction. This guide does not read user data, perform the workflow, or replace explicit save intent.',
+    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for a policy interview, holding thesis, daily review, decision/follow-up, completed trade entry, balance correction, or product-feedback flow. This guide does not read user data, perform the workflow, or replace explicit save intent.',
     inputSchema: {
       type: 'object',
       properties: { topic: { type: 'string', enum: workflowGuideTopics } },
@@ -482,6 +510,49 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       properties: { limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
       additionalProperties: false,
     },
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'submit_product_feedback',
+    title: 'Submit product feedback',
+    description: 'Save feedback about the Portfolio app itself, not an investment decision, research follow-up, or trade. If the user explicitly asks to register a clear issue or suggestion, submit it without asking them to repeat or reconfirm it. If you noticed a concrete recurring app problem during conversation, first summarize one proposed feedback item and ask once; call this tool only after the user agrees. Never submit on refusal, silence, vague frustration, or a transient recovered error. Store only the concise user-visible problem or suggestion and optional allowlisted operational context—never a transcript, portfolio data, email, credentials, tokens, or a guessed root cause. This creates a private Portfolio feedback record, not a public GitHub issue.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        body: { type: 'string', minLength: 1, maxLength: 4000 },
+        context: {
+          type: 'object',
+          properties: {
+            page_key: { type: ['string', 'null'], maxLength: 200 },
+            app_version: { type: ['string', 'null'], maxLength: 200 },
+            tool_name: { type: ['string', 'null'], maxLength: 200 },
+            error_code: { type: ['string', 'null'], maxLength: 200 },
+            request_id: { type: ['string', 'null'], maxLength: 200 },
+          },
+          additionalProperties: false,
+        },
+        idempotency_key: idSchema,
+      },
+      required: ['schema_version', 'body', 'idempotency_key'],
+      additionalProperties: false,
+    },
+    outputSchema: feedbackOutputSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'list_my_product_feedback',
+    title: 'List my product feedback',
+    description: 'List only the authenticated user\'s private Portfolio product-feedback submissions, statuses, operator responses, and optional linked GitHub issues. Use this to verify a submission or answer a status question. It does not expose other users, investment records, or an operator triage queue.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cursor: { oneOf: [{ type: 'null' }, createdAtCursorSchema], default: null },
+        limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
+      },
+      additionalProperties: false,
+    },
+    outputSchema: feedbackPageOutputSchema,
     annotations: readOnlyAnnotations,
   },
   {
@@ -888,6 +959,8 @@ export const dailyReviewToolNames = [
 ] as const
 
 export const workflowGuideToolNames = ['get_workflow_guide'] as const
+
+export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_product_feedback'] as const
 
 export const decisionTaskToolNames = [
   'record_investment_decision',

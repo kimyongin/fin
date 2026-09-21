@@ -16,7 +16,7 @@ function assetViewFromHash() {
   return hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'allocation' ? hash : 'tags'
 }
 
-export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null) {
+export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canSubmitFeedback = canEdit) {
   const [activeTab, setActiveTab] = useState(() => tabFromHash(canEdit ? 'today' : 'overview'))
   const [assetView, setAssetView] = useState(() => assetViewFromHash())
 
@@ -31,11 +31,12 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null) {
       strategy: features.strategy,
       news: features.news,
       activity: features.activity,
+      feedback: canSubmitFeedback,
       settings: false,
       guide: true,
     }
     return allTabs.filter((tab) => Boolean(allowedByTab[tab.id]))
-  }, [canEdit, sharedFeatureAccess])
+  }, [canEdit, canSubmitFeedback, sharedFeatureAccess])
 
   useEffect(() => {
     const handleHashChange = () => {

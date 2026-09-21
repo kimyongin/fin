@@ -1,5 +1,17 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## 제품 피드백 — 다음 구현 계획
+
+2026-09-21 · 티켓 작성 완료, 구현 전. [공통 설계](../design/product-feedback.md)가 제안/동의·데이터·권한·최신화 계약의 기준이다.
+
+| 순서 | 티켓 | 로컬 명세 |
+| --- | --- | --- |
+| 1 | [#66 자유 입력과 본인 접수](https://github.com/kimyongin/fin/issues/66) | [명세](./feedback-01-app.md) |
+| 2 | [#67 ChatGPT 대화 접수·제안](https://github.com/kimyongin/fin/issues/67) | [명세](./feedback-02-mcp.md) |
+| 3 | [#68 운영자 검토·결과](https://github.com/kimyongin/fin/issues/68) | [명세](./feedback-03-triage.md) |
+
+자유 텍스트만으로 접수하며 투자 판단/할 일과 분리한다. 명시적 등록 요청은 재승인 없이 처리하고 모델이 제안한 접수는 동의 후 저장한다. MCP의 자발적 제안은 실제 모델 검증 대상이다. 새 도구/topic은 구현 전 광고하지 않는다. 자동 GitHub 동기화·공개 원문·복잡한 관리자 시스템은 제외한다.
+
 ## MCP 작업 가이드 — 로컬 구현 결과
 
 2026-09-21 · OAuth MCP 0.5.0 로컬 구현·자동 검증 완료, 운영 배포·실제 모델 평가 전. [제공·최신화 설계](../design/contracts/agent/workflow-guide-design.md)를 기준으로 한다.

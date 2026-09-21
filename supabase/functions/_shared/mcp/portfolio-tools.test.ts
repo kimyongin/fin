@@ -7,6 +7,7 @@ import {
   holdingIntegrityToolNames,
   investmentPolicyToolNames,
   portfolioToolDefinitions,
+  productFeedbackToolNames,
   tradeEntryToolNames,
   tradeReversalToolNames,
   workflowGuideToolNames,
@@ -30,6 +31,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeReversalToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(productFeedbackToolNames.every((name) => names.includes(name))).toBe(true)
     expect(workflowGuideToolNames.every((name) => names.includes(name))).toBe(true)
   })
 
@@ -52,7 +54,7 @@ describe('portfolio MCP tool definitions', () => {
 
   it('publishes every reviewed multi-step topic from one validated guide registry', () => {
     expect(workflowGuideTopics).toEqual([
-      'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation',
+      'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation', 'product_feedback',
     ])
     for (const topic of workflowGuideTopics) {
       const guide = getWorkflowGuide(topic)!
@@ -62,6 +64,16 @@ describe('portfolio MCP tool definitions', () => {
       expect(renderWorkflowGuideMarkdown(topic)).toContain(`Revision: ${guide.revision}`)
     }
     expect(renderWorkflowGuideMarkdown('daily_review')).toContain('get_daily_context')
+  })
+
+  it('keeps product feedback consent-based and operationally scoped', () => {
+    const submit = tool('submit_product_feedback')
+    const list = tool('list_my_product_feedback')
+    expect(submit.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
+    expect(list.annotations.readOnlyHint).toBe(true)
+    expect((submit.inputSchema as any).properties.context.additionalProperties).toBe(false)
+    expect(submit.description).toContain('first summarize one proposed feedback item and ask once')
+    expect(getWorkflowGuide('product_feedback')?.boundaries.join(' ')).toContain('cannot guarantee')
   })
 
   it('does not label temporary context creation as read-only or idempotent', () => {

@@ -6,6 +6,7 @@ export const allTabs = [
   { id: 'strategy', label: '원칙' },
   { id: 'news', label: '자료' },
   { id: 'activity', label: '활동' },
+  { id: 'feedback', label: '피드백' },
   { id: 'settings', label: '설정' },
   { id: 'guide', label: '가이드' },
 ]

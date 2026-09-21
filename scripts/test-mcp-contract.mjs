@@ -54,10 +54,22 @@ try {
   const denied = await call('', 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'contract-test', version: '1' } })
   assert(denied.response.status === 401, `Unauthenticated MCP request returned ${denied.response.status}`)
 
-  const signup = await fetch(`${baseUrl}/auth/v1/signup`, { method: 'POST', headers: commonHeaders, body: '{}' })
-  assert(signup.ok, `Local anonymous signup failed (${signup.status})`)
+  const email = `mcp-contract-${crypto.randomUUID()}@example.com`
+  const password = `Contract-${crypto.randomUUID()}`
+  const createdUser = await fetch(`${baseUrl}/auth/v1/admin/users`, {
+    method: 'POST',
+    headers: { ...commonHeaders, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
+    body: JSON.stringify({ email, password, email_confirm: true }),
+  })
+  assert(createdUser.ok, `Local contract user creation failed (${createdUser.status})`)
+  const createdUserData = await createdUser.json()
+  userId = createdUserData.id
+  const signup = await fetch(`${baseUrl}/auth/v1/token?grant_type=password`, {
+    method: 'POST', headers: commonHeaders, body: JSON.stringify({ email, password }),
+  })
+  assert(signup.ok, `Local contract sign-in failed (${signup.status})`)
   const session = await signup.json()
-  assert(session.access_token && session.user?.id, 'Local anonymous signup returned no session')
+  assert(session.access_token && session.user?.id, 'Local contract sign-in returned no session')
   userId = session.user.id
 
   const initialized = await call(session.access_token, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'contract-test', version: '1' } })
@@ -66,7 +78,7 @@ try {
   const listed = await call(session.access_token, 'tools/list')
   assert(listed.response.ok && listed.body?.result?.tools?.some((tool) => tool.name === 'get_profile'), 'MCP tools/list contract failed')
   const guideDefinition = listed.body?.result?.tools?.find((tool) => tool.name === 'get_workflow_guide')
-  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 6, 'Workflow guide topics were not advertised')
+  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 7, 'Workflow guide topics were not advertised')
 
   for (const topic of guideDefinition.inputSchema.properties.topic.enum) {
     const guideResult = await call(session.access_token, 'tools/call', { name: 'get_workflow_guide', arguments: { topic } })
@@ -78,6 +90,25 @@ try {
 
   const profile = await call(session.access_token, 'tools/call', { name: 'get_profile', arguments: {} })
   assert(profile.response.ok && profile.body?.result?.isError === false, 'Authenticated MCP tools/call failed')
+
+  const feedbackArgs = {
+    schema_version: 1,
+    body: 'The contract test found a repeatable product usability issue.',
+    context: { page_key: 'feedback', tool_name: 'submit_product_feedback' },
+    idempotency_key: crypto.randomUUID(),
+  }
+  const feedbackSaved = await call(session.access_token, 'tools/call', { name: 'submit_product_feedback', arguments: feedbackArgs })
+  const feedbackData = feedbackSaved.body?.result?.structuredContent?.data
+  assert(feedbackSaved.body?.result?.isError === false && feedbackData?.id && feedbackData?.status === 'received', 'Product feedback submit contract failed')
+  const feedbackRetry = await call(session.access_token, 'tools/call', { name: 'submit_product_feedback', arguments: feedbackArgs })
+  assert(feedbackRetry.body?.result?.structuredContent?.data?.id === feedbackData.id, 'Product feedback idempotent retry failed')
+  const feedbackPage = await call(session.access_token, 'tools/call', { name: 'list_my_product_feedback', arguments: { cursor: null, limit: 20 } })
+  assert(feedbackPage.body?.result?.structuredContent?.data?.items?.some((item) => item.id === feedbackData.id), 'Product feedback could not be read back')
+  const unsafeFeedback = await call(session.access_token, 'tools/call', {
+    name: 'submit_product_feedback',
+    arguments: { ...feedbackArgs, idempotency_key: crypto.randomUUID(), context: { email: 'not-allowed@example.com' } },
+  })
+  assert(unsafeFeedback.body?.result?.structuredContent?.error?.code === 'validation_error', 'Unsafe feedback context did not return validation_error')
 
   const agentToken = `fin_agent_contract_${crypto.randomUUID()}`
   const tokenHash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(agentToken)))]
@@ -211,7 +242,7 @@ try {
   assert(toolError?.code === 'validation_error' && toolError?.retryable === false, 'Invalid tool input returned the wrong recovery contract')
   assert(typeof toolError?.request_id === 'string' && toolError.request_id.length > 20, 'Tool error did not include a request ID')
 
-  console.log('OAuth and token MCP initialize/discovery/authentication, workflow guides, policy save/read, daily briefing save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
+  console.log('OAuth and token MCP initialize/discovery/authentication, workflow guides, product feedback, policy save/read, daily briefing save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
 } finally {
   if (userId) {
     await fetch(`${baseUrl}/auth/v1/admin/users/${userId}`, {

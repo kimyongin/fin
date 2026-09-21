@@ -57,7 +57,7 @@ function AppHeader({
     },
     availableIds.has('strategy') && { id: 'strategy', label: '투자 원칙' },
   ].filter(Boolean)
-  const secondaryTabs = tabs.filter((tab) => ['news', 'activity', 'settings', 'guide'].includes(tab.id))
+  const secondaryTabs = tabs.filter((tab) => ['news', 'activity', 'feedback', 'settings', 'guide'].includes(tab.id))
 
   function PrimaryNavigation() {
     return (
