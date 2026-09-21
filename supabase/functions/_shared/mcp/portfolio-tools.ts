@@ -1,3 +1,5 @@
+import { workflowGuideTopics } from './workflow-guides.ts'
+
 export type PortfolioToolDefinition = {
   name: string
   title: string
@@ -60,6 +62,36 @@ function successEnvelope(data: Record<string, unknown> = {}) {
 }
 
 const successEnvelopeSchema = successEnvelope()
+const workflowGuideOutputSchema = successEnvelope({
+  type: 'object',
+  properties: {
+    topic: { type: 'string', enum: workflowGuideTopics },
+    guide_id: { type: 'string' },
+    revision: { type: 'string' },
+    purpose: { type: 'string' },
+    scenario_ids: { type: 'array', items: { type: 'string' } },
+    related_tools: { type: 'array', items: { type: 'string' }, uniqueItems: true },
+    steps: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          title: { type: 'string' },
+          instruction: { type: 'string' },
+          tools: { type: 'array', items: { type: 'string' }, uniqueItems: true },
+        },
+        required: ['id', 'title', 'instruction', 'tools'],
+        additionalProperties: false,
+      },
+    },
+    boundaries: { type: 'array', items: { type: 'string' } },
+    recovery: { type: 'array', items: { type: 'string' } },
+    unavailable_steps: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['topic', 'guide_id', 'revision', 'purpose', 'scenario_ids', 'related_tools', 'steps', 'boundaries', 'recovery', 'unavailable_steps'],
+  additionalProperties: false,
+})
 const idSchema = { type: 'string', format: 'uuid' }
 const timestampSchema = { type: 'string', format: 'date-time' }
 const nonNegativeDecimalStringSchema = {
@@ -388,6 +420,19 @@ const holdingThesisPatchSchema = {
 
 export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
+    name: 'get_workflow_guide',
+    title: 'Portfolio workflow guide',
+    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for a policy interview, holding thesis, daily review, decision/follow-up, completed trade entry, or balance correction. This guide does not read user data, perform the workflow, or replace explicit save intent.',
+    inputSchema: {
+      type: 'object',
+      properties: { topic: { type: 'string', enum: workflowGuideTopics } },
+      required: ['topic'],
+      additionalProperties: false,
+    },
+    outputSchema: workflowGuideOutputSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
     name: 'get_profile',
     title: 'Connected portfolio profile',
     description: 'Return the profile represented by the authenticated Portfolio account.',
@@ -678,7 +723,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_investment_policy',
     title: 'Investment policy and operating strategy',
-    description: 'Read explicitly saved personal goals, horizon, liquidity needs, risk/trading preferences, and restrictions together with the operating strategy. Use this for advice against the user\'s policy; use get_strategy_state alone for allocation mechanics. Missing personal fields remain unknown; do not infer them from holdings or the active mode.',
+    description: 'Read explicitly saved personal goals, horizon, liquidity needs, risk/trading preferences, and restrictions together with the operating strategy. For an interview or multi-step policy update, read get_workflow_guide(topic=policy) first. Use get_strategy_state alone for allocation mechanics. Missing personal fields remain unknown; do not infer them from holdings or the active mode.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     outputSchema: successEnvelopeSchema,
     annotations: readOnlyAnnotations,
@@ -686,7 +731,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'save_investment_policy',
     title: 'Save personal investment policy',
-    description: 'Use only when the user explicitly asks to save or change their personal investment policy. Read the current version first, patch only stated fields, and use null only to clear a field. This does not change target allocations, operating mode, holdings, decisions, or trades.',
+    description: 'Use only when the user explicitly asks to save or change their personal investment policy. For an interview-derived update, follow get_workflow_guide(topic=policy). Read the current version first, patch only approved fields, preserve restrictions that were not removed, and use null only to clear a field. This does not change target allocations, operating mode, holdings, decisions, or trades.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -841,6 +886,8 @@ export const dailyReviewToolNames = [
   'list_daily_briefings',
   'get_daily_briefing',
 ] as const
+
+export const workflowGuideToolNames = ['get_workflow_guide'] as const
 
 export const decisionTaskToolNames = [
   'record_investment_decision',

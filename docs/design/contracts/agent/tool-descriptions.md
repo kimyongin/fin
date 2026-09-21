@@ -14,6 +14,7 @@ revision 9 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `su
 
 | 이름 / 상태 | description 후보 | 가이드 |
 | --- | --- | --- |
+| get_workflow_guide / observed-local | 복합 Portfolio 작업 전에 현재 단계·질문·경계·복구 규칙을 topic별로 읽습니다. 사용자 데이터를 조회하거나 작업을 실행하지 않습니다. | W01~W08 |
 | get_profile / observed-local | 인증된 Portfolio 계정 프로필을 읽습니다. 투자 성향이나 투자 원칙 조회가 아닙니다. | W01 |
 | get_portfolio_state / observed-local | 본인의 계좌·보유·종목·태그·저장 시세를 읽습니다. 증권사 실시간 잔고나 확인 완료를 뜻하지 않습니다. | W01,W05 |
 | find_holdings / observed-local | 티커·종목명·계좌명으로 본인의 보유 후보를 찾습니다. 여러 결과가 나오면 변경 전에 대상을 확인하세요. | W05,W06 |
@@ -61,7 +62,9 @@ revision 9 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `su
 | save_task | 요청한 조사 질문을 독립 저장합니다. 현재 조사 질문은 판단 기록의 후속 항목으로 만들 수 있고, 독립 생성은 후속입니다. | W03,W04 |
 | get_research_history | 저장된 사건·근거·정정 관계를 대상별로 조회합니다. 인터넷 검색이 아니며 URL 일치만으로 같은 사건이라 단정하지 않습니다. | W01,W04 |
 
-## 선택적 가이드 도구 계약안 — 첫 버전 후순위
+## 선택적 가이드 도구 계약안 — 구현 이력
+
+2026-09-21: 아래 최초 계약안은 [현재 설계](./workflow-guide-design.md)와 #63~#65로 구체화했다. 로컬 0.5.0 tools/list에는 policy, holding_thesis, daily_review, decision_followup, trade_entry, reconciliation 여섯 topic이 등록되어 있다. 운영 배포와 모델 평가는 남아 있으며 아래 문구는 과거 검토 기록이다.
 
 `get_workflow_guide` / planned / read-only: topic은 daily_review, policy, decision, research_task, trade_entry, reconciliation 중 하나. 출력은 guide_id/revision, 실제 사용 가능한 도구에 한정한 steps, 금지 부수 효과, 오류 후 다음 행동, unavailable_steps다. 사용자별 데이터나 저장 기능이 없다. unknown topic은 validation_error.
 

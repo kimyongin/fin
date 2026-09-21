@@ -9,7 +9,9 @@ import {
   portfolioToolDefinitions,
   tradeEntryToolNames,
   tradeReversalToolNames,
+  workflowGuideToolNames,
 } from './portfolio-tools.ts'
+import { getWorkflowGuide, renderWorkflowGuideMarkdown, validateWorkflowGuides, workflowGuideTopics } from './workflow-guides.ts'
 
 function tool(name: string) {
   const definition = portfolioToolDefinitions.find((item) => item.name === name)
@@ -28,6 +30,38 @@ describe('portfolio MCP tool definitions', () => {
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeReversalToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(workflowGuideToolNames.every((name) => names.includes(name))).toBe(true)
+  })
+
+  it('publishes a self-contained read-only policy workflow guide', () => {
+    const definition = tool('get_workflow_guide')
+    expect(definition.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: true })
+    expect((definition.inputSchema as any).properties.topic.enum).toEqual(workflowGuideTopics)
+    const guide = getWorkflowGuide('policy')!
+    expect(guide.revision).toMatch(/^fnv1a32:[0-9a-f]{8}$/)
+    expect(guide.steps[0].tools).toEqual(['get_investment_policy'])
+    expect(guide.steps.at(-1)?.tools).toEqual(['get_investment_policy'])
+    expect(guide.boundaries.join(' ')).toContain('never changes allocation targets')
+    expect(guide).not.toHaveProperty('source_paths')
+    expect(validateWorkflowGuides(portfolioToolDefinitions.map((item) => item.name))).toBeTruthy()
+  })
+
+  it('rejects guides that reference tools outside the advertised registry', () => {
+    expect(() => validateWorkflowGuides(['get_workflow_guide'])).toThrow('references unknown tools')
+  })
+
+  it('publishes every reviewed multi-step topic from one validated guide registry', () => {
+    expect(workflowGuideTopics).toEqual([
+      'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation',
+    ])
+    for (const topic of workflowGuideTopics) {
+      const guide = getWorkflowGuide(topic)!
+      expect(guide.steps.length).toBeGreaterThanOrEqual(5)
+      expect(guide.boundaries.length).toBeGreaterThanOrEqual(3)
+      expect(guide.recovery.length).toBeGreaterThanOrEqual(2)
+      expect(renderWorkflowGuideMarkdown(topic)).toContain(`Revision: ${guide.revision}`)
+    }
+    expect(renderWorkflowGuideMarkdown('daily_review')).toContain('get_daily_context')
   })
 
   it('does not label temporary context creation as read-only or idempotent', () => {

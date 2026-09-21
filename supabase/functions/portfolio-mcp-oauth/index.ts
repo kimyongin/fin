@@ -5,9 +5,11 @@ import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^
 import {
   dailyReviewToolNames, decisionTaskToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
   investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames, tradeReversalToolNames,
+  workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
 import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
 import { type ToolHandler, validateToolRegistry } from '../_shared/mcp/registry.ts'
+import { getWorkflowGuide, renderWorkflowGuideMarkdown, validateWorkflowGuides } from '../_shared/mcp/workflow-guides.ts'
 
 type JsonRpcRequest = {
   jsonrpc?: string
@@ -24,21 +26,11 @@ const serverInstructions = [
   'Use ChatGPT web research for current news, clearly separate sourced facts from analysis, and do not claim that Portfolio fetched live news.',
   'A review request is not permission to write: save only when the user explicitly asks, and keep model suggestions, user decisions, plans, completed trades, and brokerage balance verification distinct.',
   'Do not invent missing preferences or holding reasons, and do not report no meaningful change when research was incomplete.',
+  'Before a multi-step Portfolio task, use get_workflow_guide when its advertised topic matches the user\'s request; do not repeat the same revision in one conversation.',
   'Report a write as saved only after its tool returns success; retry a lost response with the same idempotency key and re-read after a version conflict.',
 ].join(' ')
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
-const dailyReviewGuide = `# Daily portfolio review guide
-
-Version marker: PORTFOLIO_RESOURCE_DAILY_REVIEW_V2
-
-Use this workflow when the user asks for a daily portfolio check or morning briefing.
-
-1. Call get_daily_context once to read the immutable authenticated snapshot for this review. Do not rebuild the same context with separate portfolio, strategy, news, and activity calls.
-2. Summarize only decision-relevant changes. Do not invent prices, holdings, returns, or account details.
-3. If current market information is needed, use ChatGPT's own web research and cite the sources. Portfolio does not search the public web.
-4. Separate verified facts, interpretation, and suggested questions or actions.
-5. Never imply that a suggested trade was placed. Portfolio only records completed user-reported activity.
-`
+const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
 const toolDefinitions = portfolioToolDefinitions.map((definition) => ({
   ...definition,
   securitySchemes: oauthSecurity,
@@ -402,6 +394,12 @@ async function rpc(supabase: any, name: string, args: Record<string, unknown> = 
 }
 
 const toolHandlers: Record<string, ToolHandler> = {
+  async get_workflow_guide(_supabase, args) {
+    const topic = requireString(args.topic, 'topic')
+    const guide = getWorkflowGuide(topic)
+    if (!guide) throw new ToolInputError(`Unsupported workflow guide topic: ${topic}`)
+    return { ok: true, data: guide }
+  },
   async get_profile(supabase) {
     const { data, error } = await supabase.auth.getUser()
     if (error || !data.user) throw new Error(error?.message ?? 'Authenticated user not found')
@@ -692,6 +690,7 @@ const toolHandlers: Record<string, ToolHandler> = {
 }
 
 validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
+  workflowGuides: workflowGuideToolNames,
   dailyReview: dailyReviewToolNames,
   decisionsAndTasks: decisionTaskToolNames,
   investmentPolicy: investmentPolicyToolNames,
@@ -700,6 +699,7 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   holdingIntegrity: holdingIntegrityToolNames,
   tradeReversal: tradeReversalToolNames,
 })
+validateWorkflowGuides(portfolioToolDefinitions.map((definition) => definition.name))
 
 Deno.serve(
   pipeline(
@@ -729,7 +729,7 @@ Deno.serve(
             prompts: { listChanged: false },
             resources: { subscribe: false, listChanged: false },
           },
-          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.4.0' },
+          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.5.0' },
           instructions: serverInstructions,
         })
       }

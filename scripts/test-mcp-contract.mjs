@@ -55,9 +55,39 @@ try {
 
   const listed = await call(session.access_token, 'tools/list')
   assert(listed.response.ok && listed.body?.result?.tools?.some((tool) => tool.name === 'get_profile'), 'MCP tools/list contract failed')
+  const guideDefinition = listed.body?.result?.tools?.find((tool) => tool.name === 'get_workflow_guide')
+  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 6, 'Workflow guide topics were not advertised')
+
+  for (const topic of guideDefinition.inputSchema.properties.topic.enum) {
+    const guideResult = await call(session.access_token, 'tools/call', { name: 'get_workflow_guide', arguments: { topic } })
+    const guide = guideResult.body?.result?.structuredContent?.data
+    assert(guideResult.body?.result?.isError === false && guide?.topic === topic && guide?.revision && guide?.steps?.length, `Workflow guide call failed for ${topic}`)
+  }
+  const unknownGuide = await call(session.access_token, 'tools/call', { name: 'get_workflow_guide', arguments: { topic: 'unknown' } })
+  assert(unknownGuide.body?.result?.structuredContent?.error?.code === 'validation_error', 'Unknown workflow guide topic did not return validation_error')
 
   const profile = await call(session.access_token, 'tools/call', { name: 'get_profile', arguments: {} })
   assert(profile.response.ok && profile.body?.result?.isError === false, 'Authenticated MCP tools/call failed')
+
+  const policyBefore = await call(session.access_token, 'tools/call', { name: 'get_investment_policy', arguments: {} })
+  assert(policyBefore.body?.result?.structuredContent?.data?.profile == null, 'New contract user unexpectedly has an investment policy')
+  const policyKey = crypto.randomUUID()
+  const policyArgs = {
+    schema_version: 1,
+    expected_version: null,
+    idempotency_key: policyKey,
+    patch: {
+      goal_text: 'Keep the contract-test goal explicit.',
+      restrictions: [{ kind: 'prohibition', text: 'Do not infer missing preferences.' }],
+    },
+    change_reason: 'Verify policy interview save and read-back contract.',
+  }
+  const policySaved = await call(session.access_token, 'tools/call', { name: 'save_investment_policy', arguments: policyArgs })
+  assert(policySaved.body?.result?.structuredContent?.data?.profile?.version === 1, 'Investment policy save contract failed')
+  const policyRetry = await call(session.access_token, 'tools/call', { name: 'save_investment_policy', arguments: policyArgs })
+  assert(policyRetry.body?.result?.structuredContent?.data?.profile?.version === 1, 'Investment policy idempotent retry failed')
+  const policyAfter = await call(session.access_token, 'tools/call', { name: 'get_investment_policy', arguments: {} })
+  assert(policyAfter.body?.result?.structuredContent?.data?.profile?.goal_text === policyArgs.patch.goal_text, 'Investment policy could not be read back')
 
   const context = await call(session.access_token, 'tools/call', {
     name: 'get_daily_context',
@@ -152,7 +182,7 @@ try {
   assert(toolError?.code === 'validation_error' && toolError?.retryable === false, 'Invalid tool input returned the wrong recovery contract')
   assert(typeof toolError?.request_id === 'string' && toolError.request_id.length > 20, 'Tool error did not include a request ID')
 
-  console.log('MCP initialize, daily briefing save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
+  console.log('MCP initialize, workflow guides, policy save/read, daily briefing save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
 } finally {
   if (userId) {
     await fetch(`${baseUrl}/auth/v1/admin/users/${userId}`, {

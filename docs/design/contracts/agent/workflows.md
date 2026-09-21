@@ -1,5 +1,7 @@
 # 에이전트 작업 가이드 원본
 
+런타임 제공: [MCP 작업 가이드 제공 설계](./workflow-guide-design.md), #63~#65. 구조화된 문구의 단일 원본은 `workflow-guides.ts`이며 이 문서는 시나리오 의도와 매핑을 설명한다. 로컬 구현·자동 계약 검증 상태이며 운영 배포와 실제 모델 평가는 남아 있다.
+
 revision 4 · observed-local 도구와 배포 후 검증이 필요한 흐름을 포함하는 개발용 문서. prompts/resources는 선택적 보조 수단이고 필수 규칙은 instructions와 도구 설명만으로 유지한다. [S01~S24](../scenario-api-model-matrix.md)의 데이터 효과는 복제하지 않고 참조한다. 여기서는 선택·순서·복구를 다룬다.
 
 ## W01 — 일일 점검 (S05~S09, R01~R04)

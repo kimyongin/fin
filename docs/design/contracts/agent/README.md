@@ -1,8 +1,10 @@
 # Portfolio 에이전트 계약 관리
 
-2026-09-21 · OAuth MCP 0.4.0을 운영에 배포했다. 인증된 `initialize`, 35개 `tools/list`, context→브리핑 저장·재조회, 안정 커서 조회, 금융 응답 유실/충돌 복구와 미지원 메서드 오류를 확인했다. DB 278개와 웹 앱 E2E 27개, 운영 RPC 4개와 OAuth MCP discovery가 배포 게이트를 통과했다. ChatGPT 웹은 액션 새로 고침 후 새 세션에서 `list_daily_briefings(limit=1)` 호출을 확인했으며, 모바일과 나머지 모델 선택 사례 평가는 아직 하지 않았다.
+2026-09-21 · 운영에는 OAuth MCP 0.4.0과 35개 도구가 배포되어 있다. 로컬 0.5.0에는 읽기 전용 `get_workflow_guide`를 더한 36개 도구와 여섯 topic을 구현했다. 자동 계약 검증과 운영 배포·ChatGPT 웹/모바일 평가는 별개이며 새 가이드는 아직 운영에서 사용할 수 없다.
 
 ## 원본과 전달 경로
+
+2026-09-21 후속 구현: 투자 기준 인터뷰를 실제 소비 사례로 [작업 가이드 제공·최신화 설계](./workflow-guide-design.md)와 #63~#65를 구현했다. 런타임 단일 원본, 여섯 topic, 도구 의존성·source digest 검사와 평가 사례를 연결했다. 운영 배포와 실제 모델 평가는 남아 있다.
 
 구조 단순화는 [ADR-0004](../../../adr/0004-domain-storage-and-minimal-mutation-contract.md)를 따른다. 문맥은 context_id로 연결하며 가이드 전용 도구는 첫 버전 선행조건이 아니다. 공통 instructions/도구 설명으로 부족한 실제 사례가 있을 때 도입한다.
 
@@ -10,18 +12,18 @@
 | --- | --- | --- |
 | 제품 정책 | PRD / Accepted ADR | 아래 설명이 제품 경계를 바꾸지 않는지 검토 |
 | 공통 행동 규칙 | [behavior.md](./behavior.md) | 짧은 server instructions. 필수 안전 규칙은 관련 도구 설명에도 포함 |
-| 사용자 의도와 호출 흐름 | [workflows.md](./workflows.md) | 필요할 때 작업 가이드로 제공. 전체 개발 문서를 반환하지 않음 |
+| 사용자 의도와 호출 흐름 | [workflow-guides.ts](../../../../supabase/functions/_shared/mcp/workflow-guides.ts), [workflows.md](./workflows.md) | 런타임은 topic별 구조화 가이드, 문서는 시나리오 의도·매핑을 제공 |
 | 도구 사용 설명 초안 | [tool-descriptions.md](./tool-descriptions.md) | 실제 등록 description의 출발점 |
 | 데이터·입출력·오류 계약 | [일일 점검](../daily-review-api.md), [생애주기](../lifecycle-model-api.md) | 검증된 JSON Schema와 서버 구현, DB 테스트 |
 | 시나리오 인수 조건 | [S01~S24](../scenario-api-model-matrix.md), 일일 점검 R01~R16 | 도구 선택 평가 + 서버 계약 테스트 |
 
-현재 Markdown은 사람과 구현 에이전트를 위한 검토 카탈로그이며 서버가 직접 읽지 않는다. 공통 description/inputSchema/outputSchema/annotations는 `supabase/functions/_shared/mcp/portfolio-tools.ts`에 두고 OAuth `tools/list`가 이를 사용한다. OAuth handler registry는 시작 시 정의 이름과 일치하는지 검사한다.
+런타임 가이드 원본은 `workflow-guides.ts`, 공통 description/inputSchema/outputSchema/annotations는 `portfolio-tools.ts`에 둔다. 나머지 Markdown은 사람과 구현 에이전트를 위한 의도·평가 기록이다. OAuth handler registry는 시작 시 정의 이름과 일치하는지 검사한다.
 
 기존 `portfolio-mcp`는 사용자가 발급한 agent token과 legacy `mcp_*` RPC를 사용하는 호환 endpoint이고, `portfolio-mcp-oauth`는 사용자 OAuth와 최신 `app_*` RPC를 사용하는 ChatGPT용 기준 endpoint다. 두 endpoint는 인증·도구 의미가 달라 하나의 tools 배열을 억지로 공유하지 않는다. 신규 기능은 OAuth 쪽에만 추가하고 legacy endpoint는 별도 폐기 결정 전까지 안정화 변경만 한다. 이는 중복 방치를 뜻하지 않고 서로 다른 공개 API의 경계를 명시한 것이다.
 
-MCP prompt/resource는 표준 호환성 실험을 위해 유지하지만 제품 동작의 전제는 아니다. 노출되지 않는 클라이언트에서도 짧은 instructions와 self-contained 도구 설명만으로 안전 경계가 유지돼야 한다.
+MCP prompt/resource는 표준 호환성 실험을 위해 유지하되 daily-review resource는 같은 런타임 가이드 원본에서 렌더링한다. 노출되지 않는 클라이언트에서도 instructions, self-contained 도구 설명과 `get_workflow_guide`만으로 안전 경계가 유지돼야 한다.
 
-연결 완료 시 이 문서의 도구 설명은 생성된 참조 문서로 전환하거나 실제 정의 링크만 남긴다. 사람이 수정하는 설명 원본을 Markdown과 코드에 영구히 두 개 만들지 않는다. 전체 PRD에서 설명을 자동 추출해 배포하지도 않는다.
+가이드와 도구 변경은 `npm run check:workflow-guides` 및 review manifest로 연결한다. 사람이 수정하는 런타임 문장을 Markdown과 코드에 영구히 두 개 만들지 않는다. 전체 PRD에서 설명을 자동 추출해 배포하지도 않는다.
 
 ## 제공 상태
 
