@@ -5,6 +5,7 @@ import ModalShell from '../../components/ModalShell'
 import { fetchBriefingRelatedTasks, fetchDailyBriefing, fetchDailyBriefingPage } from './data'
 import PortfolioIntegritySummary from './PortfolioIntegritySummary'
 import { createRequestGate } from '../../lib/requestGate'
+import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 
 const reviewPrompt = '오늘 내 포트폴리오 점검하고 저장해줘'
 
@@ -151,6 +152,14 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
   const [relatedTasksError, setRelatedTasksError] = useState('')
   const listRequestGate = useRef(createRequestGate())
   const detailRequestGate = useRef(createRequestGate())
+
+  function dismissDetail() {
+    detailRequestGate.current.invalidate()
+    setSelected(null)
+    setDetailLoading(false)
+  }
+
+  const requestDetailClose = useDetailHistoryEntry(Boolean(selected), dismissDetail)
 
   async function load() {
     const request = listRequestGate.current.begin()
@@ -325,7 +334,7 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
         </ol>
       )}
 
-      {selected && <BriefingDetail briefing={selected.headline ? selected : null} loading={detailLoading} onClose={() => { detailRequestGate.current.invalidate(); setSelected(null); setDetailLoading(false) }} />}
+      {selected && <BriefingDetail briefing={selected.headline ? selected : null} loading={detailLoading} onClose={requestDetailClose} />}
     </section>
   )
 }

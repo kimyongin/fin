@@ -7,7 +7,7 @@ export function createInstrumentActions({
   holdingsByTicker,
   instrumentModal,
   openHolding,
-  refreshState,
+  refreshAfterMutation,
   setInstrumentError,
   setInstrumentModal,
   setInstrumentSaving,
@@ -44,9 +44,9 @@ export function createInstrumentActions({
         input_tag_id: Number.isFinite(tagId) && tagId > 0 ? tagId : null,
         input_ticker: ticker,
       })
-      await refreshState()
       setInstrumentModal(null)
-      if (shouldOpenHolding) openHolding({ accountId: linkedAccountId, ticker })
+      const refreshed = await refreshAfterMutation()
+      if (shouldOpenHolding && refreshed) openHolding({ accountId: linkedAccountId, ticker })
     } catch (error) {
       setInstrumentError(error.message)
     } finally {
@@ -68,8 +68,8 @@ export function createInstrumentActions({
         input_request: null,
         input_source: 'user',
       })
-      await refreshState()
       setInstrumentModal(null)
+      await refreshAfterMutation()
     } catch (error) {
       setInstrumentError(error.message)
     } finally {

@@ -1,6 +1,6 @@
 import { portfolioMessages } from './messages'
 
-export function createTagActions({ callRpc, canEdit, refreshState, setTagError, setTagModal, setTagSaving, tagModal }) {
+export function createTagActions({ callRpc, canEdit, refreshAfterMutation, setTagError, setTagModal, setTagSaving, tagModal }) {
   async function handleSaveTag() {
     if (!canEdit || !tagModal) return
     const name = tagModal.name.trim()
@@ -18,8 +18,8 @@ export function createTagActions({ callRpc, canEdit, refreshState, setTagError, 
         input_source: 'user',
         input_tag_id: tagModal.id ? Number(tagModal.id) : null,
       })
-      await refreshState()
       setTagModal(null)
+      await refreshAfterMutation()
     } catch (error) {
       setTagError(error.message)
     } finally {
@@ -37,8 +37,8 @@ export function createTagActions({ callRpc, canEdit, refreshState, setTagError, 
         input_source: 'user',
         input_tag_id: Number(tagModal.id),
       })
-      await refreshState()
       setTagModal(null)
+      await refreshAfterMutation()
     } catch (error) {
       setTagError(error.message)
     } finally {

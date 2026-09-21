@@ -8,6 +8,7 @@ export function createHoldingActions({
   holdingLookupResult,
   holdingModal,
   latestPriceByTicker,
+  refreshAfterMutation,
   refreshState,
   setHoldingError,
   setHoldingLookupError,
@@ -123,10 +124,10 @@ export function createHoldingActions({
         input_quantity: payload.quantity,
       })
 
-      await refreshState()
       setHoldingModal(null)
       setHoldingLookupResult(null)
       setHoldingLookupError('')
+      await refreshAfterMutation()
     } catch (error) {
       setHoldingError(error.message ?? portfolioMessages.holdingSaveFailed)
     } finally {
@@ -144,8 +145,8 @@ export function createHoldingActions({
         input_request: null,
         input_source: 'user',
       })
-      await refreshState()
       setHoldingModal(null)
+      await refreshAfterMutation()
     } catch (error) {
       setHoldingError(error.message)
     } finally {

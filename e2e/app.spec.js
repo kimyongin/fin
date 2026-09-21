@@ -214,7 +214,9 @@ test('shows an adopted decision and its research follow-up without implying a tr
   await expect(page.getByText(resolvedAnswer)).toBeVisible()
   await expect(page.getByText('E2E official earnings release')).toBeVisible()
   await expect(page.getByText('매매 주문이나 체결 기록이 아닙니다.')).toBeVisible()
-  await page.getByRole('button', { name: '닫기' }).click()
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: '할 일 상세' })).toHaveCount(0)
+  await expect(page).toHaveURL(/#tasks$/)
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await expect(page.getByRole('tablist', { name: '판단과 할 일 전환' })).toBeVisible()

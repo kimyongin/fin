@@ -1,6 +1,6 @@
 import { portfolioMessages } from './messages'
 
-export function createAccountActions({ accountModal, callRpc, canEdit, holdingsByAccountId, refreshState, setAccountError, setAccountModal, setAccountSaving }) {
+export function createAccountActions({ accountModal, callRpc, canEdit, holdingsByAccountId, refreshAfterMutation, setAccountError, setAccountModal, setAccountSaving }) {
   async function handleSaveAccount() {
     if (!canEdit || !accountModal) return
     const payload = {
@@ -24,8 +24,8 @@ export function createAccountActions({ accountModal, callRpc, canEdit, holdingsB
         input_request: null,
         input_source: 'user',
       })
-      await refreshState()
       setAccountModal(null)
+      await refreshAfterMutation()
     } catch (error) {
       setAccountError(error.message)
     } finally {
@@ -48,8 +48,8 @@ export function createAccountActions({ accountModal, callRpc, canEdit, holdingsB
         input_request: null,
         input_source: 'user',
       })
-      await refreshState()
       setAccountModal(null)
+      await refreshAfterMutation()
     } catch (error) {
       setAccountError(error.message)
     } finally {

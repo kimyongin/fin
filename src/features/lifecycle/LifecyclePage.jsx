@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import ModalShell from '../../components/ModalShell'
 import { FilterChips, PageToolbar, ViewTabs } from '../../components/PageControls'
 import { createRequestGate } from '../../lib/requestGate'
+import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import {
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
@@ -119,6 +120,15 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
   const detailRequestGate = useRef(createRequestGate())
   const filter = filterByMode[mode]
 
+  function dismissDetail() {
+    detailRequestGate.current.invalidate()
+    setDetailLoading(false)
+    setDetail(null)
+    setDetailHistory([])
+  }
+
+  const requestDetailClose = useDetailHistoryEntry(Boolean(detail), dismissDetail)
+
   async function loadPage({ append = false, cursor = null } = {}) {
     const request = listRequestGate.current.begin()
     append ? setLoadingMore(true) : setLoading(true)
@@ -230,7 +240,7 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
         </div>
       )}
       </div>
-      {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={() => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(null); setDetailHistory([]) }} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
+      {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
     </section>
   )
 }

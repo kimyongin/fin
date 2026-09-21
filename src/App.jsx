@@ -382,6 +382,7 @@ function App() {
     setGuestUnlockDraft,
     setGuestUnlockError,
     setGuestUnlockSaving,
+    setLoadError,
     setSession,
     setViewContext,
     setViewerProfile,

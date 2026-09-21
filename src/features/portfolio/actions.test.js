@@ -49,6 +49,7 @@ function createParams(overrides = {}) {
     setInstrumentError: vi.fn(),
     setInstrumentModal: vi.fn(),
     setInstrumentSaving: vi.fn(),
+    setLoadError: vi.fn(),
     setSession: vi.fn(),
     setSyncMessage: vi.fn(),
     setSyncingPrices: vi.fn(),
@@ -109,6 +110,21 @@ describe('createPortfolioActions', () => {
 
     expect(params.supabase.rpc).not.toHaveBeenCalled()
     expect(params.setAccountError).toHaveBeenCalledWith(expect.any(String))
+  })
+
+  it('closes a saved editor and reports a refresh-only failure without retrying the write', async () => {
+    const params = createParams({
+      accountModal: { id: null, name: 'ISA', broker: '', note: '' },
+      refreshState: vi.fn(async () => { throw new Error('refresh failed') }),
+    })
+    const actions = createPortfolioActions(params)
+
+    await actions.handleSaveAccount()
+
+    expect(params.supabase.rpc).toHaveBeenCalledOnce()
+    expect(params.setAccountModal).toHaveBeenCalledWith(null)
+    expect(params.setAccountError).not.toHaveBeenCalledWith('refresh failed')
+    expect(params.setLoadError).toHaveBeenCalledWith(expect.stringContaining('변경은 저장됐지만'))
   })
 
   it('saves a tag without a color', async () => {

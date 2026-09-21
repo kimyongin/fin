@@ -51,6 +51,7 @@ export function createPortfolioActions(params) {
     setInstrumentError,
     setInstrumentModal,
     setInstrumentSaving,
+    setLoadError = () => {},
     setSession,
     setSyncMessage,
     setSyncingPrices,
@@ -73,6 +74,16 @@ export function createPortfolioActions(params) {
     viewerProfileDraft,
   } = params
   const callRpc = createRpcCaller(supabase)
+
+  async function refreshAfterMutation() {
+    try {
+      await refreshState()
+      return true
+    } catch (error) {
+      setLoadError(`변경은 저장됐지만 최신 화면을 불러오지 못했습니다. 다시 불러와 주세요. ${error.message ?? ''}`.trim())
+      return false
+    }
+  }
 
   async function recordActivity(event) {
     try {
@@ -226,10 +237,10 @@ export function createPortfolioActions(params) {
   }
 
   return {
-    ...createAccountActions({ accountModal, callRpc, canEdit, holdingsByAccountId, refreshState, setAccountError, setAccountModal, setAccountSaving }),
-    ...createHoldingActions({ callRpc, canEdit, holdingLookupResult, holdingModal, latestPriceByTicker, refreshState, setHoldingError, setHoldingLookupError, setHoldingLookupResult, setHoldingLookupSaving, setHoldingModal, setHoldingSaving, state, supabase }),
-    ...createInstrumentActions({ callRpc, canEdit, holdingsByTicker, instrumentModal, openHolding, refreshState, setInstrumentError, setInstrumentModal, setInstrumentSaving, today }),
-    ...createTagActions({ callRpc, canEdit, refreshState, setTagError, setTagModal, setTagSaving, tagModal }),
+    ...createAccountActions({ accountModal, callRpc, canEdit, holdingsByAccountId, refreshAfterMutation, setAccountError, setAccountModal, setAccountSaving }),
+    ...createHoldingActions({ callRpc, canEdit, holdingLookupResult, holdingModal, latestPriceByTicker, refreshAfterMutation, refreshState, setHoldingError, setHoldingLookupError, setHoldingLookupResult, setHoldingLookupSaving, setHoldingModal, setHoldingSaving, state, supabase }),
+    ...createInstrumentActions({ callRpc, canEdit, holdingsByTicker, instrumentModal, openHolding, refreshAfterMutation, setInstrumentError, setInstrumentModal, setInstrumentSaving, today }),
+    ...createTagActions({ callRpc, canEdit, refreshAfterMutation, setTagError, setTagModal, setTagSaving, tagModal }),
     handleGuestUnlock,
     handleSaveViewerProfile,
     handleSyncPrices,
