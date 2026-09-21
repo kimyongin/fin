@@ -18,9 +18,13 @@ export function yahooTickerCandidates(ticker: string, sourceSymbol?: string | nu
   const normalizedTicker = String(ticker ?? '').trim().toUpperCase()
   const normalizedSource = String(sourceSymbol ?? '').trim().toUpperCase()
   const candidates = normalizedSource ? [normalizedSource] : []
+  const prefixedKrxShortCode = /^A[0-9A-Z]{6}$/.test(normalizedTicker)
+  const krxShortCode = prefixedKrxShortCode
+    ? normalizedTicker.slice(1)
+    : normalizedTicker
 
-  if (/^\d{6}$/.test(normalizedTicker)) {
-    candidates.push(`${normalizedTicker}.KS`, `${normalizedTicker}.KQ`)
+  if (/^\d{6}$/.test(normalizedTicker) || prefixedKrxShortCode) {
+    candidates.push(`${krxShortCode}.KS`, `${krxShortCode}.KQ`)
   } else if (/^\d{4}$/.test(normalizedTicker)) {
     candidates.push(`${normalizedTicker}.T`)
   }

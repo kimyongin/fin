@@ -12,6 +12,7 @@ describe('yahooTickerCandidates', () => {
 
   it('tries Korean and Japanese exchange suffixes before a bare numeric ticker', () => {
     expect(yahooTickerCandidates('133690')).toEqual(['133690.KS', '133690.KQ', '133690'])
+    expect(yahooTickerCandidates('A0163Y0')).toEqual(['0163Y0.KS', '0163Y0.KQ', 'A0163Y0'])
     expect(yahooTickerCandidates('2621')).toEqual(['2621.T', '2621'])
   })
 

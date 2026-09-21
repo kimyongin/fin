@@ -136,9 +136,11 @@ function mapYahooInstrumentType(value: unknown) {
 function yahooTickerCandidates(ticker: string) {
   const normalized = normalizeTickerInput(ticker)
   const candidates = [normalized]
+  const prefixedKrxShortCode = /^A[0-9A-Z]{6}$/.test(normalized)
+  const krxShortCode = prefixedKrxShortCode ? normalized.slice(1) : normalized
 
-  if (/^\d{6}$/.test(normalized)) {
-    candidates.push(`${normalized}.KS`, `${normalized}.KQ`)
+  if (/^\d{6}$/.test(normalized) || prefixedKrxShortCode) {
+    candidates.unshift(`${krxShortCode}.KS`, `${krxShortCode}.KQ`)
   }
 
   return [...new Set(candidates)]
