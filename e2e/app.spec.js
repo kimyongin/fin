@@ -844,6 +844,14 @@ test('keeps four primary destinations usable without horizontal overflow', async
     await expect(primary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '판단·할 일', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '투자 원칙', exact: true })).toBeVisible()
+    const navigationBox = await primary.evaluate((element) => {
+      const box = element.getBoundingClientRect()
+      return { bottom: box.bottom, left: box.left, position: getComputedStyle(element).position, width: box.width }
+    })
+    expect(navigationBox.position).toBe('fixed')
+    expect(Math.abs(navigationBox.bottom - 900)).toBeLessThanOrEqual(1)
+    expect(navigationBox.left).toBe(0)
+    expect(navigationBox.width).toBe(width)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
 

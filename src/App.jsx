@@ -467,7 +467,7 @@ function App() {
   const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : activeTab === 'decisions' || activeTab === 'tasks' ? '판단·할 일' : activeTab === 'strategy' ? '투자 원칙' : activeTab === 'news' ? '자료' : activeTab === 'activity' ? '활동' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
-    <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6 lg:pb-5 lg:pl-44">
+    <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6">
       <div className="mx-auto max-w-6xl">
         <AppHeader
           activeTab={activeTab}

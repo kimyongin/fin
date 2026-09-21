@@ -59,21 +59,19 @@ function AppHeader({
   ].filter(Boolean)
   const secondaryTabs = tabs.filter((tab) => ['news', 'activity', 'settings', 'guide'].includes(tab.id))
 
-  function PrimaryNavigation({ desktop = false }) {
+  function PrimaryNavigation() {
     return (
       <nav
         aria-label="주요 메뉴"
-        className={desktop
-          ? 'hidden lg:fixed lg:bottom-auto lg:left-4 lg:top-1/2 lg:z-50 lg:grid lg:w-36 lg:-translate-y-1/2 lg:gap-1 lg:rounded-2xl lg:border lg:border-[var(--line)] lg:bg-[var(--surface-3)] lg:p-2 lg:shadow-xl'
-          : 'fixed inset-x-0 bottom-0 z-50 grid border-t border-[var(--line)] bg-[var(--surface-3)] px-2 pt-2 shadow-2xl lg:hidden'}
-        style={desktop ? undefined : { paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', gridTemplateColumns: `repeat(${Math.max(primaryTabs.length, 1)}, minmax(0, 1fr))` }}
+        className="fixed inset-x-0 bottom-0 z-50 grid border-t border-[var(--line)] bg-[var(--surface-3)] px-2 pt-2 shadow-2xl"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', gridTemplateColumns: `repeat(${Math.max(primaryTabs.length, 1)}, minmax(0, 1fr))` }}
       >
         {primaryTabs.map((tab) => {
           const selected = (tab.activeIds ?? [tab.id]).includes(activeTab)
           return (
             <button
               aria-current={selected ? 'page' : undefined}
-              className={`${desktop ? 'min-h-11 rounded-xl px-3 text-left' : 'min-h-11 rounded-xl px-1 text-center text-xs'} font-semibold transition ${selected ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'}`}
+              className={`min-h-11 rounded-xl px-1 text-center text-xs font-semibold transition sm:text-sm ${selected ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'}`}
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               type="button"
@@ -88,7 +86,6 @@ function AppHeader({
 
   return (
     <header className="relative z-[60] mb-6" ref={menuRef}>
-      <PrimaryNavigation desktop />
       <PrimaryNavigation />
       <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-3">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
