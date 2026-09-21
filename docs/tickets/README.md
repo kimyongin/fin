@@ -1,5 +1,20 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## UI 구조 일관성 — 다음 구현 시작점
+
+2026-09-21 · 설계/티켓 준비 완료, 앱 코드 미착수. [화면 구조 규칙](../design/screen-structure.md)이 구현 기준이다. 다른 모델은 #59부터 실제 소비 화면과 함께 진행한다.
+
+| 순서 | 티켓 | 로컬 명세 |
+| --- | --- | --- |
+| 1 | [#59 페이지 구조·보기 전환·필터](https://github.com/kimyongin/fin/issues/59) | [명세](./ui-consistency-01-pages.md) |
+| 2 | [#60 모달·상세·편집 액션](https://github.com/kimyongin/fin/issues/60) | [명세](./ui-consistency-02-surfaces.md) |
+| 3 | [#61 표 전체 화면 편집](https://github.com/kimyongin/fin/issues/61) | [명세](./ui-consistency-03-sheet.md) |
+| 4 | [#62 나머지 페이지·회귀 검증](https://github.com/kimyongin/fin/issues/62) | [명세](./ui-consistency-04-rollout.md) |
+
+#59 → #60 → #61 → #62 순서로 진행한다. 각 슬라이스에서 반응형/행동 검증을 수행하며 #62까지 검증을 미루지 않는다. DB/API/MCP 변경 없는 UI 작업이다. 디자인 문서의 이전 850px 기준안 대신 현재 앱과 일치하는 1024px을 사용한다.
+
+운영 상태 보충: 아래 이전 인계의 미배포/secret 대기 표기는 작성 당시 기록이다. 2026-09-21 migration 024~026, OAuth MCP 0.4.0, Pages 배포와 인증 smoke secret 구성을 완료했다. #54~#57은 종료됐으며 #58의 모바일/전체 모델 평가와 기존 파일럿은 남아 있다. 증거는 agent/evaluation.md와 commit c22ad20을 참조한다.
+
 ## MCP 사용성·계약 품질 개선 — 현재 개발 시작점
 
 2026-09-21 재검토 후속. 아래 5개 티켓의 로컬 구현과 자동 검증을 완료했다. 기존 #49~#53 구현을 유지하면서 확인된 계약·검증 공백을 보완했으며, 운영 배포와 실제 ChatGPT 웹/모바일 평가는 아직 수행하지 않았다.

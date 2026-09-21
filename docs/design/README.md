@@ -9,6 +9,7 @@ design은 화면 디자인뿐 아니라 제품·데이터·API 설계를 포함�
 | 파일/폴더 | 역할 / 상태 |
 | --- | --- |
 | PRINCIPLES.md | 모바일 우선 반응형 디자인 원칙 |
+| screen-structure.md | #59~#62 구현 기준: 헤더·보기·필터·본문·푸터·모달/드로어·전체 화면 편집 |
 | component-system.md | 기존 React 공통 UI 재사용, 모달/드로어·폼·상태와 접근성 계약안 |
 | product-reorganization.md | 기존 기능 유지/재구성/이동과 책임 |
 | implementation-contract-draft.md | 계산·버전·점검 등의 초기 기술 초안. 후속 계약/조사 링크 우선 확인 |

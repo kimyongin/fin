@@ -1,11 +1,11 @@
 # React 공통 컴포넌트 설계
 
-2026-09-21 · 설계안 / 미구현. 현재 React 19 + Vite + Tailwind를 사용한다(package.json 선언 기준). 별도 Web Components/custom elements 프레임워크를 도입한다는 뜻이 아니다. 기존 어두운 테마와 CSS 변수를 유지한다.
+2026-09-21 · 기존 구현 + 후속 설계. 현재 React 19 + Vite + Tailwind를 사용한다(package.json 선언 기준). 구조/배치 계약은 [화면 구조 규칙](./screen-structure.md)을 따른다. 별도 Web Components/custom elements 프레임워크를 도입한다는 뜻이 아니다. 기존 어두운 테마와 CSS 변수를 유지한다.
 
 ## 현재 기반과 보완
 
 ModalShell, ModalActions, PortfolioEntityHeader/Identity, MetricSummary, MarkdownContent가 이미 src/components에 있다. 이를 폐기하고 새 디자인 시스템을 전면 도입하지 않는다.
-ModalShell 코드에는 Escape 닫기가 있으나 자체 focus trap/복귀, dialog 이름 연결, background inert, scroll lock은 구현되어 있지 않다. 닫기 버튼 h-10/w-10은 기본 40px여서 최소44px 기준과 차이가 있다. 이는 코드 확인 결과이며 실제 화면 접근성 전체 검증은 아니다.
+ModalShell에는 Escape, Tab 순환, 호출 요소 focus 복귀, dialog 이름 연결, background inert, scroll lock, 최상위 modal 처리가 구현돼 있고 닫기는 44px이다. 재구현하지 말고 실제 동작을 회귀 검증한다. 아직 footer slot과 drawer variant는 없으며 children 전체가 스크롤된다. ModalActions는 일부 폼만 사용하고 dirty/pending 닫기 정책은 호출자별 차이가 있다. 공통 PageLayout/ViewTabs/FilterBar/DetailSurface는 아직 없다. 이 구분은 정적 코드 확인이며 전체 접근성 검증 완료를 뜻하지 않는다.
 
 ## 공통 UI 계약
 
@@ -31,7 +31,7 @@ ModalShell 코드에는 Escape 닫기가 있으나 자체 focus trap/복귀, dia
 - Escape/닫기 버튼/외부 클릭/뒤로가기는 동일한 onRequestClose 경로로 처리한다. 최상위 overlay만 처리한다. 모바일 드래그 닫기는 필수 기능에서 제외한다.
 - dirty 편집은 유지/버리기/머무르기 정책에 따라 보호한다. 저장 중 닫기는 진행 상황을 설명하고 중복 저장을 막는다. 네트워크 요청 취소가 서버 rollback을 뜻하지 않는다.
 - 기능 controller가 dirty/pending/저장 결과를 소유한다. shell은 닫기 요청만 전달하며 사용자의 입력을 삭제하지 않는다. 위험 확인을 여러 overlay에 중첩하지 않고 최상위 확인 하나만 허용한다.
-- DetailSurface는 850px 기준안과 실제 가용 폭에 따라 전환한다. 폼의 stable key/상태는 기능 계층에 두어 회전/resize에도 유지한다. 고정 footer는 safe-area/키보드/본문 스크롤을 가리지 않는다.
+- DetailSurface는 화면 구조 규칙의 1024px 기준으로 전환한다. 폼의 stable key/상태는 기능 계층에 두어 회전/resize에도 유지한다. 고정 footer는 safe-area/키보드/본문 스크롤을 가리지 않는다.
 - 목록 필터·스크롤·선택 대상과 상세 이동은 기능 navigation이 담당한다. 기존 hash 진입/뒤로가기 보존. 새 router 도입을 선행조건으로 만들지 않는다.
 
 ## 업무 컴포넌트와 상태
@@ -42,8 +42,8 @@ BriefingSummary, DecisionStatus, TaskProgress, EvidenceList, PositionChangePrevi
 
 ## 인수와 적용 순서
 
-1. #36에서 기존 ModalShell 호출부를 조사하고 호환 wrapper부터 개선한다. 기존 자산/표 편집을 한꺼번에 교체하지 않는다.
-2. 판단 상세와 기존 편집 한 곳으로 Dialog/DetailSurface를 검증하고 다른 기능으로 확대한다.
+1. #59에서 페이지 골격을 판단·할 일과 자산에 적용한다. #60은 기존 ModalShell의 구현된 접근성 처리를 보존하고 footer/variant/닫기 정책부터 보완한다.
+2. 판단 상세와 기존 계좌 편집 한 곳으로 상세/편집을 검증하고 다른 호출부로 확대한다. #61에서 표 전체 화면을 연결하고 #62에서 나머지 페이지에 적용한다. 별도 DialogSurface 파일 추출은 실제 필요에 따라 결정한다.
 3. 360/390/768/1024/1440px, 키보드 Tab/Shift+Tab/Escape, 포커스 복귀, 긴 본문·오류, resize 중 draft, dirty 뒤로가기, 저장 중 timeout을 확인한다.
 4. 공통 컴포넌트 테스트는 인터랙션·접근성, feature 테스트는 저장 의도·오류·데이터 연결을 검증한다. 스냅샷만으로 통과하지 않는다. 기존 E2E는 desktop 프로젝트이므로 모바일 검증을 별도로 추가/기록한다.
 
