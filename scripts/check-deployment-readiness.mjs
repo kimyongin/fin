@@ -18,6 +18,7 @@ const rpcChecks = [
   ['app_list_investment_decision_page', { input_cursor: null, input_filter: 'current', input_limit: 1, input_owner_user_id: null }],
   ['app_list_portfolio_task_page', { input_cursor: null, input_filter: 'active', input_limit: 1, input_owner_user_id: null }],
   ['app_list_transaction_page', { input_account_id: null, input_cursor: null, input_instrument_id: null, input_limit: 1 }],
+  ['app_list_my_product_feedback', { input_cursor: null, input_limit: 1 }],
 ]
 
 for (const [name, body] of rpcChecks) {
@@ -51,7 +52,14 @@ const initialized = await mcp('initialize', {
 if (initialized?.protocolVersion !== '2025-06-18') throw new Error('OAuth MCP returned an incompatible protocol version')
 const listed = await mcp('tools/list')
 const toolNames = new Set((listed?.tools ?? []).map((tool) => tool.name))
-for (const requiredTool of ['get_daily_context', 'save_daily_briefing', 'list_transactions', 'verify_holdings']) {
+for (const requiredTool of [
+  'get_daily_context',
+  'save_daily_briefing',
+  'list_transactions',
+  'verify_holdings',
+  'submit_product_feedback',
+  'list_my_product_feedback',
+]) {
   if (!toolNames.has(requiredTool)) throw new Error(`OAuth MCP is missing required tool: ${requiredTool}`)
 }
 
