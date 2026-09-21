@@ -2,16 +2,16 @@
 
 ## UI 구조 일관성 — 로컬 구현 결과
 
-2026-09-21 · #59, #61, #62의 로컬 구현과 자동 검증을 완료했다. #60의 공통 surface와 호출부 적용도 완료했지만 브라우저 history 뒤로가기 및 저장 성공 후 재조회 실패 구분은 남아 있다. [화면 구조 규칙](../design/screen-structure.md)이 구현 결과와 예외의 기준이다.
+2026-09-21 · #59~#62의 로컬 구현과 자동 검증을 완료했다. [화면 구조 규칙](../design/screen-structure.md)이 구현 결과와 실기기 미검증 항목의 기준이다.
 
 | 순서 | 티켓 | 로컬 명세 | 상태 |
 | --- | --- | --- | --- |
 | 1 | [#59 페이지 구조·보기 전환·필터](https://github.com/kimyongin/fin/issues/59) | [명세](./ui-consistency-01-pages.md) | 로컬 완료 |
-| 2 | [#60 모달·상세·편집 액션](https://github.com/kimyongin/fin/issues/60) | [명세](./ui-consistency-02-surfaces.md) | 핵심 구현 완료·후속 2건 |
+| 2 | [#60 모달·상세·편집 액션](https://github.com/kimyongin/fin/issues/60) | [명세](./ui-consistency-02-surfaces.md) | 로컬 완료 |
 | 3 | [#61 표 전체 화면 편집](https://github.com/kimyongin/fin/issues/61) | [명세](./ui-consistency-03-sheet.md) | 로컬 완료 |
 | 4 | [#62 나머지 페이지·회귀 검증](https://github.com/kimyongin/fin/issues/62) | [명세](./ui-consistency-04-rollout.md) | 로컬 완료·실기기 확인 전 |
 
-구현 커밋은 `7dee08d` → `1fbddf8` → `71d0c13` → `e6623dc`다. DB/API/MCP 의미는 바꾸지 않았고 디자인 문서의 이전 850px 기준안 대신 현재 앱과 일치하는 1024px을 사용했다. 실기기 확인은 #39에서 수행한다.
+구현 커밋은 `7dee08d` → `1fbddf8` → `71d0c13` → `e6623dc` → `a73ee9d`다. DB/API/MCP 의미는 바꾸지 않았고 디자인 문서의 이전 850px 기준안 대신 현재 앱과 일치하는 1024px을 사용했다. 실기기 확인은 #39에서 수행한다.
 
 운영 상태 보충: 아래 이전 인계의 미배포/secret 대기 표기는 작성 당시 기록이다. 2026-09-21 migration 024~026, OAuth MCP 0.4.0, Pages 배포와 인증 smoke secret 구성을 완료했다. #54~#57은 종료됐으며 #58의 모바일/전체 모델 평가와 기존 파일럿은 남아 있다. 증거는 agent/evaluation.md와 commit c22ad20을 참조한다.
 

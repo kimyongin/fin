@@ -61,6 +61,6 @@
 | 표 편집 | 필터·표·상태·오류·롤백·저장을 전체 화면 shell에 통합하고 inline draft 공유 | 확대/수정/축소 draft와 5개 viewport E2E |
 | 나머지 페이지 | feature 중복 상단 여백 제거, 주요 action 44px, dark 오류 표현 | 9개 목적지의 360/390/768/1024/1440px 가로 넘침 검사 |
 
-자동 검증은 Vitest 79개, DB 278개, OAuth MCP 계약, Chromium E2E 28개, production build, encoding과 diff 검사를 사용한다. 실제 모바일 가상 키보드·iOS safe-area·실기기 스크린리더는 아직 확인하지 않았다.
+자동 검증은 Vitest 80개, DB 278개, OAuth MCP 계약, Chromium E2E 28개, production build, encoding과 diff 검사를 사용한다. 실제 모바일 가상 키보드·iOS safe-area·실기기 스크린리더는 아직 확인하지 않았다.
 
-브라우저 history의 뒤로가기는 상세 surface stack과 아직 연결하지 않고 앱 내부 연결 상세 뒤로가기만 제공한다. 또 기존 자산 편집 action은 RPC 저장 성공 후 `refreshState`만 실패한 경우를 저장 실패와 구분하지 못한다. 두 항목은 [모달·상세 티켓](../tickets/ui-consistency-02-surfaces.md)의 미완료 계약으로 유지한다.
+상세 surface는 같은 URL의 browser history entry를 사용해 뒤로가기로 닫히며, 앱 내부 연결 상세는 별도 stack으로 이전 기록을 복원한다. 자산 편집 쓰기 성공 뒤 재조회만 실패하면 편집창을 닫고 전역 안내를 표시하여 동일 쓰기를 다시 저장하도록 유도하지 않는다.
