@@ -1,5 +1,22 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## 2026-09-21 제품 리뷰 후속 — 다음 개발 시작점
+
+사용자 승인: 우선 티켓만 작성한다. 구현은 모델 전환 후 시작한다. 아래는 미구현 작업이며 기존 완료 체크를 대신하지 않는다.
+
+| 순서 | GitHub 티켓 | 로컬 명세 | 기존 책임 |
+| --- | --- | --- | --- |
+| 1 | [#45 계산 품질·공유 접근](https://github.com/kimyongin/fin/issues/45) | [명세](./review-01-quality-sharing.md) | #32/#34/#36/#39/#43 |
+| 2 | [#46 판단·할 일 통합](https://github.com/kimyongin/fin/issues/46) | [명세](./review-02-decision-tasks.md) | #35/#36/#44 |
+| 3 | [#47 메뉴·오늘 재편](https://github.com/kimyongin/fin/issues/47) | [명세](./review-03-navigation-today.md) | #34/#36/#43 |
+| 4 | [#48 온보딩·사용 검증](https://github.com/kimyongin/fin/issues/48) | [명세](./review-04-onboarding-validation.md) | #33/#36/#39 |
+
+구현 순서는 #45의 공유 접근/계산 품질을 각각 검증한 뒤 #46 → #47 → #48이다. 각 티켓은 기존 시나리오 S ID, API/데이터 불변 조건, 실패·권한·반응형 인수 조건을 포함한다. 기능별 구현·검증·커밋하며 운영 배포와 실제 ChatGPT/지인 검증은 별도로 기록한다.
+
+승인된 목표 탐색은 **오늘 / 자산 / 판단·할 일 / 투자 원칙** 네 개와 보조 설정이다. #47 구현 시 PRD/제품 재정리의 기존 다섯 메뉴 명세를 함께 갱신한다. 자산 4가지 보기, 자료 보관함 CRUD, 변경 이력, 공유 문맥은 유지한다. 아래 기존 구현 이력은 당시 상태이며, 이번 리뷰에서 발견한 미충족 조건은 #45~#48로 추적한다.
+
+배포 기준점: `1a13ae4`에서 운영 migration 001~019/OAuth MCP/Pages 배포 및 CI E2E 성공을 확인했다. 과거 문서의 배포 전 표기는 갱신 대상이다. 실사용 5일·운영 전후 데이터 정량 대조·새 클라이언트 사용자 격리는 별도 미검증 항목으로 유지한다.
+
 ## 구현 인계 확정 사항 (2026-09-20)
 
 - 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
