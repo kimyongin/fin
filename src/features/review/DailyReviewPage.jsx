@@ -7,8 +7,6 @@ import PortfolioIntegritySummary from './PortfolioIntegritySummary'
 import { createRequestGate } from '../../lib/requestGate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 
-const reviewPrompt = '오늘 내 포트폴리오 점검하고 저장해줘'
-
 const coverageLabels = {
   complete: '조사 완료',
   partial: '일부 조사',
@@ -148,7 +146,6 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [relatedTasksError, setRelatedTasksError] = useState('')
   const listRequestGate = useRef(createRequestGate())
   const detailRequestGate = useRef(createRequestGate())
@@ -243,12 +240,6 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
     }
   }
 
-  async function copyPrompt() {
-    await navigator.clipboard.writeText(reviewPrompt)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1200)
-  }
-
   const latest = latestDetail ?? briefings[0]
   const latestIsToday = latest
     ? localDateKey(latest.analyzed_at, latest.timezone) === localDateKey(new Date(), latest.timezone)
@@ -257,8 +248,7 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
   return (
     <section className="grid gap-5">
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
+        <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">{latestIsToday ? '오늘 저장한 점검' : '마지막 저장 점검'}</p>
             {latest ? (
               <>
@@ -295,14 +285,6 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
                 {!ownerUserId && <div className="mt-4 flex flex-wrap gap-2"><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => onNavigate?.('overview')} type="button">자산 입력하기</button><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => onNavigate?.('guide')} type="button">연결 가이드 보기</button></div>}
               </>
             )}
-          </div>
-          <div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-4 sm:w-72">
-            <p className="text-sm font-semibold">새 점검은 ChatGPT에서 요청합니다</p>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">“{reviewPrompt}”</p>
-            <button className="mt-3 min-h-11 w-full rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" onClick={copyPrompt} type="button">
-              {copied ? '요청 문구를 복사했어요' : '요청 문구 복사'}
-            </button>
-          </div>
         </div>
       </article>
 
