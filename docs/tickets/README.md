@@ -1,5 +1,21 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## MCP 사용성·계약 품질 개선 — 현재 개발 시작점
+
+2026-09-21 재검토 후속. 아래 5개 티켓은 모두 **미착수**이며 이번 작업은 티켓 작성만 수행했다. 기존 #49~#53 구현을 유지하고 실제 확인된 계약·검증 공백을 보완한다.
+
+| 순서 | 티켓 | 로컬 명세 |
+| --- | --- | --- |
+| 01 | [#54 브리핑·보정 입력과 결과 계약 명시](https://github.com/kimyongin/fin/issues/54) | [명세](./mcp-quality-01-contracts.md) |
+| 02 | [#55 안정적 오류 코드와 멱등 재시도 계약 보완](https://github.com/kimyongin/fin/issues/55) | [명세](./mcp-quality-02-recovery.md) |
+| 03 | [#56 도구 선택 설명과 대상별 연속 조회 정비](https://github.com/kimyongin/fin/issues/56) | [명세](./mcp-quality-03-discovery.md) |
+| 04 | [#57 업무별 모듈 분리와 설명 원본 일원화](https://github.com/kimyongin/fin/issues/57) | [명세](./mcp-quality-04-maintenance.md) |
+| 05 | [#58 시나리오 평가와 실제 계약·배포 게이트 보강](https://github.com/kimyongin/fin/issues/58) | [명세](./mcp-quality-05-validation.md) |
+
+구현 순서: #54 계약 → #55 복구/#56 조회 → #57 최소 모듈 정리 → #58 통합 검증. #58의 시나리오 fixture는 먼저 작성하고 각 슬라이스에 함께 적용한다. 전 기능 구현 후 한 번만 검증하지 않는다.
+
+검토 근거는 정적 코드·SQL·문서 대조와 MCP 단위 테스트 20개 통과다. 실제 ChatGPT 도구 선택·운영 배포 성공의 증거는 아니다. 아래 이전 인계의 ‘완료’는 당시 기록이며, DB test의 배포 gate 연결·신규 RPC readiness·오류 복구 전체 계약까지 검증 완료로 확대하지 않는다. 이 차이는 #55/#58에서 보완하고 기존 티켓의 인수 체크도 실제 근거에 맞춰 정정한다.
+
 ## 운영 안정성 개선 — 다음 개발 시작점
 
 2026-09-21 운영 관점의 정적 코드 리뷰 후속 **#49~#53의 로컬 구현과 자동 검증을 완료했다.** 운영 DB/Edge/Pages 배포와 실사용 확인은 수행하지 않았다. #51이 추가한 인증 smoke gate를 사용하려면 GitHub에 테스트 전용 계정 secret 두 개를 먼저 설정해야 한다.
