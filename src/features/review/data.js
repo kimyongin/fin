@@ -17,3 +17,16 @@ export async function fetchDailyBriefing(supabase, briefingId, ownerUserId = nul
   if (!data) throw new Error('브리핑을 찾을 수 없거나 접근할 수 없습니다.')
   return data
 }
+
+export async function fetchDailyBriefingPage(supabase, { cursor = null, limit = 20, ownerUserId = null } = {}) {
+  const { data, error } = await supabase.rpc('app_list_daily_briefing_page', {
+    input_cursor: cursor,
+    input_limit: limit,
+    input_owner_user_id: ownerUserId,
+  })
+  if (error) throw error
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    nextCursor: data?.next_cursor ?? null,
+  }
+}

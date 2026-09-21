@@ -471,9 +471,14 @@ function App() {
 
         {activeTab === 'today' && <DailyReviewPageView ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null} supabase={supabase} />}
 
-        {activeTab === 'decisions' && <LifecyclePageView mode="decisions" ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null} supabase={supabase} />}
-
-        {activeTab === 'tasks' && <LifecyclePageView mode="tasks" ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null} supabase={supabase} />}
+        {(activeTab === 'decisions' || activeTab === 'tasks') && (
+          <LifecyclePageView
+            mode={activeTab}
+            onModeChange={setActiveTab}
+            ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
+            supabase={supabase}
+          />
+        )}
 
         {activeTab === 'overview' && (
           <AssetsPageView

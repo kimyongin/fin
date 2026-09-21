@@ -24,6 +24,8 @@ const sharedSliceMigrations = [
   'supabase/migrations/202609210019_thesis_task_links.sql',
   'supabase/migrations/202609210020_shared_feature_access.sql',
   'supabase/migrations/202609210021_portfolio_valuation_quality.sql',
+  'supabase/migrations/202609210022_lifecycle_keyset_pages.sql',
+  'supabase/migrations/202609210023_briefing_keyset_pages.sql',
 ]
 
 for (const migration of sharedSliceMigrations) {

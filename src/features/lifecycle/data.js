@@ -40,3 +40,38 @@ export async function fetchPortfolioTask(supabase, taskId, ownerUserId = null) {
   if (!data) throw new Error('할 일을 찾을 수 없거나 접근할 수 없습니다.')
   return data
 }
+
+function normalizePage(data) {
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    nextCursor: data?.next_cursor ?? null,
+  }
+}
+
+export async function fetchInvestmentDecisionPage(supabase, {
+  cursor = null,
+  filter = 'current',
+  limit = 20,
+  ownerUserId = null,
+} = {}) {
+  return normalizePage(await rpc(supabase, 'app_list_investment_decision_page', {
+    input_cursor: cursor,
+    input_filter: filter,
+    input_limit: limit,
+    input_owner_user_id: ownerUserId,
+  }))
+}
+
+export async function fetchPortfolioTaskPage(supabase, {
+  cursor = null,
+  filter = 'active',
+  limit = 20,
+  ownerUserId = null,
+} = {}) {
+  return normalizePage(await rpc(supabase, 'app_list_portfolio_task_page', {
+    input_cursor: cursor,
+    input_filter: filter,
+    input_limit: limit,
+    input_owner_user_id: ownerUserId,
+  }))
+}

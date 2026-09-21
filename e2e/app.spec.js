@@ -73,7 +73,7 @@ test('shows an adopted decision and its research follow-up without implying a tr
 
   const suffix = Date.now()
   const question = `E2E 보유 판단 ${suffix}`
-  const taskTitle = `E2E 다음 실적 확인 ${suffix}`
+  const taskTitle = `E2E 다음 실적 확인 ${suffix} ${'긴이름'.repeat(30)}`
   const recorded = await callRpc(page, 'app_record_investment_decision', {
     input_idempotency_key: crypto.randomUUID(),
     input_payload: {
@@ -128,20 +128,53 @@ test('shows an adopted decision and its research follow-up without implying a tr
   expect(resolved.status, JSON.stringify(resolved.body)).toBe(200)
 
   await openMenuTab(page, '판단')
-  await expect(page.getByText(question)).toBeVisible()
+  await expect(page.getByRole('heading', { name: question, exact: true })).toBeVisible()
   await expect(page.getByText('내가 채택함').first()).toBeVisible()
   await page.getByText(question).click()
   await expect(page.getByText(taskTitle)).toBeVisible()
+  await page.getByText(taskTitle).click()
+  await expect(page.getByRole('heading', { name: '할 일 상세' })).toBeVisible()
+  await expect(page.getByText(resolvedAnswer)).toBeVisible()
+  await page.getByRole('button', { name: '이전 기록으로' }).click()
+  await expect(page.getByRole('heading', { name: '판단 상세' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: question, exact: true }).last()).toBeVisible()
   await page.getByRole('button', { name: '닫기' }).click()
 
-  await openMenuTab(page, '할 일')
+  await page.getByRole('tab', { name: '할 일', exact: true }).click()
+  await expect(page).toHaveURL(/#tasks$/)
+  await page.getByLabel('목록 필터').getByRole('button', { name: '종료', exact: true }).click()
   await expect(page.getByText(taskTitle)).toBeVisible()
   await expect(page.getByText('답을 확인함').first()).toBeVisible()
-  await page.getByText(taskTitle).click()
+  const taskCard = page.getByRole('button', { name: new RegExp(`^.*${suffix}`) })
+  await taskCard.focus()
+  await page.keyboard.press('Enter')
   await expect(page.getByText(resolvedAnswer)).toBeVisible()
   await expect(page.getByText('E2E official earnings release')).toBeVisible()
   await expect(page.getByText('매매 주문이나 체결 기록이 아닙니다.')).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.getByRole('button', { name: '닫기' }).click()
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(page.getByRole('tablist', { name: '판단과 할 일 전환' })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+})
+
+test('retries the combined work queue after a read error', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  let calls = 0
+  await page.route('**/rest/v1/rpc/app_list_portfolio_task_page', async (route) => {
+    calls += 1
+    if (calls <= 2) {
+      await route.fulfill({ contentType: 'application/json', status: 500, body: JSON.stringify({ message: 'E2E lifecycle failure' }) })
+      return
+    }
+    await route.continue()
+  })
+  await page.goto('/#tasks')
+  await expect(page.getByText('E2E lifecycle failure')).toBeVisible()
+  await page.getByRole('button', { name: '다시 시도' }).click()
+  await expect.poll(() => calls).toBeGreaterThanOrEqual(3)
+  await expect(page.getByRole('tab', { name: '할 일', exact: true })).toHaveAttribute('aria-selected', 'true')
 })
 
 test('saves a private investment policy and includes its version in daily context', async ({ page }) => {
@@ -461,11 +494,23 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   await expect(sharedMenu.getByRole('button', { name: '판단', exact: true })).toBeVisible()
   await expect(sharedMenu.getByRole('button', { name: '할 일', exact: true })).toBeVisible()
   await expect(sharedMenu.getByRole('button', { name: '설정', exact: true })).toHaveCount(0)
+  expect((await callRpc(friendPage, 'app_list_portfolio_task_page', {
+    input_cursor: null, input_filter: 'active', input_limit: 20,
+    input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
+  })).body.items).toBeInstanceOf(Array)
 
   expect((await callRpc(ownerPage, 'app_update_sharing_policy', {
     input_expected_version: enabledPolicy.body.version,
     input_grants: { briefings: false, decisions: false, tasks: false },
   })).status).toBe(200)
+  expect((await callRpc(friendPage, 'app_list_portfolio_task_page', {
+    input_cursor: null, input_filter: 'active', input_limit: 20,
+    input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
+  })).body.items).toEqual([])
+  expect((await callRpc(friendPage, 'app_list_investment_decision_page', {
+    input_cursor: null, input_filter: 'current', input_limit: 20,
+    input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
+  })).body.items).toEqual([])
 
   const outsiderPage = await browser.newPage()
   await signInAs(outsiderPage, 'e2e-outsider@example.com')

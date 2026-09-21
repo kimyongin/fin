@@ -31,6 +31,8 @@ supabase/.temp/
 .e2e/supabase/migrations/202609210019_thesis_task_links.sql
 .e2e/supabase/migrations/202609210020_shared_feature_access.sql
 .e2e/supabase/migrations/202609210021_portfolio_valuation_quality.sql
+.e2e/supabase/migrations/202609210022_lifecycle_keyset_pages.sql
+.e2e/supabase/migrations/202609210023_briefing_keyset_pages.sql
 
 # OS
 .DS_Store

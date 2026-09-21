@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { fetchDailyBriefing, fetchDailyBriefings } from './data'
+import { fetchDailyBriefing, fetchDailyBriefingPage, fetchDailyBriefings } from './data'
 
 describe('daily review data adapter', () => {
   it('lists briefing summaries with a bounded cursor request', async () => {
@@ -39,6 +39,18 @@ describe('daily review data adapter', () => {
     await fetchDailyBriefings(supabase, { ownerUserId: 'owner-1' })
     expect(supabase.rpc).toHaveBeenCalledWith('app_list_daily_briefings_for_owner', {
       input_owner_user_id: 'owner-1', input_limit: 20, input_before: null,
+    })
+  })
+
+  it('uses the stable owner-aware briefing page', async () => {
+    const cursor = { analyzed_at: '2026-09-21T00:00:00Z', id: crypto.randomUUID() }
+    const supabase = { rpc: vi.fn(async () => ({ data: { items: [{ id: 'briefing-1' }], next_cursor: cursor }, error: null })) }
+    await expect(fetchDailyBriefingPage(supabase, { cursor, ownerUserId: 'owner-1' }))
+      .resolves.toEqual({ items: [{ id: 'briefing-1' }], nextCursor: cursor })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_daily_briefing_page', {
+      input_cursor: cursor,
+      input_limit: 20,
+      input_owner_user_id: 'owner-1',
     })
   })
 })

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import MarkdownContent from '../../components/MarkdownContent'
 import ModalShell from '../../components/ModalShell'
-import { fetchDailyBriefing, fetchDailyBriefings } from './data'
+import { fetchDailyBriefing, fetchDailyBriefingPage } from './data'
 import PortfolioIntegritySummary from './PortfolioIntegritySummary'
 
 const reviewPrompt = '오늘 내 포트폴리오 점검하고 저장해줘'
@@ -124,6 +124,7 @@ function BriefingDetail({ briefing, loading, onClose }) {
 
 export default function DailyReviewPage({ ownerUserId = null, supabase }) {
   const [briefings, setBriefings] = useState([])
+  const [nextCursor, setNextCursor] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
@@ -134,9 +135,26 @@ export default function DailyReviewPage({ ownerUserId = null, supabase }) {
     setLoading(true)
     setError('')
     try {
-      setBriefings(await fetchDailyBriefings(supabase, { ownerUserId }))
+      const page = await fetchDailyBriefingPage(supabase, { ownerUserId })
+      setBriefings(page.items)
+      setNextCursor(page.nextCursor)
     } catch (nextError) {
       setError(nextError.message ?? '저장된 점검을 불러오지 못했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function loadMore() {
+    if (!nextCursor) return
+    setLoading(true)
+    setError('')
+    try {
+      const page = await fetchDailyBriefingPage(supabase, { cursor: nextCursor, ownerUserId })
+      setBriefings((current) => [...new Map([...current, ...page.items].map((item) => [item.id, item])).values()])
+      setNextCursor(page.nextCursor)
+    } catch (nextError) {
+      setError(nextError.message ?? '이전 점검을 불러오지 못했습니다.')
     } finally {
       setLoading(false)
     }
@@ -221,6 +239,7 @@ export default function DailyReviewPage({ ownerUserId = null, supabase }) {
               </button>
             </li>
           ))}
+          {nextCursor && <li><button className="min-h-11 w-full rounded-xl border border-[var(--line)] px-4 text-sm font-semibold disabled:opacity-60" disabled={loading} onClick={loadMore} type="button">{loading ? '불러오는 중' : '이전 점검 더 보기'}</button></li>}
         </ol>
       )}
 
