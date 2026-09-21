@@ -1,6 +1,6 @@
 # 화면 구조 규칙
 
-2026-09-21 · 합의된 구현 기준 / 구현 전. 정적 코드 리뷰를 근거로 하며 실제 viewport 검증은 각 티켓에서 수행한다. 제품 책임은 PRD와 product-reorganization.md, 공통 디자인 원칙은 PRINCIPLES.md가 원본이다.
+2026-09-21 · 합의된 구현 기준 / 로컬 적용 완료. 자동 viewport 검증 결과와 남은 실기기 항목은 아래 구현 현황을 따른다. 제품 책임은 PRD와 product-reorganization.md, 공통 디자인 원칙은 PRINCIPLES.md가 원본이다.
 
 ## 페이지 공통 구조
 
@@ -50,3 +50,17 @@
 각 티켓은 360/390/768/1024/1440px, 소유자/공유, 긴 이름/빈값/필터 없음/오류, 키보드와 모달 복귀를 기록한다. 자동 viewport 검증과 실제 모바일 키보드 검증은 구분한다. 안전한 fixture/격리 환경을 사용하며 로컬 URL이라는 이유로 운영 데이터에 테스트 기록을 저장하지 않는다.
 
 이번 범위는 표현/상호작용 개선이다. API·DB·MCP·공유 권한·원가 계산은 변경하지 않는다. 새 쓰기 기능이나 자동 분석을 추가하지 않는다. 구현 완료 보고에는 화면별 적용 여부와 미검증 항목을 남긴다.
+
+## 구현 현황과 예외
+
+| 범위 | 적용 결과 | 검증 |
+| --- | --- | --- |
+| 판단·할 일 / 자산 | 공통 `ViewTabs`, `FilterChips`, `PageToolbar`, 연결 tabpanel과 44px 조작 영역 | 탭 Arrow/Home/End, 기존 보기·필터·공유 E2E |
+| 읽기 상세 | 판단·할 일·브리핑에 모바일 전체 높이/PC 오른쪽 drawer와 내부 상세 뒤로가기 | focus/inert/Escape/연결 상세 E2E |
+| 편집 surface | 계좌·종목·보유·태그·뉴스에 고정 footer, pending 차단, dirty 확인, dark 오류 | 닫기/계속 편집/버리기와 draft 유지 E2E |
+| 표 편집 | 필터·표·상태·오류·롤백·저장을 전체 화면 shell에 통합하고 inline draft 공유 | 확대/수정/축소 draft와 5개 viewport E2E |
+| 나머지 페이지 | feature 중복 상단 여백 제거, 주요 action 44px, dark 오류 표현 | 9개 목적지의 360/390/768/1024/1440px 가로 넘침 검사 |
+
+자동 검증은 Vitest 79개, DB 278개, OAuth MCP 계약, Chromium E2E 28개, production build, encoding과 diff 검사를 사용한다. 실제 모바일 가상 키보드·iOS safe-area·실기기 스크린리더는 아직 확인하지 않았다.
+
+브라우저 history의 뒤로가기는 상세 surface stack과 아직 연결하지 않고 앱 내부 연결 상세 뒤로가기만 제공한다. 또 기존 자산 편집 action은 RPC 저장 성공 후 `refreshState`만 실패한 경우를 저장 실패와 구분하지 못한다. 두 항목은 [모달·상세 티켓](../tickets/ui-consistency-02-surfaces.md)의 미완료 계약으로 유지한다.

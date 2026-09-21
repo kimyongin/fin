@@ -868,6 +868,11 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
   await page.getByRole('button', { name: '전체 화면으로 표 편집' }).click()
   const spreadsheet = page.getByRole('dialog', { name: '표 편집' })
   await expect(spreadsheet).toBeVisible()
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(spreadsheet).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
   const accountName = spreadsheet.getByLabel('계좌명').first()
   const initialAccountName = await accountName.inputValue()
   await accountName.fill(`${initialAccountName} 임시`)
@@ -885,6 +890,26 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
   await accountEditor.getByRole('button', { name: '닫기', exact: true }).first().click()
   await accountEditor.getByRole('button', { name: '변경 버리기' }).click()
   await expect(accountEditor).toHaveCount(0)
+
+  const destinations = [
+    ['today', '오늘'],
+    ['overview', '자산'],
+    ['decisions', '판단·할 일'],
+    ['tasks', '판단·할 일'],
+    ['strategy', '투자 원칙'],
+    ['news', '자료'],
+    ['activity', '활동'],
+    ['settings', '설정'],
+    ['guide', '가이드'],
+  ]
+  for (const [route, heading] of destinations) {
+    await page.goto(`/#${route}`)
+    await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible()
+    for (const width of [360, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    }
+  }
 })
 
 test('handles mocked price-sync Edge Function success and failure in the settings UI', async ({ page }) => {
