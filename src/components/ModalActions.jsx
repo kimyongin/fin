@@ -8,6 +8,7 @@ export default function ModalActions({
   onClose,
   onDelete,
   onSave,
+  saveDisabled = false,
   saveLabel,
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -21,7 +22,7 @@ export default function ModalActions({
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
           <button
-            className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
             disabled={disabled}
             onClick={() => setConfirmingDelete(false)}
             type="button"
@@ -29,7 +30,7 @@ export default function ModalActions({
             취소
           </button>
           <button
-            className="rounded-2xl border border-red-300 bg-red-500/15 px-4 py-2.5 text-sm font-semibold text-red-100 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 rounded-2xl border border-red-300 bg-red-500/15 px-4 text-sm font-semibold text-red-100 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={disabled}
             onClick={onDelete}
             type="button"
@@ -66,7 +67,7 @@ export default function ModalActions({
         </button>
         <button
           className="min-h-11 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled}
+          disabled={disabled || saveDisabled}
           onClick={onSave}
           type="button"
         >

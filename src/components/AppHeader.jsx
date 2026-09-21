@@ -158,7 +158,7 @@ function AppHeader({
         <nav aria-label="보조 메뉴" className="absolute right-0 top-[calc(100%+10px)] z-10 grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-1.5 shadow-2xl shadow-black/40 backdrop-blur">
           {secondaryTabs.map((tab) => (
             <button
-              className={`rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
+              className={`min-h-11 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
                 activeTab === tab.id
                   ? 'bg-[var(--accent)] text-white'
                   : 'text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'
@@ -174,7 +174,7 @@ function AppHeader({
             </button>
           ))}
           <button
-            className="rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+            className="min-h-11 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
             onClick={onSignOut}
             type="button"
           >

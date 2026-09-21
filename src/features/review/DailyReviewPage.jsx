@@ -246,7 +246,7 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
     : false
 
   return (
-    <section className="mt-8 grid gap-5">
+    <section className="grid gap-5">
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -265,7 +265,7 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
                 </section>
                 <section className="mt-5 rounded-2xl border border-[var(--line)] p-4">
                   <h3 className="text-sm font-semibold">이 점검에서 이어갈 과제</h3>
-                  {relatedTasksError ? <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700"><span>{relatedTasksError}</span><button className="rounded-lg border border-red-300 px-3 py-1.5" onClick={load} type="button">다시 시도</button></div> : relatedTasks.length ? (
+                  {relatedTasksError ? <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100"><span>{relatedTasksError}</span><button className="min-h-11 rounded-lg border border-red-400/40 px-3" onClick={load} type="button">다시 시도</button></div> : relatedTasks.length ? (
                     <ul className="mt-2 grid gap-2">
                       {relatedTasks.map((task) => (
                         <li key={task.id}>

@@ -2,10 +2,10 @@ import ActivityEventViewer from './ActivityEventViewer'
 
 export default function ActivityPage({ actions = [], error = '', loading = false, onRefresh }) {
   return (
-    <section className="mt-8 grid gap-5">
+    <section className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm text-[var(--muted-ink)]">최근 기록 {actions.length}건</span>
-        <button className="h-10 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-60" disabled={loading} onClick={onRefresh} type="button">
+        <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-60" disabled={loading} onClick={onRefresh} type="button">
           {loading ? '불러오는 중' : '새로고침'}
         </button>
       </div>

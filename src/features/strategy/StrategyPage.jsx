@@ -1086,7 +1086,7 @@ export default function StrategyPage({
       </div>
     );
   return (
-    <div className="mt-8 grid gap-5">
+    <div className="grid gap-5">
       {onBack && (
         <button
           className="min-h-11 w-fit rounded-xl border border-[var(--line)] px-4 text-sm font-semibold"

@@ -21,13 +21,13 @@ export function AccountEditorModal({
   onSave,
 }) {
   const dirty = useDraftDirty(draft, ['name', 'broker', 'note'])
-  const actions = (
+  const actions = (requestClose) => (
     <ModalActions
       canDelete={!!draft.id}
       deleteConfirmMessage="계좌를 삭제하면 이 계좌 정보가 사라집니다. 계속할까요?"
       deleteLabel="계좌 삭제"
       disabled={accountSaving}
-      onClose={onClose}
+      onClose={requestClose}
       onDelete={onDelete}
       onSave={onSave}
       saveLabel={accountSaving ? '저장 중' : '저장'}
@@ -70,7 +70,7 @@ export function AccountEditorModal({
         </label>
 
         {accountError && (
-          <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100">
             {accountError}
           </div>
         )}
@@ -91,8 +91,31 @@ export function InstrumentEditorModal({
   onSave,
   tags,
 }) {
+  const dirty = useDraftDirty(draft, [
+    'ticker',
+    'display_name',
+    'linked_account_id',
+    'currency',
+    'instrument_type',
+    'price',
+    'price_date',
+    'tag_id',
+    'note',
+  ])
+  const actions = (requestClose) => (
+    <ModalActions
+      canDelete={!!draft.id}
+      deleteConfirmMessage="종목과 연결된 태그, 가격 이력이 함께 삭제됩니다. 계속할까요?"
+      deleteLabel="종목 삭제"
+      disabled={instrumentSaving}
+      onClose={requestClose}
+      onDelete={onDelete}
+      onSave={onSave}
+      saveLabel={instrumentSaving ? '저장 중' : '저장'}
+    />
+  )
   return (
-    <ModalShell onClose={onClose} title={draft.id ? '종목 수정' : '종목 추가'}>
+    <ModalShell closeDisabled={instrumentSaving} dirty={dirty} footer={actions} onClose={onClose} title={draft.id ? '종목 수정' : '종목 추가'}>
       <div className="grid gap-4">
         {draft.instrument_type === 'market' ? <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
@@ -230,21 +253,10 @@ export function InstrumentEditorModal({
         </label>
 
         {instrumentError && (
-          <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100">
             {instrumentError}
           </div>
         )}
-
-        <ModalActions
-          canDelete={!!draft.id}
-          deleteConfirmMessage="종목과 연결된 태그, 가격 이력이 함께 삭제됩니다. 계속할까요?"
-          deleteLabel="종목 삭제"
-          disabled={instrumentSaving}
-          onClose={onClose}
-          onDelete={onDelete}
-          onSave={onSave}
-          saveLabel={instrumentSaving ? '저장 중' : '저장'}
-        />
       </div>
     </ModalShell>
   )
@@ -287,6 +299,27 @@ export function HoldingEditorModal({
         })
         .slice(0, 6)
     : instruments.slice(0, 6)
+  const dirty = useDraftDirty(draft, [
+    'account_id',
+    'ticker',
+    'quantity',
+    'avg_price',
+    'purchase_amount',
+    'valuation_amount',
+    'note',
+  ])
+  const actions = (requestClose) => (
+    <ModalActions
+      canDelete={!!draft.id}
+      deleteConfirmMessage="이 계좌의 보유 항목을 삭제합니다. 계속할까요?"
+      deleteLabel="보유 삭제"
+      disabled={holdingSaving}
+      onClose={requestClose}
+      onDelete={onDelete}
+      onSave={onSave}
+      saveLabel={holdingSaving ? '저장 중' : '저장'}
+    />
+  )
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -300,7 +333,7 @@ export function HoldingEditorModal({
   }, [])
 
   return (
-    <ModalShell onClose={onClose} title={draft.id ? '보유 수정' : '보유 종목 추가'}>
+    <ModalShell closeDisabled={holdingSaving} dirty={dirty} footer={actions} onClose={onClose} title={draft.id ? '보유 수정' : '보유 종목 추가'}>
       <div className="grid gap-4">
         <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
@@ -348,7 +381,7 @@ export function HoldingEditorModal({
                 />
                 <button
                   aria-label="티커 목록 열기"
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                   disabled={holdingLookupSaving}
                   onClick={() => setTickerMenuOpen((current) => !current)}
                   type="button"
@@ -368,7 +401,7 @@ export function HoldingEditorModal({
                 <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-[var(--line)] bg-[#1b1d23] shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
                   {suggestedInstruments.map((instrument) => (
                     <button
-                      className="flex w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left text-sm transition hover:bg-[var(--surface-3)] last:border-b-0"
+                      className="flex min-h-11 w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left text-sm transition hover:bg-[var(--surface-3)] last:border-b-0"
                       key={instrument.ticker}
                       onClick={() => {
                         onChange('ticker', instrument.ticker)
@@ -393,7 +426,7 @@ export function HoldingEditorModal({
               )}
             </div>
             <button
-              className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl border border-[var(--line)] px-3 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-70 sm:min-w-20 sm:w-auto"
+              className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-2xl border border-[var(--line)] px-3 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-70 sm:min-w-20 sm:w-auto"
               disabled={holdingSaving || holdingLookupSaving}
               onClick={onLookupTicker}
               type="button"
@@ -440,7 +473,7 @@ export function HoldingEditorModal({
         )}
 
         {holdingLookupError && (
-          <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100">
             {holdingLookupError}
           </div>
         )}
@@ -502,29 +535,31 @@ export function HoldingEditorModal({
         </label>
 
         {holdingError && (
-          <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100">
             {holdingError}
           </div>
         )}
-
-        <ModalActions
-          canDelete={!!draft.id}
-          deleteConfirmMessage="이 계좌의 보유 항목을 삭제합니다. 계속할까요?"
-          deleteLabel="보유 삭제"
-          disabled={holdingSaving}
-          onClose={onClose}
-          onDelete={onDelete}
-          onSave={onSave}
-          saveLabel={holdingSaving ? '저장 중' : '저장'}
-        />
       </div>
     </ModalShell>
   )
 }
 
 export function TagEditorModal({ draft, onChange, onClose, onDelete, onSave, tagError, tagSaving }) {
+  const dirty = useDraftDirty(draft, ['name', 'sort_order'])
+  const actions = (requestClose) => (
+    <ModalActions
+      canDelete={!!draft.id}
+      deleteConfirmMessage="태그를 삭제하면 연결된 종목은 태그 없음으로 바뀌고, 전략 버킷 연결도 해제됩니다. 계속할까요?"
+      deleteLabel="태그 삭제"
+      disabled={tagSaving}
+      onClose={requestClose}
+      onDelete={onDelete}
+      onSave={onSave}
+      saveLabel={tagSaving ? '저장 중' : '저장'}
+    />
+  )
   return (
-    <ModalShell onClose={onClose} title={draft.id ? '태그 수정' : '태그 추가'}>
+    <ModalShell closeDisabled={tagSaving} dirty={dirty} footer={actions} onClose={onClose} title={draft.id ? '태그 수정' : '태그 추가'}>
       <div className="grid gap-4">
         <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
@@ -552,21 +587,10 @@ export function TagEditorModal({ draft, onChange, onClose, onDelete, onSave, tag
         </div>
 
         {tagError && (
-          <div className="rounded-2xl border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100">
             {tagError}
           </div>
         )}
-
-        <ModalActions
-          canDelete={!!draft.id}
-          deleteConfirmMessage="태그를 삭제하면 연결된 종목은 태그 없음으로 바뀌고, 전략 버킷 연결도 해제됩니다. 계속할까요?"
-          deleteLabel="태그 삭제"
-          disabled={tagSaving}
-          onClose={onClose}
-          onDelete={onDelete}
-          onSave={onSave}
-          saveLabel={tagSaving ? '저장 중' : '저장'}
-        />
       </div>
     </ModalShell>
   )

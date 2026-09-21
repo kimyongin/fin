@@ -58,7 +58,7 @@ export default function GuidePage({ onNavigate }) {
   }
 
   return (
-    <section className="mt-8 grid gap-5">
+    <section className="grid gap-5">
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)]">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Quick start</p>
         <h2 className="mt-3 text-2xl font-semibold">현재 자산을 입력하고, ChatGPT에서 첫 점검을 저장하세요</h2>

@@ -323,7 +323,7 @@ function AccountsPage({
                   {canEdit && (
                     <button
                       aria-label="계좌 편집"
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                       onClick={() => onEditAccount(account)}
                       type="button"
                     >
@@ -383,7 +383,7 @@ function AccountsPage({
                           {canEdit && (
                             <button
                               aria-label="보유 편집"
-                              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+                              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
                               onClick={() => onEditHolding(holding)}
                               type="button"
                             >
@@ -454,7 +454,7 @@ function InstrumentsPage({
                   {canEdit && (
                     <button
                       aria-label="종목 편집"
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                       onClick={() => onEditInstrument(instrument)}
                       type="button"
                     >
@@ -541,7 +541,7 @@ function InstrumentsPage({
                                 </button>
                                 <button
                                   aria-label="보유 편집"
-                                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+                                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] text-[var(--muted-ink)] transition hover:bg-[var(--panel)] hover:text-[var(--ink)]"
                                   onClick={() => onEditHolding(holding)}
                                   type="button"
                                 >

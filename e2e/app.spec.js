@@ -854,6 +854,39 @@ test('keeps four primary destinations usable without horizontal overflow', async
   for (const label of ['자료', '활동', '설정', '가이드']) await expect(secondary.getByRole('button', { name: label, exact: true })).toBeVisible()
 })
 
+test('keeps shared page controls and editing surfaces consistent', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#overview')
+
+  const accountTab = page.getByRole('tab', { name: '계좌 기준', exact: true })
+  await accountTab.focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByRole('tab', { name: '종목 기준', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await page.keyboard.press('End')
+  await expect(page.getByRole('tab', { name: '표 편집', exact: true })).toHaveAttribute('aria-selected', 'true')
+
+  await page.getByRole('button', { name: '전체 화면으로 표 편집' }).click()
+  const spreadsheet = page.getByRole('dialog', { name: '표 편집' })
+  await expect(spreadsheet).toBeVisible()
+  const accountName = spreadsheet.getByLabel('계좌명').first()
+  const initialAccountName = await accountName.inputValue()
+  await accountName.fill(`${initialAccountName} 임시`)
+  await spreadsheet.getByRole('button', { name: '닫기', exact: true }).click()
+  await expect(page.getByLabel('계좌명').first()).toHaveValue(`${initialAccountName} 임시`)
+
+  await page.getByRole('tab', { name: '계좌 기준', exact: true }).click()
+  await page.getByRole('button', { name: '계좌 추가' }).click()
+  const accountEditor = page.getByRole('dialog', { name: '계좌 추가' })
+  await accountEditor.getByLabel('계좌명').fill('저장 전 계좌')
+  await accountEditor.getByRole('button', { name: '닫기', exact: true }).last().click()
+  await expect(accountEditor.getByText('저장하지 않은 변경이 있습니다.')).toBeVisible()
+  await accountEditor.getByRole('button', { name: '계속 편집' }).click()
+  await expect(accountEditor.getByLabel('계좌명')).toHaveValue('저장 전 계좌')
+  await accountEditor.getByRole('button', { name: '닫기', exact: true }).first().click()
+  await accountEditor.getByRole('button', { name: '변경 버리기' }).click()
+  await expect(accountEditor).toHaveCount(0)
+})
+
 test('handles mocked price-sync Edge Function success and failure in the settings UI', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
