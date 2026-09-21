@@ -30,6 +30,7 @@ supabase/.temp/
 .e2e/supabase/migrations/202609210018_portfolio_integrity_summary.sql
 .e2e/supabase/migrations/202609210019_thesis_task_links.sql
 .e2e/supabase/migrations/202609210020_shared_feature_access.sql
+.e2e/supabase/migrations/202609210021_portfolio_valuation_quality.sql
 
 # OS
 .DS_Store

@@ -7,6 +7,7 @@ import {
   matchesTagFilter,
   nativeToKrw,
   normalizeTickerInput,
+  resolvePositionValuation,
 } from './portfolioMath'
 
 describe('portfolioMath', () => {
@@ -35,7 +36,26 @@ describe('portfolioMath', () => {
     expect(fxTickerForCurrency('USD')).toBe('USDKRW=X')
     expect(nativeToKrw(10, 'USD', prices)).toBe(14000)
     expect(nativeToKrw(10, 'KRW', prices)).toBe(10)
-    expect(nativeToKrw(10, 'JPY', prices)).toBe(0)
+    expect(nativeToKrw(10, 'JPY', prices)).toBeNull()
+    expect(nativeToKrw(0, 'KRW', prices)).toBe(0)
+    expect(nativeToKrw(0, 'JPY', prices)).toBe(0)
+  })
+
+  it('keeps missing prices and exchange rates out of known valuation', () => {
+    const prices = new Map([
+      ['OLD', { close_price: 150, price_date: '2026-09-01' }],
+      ['USDKRW=X', { close_price: 0, price_date: '2026-09-20' }],
+    ])
+
+    expect(resolvePositionValuation({
+      currency: 'USD', quantity: 2, latestPrice: prices.get('OLD'), latestPriceByTicker: prices, asOf: new Date('2026-09-21T00:00:00Z'),
+    })).toMatchObject({ marketValueNative: 300, marketValueKrw: null, status: 'missing', issues: ['missing_fx', 'stale_price'] })
+    expect(resolvePositionValuation({
+      currency: 'KRW', quantity: 0, latestPrice: null, latestPriceByTicker: prices,
+    })).toMatchObject({ marketValueNative: 0, marketValueKrw: 0, status: 'complete', issues: [] })
+    expect(resolvePositionValuation({
+      instrumentType: 'valuation', currency: 'JPY', valuationAmount: 1000, latestPriceByTicker: prices,
+    })).toMatchObject({ marketValueNative: 1000, marketValueKrw: null, status: 'missing', issues: ['missing_fx'] })
   })
 
   it('prefers explicit KRW market value when present', () => {

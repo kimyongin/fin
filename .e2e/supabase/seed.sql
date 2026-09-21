@@ -112,6 +112,12 @@ from saved_account;
 insert into public.holding_prices_daily (user_id, ticker, price_date, close_price, source)
 values ('00000000-0000-0000-0000-00000000e201', 'E2EAPL', current_date, 150, 'manual');
 
+insert into public.instruments (user_id, ticker, display_name, currency, instrument_type, price_source)
+values ('00000000-0000-0000-0000-00000000e201', 'USDKRW=X', 'USD/KRW', 'KRW', 'fx', 'manual');
+
+insert into public.holding_prices_daily (user_id, ticker, price_date, close_price, source)
+values ('00000000-0000-0000-0000-00000000e201', 'USDKRW=X', current_date, 1400, 'manual');
+
 insert into public.tags (user_id, name, sort_order)
 values ('00000000-0000-0000-0000-00000000e201', 'E2E Tag', 1);
 

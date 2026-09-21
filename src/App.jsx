@@ -269,6 +269,7 @@ function App() {
     tagCards,
     tagMapByTicker,
     totalValue,
+    valuationQuality,
   } = usePortfolioDerivedData({
     accountTagFilter,
     instrumentTagFilter,
@@ -505,6 +506,7 @@ function App() {
             tagMapByTicker={tagMapByTicker}
             tags={state.tags}
             totalValue={totalValue}
+            valuationQuality={valuationQuality}
             supabase={supabase}
             onTradeSaved={() => refreshState()}
           />
@@ -559,6 +561,7 @@ function App() {
             tagCards={tagCards}
             tags={state.tags}
             totalValue={totalValue}
+            valuationQuality={valuationQuality}
           />
         )}
         {activeTab === 'news' && (

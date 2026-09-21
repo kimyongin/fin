@@ -7,6 +7,7 @@ export function createEmptyPortfolioState() {
     tags: [],
     instrumentTags: [],
     prices: [],
+    valuation_quality: null,
   }
 }
 

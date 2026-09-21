@@ -582,7 +582,7 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await expect(page.getByText('자산 구조 만들기')).toBeVisible()
 })
 
-test('displays strategy contribution allocation and rebalancing guidance', async ({ page }) => {
+test('keeps the saved strategy visible when valuation is incomplete', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await callRpc(page, 'app_save_strategy', {
@@ -591,7 +591,48 @@ test('displays strategy contribution allocation and rebalancing guidance', async
   })
   await openMenuTab(page, '원칙')
   await expect(page.getByText('E2E Display Strategy')).toBeVisible()
-  await expect(page.getByText('E2E Allocation Bucket').first()).toBeVisible()
+  await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toBeVisible()
+})
+
+test('shows incomplete valuation explicitly and suppresses allocation amounts', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+
+  const initialState = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
+  const missingTicker = `E2EMISS${Date.now().toString().slice(-8)}`
+  expect((await callRpc(page, 'app_save_instrument', {
+    input_currency: 'KRW', input_display_name: 'E2E Missing Price', input_instrument_id: null,
+    input_instrument_type: 'market', input_note: null, input_price: null, input_price_date: null,
+    input_price_source: 'manual', input_request: null, input_source: 'user', input_tag_id: null,
+    input_ticker: missingTicker,
+  })).status).toBe(200)
+  expect((await callRpc(page, 'app_save_holding', {
+    input_account_id: initialState.body.accounts[0].id, input_avg_price: 100, input_holding_id: null,
+    input_note: null, input_quantity: 1, input_request: null, input_source: 'user',
+    input_ticker: missingTicker,
+  })).status).toBe(200)
+  expect((await callRpc(page, 'app_save_strategy', {
+    input_buckets: [{ name: 'E2E Quality Bucket', sort_order: 0, tag_ids: [initialState.body.tags[0].id], target_percentage: 100 }],
+    input_drift_threshold: 1, input_monthly_contribution: 100000, input_name: 'E2E Quality Strategy', input_review_day: 1,
+  })).status).toBe(200)
+
+  const state = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
+  expect(state.status, JSON.stringify(state.body)).toBe(200)
+  expect(state.body.valuation_quality.unknown_position_count).toBeGreaterThan(0)
+  expect(state.body.valuation_quality.is_complete).toBe(false)
+
+  await page.reload()
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/#overview')
+    await expect(page.getByText(/평가 불가 \d+개 제외/)).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+
+  await openMenuTab(page, '원칙')
+  await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '이번 달 적립금 배분' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: '리밸런싱 제안' })).toHaveCount(0)
 })
 
 test('handles mocked price-sync Edge Function success and failure in the settings UI', async ({ page }) => {

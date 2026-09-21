@@ -230,7 +230,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_portfolio_state',
     title: 'Portfolio state',
-    description: 'Read accounts, holdings, instruments, tags, and latest prices for the authenticated user.',
+    description: 'Read accounts, holdings, instruments, tags, latest prices, and valuation_quality for the authenticated user. Treat missing values as unknown, never zero; do not make definitive allocation or rebalancing claims when valuation_quality.is_complete is false.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: readOnlyAnnotations,
   },
