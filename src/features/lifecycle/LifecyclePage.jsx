@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import ModalShell from '../../components/ModalShell'
+import { FilterChips, PageToolbar, ViewTabs } from '../../components/PageControls'
 import { createRequestGate } from '../../lib/requestGate'
 import {
   fetchInvestmentDecision,
@@ -205,21 +206,17 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
   }
 
   return (
-    <section className="mt-8 grid gap-5">
-      <header className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">Decision &amp; follow-up</p>
-        <h2 className="mt-2 text-xl font-semibold">판단에서 다음 확인과 실행까지 이어갑니다.</h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">ChatGPT가 생각을 돕고, Portfolio는 사용자가 저장하라고 한 결과와 상태를 보존합니다.</p>
-        <div aria-label="판단과 할 일 전환" className="mt-5 flex gap-2" role="tablist">
-          {modeOptions.map((option) => <button aria-selected={mode === option.id} className={`rounded-xl px-4 py-2 text-sm font-semibold ${mode === option.id ? 'bg-[var(--accent)] text-white' : 'border border-[var(--line)]'}`} key={option.id} onClick={() => changeMode(option.id)} role="tab" type="button">{option.label}</button>)}
-        </div>
+    <section className="grid gap-5">
+      <header className="grid gap-3">
+        <p className="text-sm leading-6 text-[var(--muted-ink)]">저장한 판단과 다음에 확인하거나 실행할 일을 이어서 봅니다.</p>
+        <PageToolbar>
+          <ViewTabs ariaLabel="판단과 할 일 전환" className="grid-cols-2" idBase="lifecycle-view" onChange={changeMode} options={modeOptions} panelId="lifecycle-panel" value={mode} />
+        </PageToolbar>
+        <FilterChips ariaLabel="목록 필터" onChange={(nextFilter) => setFilterByMode((current) => ({ ...current, [mode]: nextFilter }))} options={filterOptions[mode]} value={filter} />
       </header>
 
-      <div className="flex flex-wrap gap-2" aria-label="목록 필터">
-        {filterOptions[mode].map((option) => <button aria-pressed={filter === option.id} className={`rounded-full px-3 py-1.5 text-sm ${filter === option.id ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent)]' : 'border border-[var(--line)] text-[var(--muted-ink)]'}`} key={option.id} onClick={() => setFilterByMode((current) => ({ ...current, [mode]: option.id }))} type="button">{option.label}</button>)}
-      </div>
-
-      {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700"><span>{error}</span><button className="rounded-xl border border-red-300 px-3 py-1.5" onClick={() => loadPage()} type="button">다시 시도</button></div>}
+      <div aria-labelledby={`lifecycle-view-${mode}`} className="grid gap-5" id="lifecycle-panel" role="tabpanel" tabIndex={0}>
+      {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => loadPage()} type="button">다시 시도</button></div>}
       {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">기록을 불러오는 중입니다.</p> : items.length === 0 ? <EmptyState mode={mode} /> : (
         <div className="grid gap-3">
           {items.map((item) => (
@@ -233,6 +230,7 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
           {nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold disabled:opacity-50" disabled={loadingMore} onClick={() => loadPage({ append: true, cursor: nextCursor })} type="button">{loadingMore ? '불러오는 중' : '더 보기'}</button>}
         </div>
       )}
+      </div>
       {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={() => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(null); setDetailHistory([]) }} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
     </section>
   )

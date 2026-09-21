@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { assetViewOptions } from "../../constants/portfolio";
 import { PencilIcon } from "../../components/icons";
 import MetricSummary from "../../components/MetricSummary";
+import { PageToolbar, ViewTabs } from "../../components/PageControls";
 import PortfolioEntityHeader from "../../components/PortfolioEntityHeader";
 import {
   AccountIdentity,
@@ -134,7 +135,7 @@ function TagActionToolbar({
       <label className="min-w-0 flex-1 sm:flex-none">
         <span className="sr-only">태그 필터</span>
         <select
-          className={`h-10 min-w-0 rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.03)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] ${selectClassName}`}
+          className={`min-h-11 min-w-0 rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.03)] px-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] ${selectClassName}`}
           onChange={(event) => onTagFilterChange(event.target.value)}
           value={selectedTagId}
         >
@@ -149,7 +150,7 @@ function TagActionToolbar({
       </label>
       {buttonLabel && onAction && (
         <button
-          className="h-10 shrink-0 rounded-xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
+          className="min-h-11 shrink-0 rounded-xl bg-[var(--accent)] px-3 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4"
           onClick={onAction}
           type="button"
         >
@@ -677,50 +678,12 @@ export default function AssetsPage({
   }
   return (
     <section className="grid gap-4">
-      <div className="grid gap-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div
-            aria-label="자산 보기 전환"
-            className="inline-grid w-full grid-cols-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-1 sm:w-auto"
-            role="tablist"
-          >
-            {assetViewOptions.map((option) => (
-              <button
-                aria-selected={assetView === option.id}
-                className={`min-w-0 whitespace-nowrap rounded-xl px-2 py-2.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
-                  assetView === option.id
-                    ? "bg-[var(--accent)] text-white shadow-[0_6px_16px_rgba(219,106,33,0.35)]"
-                    : "text-[var(--muted-ink)] opacity-80 hover:text-[var(--ink)] hover:opacity-100"
-                }`}
-                key={option.id}
-                onClick={() => onAssetViewChange(option.id)}
-                role="tab"
-                type="button"
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <button
-            className="min-h-11 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]"
-            onClick={onCompareTargets}
-            type="button"
-          >
-            목표와 비교
-          </button>
-        </div>
-        <div className="flex flex-col gap-2 border-t border-[var(--line)] pt-3 sm:flex-row sm:items-center sm:justify-end">
-          {assetView === "tags" ? (
-            <TagActionToolbar
-              buttonLabel=""
-              className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
-              onAction={undefined}
-              onTagFilterChange={() => {}}
-              selectedTagId="all"
-              selectClassName="hidden"
-              tags={tags}
-            />
-          ) : assetView === "accounts" ? (
+      <div className="grid gap-4">
+        <PageToolbar secondary={<button className="min-h-11 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]" onClick={onCompareTargets} type="button">목표와 비교</button>}>
+          <ViewTabs ariaLabel="자산 보기 전환" className="grid-cols-4" idBase="asset-view" onChange={onAssetViewChange} options={assetViewOptions} panelId="asset-view-panel" value={assetView} />
+        </PageToolbar>
+        {(assetView === "accounts" || assetView === "instruments") && <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          {assetView === "accounts" ? (
             <TagActionToolbar
               buttonLabel={canEdit ? "계좌 추가" : ""}
               className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
@@ -741,9 +704,10 @@ export default function AssetsPage({
               tags={tags}
             />
           ) : null}
-        </div>
+        </div>}
       </div>
 
+      <div aria-labelledby={`asset-view-${assetView}`} className="grid gap-4" id="asset-view-panel" role="tabpanel" tabIndex={0}>
       <ValuationQualityBanner
         quality={valuationQuality}
         totalValue={totalValue}
@@ -807,6 +771,7 @@ export default function AssetsPage({
           tags={tags}
         />
       )}
+      </div>
       {thesisError && (
         <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
           {thesisError}
