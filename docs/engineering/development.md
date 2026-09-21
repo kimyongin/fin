@@ -32,7 +32,7 @@
 1. AGENTS → START-HERE → PRD/ADR → 관련 티켓/계약을 읽는다. git status와 원격 티켓 최신 본문을 확인하고 무관한 사용자 변경을 보존한다.
 2. 시나리오와 불변 조건을 선택한다. 미정 계약은 해당 티켓에서 먼저 정리하며 정책을 조용히 변경하지 않는다.
 3. 정상/실패/권한/경쟁 사례를 정의한 뒤 작은 기능 단위로 구현한다. 안전한 로컬·테스트 환경에서 검증한다.
-4. 모델/API가 바뀌면 시나리오·설명·스키마·서버 테스트를 함께 갱신한다. DB 구조 변경은 OVERVIEW도 갱신한다.
+4. 모델/API가 바뀌면 시나리오·설명·스키마·서버 테스트를 함께 갱신한다. MCP 관련 의미가 바뀌면 영향받는 작업 가이드도 수정하거나 영향 없음 사유를 review manifest에 기록하고 `npm run check:workflow-guides`를 통과시킨다. DB 구조 변경은 OVERVIEW도 갱신한다.
 5. 실행 환경/명령/결과·미검증 항목·다음 작업을 남기고 로컬/GitHub 티켓을 맞춘다. 커밋·푸시·배포는 별도 단계이며 무관한 변경을 포함하지 않는다.
 
 ## 환경 구분
@@ -57,6 +57,8 @@
 | UI | 관련 E2E + 디자인 원칙의 화면 폭·빈값·긴값·공유 상태 수동 확인 |
 | DB/RPC | 대상 한정 DDL/RLS 조사, migration 재현, 소유권·경쟁·원자성·이관/복구 테스트 |
 | MCP/Edge Function | 독립 타입 검사, initialize/tools/list/call 오류·인증·schema/handler 일치, 실제 웹/모바일 확인 |
+
+MCP 작업 가이드 변경은 `npm run check:workflow-guides`로 참조 도구·source·검토 digest를 확인한다. 실제 의미를 자동 판정하는 검사는 아니므로 계약 변경을 검토한 뒤 `WORKFLOW_GUIDE_REVIEW_REASON`을 지정해 `npm run update:workflow-guide-review`로 검토 기록을 갱신한다.
 
 Edge Function 타입 검사는 Deno 2 환경의 `npm run check:edge`로 실행한다. MCP 정의·오류 fixture는 `npm test`에 포함된다. `npm run test:e2e`는 격리 환경에 실제 Edge Function을 복사해 initialize, tools/list, 인증된 tools/call, 인증 거부, 입력 오류 계약도 호출한다. Vite build 통과를 Edge Function 검증으로 대신하지 않는다. 스키마 fixture 검사만으로 DB 보안을 검증했다고 하지 않는다.
 

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-09-21",
+  "review_reason": "Implemented and verified six workflow guides with OAuth policy save/read; synchronized current tool, handler, data, and app contracts.",
+  "topics": {
+    "policy": {
+      "revision": "fnv1a32:719312c0",
+      "contract_digest": "f53de4153c1bc97d7862ef3bbaa4afe2bd437827e34d13616456218d1cd3c00d"
+    },
+    "holding_thesis": {
+      "revision": "fnv1a32:62ae4aff",
+      "contract_digest": "244cc35be9e0e7e3010e16a967c83642ecaaddea885f3d9bb7503301f6493609"
+    },
+    "daily_review": {
+      "revision": "fnv1a32:40650a5d",
+      "contract_digest": "525a9c143c79da81ee9d16f22af1cba56047b3ffccca52f2e56f0df5f5931bcb"
+    },
+    "decision_followup": {
+      "revision": "fnv1a32:ba39411c",
+      "contract_digest": "9a154aaf5d379df2221b13b762cb587a5a91d99cfe0079a662f77a06cc828250"
+    },
+    "trade_entry": {
+      "revision": "fnv1a32:718f2176",
+      "contract_digest": "cdcfdddf8b9c5dd002c6e38c9f9d1613b9a9b20f6d35a15e4bb50d5b38066bb0"
+    },
+    "reconciliation": {
+      "revision": "fnv1a32:8e287fff",
+      "contract_digest": "955bfd3015a933ed0d1465d9fd74a3e3d2305706d7643cef42a04023d210a991"
+    }
+  }
+}

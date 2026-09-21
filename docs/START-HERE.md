@@ -2,6 +2,10 @@
 
 갱신: 2026-09-21 · 현재 마일스톤: MCP-first Portfolio 운영 검증 준비 (#40)
 
+## 최신 구현: MCP 작업 가이드 #63~#65
+
+투자 기준 인터뷰부터 get_workflow_guide를 도입하는 [티켓 #63~#65](./tickets/README.md#mcp-작업-가이드--다음-구현-계획)를 로컬 구현했다. [제공·최신화 설계](./design/contracts/agent/workflow-guide-design.md), 여섯 topic, 변경 영향 검사와 E13~E15 평가 사례가 기준이다. 운영 배포와 실제 ChatGPT 웹·모바일 평가는 아직 하지 않았다.
+
 ## 최신 인계: 운영 안정성 개선 티켓
 
 ### 최신 완료 작업: UI 구조 일관성 #59~#62
@@ -64,7 +68,7 @@
 - 우선 적용 결정은 [ADR-0004](./adr/0004-domain-storage-and-minimal-mutation-contract.md)다. 도메인 테이블+공통 변경 규약, 필요한 대상별 version, 현재값+중요 이력/당시 snapshot을 사용한다. 범용 type+payload 저장소나 모든 객체 revision 엔진을 새로 만들지 않는다.
 - [구현 현황 감사](./tickets/implementation-audit-20260921.md)가 로컬 완료·부분 완료·외부 대기 판정의 기준이다. #32/#37/#38/#41/#42/#44는 로컬 범위 완료, #33~#36/#43은 핵심 구현 후 운영/사용성 검증 대기, #39는 미완료다.
 - migration 001~019에 일일 context/브리핑, 판단·조사 task, 개인 기준, 보유 이유, 완료 매매, 보정/확인/취소, 실행 계획, 기능별 공유와 공개 DTO가 있다. DB 작업은 항상 `supabase/schema/OVERVIEW.md`부터 읽는다.
-- OAuth MCP는 공통 정의의 35개 도구와 self-contained instructions를 사용한다. 로컬 Edge에서 인증된 initialize/tools/list/오류 계약을 확인했다. prompt/resource는 선택적이며 제품의 전제가 아니다.
+- 운영 OAuth MCP 0.4.0은 35개 도구, 로컬 0.5.0은 `get_workflow_guide`를 포함한 36개 도구를 사용한다. prompt/resource는 선택적이며 제품의 전제가 아니다.
 - 기존 agent-token `portfolio-mcp`는 legacy `mcp_*` RPC를 쓰는 호환 endpoint다. OAuth 도구와 의미가 달라 같은 배열로 합치지 않으며 신규 기능은 OAuth endpoint에만 추가한다.
 - React 앱은 기존 자산 4가지 보기와 표 편집을 유지하면서 오늘/판단/할 일/원칙, 매매 기록·취소, 잔고 보정·확인, 공유 읽기를 연결했다. Google 로그인 시작 경로를 포함한 전체 Chromium E2E 22개가 통과했다.
 - 자동 검증 기준점은 DB 223 assertions, Vitest 53 tests, Playwright 22 tests, production build, encoding check다. 숫자가 바뀌면 실제 최신 실행 결과를 기록한다.

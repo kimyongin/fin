@@ -1,5 +1,17 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## MCP 작업 가이드 — 로컬 구현 결과
+
+2026-09-21 · OAuth MCP 0.5.0 로컬 구현·자동 검증 완료, 운영 배포·실제 모델 평가 전. [제공·최신화 설계](../design/contracts/agent/workflow-guide-design.md)를 기준으로 한다.
+
+| 순서 | 티켓 | 로컬 명세 |
+| --- | --- | --- |
+| 1 | [#63 투자 기준 인터뷰](https://github.com/kimyongin/fin/issues/63) | [명세](./workflow-guide-01-policy.md) |
+| 2 | [#64 나머지 작업 가이드](https://github.com/kimyongin/fin/issues/64) | [명세](./workflow-guide-02-topics.md) |
+| 함께 | [#65 최신화 검사·회귀 평가](https://github.com/kimyongin/fin/issues/65) | [명세](./workflow-guide-03-maintenance.md) |
+
+`get_workflow_guide`의 policy 포함 여섯 topic, 단일 원본, 기존 daily-review resource 렌더링, 변경 영향 review manifest와 CI 검사를 구현했다. 격리 OAuth에서 여섯 가이드 조회 및 투자 기준 저장·멱등 재시도·재조회를 확인했다. 실제 ChatGPT 웹/모바일 선택·인터뷰 평가는 남아 있으며 기존 #57의 후순위 판단을 실제 소비 사례로 재검토한 후속이다.
+
 ## UI 구조 일관성 — 로컬 구현 결과
 
 2026-09-21 · #59~#62의 로컬 구현과 자동 검증을 완료했다. [화면 구조 규칙](../design/screen-structure.md)이 구현 결과와 실기기 미검증 항목의 기준이다.
@@ -168,7 +180,7 @@ ChatGPT는 조사하고 생각하고 설명하며, Portfolio는 기억하고 계
 - #39: 핵심 파악 시간, 화면 전환·추가 질문 부담, 다시 사용할 의향을 검증한다.
 
 ## 현행 구현 근거
-- supabase/functions/portfolio-mcp-oauth/index.ts: 35개 목적 중심 도구, OAuth, annotations, 강화된 instructions, 선택적 prompt/resource 실험.
+- supabase/functions/portfolio-mcp-oauth/index.ts: 로컬 36개 목적 중심 도구(운영 35개), OAuth, annotations, 강화된 instructions, 선택적 prompt/resource 실험.
 - supabase/schema/OVERVIEW.md: 기존 holdings/transactions 및 뉴스/리포트/전략/감사 모델의 조사 시작점. 적용된 SQL의 정확한 동작은 각 구현 티켓에서 확인한다.
 - src/features/portfolio/holdingActions.js: 현행 보유량 직접 편집과 자산 유형별 저장.
 - src/features/news/data.js: 기존 뉴스 사실/해석 CRUD.
@@ -180,7 +192,7 @@ ChatGPT는 조사하고 생각하고 설명하며, Portfolio는 기억하고 계
 | 티켓 | 상태 | 완료된 근거 | 티켓을 닫기 전에 남은 것 |
 | --- | --- | --- | --- |
 | #32 제품·계산 계약 | 완료(로컬 계약) | PRD/ADR, 24개 시나리오, 체결가 평균·보정 기준점, 초기/매수/부분·전량 매도/재매수 decimal fixture | 구현 티켓의 운영 배포 게이트로 이관 |
-| #33 OAuth MCP | 부분 완료 | OAuth 다중 사용자 연결, 공통 tool schema/handler, 로컬 Edge의 인증된 initialize·35개 tools/list·오류 계약 | 배포 후 전체 인증 격리와 웹·모바일 새 세션 재검증 |
+| #33 OAuth MCP | 부분 완료 | OAuth 다중 사용자 연결, 공통 tool schema/handler, 로컬 Edge의 인증된 initialize·36개 tools/list·오류 계약 | 0.5.0 배포 후 전체 인증 격리와 웹·모바일 새 세션 재검증 |
 | #34 일일 문맥 | 로컬 핵심 구현 | 임시 context 생명주기, 원칙·판단·열린 질문·보유 이유 포함, DB 테스트 | 누락 시세/복귀/부분 조사/응답 크기 통합 검증 |
 | #35 저장·조회 | 로컬 핵심 구현 | 브리핑+출처+조사 범위, 판단+질문, 실행 계획·부분 체결, 보유 이유/task 관계, 공유 read DTO, 상태 전이, idempotency | 정정 근거와 전체 사용자 흐름 검증 |
 | #36 오늘 화면 | 로컬 핵심 구현 | 오늘·판단·할 일·원칙·보유 이유 UI, 친구 전환, 점검 기록 공유 묶음 설정 | 전체 반응형/빈 상태/왕복 감소 실사용 검증 |

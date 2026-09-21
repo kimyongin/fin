@@ -7,7 +7,7 @@
 | 티켓 | 판정 | 판단 근거 | 남은 완료 조건 |
 | --- | --- | --- | --- |
 | #32 제품·계산 계약 | 완료 | PRD/ADR, 24개 시나리오, 체결가 이동평균·절대 기준점·취소 규칙, decimal 생애주기 fixture | 없음. 운영 이관은 #37/#38/#39의 배포 게이트 |
-| #33 OAuth MCP | 부분 완료 | OAuth 다중 사용자 endpoint, 35개 공통 tool schema/handler, 강화된 instructions, 로컬 인증 initialize/tools/list/오류 확인 | 운영 배포 후 인증 격리, ChatGPT 웹·모바일 새 세션 확인 |
+| #33 OAuth MCP | 부분 완료 | OAuth 다중 사용자 endpoint, 로컬 36개 공통 tool schema/handler와 작업 가이드, 강화된 instructions, 로컬 인증 initialize/tools/list/오류 확인 | 0.5.0 운영 배포 후 인증 격리, ChatGPT 웹·모바일 새 세션 확인 |
 | #34 일일 문맥 | 부분 완료 | TTL·소유권·크기/개수 제한, snapshot, 이전 범위·열린 task·원칙·보유 이유·잔고 상태, DB 테스트 | 대표 대규모 계정 응답 크기/시간과 부분 조사 실사용 확인 |
 | #35 브리핑·판단·할 일 | 부분 완료 | 출처/scope 브리핑, 판단/질문 상태전이, 실행 계획/체결 진행도, 공유 DTO, 멱등/CAS | 정정 기사와 부분 성공을 포함한 실제 ChatGPT 대화 검증 |
 | #36 오늘 화면·온보딩 | 부분 완료 | 네 개 주 메뉴, 오늘 결론/변화/연결 과제, 판단·할 일 통합, 자산 목표 비교, OAuth 빠른 시작·복구 안내, 친구 문맥, Google 로그인 E2E | 본인·지인 실제 계정의 새 OAuth 연결과 웹·모바일 저장/재조회 |
@@ -28,7 +28,7 @@
 - `npm run test:e2e`: Chromium 27개 통과. 자산 CRUD/공유/전략/뉴스/표 입력, 새 일일 점검·연결 과제·판단/할 일·원칙·보유 이유·매매·보정, 5개 화면 폭 탐색, OAuth 온보딩과 Google 로그인 시작 경로를 포함한다.
 - `npm run build`: production build 통과. 500 kB 초과 chunk 경고는 성능 후속이며 기능 실패가 아니다.
 - `npm run check:encoding`: 262개 텍스트 파일 통과.
-- 로컬 Supabase Edge runtime: 인증 누락은 401, 임시 인증 사용자의 `initialize`는 protocol `2025-06-18`, `tools/list`는 35개, 미지원 method는 JSON-RPC `-32601`. 임시 사용자는 검사 후 삭제했다.
+- 로컬 Supabase Edge runtime: 인증 누락은 401, 임시 인증 사용자의 `initialize`는 protocol `2025-06-18`, `tools/list`는 36개, 여섯 가이드와 policy 저장·재조회, 미지원 method는 JSON-RPC `-32601`. 임시 사용자는 검사 후 삭제했다.
 
 ## 명시적으로 완료 처리하지 않은 것
 

@@ -29,5 +29,8 @@ jobs:
       - name: Install Playwright browser
         run: npm run test:e2e:install
 
+      - name: Check MCP workflow guides
+        run: npm run check:workflow-guides
+
       - name: Run isolated Supabase E2E suite
         run: npm run test:e2e
