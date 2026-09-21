@@ -13,9 +13,13 @@ type JsonRpcRequest = {
   params?: Record<string, unknown>
 }
 
+type RpcClient = {
+  rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message?: string } | null }>
+}
+
 type ToolHandlerContext = {
   args: Record<string, unknown>
-  supabase: ReturnType<typeof createClient>
+  supabase: RpcClient
   tokenHash: string
 }
 
@@ -75,7 +79,7 @@ function firstRow(data: unknown) {
 }
 
 async function rpcResult(
-  supabase: ReturnType<typeof createClient>,
+  supabase: RpcClient,
   name: string,
   args: Record<string, unknown>,
   fallback: unknown = null,
@@ -86,7 +90,7 @@ async function rpcResult(
 }
 
 async function rpcFirstRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: RpcClient,
   name: string,
   args: Record<string, unknown>,
 ) {
@@ -802,7 +806,7 @@ Deno.serve(async (req) => {
     const tokenHash = await sha256Hex(token)
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    const supabase = createClient(supabaseUrl, supabaseAnonKey) as unknown as RpcClient
 
     const toolName = String(message.params?.name ?? '')
     const args = (message.params?.arguments ?? {}) as Record<string, unknown>

@@ -10,14 +10,15 @@ npm run test:e2e
 
 The suite starts and resets `.e2e/supabase`; it never uses the regular local
 development database or remote Supabase project. GitHub Actions runs this same
-command for every pull request and push to `master`.
+command for every pull request. `master` 배포 workflow도 같은 명령을 필수 gate로 실행한다.
 
 ## Baseline maintenance
 
 `.e2e/supabase/migrations/202607190000_e2e_baseline.sql` is the dedicated E2E
-schema baseline. When an application migration changes the public schema, apply
-the migration to the E2E project too (or regenerate the baseline deliberately),
-then run `npm run test:e2e`. Do not copy production data into the E2E seed.
+schema baseline. The runner automatically copies every newer application migration
+into the isolated project for that run, verifies that the newest migration is present,
+and removes the temporary copies during cleanup. Regenerate the baseline only as a
+deliberate maintenance task. Do not copy production data into the E2E seed.
 
 ## Test users
 

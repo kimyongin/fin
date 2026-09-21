@@ -16,7 +16,7 @@ CI와 같은 Node.js 22 환경을 기준으로 `npm ci`를 실행한다. 저장�
 
 연결 대상이 로컬/개발용인지 먼저 확인하고 `npm run dev`로 실행한다. 로컬 프런트엔드라도 원격 URL을 넣으면 원격 데이터가 변경된다. Docker는 로컬 Supabase/E2E 사용 시 필요하며 Vite만 실행하는 데 필수는 아니다.
 
-`npm run test:db`는 현재 **연결된 원격 DB**를 대상으로 한다. `supabase db reset`은 데이터 초기화 명령이며 일반 실행 절차가 아니다. 자세한 안전 절차는 development 문서를 따른다.
+`npm run test:db`는 실행 중인 **일반 로컬 Supabase**를 대상으로 하며 초기화하지 않는다. `npm run test:e2e`만 전용 `.e2e` 환경을 시작·초기화·정리한다. 두 명령 모두 연결된 원격 DB를 대상으로 하지 않는다. `supabase db reset`은 데이터 초기화 명령이므로 일반 실행 절차로 사용하지 않는다.
 
 ## 폴더 요약
 
