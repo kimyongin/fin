@@ -16,14 +16,26 @@ function assetViewFromHash() {
   return hash === 'accounts' || hash === 'instruments' || hash === 'sheet' ? hash : 'tags'
 }
 
-export function usePortfolioNavigation(canEdit) {
+export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null) {
   const [activeTab, setActiveTab] = useState(() => tabFromHash(canEdit ? 'today' : 'overview'))
   const [assetView, setAssetView] = useState(() => assetViewFromHash())
 
-  const tabs = useMemo(
-    () => allTabs.filter((tab) => canEdit || !['today', 'decisions', 'tasks', 'settings'].includes(tab.id)),
-    [canEdit],
-  )
+  const tabs = useMemo(() => {
+    if (canEdit) return allTabs
+    const features = sharedFeatureAccess?.relationshipAccess ? sharedFeatureAccess.features : {}
+    const allowedByTab = {
+      today: features.briefings,
+      overview: features.assets,
+      decisions: features.decisions,
+      tasks: features.tasks,
+      strategy: features.strategy,
+      news: features.news,
+      activity: features.activity,
+      settings: false,
+      guide: true,
+    }
+    return allTabs.filter((tab) => Boolean(allowedByTab[tab.id]))
+  }, [canEdit, sharedFeatureAccess])
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -52,9 +64,9 @@ export function usePortfolioNavigation(canEdit) {
 
   useEffect(() => {
     if (!tabs.some((tab) => tab.id === activeTab)) {
-      setActiveTab('overview')
+      setActiveTab(!canEdit && sharedFeatureAccess === null ? 'overview' : (tabs[0]?.id ?? 'guide'))
     }
-  }, [activeTab, tabs])
+  }, [activeTab, canEdit, sharedFeatureAccess, tabs])
 
   return {
     activeTab,

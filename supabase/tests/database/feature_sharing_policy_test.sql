@@ -1,4 +1,4 @@
-begin; create extension if not exists pgtap with schema extensions; set local search_path=public,extensions; select extensions.plan(13);
+begin; create extension if not exists pgtap with schema extensions; set local search_path=public,extensions; select extensions.plan(17);
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001001','authenticated','authenticated','sharing-owner@example.com','',now(),now(),now()),
 ('00000000-0000-0000-0000-000000001002','authenticated','authenticated','sharing-viewer@example.com','',now(),now(),now());
@@ -15,6 +15,9 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001002'
 select extensions.ok(public.can_view_feature('00000000-0000-0000-0000-000000001001','assets'),'friend can read legacy assets');
 select extensions.ok(public.can_view_feature('00000000-0000-0000-0000-000000001001','briefings'),'friend can read enabled briefings');
 select extensions.ok(not public.can_view_feature('00000000-0000-0000-0000-000000001001','investment_profile'),'friend cannot read private profile');
+select extensions.ok((public.app_get_shared_feature_access('00000000-0000-0000-0000-000000001001')->>'relationship_access')::boolean,'friend effective access confirms relationship');
+select extensions.ok((public.app_get_shared_feature_access('00000000-0000-0000-0000-000000001001')->'features'->>'briefings')::boolean,'friend effective access exposes enabled briefing menu');
+select extensions.ok(not (public.app_get_shared_feature_access('00000000-0000-0000-0000-000000001001')->'features'->>'investment_profile')::boolean,'friend effective access keeps private profile hidden');
 select extensions.is(jsonb_array_length(public.app_list_investment_decisions_for_owner('00000000-0000-0000-0000-000000001001',20,null)),1,'enabled decision DTO is visible');
 select extensions.is(jsonb_array_length(public.app_list_portfolio_tasks_for_owner('00000000-0000-0000-0000-000000001001',null,20,null)),1,'enabled task DTO is visible');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001001',true);
@@ -23,4 +26,5 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001002'
 select extensions.is(jsonb_array_length(public.app_list_investment_decisions_for_owner('00000000-0000-0000-0000-000000001001',20,null)),0,'revoked decision list is empty');
 set local role postgres; update profiles set sharing_enabled=false where user_id='00000000-0000-0000-0000-000000001001'; set local role authenticated;
 select extensions.ok(not public.can_view_feature('00000000-0000-0000-0000-000000001001','briefings'),'disabling sharing revokes access immediately');
+select extensions.ok(not (public.app_get_shared_feature_access('00000000-0000-0000-0000-000000001001')->>'relationship_access')::boolean,'effective access fails closed after sharing is disabled');
 select * from extensions.finish(); rollback;

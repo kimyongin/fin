@@ -29,6 +29,7 @@ supabase/.temp/
 .e2e/supabase/migrations/202609210017_holding_thesis_lifecycle.sql
 .e2e/supabase/migrations/202609210018_portfolio_integrity_summary.sql
 .e2e/supabase/migrations/202609210019_thesis_task_links.sql
+.e2e/supabase/migrations/202609210020_shared_feature_access.sql
 
 # OS
 .DS_Store

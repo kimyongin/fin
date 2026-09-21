@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fetchPortfolioState } from './data'
+import { fetchPortfolioState, fetchSharedFeatureAccess } from './data'
 
 describe('fetchPortfolioState', () => {
   it('requests a selected friend portfolio by owner id', async () => {
@@ -30,5 +30,25 @@ describe('fetchPortfolioState', () => {
     })
     expect(supabase.rpc).toHaveBeenNthCalledWith(2, 'app_get_portfolio_state')
     expect(state.accounts).toEqual([{ id: 2 }])
+  })
+})
+
+describe('fetchSharedFeatureAccess', () => {
+  it('reads fail-closed effective features for a selected owner', async () => {
+    const supabase = {
+      rpc: vi.fn(async () => ({
+        data: { owner_user_id: 'owner-1', relationship_access: true, features: { assets: true, briefings: false } },
+        error: null,
+      })),
+    }
+
+    await expect(fetchSharedFeatureAccess(supabase, 'owner-1')).resolves.toEqual({
+      ownerUserId: 'owner-1',
+      relationshipAccess: true,
+      features: { assets: true, briefings: false },
+    })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_get_shared_feature_access', {
+      input_owner_user_id: 'owner-1',
+    })
   })
 })

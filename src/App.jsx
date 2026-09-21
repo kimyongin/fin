@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AppHeader from './components/AppHeader'
 import ActivityPageView from './features/activity/ActivityPage'
 import AssetsPageView from './features/assets/AssetsPage'
@@ -25,6 +25,7 @@ import {
   fetchActiveViewerAccess,
   fetchFriends,
   fetchPortfolioState,
+  fetchSharedFeatureAccess,
   fetchViewerProfile,
 } from './features/portfolio/data'
 import { portfolioMessages } from './features/portfolio/messages'
@@ -71,6 +72,7 @@ function App() {
   const [friendError, setFriendError] = useState('')
   const [friendSaving, setFriendSaving] = useState(false)
   const [viewContext, setViewContext] = useState(() => createOwnerViewContext())
+  const [sharedFeatureAccess, setSharedFeatureAccess] = useState(null)
   const [accountTagFilter, setAccountTagFilter] = useState('all')
   const [instrumentTagFilter, setInstrumentTagFilter] = useState('all')
   const [spreadsheetSaving, setSpreadsheetSaving] = useState(false)
@@ -82,7 +84,7 @@ function App() {
   })
   const isAnonymousSession = Boolean(session?.user?.is_anonymous)
   const canEdit = viewContext.mode === 'owner' && !isAnonymousSession
-  const { activeTab, assetView, setActiveTab, setAssetView, tabs } = usePortfolioNavigation(canEdit)
+  const { activeTab, assetView, setActiveTab, setAssetView, tabs } = usePortfolioNavigation(canEdit, sharedFeatureAccess)
   const {
     actions: agentActions,
     actionsError: agentActionsError,
@@ -172,6 +174,24 @@ function App() {
     setViewerProfile,
     setViewerProfileDraft,
   })
+
+  useEffect(() => {
+    let active = true
+    if (viewContext.mode !== 'shared' || !viewContext.ownerUserId) {
+      setSharedFeatureAccess(null)
+      return () => { active = false }
+    }
+
+    setSharedFeatureAccess(null)
+    fetchSharedFeatureAccess(supabase, viewContext.ownerUserId)
+      .then((access) => { if (active) setSharedFeatureAccess(access) })
+      .catch((error) => {
+        if (!active) return
+        setSharedFeatureAccess(null)
+        setLoadError(error.message ?? '공유 범위를 불러오지 못했습니다.')
+      })
+    return () => { active = false }
+  }, [viewContext.mode, viewContext.ownerUserId])
 
   const handlePortfolioChange = useCallback(async (ownerUserId) => {
     if (ownerUserId === 'owner') {

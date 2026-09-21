@@ -428,6 +428,16 @@ test('deleting a tag unlinks it from its instrument without deleting the instrum
 })
 
 test('adds a friend and grants only that user shared portfolio access', async ({ browser }) => {
+  const ownerPage = await browser.newPage()
+  await signInAs(ownerPage, 'e2e-owner@example.com')
+  await ownerPage.goto('/')
+  const initialPolicy = await callRpc(ownerPage, 'app_get_sharing_policy')
+  const enabledPolicy = await callRpc(ownerPage, 'app_update_sharing_policy', {
+    input_expected_version: initialPolicy.body.version,
+    input_grants: { briefings: true, decisions: true, tasks: true },
+  })
+  expect(enabledPolicy.status).toBe(200)
+
   const friendPage = await browser.newPage()
   await signInAs(friendPage, 'e2e-friend@example.com')
   await friendPage.goto('/')
@@ -442,6 +452,20 @@ test('adds a friend and grants only that user shared portfolio access', async ({
     input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
   })
   expect(sharedState.body.accounts).toContainEqual(expect.objectContaining({ name: 'E2E Account' }))
+
+  await friendPage.reload()
+  await friendPage.getByLabel('포트폴리오 전환').selectOption('00000000-0000-0000-0000-00000000e201')
+  await friendPage.getByRole('button', { name: 'Open menu' }).click()
+  const sharedMenu = friendPage.locator('nav')
+  await expect(sharedMenu.getByRole('button', { name: '오늘', exact: true })).toBeVisible()
+  await expect(sharedMenu.getByRole('button', { name: '판단', exact: true })).toBeVisible()
+  await expect(sharedMenu.getByRole('button', { name: '할 일', exact: true })).toBeVisible()
+  await expect(sharedMenu.getByRole('button', { name: '설정', exact: true })).toHaveCount(0)
+
+  expect((await callRpc(ownerPage, 'app_update_sharing_policy', {
+    input_expected_version: enabledPolicy.body.version,
+    input_grants: { briefings: false, decisions: false, tasks: false },
+  })).status).toBe(200)
 
   const outsiderPage = await browser.newPage()
   await signInAs(outsiderPage, 'e2e-outsider@example.com')

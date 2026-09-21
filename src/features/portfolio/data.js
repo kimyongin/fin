@@ -52,6 +52,19 @@ export async function fetchActiveViewerAccess(supabase) {
   return Array.isArray(data) ? data[0] ?? null : data
 }
 
+export async function fetchSharedFeatureAccess(supabase, ownerUserId) {
+  if (!ownerUserId) throw new Error('공유 포트폴리오 소유자가 필요합니다.')
+  const { data, error } = await supabase.rpc('app_get_shared_feature_access', {
+    input_owner_user_id: ownerUserId,
+  })
+  if (error) throw error
+  return {
+    ownerUserId: data?.owner_user_id ?? ownerUserId,
+    relationshipAccess: Boolean(data?.relationship_access),
+    features: data?.features ?? {},
+  }
+}
+
 export async function fetchViewerProfile(supabase) {
   const { data, error } = await supabase
     .from('profiles')
