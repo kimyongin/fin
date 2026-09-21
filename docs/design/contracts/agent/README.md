@@ -1,6 +1,6 @@
 # Portfolio 에이전트 계약 관리
 
-2026-09-21 · OAuth MCP 0.4.0을 로컬 Edge에서 검증했다. 인증된 `initialize`, 35개 `tools/list`, context→브리핑 저장·재조회, 안정 커서 조회, 금융 응답 유실/충돌 복구와 미지원 메서드 오류를 확인했다. DB 278개와 웹 앱 E2E 27개는 통과했으며 운영 배포 후 ChatGPT 웹·모바일 새 세션 평가는 아직 하지 않았다.
+2026-09-21 · OAuth MCP 0.4.0을 운영에 배포했다. 인증된 `initialize`, 35개 `tools/list`, context→브리핑 저장·재조회, 안정 커서 조회, 금융 응답 유실/충돌 복구와 미지원 메서드 오류를 확인했다. DB 278개와 웹 앱 E2E 27개, 운영 RPC 4개와 OAuth MCP discovery가 배포 게이트를 통과했다. ChatGPT 웹은 액션 새로 고침 후 새 세션에서 `list_daily_briefings(limit=1)` 호출을 확인했으며, 모바일과 나머지 모델 선택 사례 평가는 아직 하지 않았다.
 
 ## 원본과 전달 경로
 
@@ -27,7 +27,7 @@ MCP prompt/resource는 표준 호환성 실험을 위해 유지하지만 제품 
 
 - `observed-local`: 현 작업 트리의 OAuth tools 배열에서 확인. 운영 제공/호환성 보증이 아님.
 - `planned`: 계약만 있음. tools/list나 작업 가이드의 실행 가능한 기능으로 광고 금지.
-- `released`: 구현·서버 테스트·배포·대상 클라이언트 검증 근거가 기록된 상태. 이번 작업에서 새로 판정한 released 도구 없음.
+- `released`: 구현·서버 테스트·배포·대상 클라이언트 검증 근거가 기록된 상태. 2026-09-21 현재 OAuth endpoint와 `list_daily_briefings`의 ChatGPT 웹 호출을 확인했으며, 나머지 개별 도구는 자동 계약 검증 상태로 유지한다.
 - 앱 전용/내부 API는 별도 분류한다. 서비스 API 하나당 MCP 도구 하나를 만들지 않는다.
 
 ## 변경·버전 관리
