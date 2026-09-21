@@ -347,12 +347,22 @@ test('previews and records a completed trade on mobile', async ({ page }) => {
   await page.getByLabel(/체결 단가/).fill('200')
   await page.getByRole('button', { name: '변경 미리보기' }).click()
   await expect(page.getByText('2 → 3')).toBeVisible()
+  let dropFirstConfirmationResponse = true
+  await page.route('**/rest/v1/rpc/app_log_completed_trade', async (route) => {
+    if (!dropFirstConfirmationResponse) return route.continue()
+    dropFirstConfirmationResponse = false
+    await route.fetch()
+    await route.abort('connectionreset')
+  })
+  await page.getByRole('button', { name: '체결 기록 확정' }).click()
+  await expect(page.getByText(/같은 요청으로 다시 시도/)).toBeVisible()
   await page.getByRole('button', { name: '체결 기록 확정' }).click()
   await expect(page.getByRole('heading', { name: 'E2E Apple 매매 기록' })).toBeHidden()
+  await page.unroute('**/rest/v1/rpc/app_log_completed_trade')
 
   const transactions = await callRpc(page, 'app_list_transactions', { input_limit: 10, input_before: null })
   expect(transactions.status, JSON.stringify(transactions.body)).toBe(200)
-  expect(transactions.body).toContainEqual(expect.objectContaining({ ticker: 'E2EAPL', side: 'buy', quantity: '1.0000000000000000' }))
+  expect(transactions.body.filter((item) => item.ticker === 'E2EAPL' && item.side === 'buy' && item.quantity === '1.0000000000000000')).toHaveLength(1)
   const state = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(state.body.holdings.find((item) => item.ticker === 'E2EAPL')).toMatchObject({ quantity: 3 })
 
