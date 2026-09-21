@@ -15,14 +15,13 @@ export default function TradeEntryModal({ accounts, instrument, onClose, onSaved
   const [reversal, setReversal] = useState(null)
 
   async function refreshTransactions() {
-    const items = await listTransactions(supabase)
-    setTransactions(items.filter((item) => Number(item.instrument_id) === Number(instrument.id)))
+    setTransactions(await listTransactions(supabase, { instrumentId: instrument.id }))
   }
 
   useEffect(() => {
     let active = true
-    listTransactions(supabase)
-      .then((items) => { if (active) setTransactions(items.filter((item) => Number(item.instrument_id) === Number(instrument.id))) })
+    listTransactions(supabase, { instrumentId: instrument.id })
+      .then((items) => { if (active) setTransactions(items) })
       .catch((next) => { if (active) setError(next.message) })
     return () => { active = false }
   }, [instrument.id, supabase])

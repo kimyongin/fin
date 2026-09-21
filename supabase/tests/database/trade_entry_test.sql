@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select extensions.plan(19);
+select extensions.plan(25);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values
@@ -81,6 +81,47 @@ select extensions.throws_ok(
 select extensions.is(
  (select count(*) from public.trade_entries where preview_id=(select competing_preview from trade_test_data)),
  0::bigint, 'the rejected competing preview creates no ledger row');
+
+select extensions.is(
+ jsonb_array_length(public.app_list_transaction_page(9701,9701,1,null)->'items'),
+ 1, 'transaction page filters before applying its limit');
+select extensions.ok(
+ public.app_list_transaction_page(9701,9701,1,null)->'next_cursor' is not null,
+ 'transaction page returns a cursor when more filtered rows exist');
+select extensions.isnt(
+ public.app_list_transaction_page(9701,9701,1,null)#>>'{items,0,id}',
+ public.app_list_transaction_page(9701,9701,1,public.app_list_transaction_page(9701,9701,1,null)->'next_cursor')#>>'{items,0,id}',
+ 'the next transaction page does not repeat the previous row');
+select extensions.is(
+ jsonb_array_length(public.app_list_transaction_page(9701,999999,10,null)->'items'),
+ 0, 'an account filter with no matching trades returns an empty page');
+
+set local role postgres;
+insert into public.trade_previews(
+ id,user_id,account_id,instrument_id,holding_id,holding_state_version,side,quantity,unit_price,
+ executed_on,before_quantity,before_cost_pool,after_quantity,after_cost_pool,expires_at,created_at
+)
+select gen_random_uuid(),'00000000-0000-0000-0000-000000000701',9701,9701,holding.id,holding.state_version,
+ 'buy',1,999,current_date,holding.ledger_quantity,holding.ledger_cost_pool,
+ holding.ledger_quantity+1,holding.ledger_cost_pool+999,now()+interval '1 hour',now()+g*interval '1 microsecond'
+from public.holdings holding cross join generate_series(1,55) g
+where holding.account_id=9701 and holding.ticker='TRADE';
+insert into public.trade_entries(
+ user_id,account_id,instrument_id,holding_id,preview_id,side,quantity,unit_price,executed_on,
+ before_quantity,before_cost_pool,after_quantity,after_cost_pool,authored_via,created_at
+)
+select preview.user_id,preview.account_id,preview.instrument_id,preview.holding_id,preview.id,preview.side,
+ preview.quantity,preview.unit_price,preview.executed_on,preview.before_quantity,preview.before_cost_pool,
+ preview.after_quantity,preview.after_cost_pool,'app',preview.created_at
+from public.trade_previews preview
+where preview.user_id='00000000-0000-0000-0000-000000000701' and preview.unit_price=999;
+set local role authenticated;
+select extensions.is(
+ jsonb_array_length(public.app_list_transaction_page(9701,9701,50,null)->'items'),
+ 50, 'a filtered transaction page reaches its requested limit when more than fifty rows exist');
+select extensions.is(
+ jsonb_array_length(public.app_list_transaction_page(9701,9701,50,public.app_list_transaction_page(9701,9701,50,null)->'next_cursor')->'items'),
+ 8, 'the next filtered page returns every remaining row without truncation');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000702',true);
 select extensions.throws_ok(

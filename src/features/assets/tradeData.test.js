@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { confirmTrade, confirmTradeReversal, previewTrade, previewTradeReversal } from './tradeData'
+import { confirmTrade, confirmTradeReversal, listTransactionPage, previewTrade, previewTradeReversal } from './tradeData'
 
 describe('trade data', () => {
   it('previews decimal inputs without client arithmetic', async () => {
@@ -18,5 +18,14 @@ describe('trade data', () => {
     const supabase = { rpc: vi.fn(async () => ({ data: { reversal_id: 'r' }, error: null })) }
     await confirmTradeReversal(supabase, 'preview', 'stable-key')
     expect(supabase.rpc).toHaveBeenCalledWith('app_reverse_trade_entry', expect.objectContaining({ input_idempotency_key: 'stable-key' }))
+  })
+  it('filters transaction pages on the server before applying the limit', async () => {
+    const cursor = { created_at: '2026-09-21T00:00:00Z', id: crypto.randomUUID() }
+    const supabase = { rpc: vi.fn(async () => ({ data: { items: [{ id: 'trade' }], next_cursor: cursor }, error: null })) }
+    await expect(listTransactionPage(supabase, { accountId: 2, instrumentId: 3, limit: 25 }))
+      .resolves.toEqual({ items: [{ id: 'trade' }], nextCursor: cursor })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_transaction_page', {
+      input_account_id: 2, input_cursor: null, input_instrument_id: 3, input_limit: 25,
+    })
   })
 })

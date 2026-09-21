@@ -55,24 +55,17 @@ describe('daily review data adapter', () => {
   })
 
   it('finds only tasks explicitly linked through a briefing decision', async () => {
-    const supabase = { rpc: vi.fn(async (name, params) => {
-      if (name === 'app_list_investment_decisions') return {
-        data: [
-          { id: 'decision-1', source_briefing_id: 'briefing-1' },
-          { id: 'decision-2', source_briefing_id: 'briefing-2' },
-        ], error: null,
-      }
-      expect(params).toEqual({ input_decision_id: 'decision-1' })
-      return { data: { tasks: [{ id: 'task-1', title: '실적 확인' }] }, error: null }
-    }) }
+    const supabase = { rpc: vi.fn(async () => ({ data: { status: 'ok', items: [{ id: 'task-1', title: '실적 확인' }] }, error: null })) }
 
     await expect(fetchBriefingRelatedTasks(supabase, 'briefing-1'))
       .resolves.toEqual([{ id: 'task-1', title: '실적 확인' }])
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_briefing_related_tasks', {
+      input_briefing_id: 'briefing-1', input_owner_user_id: null, input_limit: 3,
+    })
   })
 
-  it('does not infer private briefing relationships in a shared view', async () => {
-    const supabase = { rpc: vi.fn() }
-    await expect(fetchBriefingRelatedTasks(supabase, 'briefing-1', 'owner-1')).resolves.toEqual([])
-    expect(supabase.rpc).not.toHaveBeenCalled()
+  it('does not report missing tasks when the shared relation is forbidden', async () => {
+    const supabase = { rpc: vi.fn(async () => ({ data: { status: 'forbidden', items: [] }, error: null })) }
+    await expect(fetchBriefingRelatedTasks(supabase, 'briefing-1', 'owner-1')).rejects.toThrow('공유 권한')
   })
 })

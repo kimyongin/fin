@@ -20,7 +20,20 @@ export async function confirmTrade(supabase, previewId, idempotencyKey) {
   if (error) throw error
   return data
 }
-export async function listTransactions(supabase) { const {data,error}=await supabase.rpc('app_list_transactions',{input_limit:50,input_before:null}); if(error)throw error; return Array.isArray(data)?data:[] }
+export async function listTransactionPage(supabase, { accountId = null, cursor = null, instrumentId = null, limit = 50 } = {}) {
+  const { data, error } = await supabase.rpc('app_list_transaction_page', {
+    input_account_id: accountId == null ? null : Number(accountId),
+    input_cursor: cursor,
+    input_instrument_id: instrumentId == null ? null : Number(instrumentId),
+    input_limit: limit,
+  })
+  if (error) throw error
+  return { items: Array.isArray(data?.items) ? data.items : [], nextCursor: data?.next_cursor ?? null }
+}
+
+export async function listTransactions(supabase, filters = {}) {
+  return (await listTransactionPage(supabase, filters)).items
+}
 export async function previewTradeReversal(supabase,tradeId,reason){const{data,error}=await supabase.rpc('app_preview_trade_reversal',{input_trade_id:tradeId,input_reason:reason.trim()});if(error)throw error;return data}
 export async function confirmTradeReversal(supabase, previewId, idempotencyKey) {
   const { data, error } = await supabase.rpc('app_reverse_trade_entry', {
