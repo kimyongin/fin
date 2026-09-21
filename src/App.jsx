@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AppHeader from './components/AppHeader'
 import ActivityPageView from './features/activity/ActivityPage'
 import AssetsPageView from './features/assets/AssetsPage'
@@ -37,6 +37,7 @@ import { writeClipboard } from './lib/clipboard'
 import { today } from './lib/portfolioMath'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { SUPABASE_URL } from './lib/config'
+import { createRequestGate } from './lib/requestGate'
 import {
   createGuestUnlockDraft,
   createFriendDraft,
@@ -84,6 +85,10 @@ function App() {
     supabase,
   })
   const isAnonymousSession = Boolean(session?.user?.is_anonymous)
+  const portfolioRequestGate = useRef(createRequestGate())
+  const sessionUserId = session?.user?.id ?? null
+  const sessionUserIdRef = useRef(sessionUserId)
+  sessionUserIdRef.current = sessionUserId
   const canEdit = viewContext.mode === 'owner' && !isAnonymousSession
   const { activeTab, assetView, setActiveTab, setAssetView, tabs } = usePortfolioNavigation(canEdit, sharedFeatureAccess)
   const {
@@ -109,9 +114,19 @@ function App() {
   })
 
   const refreshState = useCallback(async (ownerUserId = null) => {
+    const request = portfolioRequestGate.current.begin()
+    const requestedByUserId = sessionUserIdRef.current
     setLoadError('')
-    setState(await fetchPortfolioState(supabase, ownerUserId))
+    const nextState = await fetchPortfolioState(supabase, ownerUserId)
+    if (!request.isCurrent() || sessionUserIdRef.current !== requestedByUserId) return false
+    setState(nextState)
+    return true
   }, [])
+
+  useEffect(() => {
+    portfolioRequestGate.current.invalidate()
+    if (!sessionUserId) setState(createEmptyPortfolioState())
+  }, [sessionUserId])
 
   const loadFriends = useCallback(async () => {
     try {
@@ -195,6 +210,14 @@ function App() {
   }, [viewContext.mode, viewContext.ownerUserId])
 
   const handlePortfolioChange = useCallback(async (ownerUserId) => {
+    portfolioRequestGate.current.invalidate()
+    setState(createEmptyPortfolioState())
+    setLoadError('')
+    setLifecycleSelection(null)
+    editor.setAccountModal(null)
+    editor.setHoldingModal(null)
+    editor.setInstrumentModal(null)
+    editor.setTagModal(null)
     if (ownerUserId === 'owner') {
       setViewContext(createOwnerViewContext(session.user.id))
       setActiveTab('overview')
@@ -212,7 +235,7 @@ function App() {
     })
     setActiveTab('overview')
     await refreshState(friend.owner_user_id)
-  }, [friends, refreshState, session?.user?.id, setActiveTab])
+  }, [editor, friends, refreshState, session?.user?.id, setActiveTab])
 
   const handleAddFriend = useCallback(async () => {
     setFriendSaving(true)

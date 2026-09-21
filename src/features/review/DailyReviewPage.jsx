@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import MarkdownContent from '../../components/MarkdownContent'
 import ModalShell from '../../components/ModalShell'
 import { fetchBriefingRelatedTasks, fetchDailyBriefing, fetchDailyBriefingPage } from './data'
 import PortfolioIntegritySummary from './PortfolioIntegritySummary'
+import { createRequestGate } from '../../lib/requestGate'
 
 const reviewPrompt = '오늘 내 포트폴리오 점검하고 저장해줘'
 
@@ -142,52 +143,89 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
   const [selected, setSelected] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [relatedTasksError, setRelatedTasksError] = useState('')
+  const listRequestGate = useRef(createRequestGate())
+  const detailRequestGate = useRef(createRequestGate())
 
   async function load() {
+    const request = listRequestGate.current.begin()
     setLoading(true)
     setError('')
+    setRelatedTasksError('')
+    setBriefings([])
+    setLatestDetail(null)
+    setRelatedTasks([])
+    setNextCursor(null)
     try {
       const page = await fetchDailyBriefingPage(supabase, { ownerUserId })
+      if (!request.isCurrent()) return
       setBriefings(page.items)
       setNextCursor(page.nextCursor)
-      const detail = page.items[0] ? await fetchDailyBriefing(supabase, page.items[0].id, ownerUserId) : null
+      if (!page.items[0]) return
+      const detail = await fetchDailyBriefing(supabase, page.items[0].id, ownerUserId)
+      if (!request.isCurrent()) return
       setLatestDetail(detail)
-      setRelatedTasks(detail ? await fetchBriefingRelatedTasks(supabase, detail.id, ownerUserId) : [])
+      try {
+        const tasks = await fetchBriefingRelatedTasks(supabase, detail.id, ownerUserId)
+        if (!request.isCurrent()) return
+        setRelatedTasks(tasks)
+      } catch (taskError) {
+        if (!request.isCurrent()) return
+        setRelatedTasks([])
+        setRelatedTasksError(taskError.message ?? '연결된 과제를 불러오지 못했습니다.')
+      }
     } catch (nextError) {
+      if (!request.isCurrent()) return
       setError(nextError.message ?? '저장된 점검을 불러오지 못했습니다.')
     } finally {
-      setLoading(false)
+      if (request.isCurrent()) setLoading(false)
     }
   }
 
   async function loadMore() {
     if (!nextCursor) return
+    const request = listRequestGate.current.begin()
     setLoading(true)
     setError('')
     try {
       const page = await fetchDailyBriefingPage(supabase, { cursor: nextCursor, ownerUserId })
+      if (!request.isCurrent()) return
       setBriefings((current) => [...new Map([...current, ...page.items].map((item) => [item.id, item])).values()])
       setNextCursor(page.nextCursor)
     } catch (nextError) {
+      if (!request.isCurrent()) return
       setError(nextError.message ?? '이전 점검을 불러오지 못했습니다.')
     } finally {
-      setLoading(false)
+      if (request.isCurrent()) setLoading(false)
     }
   }
 
-  useEffect(() => { load() }, [ownerUserId, supabase])
+  useEffect(() => {
+    detailRequestGate.current.invalidate()
+    setSelected(null)
+    setDetailLoading(false)
+    load()
+    return () => {
+      listRequestGate.current.invalidate()
+      detailRequestGate.current.invalidate()
+    }
+  }, [ownerUserId, supabase])
 
   async function openDetail(briefingId) {
+    const request = detailRequestGate.current.begin()
     setDetailLoading(true)
     setError('')
     setSelected({ id: briefingId })
     try {
-      setSelected(await fetchDailyBriefing(supabase, briefingId, ownerUserId))
+      const detail = await fetchDailyBriefing(supabase, briefingId, ownerUserId)
+      if (!request.isCurrent()) return
+      setSelected(detail)
     } catch (nextError) {
+      if (!request.isCurrent()) return
       setSelected(null)
       setError(nextError.message ?? '브리핑 상세를 불러오지 못했습니다.')
     } finally {
-      setDetailLoading(false)
+      if (request.isCurrent()) setDetailLoading(false)
     }
   }
 
@@ -222,7 +260,7 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
                 </section>
                 <section className="mt-5 rounded-2xl border border-[var(--line)] p-4">
                   <h3 className="text-sm font-semibold">이 점검에서 이어갈 과제</h3>
-                  {relatedTasks.length ? (
+                  {relatedTasksError ? <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700"><span>{relatedTasksError}</span><button className="rounded-lg border border-red-300 px-3 py-1.5" onClick={load} type="button">다시 시도</button></div> : relatedTasks.length ? (
                     <ul className="mt-2 grid gap-2">
                       {relatedTasks.map((task) => (
                         <li key={task.id}>
@@ -282,7 +320,7 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
         </ol>
       )}
 
-      {selected && <BriefingDetail briefing={selected.headline ? selected : null} loading={detailLoading} onClose={() => setSelected(null)} />}
+      {selected && <BriefingDetail briefing={selected.headline ? selected : null} loading={detailLoading} onClose={() => { detailRequestGate.current.invalidate(); setSelected(null); setDetailLoading(false) }} />}
     </section>
   )
 }

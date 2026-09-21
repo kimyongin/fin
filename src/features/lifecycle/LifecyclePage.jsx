@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import ModalShell from '../../components/ModalShell'
+import { createRequestGate } from '../../lib/requestGate'
 import {
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
@@ -114,49 +115,64 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
   const [detailHistory, setDetailHistory] = useState([])
   const [detailLoading, setDetailLoading] = useState(false)
   const scrollPositions = useRef({})
+  const listRequestGate = useRef(createRequestGate())
+  const detailRequestGate = useRef(createRequestGate())
   const filter = filterByMode[mode]
 
   async function loadPage({ append = false, cursor = null } = {}) {
+    const request = listRequestGate.current.begin()
     append ? setLoadingMore(true) : setLoading(true)
     setError('')
     try {
       const page = mode === 'decisions'
         ? await fetchInvestmentDecisionPage(supabase, { cursor, filter, ownerUserId })
         : await fetchPortfolioTaskPage(supabase, { cursor, filter, ownerUserId })
+      if (!request.isCurrent()) return
       setItems((current) => append ? [...new Map([...current, ...page.items].map((item) => [item.id, item])).values()] : page.items)
       setNextCursor(page.nextCursor)
       if (!append) requestAnimationFrame(() => window.scrollTo(0, scrollPositions.current[mode] ?? 0))
     } catch (nextError) {
+      if (!request.isCurrent()) return
       setError(nextError.message ?? '기록을 불러오지 못했습니다.')
     } finally {
-      setLoading(false)
-      setLoadingMore(false)
+      if (request.isCurrent()) {
+        setLoading(false)
+        setLoadingMore(false)
+      }
     }
   }
 
   useEffect(() => {
-    let active = true
+    const requestToken = listRequestGate.current.begin()
+    detailRequestGate.current.invalidate()
     setLoading(true)
+    setLoadingMore(false)
     setError('')
-    const request = mode === 'decisions'
+    setItems([])
+    setNextCursor(null)
+    const pageRequest = mode === 'decisions'
       ? fetchInvestmentDecisionPage(supabase, { filter, ownerUserId })
       : fetchPortfolioTaskPage(supabase, { filter, ownerUserId })
-    request.then((page) => {
-      if (!active) return
+    pageRequest.then((page) => {
+      if (!requestToken.isCurrent()) return
       setItems(page.items)
       setNextCursor(page.nextCursor)
       requestAnimationFrame(() => window.scrollTo(0, scrollPositions.current[mode] ?? 0))
     }).catch((nextError) => {
-      if (active) setError(nextError.message ?? '기록을 불러오지 못했습니다.')
+      if (requestToken.isCurrent()) setError(nextError.message ?? '기록을 불러오지 못했습니다.')
     }).finally(() => {
-      if (active) setLoading(false)
+      if (requestToken.isCurrent()) setLoading(false)
     })
     setDetail(null)
     setDetailHistory([])
-    return () => { active = false }
+    return () => {
+      listRequestGate.current.invalidate()
+      detailRequestGate.current.invalidate()
+    }
   }, [filter, mode, ownerUserId, supabase])
 
   async function openDetail(targetMode, id) {
+    const request = detailRequestGate.current.begin()
     const previous = detail?.item ? detail : null
     setDetailLoading(true)
     setDetail({ mode: targetMode, item: null })
@@ -165,13 +181,15 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
       const item = targetMode === 'decisions'
         ? await fetchInvestmentDecision(supabase, id, ownerUserId)
         : await fetchPortfolioTask(supabase, id, ownerUserId)
+      if (!request.isCurrent()) return
       if (previous) setDetailHistory((history) => [...history, previous])
       setDetail({ mode: targetMode, item })
     } catch (nextError) {
+      if (!request.isCurrent()) return
       setDetail(previous)
       setError(nextError.message ?? '상세 기록을 불러오지 못했습니다.')
     } finally {
-      setDetailLoading(false)
+      if (request.isCurrent()) setDetailLoading(false)
     }
   }
 
@@ -215,7 +233,7 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
           {nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold disabled:opacity-50" disabled={loadingMore} onClick={() => loadPage({ append: true, cursor: nextCursor })} type="button">{loadingMore ? '불러오는 중' : '더 보기'}</button>}
         </div>
       )}
-      {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={() => { setDetail(null); setDetailHistory([]) }} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
+      {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={() => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(null); setDetailHistory([]) }} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
     </section>
   )
 }
