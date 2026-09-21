@@ -50,3 +50,14 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 인증된 readiness 사용자와 확인 RPC(비밀번호·토큰 제외)
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
+
+### 2026-09-22 제품 피드백
+
+- 앱 commit: `9b479e7` (`e2321ba` 기능 + 원격 readiness 보강)
+- 운영 DB: `202609210028`, `202609210029` 적용 확인
+- Edge Function: `portfolio-mcp-oauth` version 6, MCP server 0.6.0
+- GitHub Actions: verify/Pages 배포 성공, 원격 인증 RPC와 OAuth MCP discovery 통과
+- 공개 번들: `index-Dnf_tD9D.js`에서 피드백 화면과 `app_submit_product_feedback` 포함 확인
+- 피드백 운영자: 개발자 본인 계정을 운영 DB에서 UUID 기준으로 지정
+- 미검증: 실제 ChatGPT 웹·모바일의 명시적 접수 및 능동 제안 행동 평가
+- 마지막 이전 정상 앱 commit: `f7d5ec0`

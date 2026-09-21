@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-21",
-  "review_reason": "Added and reviewed the product-feedback workflow, consent boundary, privacy allowlist, MCP tools, app flow, triage contract, and current human-facing source guidance.",
+  "review_reason": "Recorded the successful production deployment of the unchanged reviewed product-feedback workflow and MCP 0.6.0 contract.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
@@ -29,7 +29,7 @@
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "107dfc703a1829499497d8cfefe744e6333dc2f4714921007d6adc5aa2675d59"
+      "contract_digest": "46997ef4018ea7ffe54f6956600b047ed066b6fb21fca9015c91bec575ba63aa"
     }
   }
 }
