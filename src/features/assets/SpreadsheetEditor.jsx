@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MaximizeIcon, MinimizeIcon, UndoIcon } from '../../components/icons'
+import { MaximizeIcon, UndoIcon } from '../../components/icons'
+import ModalShell from '../../components/ModalShell'
 import { editableInstrumentTypeOptions } from '../../constants/portfolio'
 import {
   createBlankSpreadsheetRow,
@@ -18,7 +19,7 @@ function Cell({ changed, column, error, hasUndo, onChange, originalValue, row, t
     || (!['valuation', 'cash'].includes(row.instrument_type) && field === 'valuation_amount')
     || (['valuation', 'cash'].includes(row.instrument_type) && field === 'quantity')
   const showOriginal = changed && originalValue !== undefined
-  const className = `${showOriginal ? 'h-8' : 'h-10'} w-full min-w-28 border-0 bg-transparent px-2.5 text-sm outline-none focus:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:bg-black/20 disabled:text-[var(--muted-ink)] ${hasUndo ? 'pr-10' : ''} ${error ? 'bg-red-500/10 text-red-100' : changed ? 'bg-red-500/10 font-semibold text-red-300' : ''}`
+  const className = `${showOriginal ? 'h-8' : 'h-11'} w-full min-w-28 border-0 bg-transparent px-2.5 text-sm outline-none focus:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:bg-black/20 disabled:text-[var(--muted-ink)] ${hasUndo ? 'pr-12' : ''} ${error ? 'bg-red-500/10 text-red-100' : changed ? 'bg-red-500/10 font-semibold text-red-300' : ''}`
   let control
   if (field === 'currency') control = <select aria-label={label} className={className} onChange={(event) => onChange(field, event.target.value)} value={row[field]}><option>KRW</option><option>USD</option><option>JPY</option></select>
   else if (field === 'instrument_type') control = <select aria-label={label} className={className} onChange={(event) => onChange(field, event.target.value)} value={row[field]}>{editableInstrumentTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
@@ -27,15 +28,15 @@ function Cell({ changed, column, error, hasUndo, onChange, originalValue, row, t
   return <div className={showOriginal ? 'py-1' : ''}>{control}{showOriginal && <p className="truncate px-2.5 text-[11px] leading-4 text-[var(--muted-ink)]" title={spreadsheetOriginalValueLabel({ field, originalValue, tags })}>{spreadsheetOriginalValueLabel({ field, originalValue, tags })}</p>}</div>
 }
 
-function SpreadsheetTable({ errorsById, expanded, onChange, onPaste, onResetRow, rows, tags }) {
+function SpreadsheetTable({ errorsById, onChange, onExpand, onPaste, onResetRow, rows, tags }) {
   const originalRowById = useMemo(() => new Map(rows.original.map((row) => [row.id, row])), [rows.original])
   return (
-    <div className={`${expanded ? 'fixed inset-0 z-50 flex flex-col rounded-none border-0' : 'relative overflow-hidden rounded-lg border'} border-[var(--line)] bg-[var(--panel)]`}>
-      <button aria-label={expanded ? '전체 화면 닫기' : '전체 화면으로 표 편집'} className="absolute right-1.5 top-1.5 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md bg-[var(--accent)] text-white shadow-sm transition hover:brightness-95 [&>svg]:h-3.5 [&>svg]:w-3.5" onClick={rows.toggleExpanded} title={expanded ? '전체 화면 닫기' : '전체 화면으로 표 편집'} type="button">{expanded ? <MinimizeIcon /> : <MaximizeIcon />}</button>
-      <div className={`spreadsheet-scroll overflow-auto ${expanded ? 'min-h-0 flex-1' : ''}`} onPaste={onPaste}>
+    <div className="relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--panel)]">
+      {onExpand && <button aria-label="전체 화면으로 표 편집" className="absolute right-1.5 top-1.5 z-10 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--accent)] text-white shadow-sm transition hover:brightness-95 [&>svg]:h-4 [&>svg]:w-4" onClick={onExpand} title="전체 화면으로 표 편집" type="button"><MaximizeIcon /></button>}
+      <div className="spreadsheet-scroll overflow-auto" onPaste={onPaste}>
         <table className="w-full min-w-[1080px] border-collapse text-left">
           <thead className="bg-[var(--surface-2)] text-xs font-medium text-[var(--muted-ink)]"><tr>{spreadsheetColumns.map(([, label]) => <th className="border-b border-[var(--line)] px-2.5 py-3" key={label}>{label}</th>)}</tr></thead>
-          <tbody>{rows.visible.length === 0 ? <tr><td className="px-3 py-8 text-center text-sm text-[var(--muted-ink)]" colSpan={spreadsheetColumns.length}>일치하는 행이 없습니다.</td></tr> : rows.visible.map((row) => { const errors = errorsById.get(row.id); const original = originalRowById.get(row.id); const changed = !original || spreadsheetColumns.some(([field]) => String(row[field] ?? '') !== String(original[field] ?? '')); return <tr className={`border-b border-[var(--line)] last:border-b-0 ${changed ? 'bg-[var(--accent-soft)]' : ''}`} key={row.id}>{spreadsheetColumns.map((column, index) => { const field = column[0]; const cellChanged = !original || String(row[field] ?? '') !== String(original[field] ?? ''); const hasUndo = changed && index === 0; return <td className={`relative min-w-28 border-r border-[var(--line)] last:border-r-0 ${changed && index === 0 ? 'border-l-2 border-l-[var(--accent)]' : ''}`} key={field} title={errors[field] ?? ''}><Cell changed={cellChanged} column={column} error={errors[field]} hasUndo={hasUndo} onChange={(nextField, value) => onChange(row.id, nextField, value)} originalValue={original?.[field]} row={row} tags={tags} />{hasUndo && <button aria-label="행 변경 취소" className="absolute right-1 top-1 inline-flex h-8 w-8 items-center justify-center rounded border border-[var(--line)] bg-[var(--surface-3)] text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]" onClick={() => onResetRow(row.id)} title="행 변경 취소" type="button"><UndoIcon /></button>}</td>})}</tr>})}</tbody>
+          <tbody>{rows.visible.length === 0 ? <tr><td className="px-3 py-8 text-center text-sm text-[var(--muted-ink)]" colSpan={spreadsheetColumns.length}>일치하는 행이 없습니다.</td></tr> : rows.visible.map((row) => { const errors = errorsById.get(row.id); const original = originalRowById.get(row.id); const changed = !original || spreadsheetColumns.some(([field]) => String(row[field] ?? '') !== String(original[field] ?? '')); return <tr className={`border-b border-[var(--line)] last:border-b-0 ${changed ? 'bg-[var(--accent-soft)]' : ''}`} key={row.id}>{spreadsheetColumns.map((column, index) => { const field = column[0]; const cellChanged = !original || String(row[field] ?? '') !== String(original[field] ?? ''); const hasUndo = changed && index === 0; return <td className={`relative min-w-28 border-r border-[var(--line)] last:border-r-0 ${changed && index === 0 ? 'border-l-2 border-l-[var(--accent)]' : ''}`} key={field} title={errors[field] ?? ''}><Cell changed={cellChanged} column={column} error={errors[field]} hasUndo={hasUndo} onChange={(nextField, value) => onChange(row.id, nextField, value)} originalValue={original?.[field]} row={row} tags={tags} />{hasUndo && <button aria-label="행 변경 취소" className="absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center rounded border border-[var(--line)] bg-[var(--surface-3)] text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]" onClick={() => onResetRow(row.id)} title="행 변경 취소" type="button"><UndoIcon /></button>}</td>})}</tr>})}</tbody>
         </table>
       </div>
     </div>
@@ -69,12 +70,6 @@ export default function SpreadsheetEditor({ accounts, canSave = true, holdings, 
     setRows(nextRows)
     setOriginalRows(nextRows)
   }, [accounts, holdings, instrumentTags, instruments])
-
-  useEffect(() => {
-    const handleKeyDown = (event) => event.key === 'Escape' && setExpanded(false)
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
 
   function updateRow(id, field, value) {
     setMessage(''); setSavingError('')
@@ -112,13 +107,19 @@ export default function SpreadsheetEditor({ accounts, canSave = true, holdings, 
     catch (error) { setSavingError(error.message ?? '표를 저장하지 못했습니다.') }
   }
 
+  const filters = <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto"><select aria-label="계좌 필터" className="min-h-11 min-w-28 rounded-lg border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm outline-none focus:border-[var(--accent)]" onChange={(event) => setAccountFilter(event.target.value)} value={accountFilter}><option value="all">전체 계좌</option>{accountNames.map((name) => <option key={name} value={name}>{name}</option>)}</select><select aria-label="태그 필터" className="min-h-11 min-w-28 rounded-lg border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm outline-none focus:border-[var(--accent)]" onChange={(event) => setTagFilter(event.target.value)} value={tagFilter}><option value="all">전체 태그</option>{tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}</select><input aria-label="종목 검색" className="min-h-11 min-w-36 flex-1 rounded-lg border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm outline-none focus:border-[var(--accent)] lg:w-44 lg:flex-none" onChange={(event) => setQuery(event.target.value)} placeholder="티커 또는 종목명" value={query} /><button className="min-h-11 shrink-0 rounded-lg border border-[var(--line)] px-3 text-sm font-medium text-[var(--muted-ink)] hover:bg-[var(--surface-2)]" onClick={addRow} type="button">행 추가</button></div>
+  const status = <div className="text-sm text-[var(--muted-ink)]">{visibleRows.length} / {rows.length}개 행{invalidRows.length > 0 ? ` · 확인 필요 ${invalidRows.length}개` : ' · 저장 가능'}</div>
+  const actions = <div className="grid grid-cols-2 gap-2 sm:flex"><button className="min-h-11 rounded-lg border border-[var(--line)] px-3 text-sm font-medium text-[var(--muted-ink)] hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50" disabled={saving || !hasChanges} onClick={resetAllRows} type="button">전체 롤백</button><button className="min-h-11 rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60" disabled={saving || !canSave} onClick={handleSave} type="button">{saving ? '저장 중' : '표 저장'}</button></div>
+  const table = <SpreadsheetTable errorsById={errorsById} onChange={updateRow} onExpand={expanded ? null : () => setExpanded(true)} onPaste={handlePaste} onResetRow={resetRow} rows={{ original: originalRows, visible: visibleRows }} tags={tags} />
+
   return (
     <section className="grid gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3"><div><h2 className="text-base font-semibold">표 편집</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">엑셀에서 복사한 행을 표 안에 붙여넣고 한 번에 저장할 수 있습니다.</p></div><div className="flex w-full flex-wrap items-center gap-2 lg:w-auto"><select aria-label="계좌 필터" className="h-10 min-w-28 rounded-lg border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm outline-none focus:border-[var(--accent)]" onChange={(event) => setAccountFilter(event.target.value)} value={accountFilter}><option value="all">전체 계좌</option>{accountNames.map((name) => <option key={name} value={name}>{name}</option>)}</select><select aria-label="태그 필터" className="h-10 min-w-28 rounded-lg border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm outline-none focus:border-[var(--accent)]" onChange={(event) => setTagFilter(event.target.value)} value={tagFilter}><option value="all">전체 태그</option>{tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}</select><input aria-label="종목 검색" className="h-10 min-w-36 flex-1 rounded-lg border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm outline-none focus:border-[var(--accent)] lg:w-44 lg:flex-none" onChange={(event) => setQuery(event.target.value)} placeholder="티커 또는 종목명" value={query} /><button className="h-10 shrink-0 rounded-lg border border-[var(--line)] px-3 text-sm font-medium text-[var(--muted-ink)] hover:bg-[var(--surface-2)]" onClick={addRow} type="button">행 추가</button></div></div>
-      <SpreadsheetTable errorsById={errorsById} expanded={expanded} onChange={updateRow} onPaste={handlePaste} onResetRow={resetRow} rows={{ original: originalRows, toggleExpanded: () => setExpanded((current) => !current), visible: visibleRows }} tags={tags} />
-      <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-sm text-[var(--muted-ink)]">{visibleRows.length} / {rows.length}개 행{invalidRows.length > 0 ? ` · 확인 필요 ${invalidRows.length}개` : ' · 저장 가능'}</div><div className="flex items-center gap-2"><button className="h-10 rounded-lg border border-[var(--line)] px-3 text-sm font-medium text-[var(--muted-ink)] hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50" disabled={saving || !hasChanges} onClick={resetAllRows} type="button">전체 롤백</button><button className="h-10 rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60" disabled={saving || !canSave} onClick={handleSave} type="button">{saving ? '저장 중' : '표 저장'}</button></div></div>
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3"><div><h2 className="text-base font-semibold">표 편집</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">엑셀에서 복사한 행을 표 안에 붙여넣고 한 번에 저장할 수 있습니다.</p></div>{filters}</div>
+      {table}
+      <div className="flex flex-wrap items-center justify-between gap-3">{status}{actions}</div>
       {message && <p className="text-sm text-emerald-300">{message}</p>}
       {savingError && <p className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">{savingError}</p>}
+      {expanded && <ModalShell closeDisabled={saving} footer={<div className="grid gap-3 sm:flex sm:items-center sm:justify-between">{status}{actions}</div>} fullScreen onClose={() => setExpanded(false)} title="표 편집"><div className="grid gap-4"><p className="text-sm leading-6 text-[var(--muted-ink)]">필터와 붙여넣기, 행별 변경 취소를 사용한 뒤 아래에서 저장합니다.</p>{filters}{table}{message && <p className="text-sm text-emerald-300">{message}</p>}{savingError && <p className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">{savingError}</p>}</div></ModalShell>}
     </section>
   )
 }
