@@ -58,6 +58,16 @@ jobs:
       - name: Run isolated database and browser tests
         run: npm run test:e2e
 
+      - name: Upload browser failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-verification-artifacts
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+
       - name: Verify deployed RPC compatibility with an authenticated user
         run: npm run check:deployment
         env:

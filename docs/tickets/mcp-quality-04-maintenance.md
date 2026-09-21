@@ -1,6 +1,6 @@
 # [MCP 개선] 업무별 모듈 분리와 설명 원본 일원화
 
-우선순위: P2 · 상태: 미착수 · 작성: 2026-09-21
+우선순위: P2 · 상태: 로컬 최소 구조 정리 완료 · 운영 미배포 · 작성: 2026-09-21
 상위: #40 · 시나리오/연관: W01~W08 · ADR-0004 · #33/#53 후속
 선행/통합: 01~03의 변경을 작은 단위로 따라가며 적용
 
@@ -24,14 +24,20 @@ ChatGPT가 추측 없이 Portfolio 도구를 선택·사용·복구하고, 운�
 
 ## 인수 조건
 
-- [ ] 이름·입출력·annotations·인증의 characterization tests를 통과한 상태에서 모듈을 분리한다.
-- [ ] 현재 workflow에 미등록 도구나 미지원 원자 저장을 실행 가능한 기능으로 안내하지 않는다.
-- [ ] 정의 변경 시 참조 문서·schema·fixture 불일치를 자동 검사하거나 명확한 리뷰 절차로 탐지한다.
-- [ ] 범용 CRUD/DI/명령 엔진, 불필요한 버전·패키지·전용 가이드 도구를 추가하지 않는다.
+- [x] 이름·입출력·annotations·인증의 characterization tests를 통과한 상태에서 최소 공통 registry를 분리한다.
+- [x] 현재 workflow에 미등록 도구나 미지원 원자 저장을 실행 가능한 기능으로 안내하지 않는다.
+- [x] 정의 변경 시 참조 문서·schema·fixture 불일치를 자동 검사하거나 명확한 리뷰 절차로 탐지한다.
+- [x] 범용 CRUD/DI/명령 엔진, 불필요한 버전·패키지·전용 가이드 도구를 추가하지 않는다.
+
+## 구현 결과
+
+- 공통 registry가 정의·handler 이름과 업무 그룹의 중복/미등록을 시작 시 검사한다. 실제 소비가 없는 범용 command/DI 계층은 만들지 않았다.
+- 실행 계약의 원본을 portfolio-tools.ts로 명시하고 workflow의 미등록 get_research_history와 미지원 briefing batch 안내를 제거했다.
+- prompt/resource의 일일 점검 시작 경로를 get_daily_context 한 번으로 맞췄다. legacy token endpoint는 변경하지 않았다.
+- handler 전면 파일 분할은 하지 않았다. 현재 OAuth 소비자 하나에서는 파일 이동보다 registry/계약 검사가 작은 해법이며, 두 번째 실제 소비가 생길 때 목적별 handler 추출을 검토한다.
 
 ## 진행 규칙
 
 - docs/START-HERE.md, 관련 계약과 ADR-0004를 읽고 기존 구현을 먼저 확인한다. 과거 티켓의 구현을 재작성하지 말고 위 후속 차이만 처리한다.
 - 최소 공통 기반 + 수직 슬라이스로 구현·검증한다. 기존 migration을 고치지 말고 필요한 증분 migration과 schema/OVERVIEW.md를 갱신한다.
 - 실제 실행한 검증과 미검증 항목을 구분하고 npm run check:encoding을 수행한다. 운영 배포·push·실사용 검증을 자동 완료 처리하지 않는다.
-

@@ -2,8 +2,12 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 
 import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
-import { portfolioToolDefinitions } from '../_shared/mcp/portfolio-tools.ts'
+import {
+  dailyReviewToolNames, decisionTaskToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
+  investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames, tradeReversalToolNames,
+} from '../_shared/mcp/portfolio-tools.ts'
 import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
+import { type ToolHandler, validateToolRegistry } from '../_shared/mcp/registry.ts'
 
 type JsonRpcRequest = {
   jsonrpc?: string
@@ -25,11 +29,11 @@ const serverInstructions = [
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = `# Daily portfolio review guide
 
-Version marker: PORTFOLIO_RESOURCE_DAILY_REVIEW_V1
+Version marker: PORTFOLIO_RESOURCE_DAILY_REVIEW_V2
 
 Use this workflow when the user asks for a daily portfolio check or morning briefing.
 
-1. Read the authenticated portfolio state, active strategy, saved news, and recent activity.
+1. Call get_daily_context once to read the immutable authenticated snapshot for this review. Do not rebuild the same context with separate portfolio, strategy, news, and activity calls.
 2. Summarize only decision-relevant changes. Do not invent prices, holdings, returns, or account details.
 3. If current market information is needed, use ChatGPT's own web research and cite the sources. Portfolio does not search the public web.
 4. Separate verified facts, interpretation, and suggested questions or actions.
@@ -397,8 +401,6 @@ async function rpc(supabase: any, name: string, args: Record<string, unknown> = 
   return data
 }
 
-type ToolHandler = (supabase: any, args: Record<string, unknown>) => Promise<unknown>
-
 const toolHandlers: Record<string, ToolHandler> = {
   async get_profile(supabase) {
     const { data, error } = await supabase.auth.getUser()
@@ -689,11 +691,15 @@ const toolHandlers: Record<string, ToolHandler> = {
   async reverse_trade_entry(supabase,args){requireSchemaVersion(args);return{ok:true,data:await rpc(supabase,'app_reverse_trade_entry',{input_preview_id:requireUuid(args.preview_id,'preview_id'),input_idempotency_key:requireUuid(args.idempotency_key,'idempotency_key'),input_authored_via:'agent'})}},
 }
 
-const definitionNames = portfolioToolDefinitions.map((definition) => definition.name).sort()
-const handlerNames = Object.keys(toolHandlers).sort()
-if (JSON.stringify(definitionNames) !== JSON.stringify(handlerNames)) {
-  throw new Error('Portfolio MCP tool definitions and handlers do not match')
-}
+validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
+  dailyReview: dailyReviewToolNames,
+  decisionsAndTasks: decisionTaskToolNames,
+  investmentPolicy: investmentPolicyToolNames,
+  holdingThesis: holdingThesisToolNames,
+  tradeEntry: tradeEntryToolNames,
+  holdingIntegrity: holdingIntegrityToolNames,
+  tradeReversal: tradeReversalToolNames,
+})
 
 Deno.serve(
   pipeline(
@@ -723,7 +729,7 @@ Deno.serve(
             prompts: { listChanged: false },
             resources: { subscribe: false, listChanged: false },
           },
-          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.3.0' },
+          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.4.0' },
           instructions: serverInstructions,
         })
       }
@@ -761,7 +767,7 @@ Deno.serve(
               content: {
                 type: 'text',
                 text: [
-                  'Prompt marker: PORTFOLIO_PROMPT_DAILY_REVIEW_V1',
+                  'Prompt marker: PORTFOLIO_PROMPT_DAILY_REVIEW_V2',
                   'Prepare my daily portfolio review.',
                   'Use Portfolio tools for stored facts and calculations. Use ChatGPT web research only when current external information is necessary.',
                   'Separate facts, interpretation, and decisions that require my attention.',

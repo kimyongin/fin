@@ -35,3 +35,7 @@
 
 ## 현재 배포 근거
 2026-09-21 이전 응답에서 remote migration 020~023 적용과 migration list 일치를 확인했다. 인증 없는 RPC 호출은 permission denied였다. 실제 사용자 조회 성공이나 최신 프런트/Edge 배포까지 검증한 근거로 확대하지 않는다.
+
+## 2026-09-21 후속 정정 (#58)
+
+기존 `test:e2e`는 격리 DB를 reset했지만 pgTAP을 실행하지 않아 “DB 검사가 배포 gate에 연결됐다”는 표현이 과했다. #58에서 reset 직후 DB 278개를 실행하도록 고쳤고, 운영 readiness에 transaction page와 OAuth MCP discovery를 추가했다. 이 후속 로컬 검증도 운영 migration 026/Edge/Pages 배포 또는 실제 ChatGPT 성공을 뜻하지 않는다.

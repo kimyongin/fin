@@ -1,6 +1,8 @@
 # 도구 설명 카탈로그
 
-revision 8 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
+> 실행 가능한 description/inputSchema/outputSchema/annotations의 단일 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`다. 이 문서는 제품 의도와 과거 문구의 검토 카탈로그이며, 문구를 런타임 계약으로 복사하거나 현재 제공 기능으로 간주하지 않는다. 실제 제공 상태는 OAuth `tools/list`와 공통 정의의 자동 테스트에서 확인한다.
+
+revision 9 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
 
 ## 설명 작성 형식
 

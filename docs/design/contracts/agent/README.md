@@ -1,6 +1,6 @@
 # Portfolio 에이전트 계약 관리
 
-2026-09-21 · 로컬 OAuth Edge 런타임에서 인증된 `initialize`, 35개 `tools/list`, 미지원 메서드 오류를 다시 검증했다. 공통 schema/handler와 DB 계약, 웹 앱 E2E는 통과했으며 운영 배포 후 ChatGPT 웹·모바일 새 세션 검증은 아직 하지 않았다.
+2026-09-21 · OAuth MCP 0.4.0을 로컬 Edge에서 검증했다. 인증된 `initialize`, 35개 `tools/list`, context→브리핑 저장·재조회, 안정 커서 조회, 금융 응답 유실/충돌 복구와 미지원 메서드 오류를 확인했다. DB 278개와 웹 앱 E2E 27개는 통과했으며 운영 배포 후 ChatGPT 웹·모바일 새 세션 평가는 아직 하지 않았다.
 
 ## 원본과 전달 경로
 

@@ -1,6 +1,6 @@
 # [MCP 개선] 도구 선택 설명과 대상별 연속 조회 정비
 
-우선순위: P1 · 상태: 미착수 · 작성: 2026-09-21
+우선순위: P1 · 상태: 로컬 구현·계약 검증 완료 · 운영 미배포 · 작성: 2026-09-21
 상위: #40 · 시나리오/연관: S05~S17/S24 · W01~W05/W08 · #52 후속
 선행/통합: 01-contracts 결과 계약에 맞춰 통합
 
@@ -23,14 +23,19 @@ ChatGPT가 추측 없이 Portfolio 도구를 선택·사용·복구하고, 운�
 
 ## 인수 조건
 
-- [ ] 같은 timestamp의 50개 초과 기록에서 페이지 누락·중복 없이 순회한다.
-- [ ] 특정 계좌/종목 거래와 조사 질문/실행 계획을 각각 조회하고 적절한 변경 도구에 연결한다.
-- [ ] 과거 MCP 입력 호환과 타 사용자 접근 거부를 확인한다.
-- [ ] get_daily_context/get_portfolio_state/get_strategy_state/get_investment_policy 선택 사례와 중복 호출을 줄이는 기준이 문서·description에 일치한다.
+- [x] 같은 timestamp의 50개 초과 기록에서 페이지 누락·중복 없이 순회한다.
+- [x] 특정 계좌/종목 거래와 조사 질문/실행 계획을 각각 조회하고 적절한 변경 도구에 연결한다.
+- [x] 과거 MCP 입력 호환과 타 사용자 접근 거부를 확인한다.
+- [x] get_daily_context/get_portfolio_state/get_strategy_state/get_investment_policy 선택 사례와 중복 호출을 줄이는 기준이 문서·description에 일치한다.
+
+## 구현 결과
+
+- 기존 before 입력은 유지하고 cursor를 명시한 호출만 owner-only keyset page RPC를 사용한다. 첫 페이지는 cursor:null, 후속은 next_cursor 그대로다.
+- 판단/할 일 필터, 거래 account_id/instrument_id 필터와 안정 커서를 노출했다. list_tasks가 조사 질문과 실행 계획을 함께 반환한다는 경계를 명시했다.
+- daily context와 개별 상태/strategy/policy 조회의 선택 기준을 description에 반영하고 실제 MCP cursor page를 호출했다.
 
 ## 진행 규칙
 
 - docs/START-HERE.md, 관련 계약과 ADR-0004를 읽고 기존 구현을 먼저 확인한다. 과거 티켓의 구현을 재작성하지 말고 위 후속 차이만 처리한다.
 - 최소 공통 기반 + 수직 슬라이스로 구현·검증한다. 기존 migration을 고치지 말고 필요한 증분 migration과 schema/OVERVIEW.md를 갱신한다.
 - 실제 실행한 검증과 미검증 항목을 구분하고 npm run check:encoding을 수행한다. 운영 배포·push·실사용 검증을 자동 완료 처리하지 않는다.
-

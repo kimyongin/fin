@@ -15,7 +15,9 @@ values
   (9931, '00000000-0000-0000-0000-000000001301', 'USD-MARKET', 'US market', 'USD', 'market'),
   (9932, '00000000-0000-0000-0000-000000001301', 'KRW-STALE', 'Stale market', 'KRW', 'market'),
   (9933, '00000000-0000-0000-0000-000000001301', 'JPY-VALUE', 'Japan valuation', 'JPY', 'valuation'),
-  (9934, '00000000-0000-0000-0000-000000001301', 'KRW-ZERO', 'Zero position', 'KRW', 'market');
+  (9934, '00000000-0000-0000-0000-000000001301', 'KRW-ZERO', 'Zero position', 'KRW', 'market'),
+  (9935, '00000000-0000-0000-0000-000000001301', 'USDKRW=X', 'USD/KRW', 'KRW', 'fx'),
+  (9936, '00000000-0000-0000-0000-000000001301', 'JPYKRW=X', 'JPY/KRW', 'KRW', 'fx');
 
 insert into public.holdings(user_id, account_id, ticker, quantity, avg_price, purchase_amount, valuation_amount)
 values

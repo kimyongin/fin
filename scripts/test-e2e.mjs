@@ -28,9 +28,9 @@ function syncApplicationMigrations() {
 
   for (const name of migrations) {
     const destination = resolve(e2eMigrationDir, basename(name))
-    if (existsSync(destination)) continue
+    const existed = existsSync(destination)
     copyFileSync(resolve(applicationMigrationDir, name), destination)
-    copiedMigrations.push(destination)
+    if (!existed) copiedMigrations.push(destination)
   }
 
   const newestApplicationMigration = readdirSync(applicationMigrationDir).filter((name) => name.endsWith('.sql')).sort().at(-1)
@@ -66,16 +66,15 @@ async function waitForAuth(apiUrl) {
 let exitCode = 0
 try {
   syncApplicationMigrations()
-  if (!existsSync(temporaryFunctionsDir)) {
-    cpSync(resolve('supabase/functions'), temporaryFunctionsDir, { recursive: true })
-    copiedFunctions = true
-  }
+  copiedFunctions = !existsSync(temporaryFunctionsDir)
+  cpSync(resolve('supabase/functions'), temporaryFunctionsDir, { recursive: true, force: true })
   const networkResult = spawnSync('docker', ['network', 'inspect', 'supabase_network_e2e'], { stdio: 'ignore' })
   if (networkResult.status !== 0) run('docker', ['network', 'create', 'supabase_network_e2e'])
 
   run('supabase', ['start', ...supabaseArgs])
   supabaseStarted = true
   run('supabase', ['db', 'reset', ...supabaseArgs])
+  run('supabase', ['test', 'db', '--local', resolve('supabase/tests/database'), ...supabaseArgs])
 
   const localEnv = readSupabaseEnv()
   await waitForAuth(localEnv.API_URL)

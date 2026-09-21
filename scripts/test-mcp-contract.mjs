@@ -24,6 +24,22 @@ async function call(accessToken, method, params = {}) {
   return { response, body: await response.json().catch(() => null) }
 }
 
+async function adminWrite(path, method, body) {
+  const response = await fetch(`${baseUrl}/rest/v1/${path}`, {
+    method,
+    headers: {
+      apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(body),
+  })
+  const data = await response.json().catch(() => null)
+  assert(response.ok, `Local contract fixture write failed (${response.status}): ${JSON.stringify(data)}`)
+  return data
+}
+
 try {
   const denied = await call('', 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'contract-test', version: '1' } })
   assert(denied.response.status === 401, `Unauthenticated MCP request returned ${denied.response.status}`)
@@ -77,7 +93,7 @@ try {
     },
   })
   const savedData = saved.body?.result?.structuredContent?.data
-  assert(saved.body?.result?.isError === false && savedData?.id && savedData?.coverage_status === 'unverified', 'Daily briefing save contract failed')
+  assert(saved.body?.result?.isError === false && savedData?.id && savedData?.coverage_status === 'failed', `Daily briefing save contract failed: ${JSON.stringify(saved.body?.result?.structuredContent?.error ?? savedData)}`)
   assert(savedData.changes?.[0]?.summary === 'No researched change was asserted.', 'Briefing item normalization failed')
 
   const reread = await call(session.access_token, 'tools/call', {
@@ -86,13 +102,57 @@ try {
   })
   assert(reread.body?.result?.structuredContent?.data?.id === savedData.id, 'Saved daily briefing could not be read back')
 
+  const briefingPage = await call(session.access_token, 'tools/call', {
+    name: 'list_daily_briefings', arguments: { limit: 1, cursor: null },
+  })
+  assert(Array.isArray(briefingPage.body?.result?.structuredContent?.data?.items), 'Daily briefing cursor page contract failed')
+  const tradePage = await call(session.access_token, 'tools/call', {
+    name: 'list_transactions', arguments: { limit: 1, cursor: null },
+  })
+  assert(Array.isArray(tradePage.body?.result?.structuredContent?.data?.items), 'Transaction cursor page contract failed')
+
+  const [account] = await adminWrite('accounts', 'POST', { user_id: userId, name: 'MCP Contract Account' })
+  const [instrument] = await adminWrite('instruments', 'POST', {
+    user_id: userId, ticker: 'MCP-CONTRACT', display_name: 'MCP Contract Holding', instrument_type: 'market', currency: 'KRW',
+  })
+  const [holding] = await adminWrite('holdings', 'POST', {
+    user_id: userId, account_id: account.id, ticker: instrument.ticker, quantity: 1, avg_price: 100,
+  })
+  const correctionPreview = await call(session.access_token, 'tools/call', {
+    name: 'preview_holding_reconciliation',
+    arguments: { holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10), confirmed_fields: [] },
+  })
+  const previewId = correctionPreview.body?.result?.structuredContent?.data?.preview_id
+  assert(previewId, 'Holding correction preview contract failed')
+
+  const verificationKey = crypto.randomUUID()
+  const verificationArgs = {
+    schema_version: 1, holding_id: holding.id, expected_version: holding.state_version,
+    fields: ['quantity'], verified_on: new Date().toISOString().slice(0, 10), note: 'Contract test', idempotency_key: verificationKey,
+  }
+  const verified = await call(session.access_token, 'tools/call', { name: 'verify_holdings', arguments: verificationArgs })
+  const verificationId = verified.body?.result?.structuredContent?.data?.verification_id
+  assert(verificationId, 'Holding verification contract failed')
+  await adminWrite(`holdings?id=eq.${holding.id}`, 'PATCH', { quantity: 3, avg_price: 100 })
+  const verificationRetry = await call(session.access_token, 'tools/call', { name: 'verify_holdings', arguments: verificationArgs })
+  assert(verificationRetry.body?.result?.structuredContent?.data?.verification_id === verificationId, 'Lost verification response retry did not return the original success')
+
+  const stale = await call(session.access_token, 'tools/call', {
+    name: 'reconcile_holding', arguments: { schema_version: 1, preview_id: previewId, idempotency_key: crypto.randomUUID() },
+  })
+  assert(stale.body?.result?.structuredContent?.error?.code === 'preview_stale', 'Stale correction preview returned the wrong recovery contract')
+  const keyConflict = await call(session.access_token, 'tools/call', {
+    name: 'verify_holdings', arguments: { ...verificationArgs, expected_version: holding.state_version + 1, fields: ['avg_price'] },
+  })
+  assert(keyConflict.body?.result?.structuredContent?.error?.code === 'idempotency_conflict', 'Idempotency key conflict returned the wrong recovery contract')
+
   const invalid = await call(session.access_token, 'tools/call', { name: 'log_completed_trade', arguments: {} })
   const toolError = invalid.body?.result?.structuredContent?.error
   assert(invalid.response.ok && invalid.body?.result?.isError === true, 'Invalid tool input did not return an MCP tool error')
   assert(toolError?.code === 'validation_error' && toolError?.retryable === false, 'Invalid tool input returned the wrong recovery contract')
   assert(typeof toolError?.request_id === 'string' && toolError.request_id.length > 20, 'Tool error did not include a request ID')
 
-  console.log('MCP initialize, tools/list, daily briefing save/read, auth denial, and validation error contracts passed.')
+  console.log('MCP initialize, daily briefing save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
 } finally {
   if (userId) {
     await fetch(`${baseUrl}/auth/v1/admin/users/${userId}`, {

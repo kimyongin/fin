@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(16);
+select extensions.plan(20);
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000801','authenticated','authenticated','integrity-owner@example.com','',now(),now(),now()),
 ('00000000-0000-0000-0000-000000000802','authenticated','authenticated','integrity-other@example.com','',now(),now(),now());
@@ -25,6 +25,10 @@ select extensions.is(round((select ledger_cost_pool/ledger_quantity from public.
 select extensions.is((public.app_get_holding_integrity(9801)#>>'{last_verification,changed_since}')::boolean,false,'confirmed reconciliation records a current verification');
 select extensions.is(public.app_reconcile_holding((select preview from integrity_data),(select key from integrity_data),'app')->>'holding_state_version','2','identical reconciliation retry is idempotent');
 select extensions.is((select count(*) from public.holding_reconciliations where user_id=auth.uid()),1::bigint,'retry does not duplicate reconciliation');
+select extensions.is(public.app_preview_holding_reconciliation(9801,'{"quantity":"0","avg_price":"0"}','전량 매도 후 실제값',current_date,'{}')#>>'{after,quantity}','0','market reconciliation accepts an explicit zero balance');
+select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"-1","avg_price":"1"}','음수 거부',current_date,'{}')$$,'P0001','Reconciliation values cannot be negative','negative reconciliation values are rejected');
+select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"1"}','누락 거부',current_date,'{}')$$,'P0001','Market reconciliation requires quantity and avg_price','missing market average price is rejected');
+select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"1","avg_price":"1","extra":"1"}','추가 필드 거부',current_date,'{}')$$,'P0001','Reconciliation contains an unsupported field','unknown reconciliation fields are rejected');
 
 select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_date,'수량만 확인','80000000-0000-0000-0000-000000000002','app')#>>'{verified_fields,0}','quantity','one field can be verified without claiming the average');
 select * from public.app_save_holding(9801,9801,'INTM',26,68000,null,'user','change after verification');
