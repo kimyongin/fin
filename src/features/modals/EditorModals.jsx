@@ -5,6 +5,12 @@ import ModalShell from '../../components/ModalShell'
 import { formatUnitPrice } from '../../lib/format'
 import { normalizeTickerInput } from '../../lib/portfolioMath'
 
+function useDraftDirty(draft, fields) {
+  const initial = useRef(null)
+  if (!initial.current) initial.current = Object.fromEntries(fields.map((field) => [field, String(draft[field] ?? '')]))
+  return fields.some((field) => String(draft[field] ?? '') !== initial.current[field])
+}
+
 export function AccountEditorModal({
   accountError,
   accountSaving,
@@ -14,8 +20,21 @@ export function AccountEditorModal({
   onDelete,
   onSave,
 }) {
+  const dirty = useDraftDirty(draft, ['name', 'broker', 'note'])
+  const actions = (
+    <ModalActions
+      canDelete={!!draft.id}
+      deleteConfirmMessage="계좌를 삭제하면 이 계좌 정보가 사라집니다. 계속할까요?"
+      deleteLabel="계좌 삭제"
+      disabled={accountSaving}
+      onClose={onClose}
+      onDelete={onDelete}
+      onSave={onSave}
+      saveLabel={accountSaving ? '저장 중' : '저장'}
+    />
+  )
   return (
-    <ModalShell onClose={onClose} title={draft.id ? draft.name || '계좌 수정' : '계좌 추가'}>
+    <ModalShell closeDisabled={accountSaving} dirty={dirty} footer={actions} onClose={onClose} title={draft.id ? draft.name || '계좌 수정' : '계좌 추가'}>
       <div className="grid gap-4">
         <label className="grid gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
@@ -56,16 +75,6 @@ export function AccountEditorModal({
           </div>
         )}
 
-        <ModalActions
-          canDelete={!!draft.id}
-          deleteConfirmMessage="계좌를 삭제하면 이 계좌 정보가 사라집니다. 계속할까요?"
-          deleteLabel="계좌 삭제"
-          disabled={accountSaving}
-          onClose={onClose}
-          onDelete={onDelete}
-          onSave={onSave}
-          saveLabel={accountSaving ? '저장 중' : '저장'}
-        />
       </div>
     </ModalShell>
   )

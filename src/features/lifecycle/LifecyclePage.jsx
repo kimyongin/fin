@@ -55,8 +55,7 @@ function Detail({ entry, loading, onBack, onClose, onOpenDecision, onOpenTask })
   const { item, mode } = entry ?? {}
   const latestTaskHistory = mode === 'tasks' && item?.history?.length ? item.history[item.history.length - 1] : null
   return (
-    <ModalShell onClose={onClose} title={mode === 'decisions' ? '판단 상세' : '할 일 상세'}>
-      {onBack && <button className="mb-4 rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={onBack} type="button">이전 기록으로</button>}
+    <ModalShell onBack={onBack} onClose={onClose} title={mode === 'decisions' ? '판단 상세' : '할 일 상세'} variant="detail">
       {loading || !item ? <p className="py-8 text-sm text-[var(--muted-ink)]">불러오는 중입니다.</p> : mode === 'decisions' ? (
         <div className="grid gap-6">
           <section>

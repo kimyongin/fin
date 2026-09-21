@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 const modalStack = []
 let scrollLockCount = 0
@@ -25,15 +25,28 @@ function makeBackgroundInert(overlay) {
   }
 }
 
-export default function ModalShell({ children, closeDisabled = false, fullScreen = false, initialFocusRef, onClose, title }) {
+export default function ModalShell({ children, closeDisabled = false, description, dirty = false, footer, fullScreen = false, initialFocusRef, onBack, onClose, title, variant = 'modal' }) {
   const titleId = useId()
+  const descriptionId = useId()
   const overlayRef = useRef(null)
   const panelRef = useRef(null)
   const closeButtonRef = useRef(null)
   const onCloseRef = useRef(onClose)
   const closeDisabledRef = useRef(closeDisabled)
+  const dirtyRef = useRef(dirty)
+  const [confirmingClose, setConfirmingClose] = useState(false)
   onCloseRef.current = onClose
   closeDisabledRef.current = closeDisabled
+  dirtyRef.current = dirty
+
+  function requestClose(reason) {
+    if (closeDisabledRef.current) return
+    if (dirtyRef.current) {
+      setConfirmingClose(true)
+      return
+    }
+    onCloseRef.current(reason)
+  }
 
   useEffect(() => {
     const token = Symbol('modal')
@@ -54,7 +67,7 @@ export default function ModalShell({ children, closeDisabled = false, fullScreen
       if (modalStack.at(-1) !== token) return
       if (event.key === 'Escape') {
         event.preventDefault()
-        if (!closeDisabledRef.current) onCloseRef.current('escape')
+        requestClose('escape')
         return
       }
       if (event.key !== 'Tab') return
@@ -87,17 +100,26 @@ export default function ModalShell({ children, closeDisabled = false, fullScreen
     }
   }, [initialFocusRef])
 
+  const isDetail = variant === 'detail'
+  const isFullHeight = fullScreen || isDetail
+
   return (
-    <div className={`fixed inset-0 z-[70] bg-[rgba(13,14,18,0.96)] ${fullScreen ? '' : 'px-3 py-3 sm:bg-[rgba(71,49,28,0.18)] sm:px-6 sm:py-8 sm:backdrop-blur-sm'}`} ref={overlayRef}>
-      <div className={`mx-auto flex h-full w-full min-w-0 items-start justify-center ${fullScreen ? 'max-w-none' : 'max-w-2xl sm:h-auto'}`}>
-        <section aria-labelledby={titleId} aria-modal="true" className={`flex h-full w-full min-w-0 flex-col overflow-hidden bg-[var(--panel)] outline-none ${fullScreen ? '' : 'sm:h-auto sm:max-h-[calc(100vh-4rem)] sm:rounded-[30px] sm:border sm:border-[var(--line)] sm:shadow-[0_30px_70px_rgba(0,0,0,0.45)]'}`} ref={panelRef} role="dialog" tabIndex={-1}>
+    <div className={`fixed inset-0 z-[70] bg-[rgba(13,14,18,0.96)] ${isDetail ? 'lg:bg-[rgba(13,14,18,0.72)] lg:backdrop-blur-sm' : fullScreen ? '' : 'sm:bg-[rgba(71,49,28,0.18)] sm:px-6 sm:py-8 sm:backdrop-blur-sm'}`} ref={overlayRef}>
+      <div className={`flex h-full w-full min-w-0 ${isDetail ? 'justify-end' : 'mx-auto items-start justify-center'} ${isFullHeight ? 'max-w-none' : 'max-w-2xl sm:h-auto'}`}>
+        <section aria-describedby={description ? descriptionId : undefined} aria-labelledby={titleId} aria-modal="true" className={`flex h-full w-full min-w-0 flex-col overflow-hidden bg-[var(--panel)] outline-none ${isDetail ? 'lg:max-w-[40rem] lg:border-l lg:border-[var(--line)] lg:shadow-[-24px_0_70px_rgba(0,0,0,0.4)]' : fullScreen ? '' : 'sm:h-auto sm:max-h-[calc(100vh-4rem)] sm:rounded-[30px] sm:border sm:border-[var(--line)] sm:shadow-[0_30px_70px_rgba(0,0,0,0.45)]'}`} ref={panelRef} role="dialog" tabIndex={-1}>
           <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel)] px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:border-b-0 sm:px-6 sm:pb-0 sm:pt-6">
-            <h2 className="pt-1 text-xl font-semibold" id={titleId}>{title}</h2>
+            <div className="flex min-w-0 items-start gap-2">
+              {onBack && <button aria-label="이전 상세로" className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted-ink)] transition hover:text-[var(--ink)]" onClick={onBack} type="button">←</button>}
+              <div className="min-w-0">
+                <h2 className="break-words pt-1 text-xl font-semibold" id={titleId}>{title}</h2>
+                {description && <p className="mt-1 text-sm leading-5 text-[var(--muted-ink)]" id={descriptionId}>{description}</p>}
+              </div>
+            </div>
             <button
               aria-label="닫기"
               className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted-ink)] transition hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={closeDisabled}
-              onClick={() => onClose('button')}
+              onClick={() => requestClose('button')}
               ref={closeButtonRef}
               type="button"
             >
@@ -106,9 +128,20 @@ export default function ModalShell({ children, closeDisabled = false, fullScreen
               </svg>
             </button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:max-h-[calc(100vh-10rem)] sm:flex-none sm:px-6 sm:pb-5 sm:pt-5">
+          <div className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6 sm:py-5 ${isFullHeight ? '' : 'sm:max-h-[calc(100vh-14rem)] sm:flex-none'}`}>
             {children}
           </div>
+          {(footer || confirmingClose) && <div className="border-t border-[var(--line)] bg-[var(--panel)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:px-6">
+            {confirmingClose ? (
+              <div className="grid gap-3" role="alert">
+                <p className="text-sm leading-6 text-[var(--muted-ink)]">저장하지 않은 변경이 있습니다. 변경을 버리고 닫을까요?</p>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                  <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => setConfirmingClose(false)} type="button">계속 편집</button>
+                  <button className="min-h-11 rounded-xl border border-red-400/40 bg-red-500/10 px-4 text-sm font-semibold text-red-100" onClick={() => onCloseRef.current('discard')} type="button">변경 버리기</button>
+                </div>
+              </div>
+            ) : footer}
+          </div>}
         </section>
       </div>
     </div>

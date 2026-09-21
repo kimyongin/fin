@@ -42,11 +42,11 @@ export default function ModalActions({
   }
 
   return (
-    <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap sm:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
       <div className="sm:flex-1">
         {canDelete && (
           <button
-            className="w-full rounded-2xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-950/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="min-h-11 w-full rounded-2xl border border-red-200 px-4 text-sm font-semibold text-red-400 transition hover:bg-red-950/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             disabled={disabled}
             onClick={() => setConfirmingDelete(true)}
             type="button"
@@ -57,7 +57,7 @@ export default function ModalActions({
       </div>
       <div className="grid grid-cols-2 gap-2 sm:flex sm:grid-cols-none">
         <button
-          className="rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={disabled}
           onClick={onClose}
           type="button"
@@ -65,7 +65,7 @@ export default function ModalActions({
           닫기
         </button>
         <button
-          className="rounded-2xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-11 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={disabled}
           onClick={onSave}
           type="button"

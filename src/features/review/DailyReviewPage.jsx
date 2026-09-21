@@ -63,7 +63,7 @@ function StatusPills({ briefing }) {
 
 function BriefingDetail({ briefing, loading, onClose }) {
   return (
-    <ModalShell onClose={onClose} title="저장된 점검 상세">
+    <ModalShell onClose={onClose} title="저장된 점검 상세" variant="detail">
       {loading || !briefing ? (
         <p className="py-8 text-sm text-[var(--muted-ink)]">브리핑을 불러오는 중입니다.</p>
       ) : (
