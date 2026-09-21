@@ -10,6 +10,7 @@ import {
   createTagModalDraft,
 } from './helpers'
 import { portfolioMessages, viewerProfileSavedMessage } from './messages'
+import { summarizePriceSync } from './priceSync'
 import { createTagActions } from './tagActions'
 
 function createRpcCaller(supabase) {
@@ -176,11 +177,11 @@ export function createPortfolioActions(params) {
     setSyncingPrices(true)
     setSyncMessage('')
     try {
-      const { error } = await supabase.functions.invoke('sync-prices', { body: {} })
+      const { data, error } = await supabase.functions.invoke('sync-prices', { body: {} })
       if (error) throw error
+      const summary = summarizePriceSync(data)
       await refreshState()
-      await recordActivity({ actionType: 'sync_prices', targetTable: 'holding_prices_daily' })
-      setSyncMessage(portfolioMessages.syncPricesSuccess)
+      setSyncMessage(summary.message)
     } catch (error) {
       setSyncMessage(error.message ?? portfolioMessages.syncPricesFailed)
     } finally {

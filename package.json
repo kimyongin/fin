@@ -11,7 +11,7 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
-    "check:edge": "deno check --no-lock --node-modules-dir=none supabase/functions/portfolio-mcp-oauth/index.ts supabase/functions/portfolio-mcp/index.ts",
+    "check:edge": "deno check --no-lock --node-modules-dir=none supabase/functions/portfolio-mcp-oauth/index.ts supabase/functions/portfolio-mcp/index.ts supabase/functions/sync-prices/index.ts supabase/functions/lookup-ticker/index.ts",
     "check:workflow-guides": "node scripts/check-workflow-guides.mjs",
     "update:workflow-guide-review": "node scripts/check-workflow-guides.mjs --update",
     "check:deployment": "node scripts/check-deployment-readiness.mjs",

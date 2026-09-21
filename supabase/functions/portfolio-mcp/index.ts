@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { fetchYahooPrices as fetchYahooPricesWithFallback } from '../_shared/yahoo-finance.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -185,37 +186,6 @@ async function lookupTicker(ticker: string) {
   throw new Error('No ticker data found.')
 }
 
-async function fetchYahooPrices(symbol: string, dateFrom: Date, dateTo: Date) {
-  const period1 = Math.floor(dateFrom.getTime() / 1000)
-  const period2 = Math.floor(dateTo.getTime() / 1000)
-  const chart = await fetchYahooChart(symbol, `interval=1d&period1=${period1}&period2=${period2}`)
-  if (!chart?.result) throw new Error('Yahoo response empty')
-
-  const timestamps: number[] = chart.result.timestamp ?? []
-  const closes: number[] = chart.result.indicators?.quote?.[0]?.close ?? []
-
-  return timestamps
-    .map((ts, i) => {
-      const date = new Date(ts * 1000).toISOString().slice(0, 10)
-      return { date, close: closes[i] }
-    })
-    .filter((row) => row.close != null && !Number.isNaN(row.close))
-}
-
-function dateRangeHolidays(dateFrom: Date, dateTo: Date, prices: { date: string }[]) {
-  const tradingDaySet = new Set(prices.map((price) => price.date))
-  const holidays: { date: string }[] = []
-
-  for (const d = new Date(dateFrom); d <= dateTo; d.setDate(d.getDate() + 1)) {
-    const day = d.getDay()
-    if (day === 0 || day === 6) continue
-    const date = d.toISOString().slice(0, 10)
-    if (!tradingDaySet.has(date)) holidays.push({ date })
-  }
-
-  return holidays
-}
-
 async function syncPrices({ args, supabase, tokenHash }: ToolHandlerContext) {
   const today = new Date()
   const dateTo = nullableDateArg(args, 'date_to') ? new Date(String(args.date_to)) : today
@@ -238,10 +208,9 @@ async function syncPrices({ args, supabase, tokenHash }: ToolHandlerContext) {
   const synced: { ticker: string; rows: number }[] = []
   const failed: { ticker: string; error: string }[] = []
 
-  for (const target of targets) {
+  for (const [index, target] of targets.entries()) {
     const ticker = String(target.ticker)
     try {
-      const firstDate = target.first_price_date ? new Date(String(target.first_price_date)) : null
       const lastDate = target.last_price_date ? new Date(String(target.last_price_date)) : null
       let fetchFrom: Date
       let fetchTo: Date
@@ -254,9 +223,6 @@ async function syncPrices({ args, supabase, tokenHash }: ToolHandlerContext) {
         if (nextDay <= dateTo) {
           fetchFrom = nextDay
           fetchTo = dateTo
-        } else if (firstDate) {
-          fetchTo = new Date(firstDate.getTime() - 86400000)
-          fetchFrom = new Date(firstDate.getTime() - 90 * 86400000)
         } else {
           synced.push({ ticker, rows: 0 })
           continue
@@ -268,17 +234,23 @@ async function syncPrices({ args, supabase, tokenHash }: ToolHandlerContext) {
         continue
       }
 
-      const symbol = target.source_symbol ?? ticker
-      const prices = await fetchYahooPrices(String(symbol), fetchFrom, fetchTo)
+      const { prices } = await fetchYahooPricesWithFallback(
+        ticker,
+        target.source_symbol ? String(target.source_symbol) : null,
+        fetchFrom,
+        fetchTo,
+      )
       await rpcResult(supabase, 'mcp_upsert_price_rows', {
         input_token_hash: tokenHash,
         input_ticker: ticker,
         input_prices: prices,
-        input_holidays: dateRangeHolidays(fetchFrom, fetchTo, prices),
+        input_holidays: [],
       })
       synced.push({ ticker, rows: prices.length })
     } catch (error) {
       failed.push({ ticker, error: error instanceof Error ? error.message : 'Sync failed' })
+    } finally {
+      if (index < targets.length - 1) await new Promise((resolve) => setTimeout(resolve, 150))
     }
   }
 

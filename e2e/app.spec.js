@@ -931,12 +931,17 @@ test('handles mocked price-sync Edge Function success and failure in the setting
   await page.route('**/functions/v1/sync-prices', async (route) => {
     calls += 1
     await route.fulfill(calls === 1
-      ? { contentType: 'application/json', status: 200, body: '{}' }
+      ? {
+          contentType: 'application/json',
+          status: 200,
+          body: JSON.stringify({ total_count: 1, synced: [{ ticker: 'AAPL', rows: 1 }], failed: [] }),
+        }
       : { contentType: 'application/json', status: 500, body: JSON.stringify({ message: 'E2E sync failure' }) })
   })
   const button = page.getByRole('button', { name: '가격 동기화' })
   await button.click()
   await expect.poll(() => calls).toBe(1)
+  await expect(page.getByText('1/1개 종목 확인, 새 가격 1건 저장.')).toBeVisible()
   await button.click()
   await expect.poll(() => calls).toBe(2)
 })

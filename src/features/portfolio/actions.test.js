@@ -9,7 +9,10 @@ function createSupabaseMock() {
       signInAnonymously: vi.fn(async () => ({ data: { session: { user: { id: 'anon' } } }, error: null })),
     },
     functions: {
-      invoke: vi.fn(async () => ({ data: null, error: null })),
+      invoke: vi.fn(async () => ({
+        data: { total_count: 1, synced: [{ ticker: 'AAPL', rows: 1 }], failed: [] },
+        error: null,
+      })),
     },
     rpc: vi.fn(async () => ({ data: null, error: null })),
   }
@@ -274,22 +277,42 @@ describe('createPortfolioActions', () => {
     })
   })
 
-  it('invokes sync-prices and records activity', async () => {
+  it('invokes sync-prices and refreshes the saved prices', async () => {
     const params = createParams()
     const actions = createPortfolioActions(params)
 
     await actions.handleSyncPrices()
 
     expect(params.supabase.functions.invoke).toHaveBeenCalledWith('sync-prices', { body: {} })
-    expect(params.supabase.rpc).toHaveBeenCalledWith('activity_record_user_event', {
-      input_action_type: 'sync_prices',
-      input_target_table: 'holding_prices_daily',
-      input_target_id: null,
-      input_before_data: null,
-      input_after_data: null,
-    })
+    expect(params.supabase.rpc).not.toHaveBeenCalled()
     expect(params.refreshState).toHaveBeenCalledOnce()
+    expect(params.setSyncMessage).toHaveBeenCalledWith('1/1개 종목 확인, 새 가격 1건 저장.')
     expect(params.setSyncingPrices.mock.calls.map(([value]) => value)).toEqual([true, false])
+  })
+
+  it('does not record a successful activity when every price fails', async () => {
+    const params = createParams({
+      supabase: {
+        ...createSupabaseMock(),
+        functions: {
+          invoke: vi.fn(async () => ({
+            data: {
+              total_count: 1,
+              synced: [],
+              failed: [{ ticker: 'UNKNOWN', error: 'Yahoo response 429' }],
+            },
+            error: null,
+          })),
+        },
+      },
+    })
+    const actions = createPortfolioActions(params)
+
+    await actions.handleSyncPrices()
+
+    expect(params.refreshState).not.toHaveBeenCalled()
+    expect(params.supabase.rpc).not.toHaveBeenCalled()
+    expect(params.setSyncMessage).toHaveBeenCalledWith(expect.stringContaining('가격 동기화 실패'))
   })
 
   it('loads the unlocked owner portfolio after a guest enters shared view', async () => {
