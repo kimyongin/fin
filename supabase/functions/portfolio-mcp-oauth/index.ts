@@ -3,6 +3,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
 import { portfolioToolDefinitions } from '../_shared/mcp/portfolio-tools.ts'
+import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
 
 type JsonRpcRequest = {
   jsonrpc?: string
@@ -74,8 +75,8 @@ function toolResult(value: unknown) {
   }
 }
 
-function toolErrorResult(code: string, message: string) {
-  const value = { ok: false, error: { code, message, retryable: false } }
+function toolErrorResult(error: { code: string; message: string; retryable: boolean; action: string }, requestId: string) {
+  const value = { ok: false, error: { ...error, request_id: requestId } }
   return {
     content: [{ type: 'text', text: JSON.stringify(value, null, 2) }],
     structuredContent: value,
@@ -371,29 +372,9 @@ function normalizeHoldingThesisPatch(value: unknown) {
   return normalized
 }
 
-function toolErrorCode(error: unknown) {
-  if (error instanceof ToolInputError) return 'validation_error'
-  const message = error instanceof Error ? error.message.toLowerCase() : ''
-  if (message.includes('context has expired')) return 'context_expired'
-  if (message.includes('context was not found')) return 'not_found_or_forbidden'
-  if (message.includes('briefing was not found')) return 'not_found_or_forbidden'
-  if (message.includes('decision was not found')) return 'not_found_or_forbidden'
-  if (message.includes('task was not found')) return 'not_found_or_forbidden'
-  if (message.includes('source briefing was not found')) return 'not_found_or_forbidden'
-  if (message.includes('idempotency key')) return 'idempotency_conflict'
-  if (message.includes('version conflict')) return 'version_conflict'
-  if (message.includes('only a') || message.includes('cannot be') || message.includes('already closed')) {
-    return 'invalid_state'
-  }
-  if (message.includes('not supported')) return 'unsupported_operation'
-  if (message.includes('exceeds the 2 mib')) return 'payload_too_large'
-  if (/invalid|required|must|needs|accepts at most|no-action briefing/.test(message)) return 'validation_error'
-  return 'operation_failed'
-}
-
 async function rpc(supabase: any, name: string, args: Record<string, unknown> = {}) {
   const { data, error } = await supabase.rpc(name, args)
-  if (error) throw new Error(error.message)
+  if (error) throw new PortfolioRpcError(error)
   return data
 }
 
@@ -675,6 +656,8 @@ Deno.serve(
   pipeline(
     [withOAuthProtectedResource(), withSupabase({ auth: 'user' })],
     async (req, { supabase }) => {
+      const requestId = crypto.randomUUID()
+      const startedAt = performance.now()
       if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
       if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
 
@@ -780,14 +763,15 @@ Deno.serve(
       }
 
       try {
-        return jsonRpcResult(message.id, toolResult(await handler(supabase, args)))
+        const result = await handler(supabase, args)
+        console.log(JSON.stringify({ event: 'mcp_tool_call', request_id: requestId, tool: toolName, outcome: 'success', duration_ms: Math.round(performance.now() - startedAt) }))
+        return jsonRpcResult(message.id, toolResult(result))
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : 'Tool call failed'
-        const code = toolErrorCode(error)
-        return jsonRpcResult(
-          message.id,
-          toolErrorResult(code, code === 'operation_failed' ? 'Portfolio operation failed' : messageText),
-        )
+        const classified = error instanceof ToolInputError
+          ? { code: 'validation_error', message: error.message, retryable: false, action: 'Correct the input using the advertised tool schema.' }
+          : classifyPortfolioError(error)
+        console.error(JSON.stringify({ event: 'mcp_tool_call', request_id: requestId, tool: toolName, outcome: 'error', code: classified.code, database_code: error instanceof PortfolioRpcError ? error.dbCode : undefined, duration_ms: Math.round(performance.now() - startedAt) }))
+        return jsonRpcResult(message.id, toolErrorResult(classified, requestId))
       }
     },
   ),

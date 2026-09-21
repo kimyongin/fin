@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { copyFileSync, existsSync, readdirSync, unlinkSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, readdirSync, rmSync, unlinkSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 
 const supabaseArgs = ['--workdir', '.e2e']
@@ -7,6 +7,8 @@ const applicationMigrationDir = resolve('supabase/migrations')
 const e2eMigrationDir = resolve('.e2e/supabase/migrations')
 const e2eBaselineBoundary = '202609210001_daily_review_foundation.sql'
 const copiedMigrations = []
+const temporaryFunctionsDir = resolve('.e2e/supabase/functions')
+let copiedFunctions = false
 let supabaseStarted = false
 
 function run(command, args, options = {}) {
@@ -64,6 +66,10 @@ async function waitForAuth(apiUrl) {
 let exitCode = 0
 try {
   syncApplicationMigrations()
+  if (!existsSync(temporaryFunctionsDir)) {
+    cpSync(resolve('supabase/functions'), temporaryFunctionsDir, { recursive: true })
+    copiedFunctions = true
+  }
   const networkResult = spawnSync('docker', ['network', 'inspect', 'supabase_network_e2e'], { stdio: 'ignore' })
   if (networkResult.status !== 0) run('docker', ['network', 'create', 'supabase_network_e2e'])
 
@@ -73,6 +79,14 @@ try {
 
   const localEnv = readSupabaseEnv()
   await waitForAuth(localEnv.API_URL)
+  run(process.execPath, ['scripts/test-mcp-contract.mjs'], {
+    env: {
+      ...process.env,
+      SUPABASE_ANON_KEY: localEnv.ANON_KEY,
+      SUPABASE_SERVICE_ROLE_KEY: localEnv.SERVICE_ROLE_KEY,
+      SUPABASE_URL: localEnv.API_URL,
+    },
+  })
   run(process.execPath, ['node_modules/playwright/cli.js', 'test', ...process.argv.slice(2)], {
     env: {
       ...process.env,
@@ -92,6 +106,7 @@ try {
   for (const migration of copiedMigrations) {
     if (existsSync(migration)) unlinkSync(migration)
   }
+  if (copiedFunctions && existsSync(temporaryFunctionsDir)) rmSync(temporaryFunctionsDir, { recursive: true, force: true })
 }
 
 process.exit(exitCode)

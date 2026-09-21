@@ -58,7 +58,7 @@
 | DB/RPC | 대상 한정 DDL/RLS 조사, migration 재현, 소유권·경쟁·원자성·이관/복구 테스트 |
 | MCP/Edge Function | 독립 타입 검사, initialize/tools/list/call 오류·인증·schema/handler 일치, 실제 웹/모바일 확인 |
 
-Edge Function 타입 검사는 Deno 2 환경의 `npm run check:edge`로 실행한다. MCP 정의 계약은 `npm test`에 포함되고 실제 handler 호출 계약은 별도 통합 검사로 확인한다. Vite build 통과를 Edge Function 검증으로 대신하지 않는다. 스키마 fixture 검사만으로 DB 보안을 검증했다고 하지 않는다.
+Edge Function 타입 검사는 Deno 2 환경의 `npm run check:edge`로 실행한다. MCP 정의·오류 fixture는 `npm test`에 포함된다. `npm run test:e2e`는 격리 환경에 실제 Edge Function을 복사해 initialize, tools/list, 인증된 tools/call, 인증 거부, 입력 오류 계약도 호출한다. Vite build 통과를 Edge Function 검증으로 대신하지 않는다. 스키마 fixture 검사만으로 DB 보안을 검증했다고 하지 않는다.
 
 ## 배포 현황과 안전 경계
 

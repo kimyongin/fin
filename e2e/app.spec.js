@@ -322,7 +322,27 @@ test('previews and records a completed trade on mobile', async ({ page }) => {
   await openMenuTab(page, '자산')
   await page.getByRole('tab').nth(2).click()
   const card = page.locator('article').filter({ hasText: 'E2E Apple' }).first()
-  await card.getByRole('button', { name: '매매 기록' }).click()
+  const tradeButton = card.getByRole('button', { name: '매매 기록' })
+  await tradeButton.click()
+  const tradeDialog = page.getByRole('dialog', { name: 'E2E Apple 매매 기록' })
+  await expect(tradeDialog).toBeVisible()
+  await expect.poll(() => tradeDialog.evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true)
+  await expect.poll(() => page.locator('[inert]').count()).toBeGreaterThan(0)
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 })
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await expect.poll(() => tradeDialog.evaluate((dialog) => {
+      const bounds = dialog.getBoundingClientRect()
+      return bounds.left >= 0 && bounds.right <= window.innerWidth
+    })).toBe(true)
+  }
+  await page.keyboard.press('Shift+Tab')
+  await expect.poll(() => tradeDialog.evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(tradeDialog).toBeHidden()
+  await expect(tradeButton).toBeFocused()
+  await tradeButton.click()
+  await page.setViewportSize({ width: 390, height: 844 })
   await page.getByLabel('체결 수량').fill('1')
   await page.getByLabel(/체결 단가/).fill('200')
   await page.getByRole('button', { name: '변경 미리보기' }).click()
@@ -561,6 +581,29 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   await expect(sharedMenu.getByRole('button', { name: '오늘', exact: true })).toHaveCount(0)
   await expect(sharedMenu.getByRole('button', { name: '판단·할 일', exact: true })).toHaveCount(0)
   await expect(sharedMenu.getByRole('button', { name: '설정', exact: true })).toHaveCount(0)
+
+  await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
+  await expect(friendPage.getByText('E2E Apple')).toHaveCount(0)
+  let releaseSharedRequest
+  let markSharedRequest
+  const sharedRequestSeen = new Promise((resolve) => { markSharedRequest = resolve })
+  const releaseSharedResponse = new Promise((resolve) => { releaseSharedRequest = resolve })
+  await friendPage.route('**/rest/v1/rpc/app_get_portfolio_state', async (route) => {
+    if (route.request().postDataJSON()?.input_owner_user_id === '00000000-0000-0000-0000-00000000e201') {
+      markSharedRequest()
+      await releaseSharedResponse
+    }
+    await route.continue()
+  })
+  await friendPage.getByLabel('포트폴리오 전환').selectOption('00000000-0000-0000-0000-00000000e201')
+  await sharedRequestSeen
+  await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
+  await expect(friendPage.getByLabel('포트폴리오 전환')).toHaveValue('owner')
+  releaseSharedRequest()
+  await expect(friendPage.getByText('E2E Apple')).toHaveCount(0)
+  await friendPage.unroute('**/rest/v1/rpc/app_get_portfolio_state')
+
+  await friendPage.getByLabel('포트폴리오 전환').selectOption('00000000-0000-0000-0000-00000000e201')
   expect((await callRpc(friendPage, 'app_list_portfolio_task_page', {
     input_cursor: null, input_filter: 'active', input_limit: 20,
     input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
