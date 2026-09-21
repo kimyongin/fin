@@ -18,4 +18,20 @@ describe('portfolio MCP errors', () => {
     expect(JSON.stringify(classified)).not.toContain('private snapshot')
     expect(JSON.stringify(classified)).not.toContain('secret table detail')
   })
+
+  it.each([
+    ['Market reconciliation requires quantity and avg_price', 'P0001'],
+    ['invalid input syntax for type numeric', '22P02'],
+    ['Trade cannot sell more than the current holding', 'P0001'],
+  ])('classifies invalid input as non-retryable without exposing details', (message, databaseCode) => {
+    expect(classifyPortfolioError(new PortfolioRpcError({ message, code: databaseCode }))).toMatchObject({
+      code: 'validation_error', retryable: false, database_code: databaseCode,
+    })
+  })
+
+  it('does not tell the caller to blindly retry an unknown failure', () => {
+    const classified = classifyPortfolioError(new Error('socket closed unexpectedly'))
+    expect(classified).toMatchObject({ code: 'operation_failed', retryable: false })
+    expect(classified.action).toContain('same idempotency key')
+  })
 })

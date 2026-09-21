@@ -37,5 +37,10 @@ export function classifyPortfolioError(error: unknown): PortfolioErrorInfo {
   if (message.includes('already closed') || message.includes('already reversed') || message.includes('only a') || message.includes('cannot be')) return result('invalid_state', 'The operation is not valid for the current state.', false, 'Re-read the current state and choose an available action.')
   if (message.includes('not supported')) return result('unsupported_operation', 'This operation is not supported.', false, 'Use one of the advertised tool operations.')
   if (message.includes('exceeds the 2 mib')) return result('payload_too_large', 'The request payload is too large.', false, 'Reduce the requested scope and try again.')
-  return result('operation_failed', 'Portfolio operation failed.', true, 'Retry once with the same idempotency key when applicable, then report the request ID.')
+  if (
+    message.includes('required') || message.includes('requires') || message.includes('invalid ') || message.includes('must be') ||
+    message.includes('cannot be in the future') || message.includes('contains an unsupported field') ||
+    message.includes('cannot sell more') || dbCode === '22P02' || dbCode === '22003' || dbCode === '23514'
+  ) return result('validation_error', 'The request is not valid for this operation.', false, 'Correct the input using the tool schema; do not retry the unchanged request.')
+  return result('operation_failed', 'Portfolio operation failed.', false, 'Report the request ID. Retry only when the operation is read-only or the exact write uses the same idempotency key.')
 }

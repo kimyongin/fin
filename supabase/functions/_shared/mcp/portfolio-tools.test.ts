@@ -71,6 +71,22 @@ describe('portfolio MCP tool definitions', () => {
     ])
   })
 
+  it('publishes displayable briefing items and actionable daily-review outputs', () => {
+    const save = tool('save_daily_briefing')
+    const item = (save.inputSchema as any).properties.briefing.properties.changes.items
+    expect(item.oneOf[0]).toMatchObject({ type: 'string', minLength: 1 })
+    expect(item.oneOf[1].anyOf).toEqual([
+      { required: ['summary'] }, { required: ['title'] }, { required: ['body'] },
+    ])
+
+    const contextData = (tool('get_daily_context').outputSchema as any).properties.data
+    expect(contextData.required).toEqual(['context_id', 'expires_at', 'snapshot'])
+    const briefingData = (save.outputSchema as any).properties.data
+    expect(briefingData.required).toContain('id')
+    expect(briefingData.required).toContain('coverage_status')
+    expect((tool('list_daily_briefings').outputSchema as any).oneOf[0].properties.data.type).toBe('array')
+  })
+
   it('keeps an adopted decision separate from trades and execution plans', () => {
     const definition = tool('record_investment_decision')
     const schema = definition.inputSchema as any
@@ -85,6 +101,18 @@ describe('portfolio MCP tool definitions', () => {
     for (const name of ['list_investment_decisions', 'get_investment_decision', 'list_tasks', 'get_task']) {
       expect(tool(name).annotations.readOnlyHint).toBe(true)
     }
+  })
+
+  it('offers opt-in stable cursor pages without removing legacy before inputs', () => {
+    for (const name of ['list_daily_briefings', 'list_investment_decisions', 'list_tasks', 'list_transactions']) {
+      const schema = tool(name).inputSchema as any
+      expect(schema.properties).toHaveProperty('before')
+      expect(schema.properties.cursor.type).toEqual(['object', 'null'])
+      expect((tool(name).outputSchema as any).oneOf).toHaveLength(2)
+    }
+    expect((tool('list_tasks').inputSchema as any).properties.filter.enum).toEqual(['active', 'paused', 'closed', 'all'])
+    expect((tool('list_transactions').inputSchema as any).properties).toHaveProperty('account_id')
+    expect((tool('list_transactions').inputSchema as any).properties).toHaveProperty('instrument_id')
   })
 
   it('publishes guarded decision and task transitions', () => {
@@ -144,6 +172,20 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('reconcile_holding').annotations.idempotentHint).toBe(true)
     expect(tool('verify_holdings').annotations.idempotentHint).toBe(true)
     expect((tool('verify_holdings').inputSchema as any).properties.fields.minItems).toBe(1)
+  })
+
+  it('advertises exact reconciliation value shapes and decimal strings', () => {
+    const preview = tool('preview_holding_reconciliation')
+    const variants = (preview.inputSchema as any).properties.values.oneOf
+    expect(variants.map((variant: any) => variant.required)).toEqual([
+      ['quantity', 'avg_price'],
+      ['purchase_amount', 'valuation_amount'],
+      ['valuation_amount'],
+    ])
+    expect(variants.every((variant: any) => variant.additionalProperties === false)).toBe(true)
+    expect(variants[0].properties.quantity.type).toBe('string')
+    expect((preview.outputSchema as any).properties.data.required).toContain('preview_id')
+    expect((tool('reconcile_holding').outputSchema as any).properties.data.required).toContain('holding_state_version')
   })
   it('models cancellation as previewed reversal rather than an opposite trade',()=>{
     expect(tool('preview_trade_reversal').annotations.idempotentHint).toBe(false)

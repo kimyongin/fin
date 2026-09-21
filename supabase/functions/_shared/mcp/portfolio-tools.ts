@@ -47,14 +47,44 @@ const profileOutputSchema = {
   additionalProperties: false,
 }
 
-const successEnvelopeSchema = {
+function successEnvelope(data: Record<string, unknown> = {}) {
+  return {
   type: 'object',
   properties: {
     ok: { const: true },
-    data: {},
+      data,
   },
   required: ['ok', 'data'],
   additionalProperties: false,
+  }
+}
+
+const successEnvelopeSchema = successEnvelope()
+const idSchema = { type: 'string', format: 'uuid' }
+const timestampSchema = { type: 'string', format: 'date-time' }
+const nonNegativeDecimalStringSchema = {
+  type: 'string',
+  pattern: '^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,16})?$',
+  description: 'A non-negative decimal encoded as a string; JSON numbers are not accepted.',
+}
+
+const briefingItemSchema = {
+  description: 'A concise displayable item. Prefer summary; title and body remain accepted for existing clients.',
+  oneOf: [
+    { type: 'string', minLength: 1, maxLength: 4000 },
+    {
+      type: 'object',
+      properties: {
+        summary: { type: 'string', minLength: 1, maxLength: 4000 },
+        title: { type: 'string', minLength: 1, maxLength: 500 },
+        body: { type: 'string', minLength: 1, maxLength: 4000 },
+        subject: { type: 'string', maxLength: 500 },
+        impact: { type: 'string', maxLength: 4000 },
+      },
+      anyOf: [{ required: ['summary'] }, { required: ['title'] }, { required: ['body'] }],
+      additionalProperties: true,
+    },
+  ],
 }
 
 const evidenceSchema = {
@@ -128,8 +158,8 @@ const briefingSchema = {
   properties: {
     headline: { type: 'string', minLength: 1, maxLength: 500 },
     status: { type: 'string', enum: ['no_action', 'attention', 'insufficient_data'] },
-    changes: { type: 'array', maxItems: 20, items: { type: 'object' } },
-    uncertainties: { type: 'array', maxItems: 20, items: { type: 'object' } },
+    changes: { type: 'array', maxItems: 20, items: briefingItemSchema },
+    uncertainties: { type: 'array', maxItems: 20, items: briefingItemSchema },
     evidence_keys: {
       type: 'array',
       items: { type: 'string', minLength: 1, maxLength: 100 },
@@ -141,6 +171,145 @@ const briefingSchema = {
   required: ['headline', 'status', 'changes', 'uncertainties'],
   additionalProperties: false,
 }
+
+const dailyContextOutputSchema = successEnvelope({
+  type: 'object',
+  properties: {
+    context_id: idSchema,
+    expires_at: timestampSchema,
+    snapshot: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        as_of: timestampSchema,
+        review_date: { type: 'string', format: 'date' },
+        timezone: { type: 'string' },
+        requested_subject_tickers: { type: 'array', items: { type: 'string' } },
+        completeness: { type: 'object' },
+      },
+      required: ['schema_version', 'as_of', 'review_date', 'timezone', 'requested_subject_tickers', 'completeness'],
+      additionalProperties: true,
+    },
+  },
+  required: ['context_id', 'expires_at', 'snapshot'],
+  additionalProperties: false,
+})
+
+const dailyBriefingOutputSchema = successEnvelope({
+  type: 'object',
+  properties: {
+    id: idSchema,
+    review_date: { type: 'string', format: 'date' },
+    timezone: { type: 'string' },
+    analyzed_at: timestampSchema,
+    status: { type: 'string', enum: ['no_action', 'attention', 'insufficient_data'] },
+    coverage_status: { type: 'string', enum: ['complete', 'partial', 'unverified'] },
+    headline: { type: 'string' },
+    changes: { type: 'array', items: briefingItemSchema },
+    uncertainties: { type: 'array', items: briefingItemSchema },
+    evidence: { type: 'array' },
+    scopes: { type: 'array' },
+  },
+  required: ['id', 'review_date', 'timezone', 'analyzed_at', 'status', 'coverage_status', 'headline', 'changes', 'uncertainties', 'evidence', 'scopes'],
+  additionalProperties: true,
+})
+
+const dailyBriefingListOutputSchema = successEnvelope({
+  type: 'array',
+  items: {
+    type: 'object',
+    properties: {
+      id: idSchema,
+      review_date: { type: 'string', format: 'date' },
+      timezone: { type: 'string' },
+      analyzed_at: timestampSchema,
+      status: { type: 'string', enum: ['no_action', 'attention', 'insufficient_data'] },
+      coverage_status: { type: 'string', enum: ['complete', 'partial', 'unverified'] },
+      headline: { type: 'string' },
+      supersedes_id: { type: ['string', 'null'], format: 'uuid' },
+      created_at: timestampSchema,
+    },
+    required: ['id', 'review_date', 'timezone', 'analyzed_at', 'status', 'coverage_status', 'headline', 'supersedes_id', 'created_at'],
+    additionalProperties: false,
+  },
+})
+
+const updatedAtCursorSchema = {
+  type: ['object', 'null'],
+  properties: { updated_at: timestampSchema, id: idSchema },
+  required: ['updated_at', 'id'],
+  additionalProperties: false,
+  description: 'Use null for the first cursor page, then pass next_cursor unchanged.',
+}
+const analyzedAtCursorSchema = {
+  type: ['object', 'null'],
+  properties: { analyzed_at: timestampSchema, id: idSchema },
+  required: ['analyzed_at', 'id'],
+  additionalProperties: false,
+  description: 'Use null for the first cursor page, then pass next_cursor unchanged.',
+}
+const createdAtCursorSchema = {
+  type: ['object', 'null'],
+  properties: { created_at: timestampSchema, id: idSchema },
+  required: ['created_at', 'id'],
+  additionalProperties: false,
+  description: 'Use null for the first cursor page, then pass next_cursor unchanged.',
+}
+const pageOutputSchema = successEnvelope({
+  type: 'object',
+  properties: {
+    items: { type: 'array' },
+    next_cursor: { type: ['object', 'null'] },
+  },
+  required: ['items', 'next_cursor'],
+  additionalProperties: false,
+})
+const legacyOrPageOutputSchema = {
+  oneOf: [successEnvelope({ type: 'array' }), pageOutputSchema],
+}
+
+const holdingValueSchema = {
+  type: 'object',
+  properties: {
+    quantity: { ...nonNegativeDecimalStringSchema },
+    avg_price: { ...nonNegativeDecimalStringSchema },
+    purchase_amount: { ...nonNegativeDecimalStringSchema },
+    valuation_amount: { ...nonNegativeDecimalStringSchema },
+  },
+  additionalProperties: false,
+}
+
+const reconciliationPreviewOutputSchema = successEnvelope({
+  type: 'object',
+  properties: {
+    preview_id: idSchema,
+    expires_at: timestampSchema,
+    holding_id: { type: 'integer' },
+    instrument_id: { type: 'integer' },
+    instrument_type: { type: 'string', enum: ['market', 'valuation', 'cash'] },
+    before: holdingValueSchema,
+    after: holdingValueSchema,
+    confirmed_fields: { type: 'array', items: { type: 'string' } },
+    reason: { type: 'string' },
+    effective_on: { type: 'string', format: 'date' },
+  },
+  required: ['preview_id', 'expires_at', 'holding_id', 'instrument_id', 'instrument_type', 'before', 'after', 'confirmed_fields', 'reason', 'effective_on'],
+  additionalProperties: false,
+})
+
+const reconciliationOutputSchema = successEnvelope({
+  type: 'object',
+  properties: {
+    reconciliation_id: idSchema,
+    holding_id: { type: 'integer' },
+    holding_state_version: { type: 'integer' },
+    before: holdingValueSchema,
+    after: holdingValueSchema,
+    verification_id: { type: ['string', 'null'], format: 'uuid' },
+  },
+  required: ['reconciliation_id', 'holding_id', 'holding_state_version', 'before', 'after', 'verification_id'],
+  additionalProperties: false,
+})
 
 const lifecycleSubjectSchema = {
   type: 'object',
@@ -230,7 +399,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_portfolio_state',
     title: 'Portfolio state',
-    description: 'Read accounts, holdings, instruments, tags, latest prices, and valuation_quality for the authenticated user. Treat missing values as unknown, never zero; do not make definitive allocation or rebalancing claims when valuation_quality.is_complete is false.',
+    description: 'Read current accounts, holdings, instruments, tags, latest prices, and valuation_quality when you need the live asset state outside a daily-review snapshot. Treat missing values as unknown, never zero; do not make definitive allocation or rebalancing claims when valuation_quality.is_complete is false.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: readOnlyAnnotations,
   },
@@ -248,7 +417,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_strategy_state',
     title: 'Investment strategy',
-    description: 'Read the authenticated user\'s active strategy, target buckets, and tag mappings.',
+    description: 'Read allocation modes, target buckets, and tag mappings when the task is specifically about allocation or rebalancing. Use get_investment_policy instead when personal goals, risk preferences, liquidity needs, or restrictions are relevant.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: readOnlyAnnotations,
   },
@@ -273,7 +442,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_daily_context',
     title: 'Prepare daily review context',
-    description: 'Create a short-lived authenticated snapshot for a daily review. It reads stored portfolio facts and prior research windows but does not save an analysis, mark a review complete, or fetch public news.',
+    description: 'Start a daily review by creating one short-lived authenticated snapshot. Use this instead of separately reading portfolio, strategy, saved news, and activity for the same review. It does not save an analysis, mark a review complete, or fetch public news.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -290,7 +459,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       required: ['schema_version', 'timezone'],
       additionalProperties: false,
     },
-    outputSchema: successEnvelopeSchema,
+    outputSchema: dailyContextOutputSchema,
     annotations: contextAnnotations,
   },
   {
@@ -311,22 +480,23 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       required: ['schema_version', 'context_id', 'idempotency_key', 'evidence', 'scopes', 'briefing'],
       additionalProperties: false,
     },
-    outputSchema: successEnvelopeSchema,
+    outputSchema: dailyBriefingOutputSchema,
     annotations: idempotentWriteAnnotations,
   },
   {
     name: 'list_daily_briefings',
     title: 'Daily portfolio briefings',
-    description: 'List compact summaries of the authenticated user\'s saved daily briefings, newest analysis first.',
+    description: 'List saved daily briefing summaries, newest first. For stable pagination, pass cursor:null on the first call and then pass next_cursor unchanged; omit cursor only for legacy before-based behavior. Do not send cursor and before together.',
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
         before: { type: 'string', format: 'date-time' },
+        cursor: analyzedAtCursorSchema,
       },
       additionalProperties: false,
     },
-    outputSchema: successEnvelopeSchema,
+    outputSchema: legacyOrPageOutputSchema,
     annotations: readOnlyAnnotations,
   },
   {
@@ -339,7 +509,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       required: ['briefing_id'],
       additionalProperties: false,
     },
-    outputSchema: successEnvelopeSchema,
+    outputSchema: dailyBriefingOutputSchema,
     annotations: readOnlyAnnotations,
   },
   {
@@ -373,16 +543,18 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'list_investment_decisions',
     title: 'Investment decisions',
-    description: 'List the authenticated user\'s saved investment decisions, newest change first. Proposed ideas are not user-adopted decisions.',
+    description: 'List saved investment decisions. Proposed ideas are not user-adopted decisions. For stable pagination, pass cursor:null and filter current, closed, or all; then pass next_cursor unchanged. Omit cursor only for legacy before-based behavior.',
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
         before: { type: 'string', format: 'date-time' },
+        cursor: updatedAtCursorSchema,
+        filter: { type: 'string', enum: ['current', 'closed', 'all'], default: 'current' },
       },
       additionalProperties: false,
     },
-    outputSchema: successEnvelopeSchema,
+    outputSchema: legacyOrPageOutputSchema,
     annotations: readOnlyAnnotations,
   },
   {
@@ -400,18 +572,20 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'list_tasks',
-    title: 'Portfolio research tasks',
-    description: 'List the authenticated user\'s research and review tasks. These are questions to revisit, not brokerage orders or proof of execution.',
+    title: 'Portfolio tasks and execution plans',
+    description: 'List research/review tasks and quantity execution plans. A research task is a question; an execution plan is still not a brokerage order or proof of execution. For stable pagination, pass cursor:null and filter active, paused, closed, or all; then pass next_cursor unchanged. Omit cursor only for legacy research-state behavior.',
     inputSchema: {
       type: 'object',
       properties: {
         state: { type: 'string', enum: ['open', 'waiting', 'resolved', 'closed'] },
         limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
         before: { type: 'string', format: 'date-time' },
+        cursor: updatedAtCursorSchema,
+        filter: { type: 'string', enum: ['active', 'paused', 'closed', 'all'], default: 'active' },
       },
       additionalProperties: false,
     },
-    outputSchema: successEnvelopeSchema,
+    outputSchema: legacyOrPageOutputSchema,
     annotations: readOnlyAnnotations,
   },
   {
@@ -504,7 +678,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_investment_policy',
     title: 'Investment policy and operating strategy',
-    description: 'Read the authenticated user\'s explicitly saved personal investment policy together with the existing operating strategy. Missing personal fields remain unknown; do not infer them from portfolio holdings or the active allocation mode.',
+    description: 'Read explicitly saved personal goals, horizon, liquidity needs, risk/trading preferences, and restrictions together with the operating strategy. Use this for advice against the user\'s policy; use get_strategy_state alone for allocation mechanics. Missing personal fields remain unknown; do not infer them from holdings or the active mode.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     outputSchema: successEnvelopeSchema,
     annotations: readOnlyAnnotations,
@@ -610,16 +784,19 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'list_transactions',
     title: 'Recorded completed trades',
-    description: 'List completed trades recorded in Portfolio. This is not a complete brokerage statement and excludes legacy or unrecorded trades, balance corrections, orders, and cash movements.',
+    description: 'List completed trades recorded in Portfolio, optionally for one account or instrument. For stable pagination, pass cursor:null first and then next_cursor unchanged; omit cursor only for legacy before-based behavior. This is not a complete brokerage statement and excludes legacy or unrecorded trades, balance corrections, orders, and cash movements.',
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'integer', minimum: 1, maximum: 100 },
         before: { type: 'string', format: 'date-time' },
+        cursor: createdAtCursorSchema,
+        account_id: { type: 'integer', minimum: 1 },
+        instrument_id: { type: 'integer', minimum: 1 },
       },
       additionalProperties: false,
     },
-    outputSchema: successEnvelopeSchema,
+    outputSchema: legacyOrPageOutputSchema,
     annotations: readOnlyAnnotations,
   },
   {
@@ -635,15 +812,19 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'preview_holding_reconciliation', title: 'Preview an absolute holding correction',
-    description: 'Preview replacing one holding with user-supplied actual values. Market holdings use quantity and avg_price, valuation holdings use purchase_amount and valuation_amount, and cash uses valuation_amount. This does not modify the holding or imply brokerage verification unless confirmed_fields are explicit.',
+    description: 'Preview replacing one holding with user-supplied actual values. Send non-negative decimals as strings, not JSON numbers. Market requires exactly quantity and avg_price; valuation requires purchase_amount and valuation_amount; cash requires valuation_amount. Zero market quantity still requires avg_price, which is discarded in the resulting zero balance. This does not modify the holding or imply brokerage verification unless confirmed_fields are explicit.',
     inputSchema: { type: 'object', properties: {
-      holding_id: { type: 'integer', minimum: 1 }, values: { type: 'object', minProperties: 1 }, reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' }, confirmed_fields: { type: 'array', items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] }, uniqueItems: true },
-    }, required: ['holding_id','values','reason','effective_on','confirmed_fields'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: contextAnnotations,
+      holding_id: { type: 'integer', minimum: 1 }, values: { oneOf: [
+        { type: 'object', properties: { quantity: nonNegativeDecimalStringSchema, avg_price: nonNegativeDecimalStringSchema }, required: ['quantity','avg_price'], additionalProperties: false },
+        { type: 'object', properties: { purchase_amount: nonNegativeDecimalStringSchema, valuation_amount: nonNegativeDecimalStringSchema }, required: ['purchase_amount','valuation_amount'], additionalProperties: false },
+        { type: 'object', properties: { valuation_amount: nonNegativeDecimalStringSchema }, required: ['valuation_amount'], additionalProperties: false },
+      ] }, reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' }, confirmed_fields: { type: 'array', items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] }, uniqueItems: true },
+    }, required: ['holding_id','values','reason','effective_on','confirmed_fields'], additionalProperties: false }, outputSchema: reconciliationPreviewOutputSchema, annotations: contextAnnotations,
   },
   {
     name: 'reconcile_holding', title: 'Apply an absolute holding correction',
     description: 'Use only after the user explicitly confirms a fresh correction preview. It establishes a new absolute local balance checkpoint and optionally records only the fields explicitly compared with the brokerage. It does not create a trade or place an order.',
-    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, preview_id: { type: 'string', format: 'uuid' }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','preview_id','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, preview_id: { type: 'string', format: 'uuid' }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','preview_id','idempotency_key'], additionalProperties: false }, outputSchema: reconciliationOutputSchema, annotations: idempotentWriteAnnotations,
   },
   {
     name: 'verify_holdings', title: 'Record explicit brokerage comparison',

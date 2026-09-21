@@ -43,13 +43,56 @@ try {
   const profile = await call(session.access_token, 'tools/call', { name: 'get_profile', arguments: {} })
   assert(profile.response.ok && profile.body?.result?.isError === false, 'Authenticated MCP tools/call failed')
 
+  const context = await call(session.access_token, 'tools/call', {
+    name: 'get_daily_context',
+    arguments: { schema_version: 1, timezone: 'Asia/Seoul' },
+  })
+  const contextData = context.body?.result?.structuredContent?.data
+  assert(context.body?.result?.isError === false && contextData?.context_id && contextData?.expires_at, 'Daily context contract failed')
+
+  const saved = await call(session.access_token, 'tools/call', {
+    name: 'save_daily_briefing',
+    arguments: {
+      schema_version: 1,
+      context_id: contextData.context_id,
+      idempotency_key: crypto.randomUUID(),
+      evidence: [],
+      scopes: [{
+        local_key: 'portfolio',
+        subject: { kind: 'portfolio' },
+        window_from: new Date(Date.now() - 86400000).toISOString(),
+        window_to: new Date().toISOString(),
+        coverage: 'unverified',
+        reason: 'Contract test does not perform external research.',
+        checked_at: new Date().toISOString(),
+        evidence_keys: [],
+        checked_sources: [],
+      }],
+      briefing: {
+        headline: 'Contract test briefing',
+        status: 'insufficient_data',
+        changes: ['No researched change was asserted.'],
+        uncertainties: [{ title: 'External research was intentionally omitted.' }],
+      },
+    },
+  })
+  const savedData = saved.body?.result?.structuredContent?.data
+  assert(saved.body?.result?.isError === false && savedData?.id && savedData?.coverage_status === 'unverified', 'Daily briefing save contract failed')
+  assert(savedData.changes?.[0]?.summary === 'No researched change was asserted.', 'Briefing item normalization failed')
+
+  const reread = await call(session.access_token, 'tools/call', {
+    name: 'get_daily_briefing',
+    arguments: { briefing_id: savedData.id },
+  })
+  assert(reread.body?.result?.structuredContent?.data?.id === savedData.id, 'Saved daily briefing could not be read back')
+
   const invalid = await call(session.access_token, 'tools/call', { name: 'log_completed_trade', arguments: {} })
   const toolError = invalid.body?.result?.structuredContent?.error
   assert(invalid.response.ok && invalid.body?.result?.isError === true, 'Invalid tool input did not return an MCP tool error')
   assert(toolError?.code === 'validation_error' && toolError?.retryable === false, 'Invalid tool input returned the wrong recovery contract')
   assert(typeof toolError?.request_id === 'string' && toolError.request_id.length > 20, 'Tool error did not include a request ID')
 
-  console.log('MCP initialize, tools/list, authenticated tools/call, auth denial, and validation error contracts passed.')
+  console.log('MCP initialize, tools/list, daily briefing save/read, auth denial, and validation error contracts passed.')
 } finally {
   if (userId) {
     await fetch(`${baseUrl}/auth/v1/admin/users/${userId}`, {

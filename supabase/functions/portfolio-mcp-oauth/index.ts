@@ -121,6 +121,25 @@ function optionalString(value: unknown) {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
 }
 
+function cursorPage(args: Record<string, unknown>) {
+  const enabled = Object.prototype.hasOwnProperty.call(args, 'cursor')
+  if (enabled && args.before != null) throw new ToolInputError('cursor and before cannot be used together')
+  return { enabled, value: args.cursor == null ? null : requireRecord(args.cursor, 'cursor') }
+}
+
+function normalizeBriefingItems(value: unknown, field: string) {
+  return requireArray(value, field).map((item, index) => {
+    if (typeof item === 'string') return { summary: requireString(item, `${field}[${index}]`) }
+    const record = requireRecord(item, `${field}[${index}]`)
+    const summary = optionalString(record.summary) ?? optionalString(record.title) ?? optionalString(record.body)
+    if (!summary) throw new ToolInputError(`${field}[${index}] needs summary, title, or body`)
+    return {
+      ...record,
+      summary,
+    }
+  })
+}
+
 function normalizeDailyBriefingPayload(args: Record<string, unknown>) {
   requireSchemaVersion(args)
   const briefing = requireRecord(args.briefing, 'briefing')
@@ -165,8 +184,8 @@ function normalizeDailyBriefingPayload(args: Record<string, unknown>) {
   return {
     status: requireString(briefing.status, 'briefing.status'),
     headline: requireString(briefing.headline, 'briefing.headline'),
-    changes: requireArray(briefing.changes, 'briefing.changes'),
-    uncertainties: requireArray(briefing.uncertainties, 'briefing.uncertainties'),
+    changes: normalizeBriefingItems(briefing.changes, 'briefing.changes'),
+    uncertainties: normalizeBriefingItems(briefing.uncertainties, 'briefing.uncertainties'),
     evidence,
     scopes,
     ...(optionalString(args.supersedes_briefing_id)
@@ -431,10 +450,14 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async list_daily_briefings(supabase, args) {
     const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50)
-    const data = await rpc(supabase, 'app_list_daily_briefings', {
-      input_limit: limit,
-      input_before: optionalString(args.before) ?? null,
-    })
+    const page = cursorPage(args)
+    const data = page.enabled
+      ? await rpc(supabase, 'app_list_daily_briefing_page', {
+          input_owner_user_id: null, input_limit: limit, input_cursor: page.value,
+        })
+      : await rpc(supabase, 'app_list_daily_briefings', {
+          input_limit: limit, input_before: optionalString(args.before) ?? null,
+        })
     return { ok: true, data }
   },
   async get_daily_briefing(supabase, args) {
@@ -453,10 +476,15 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async list_investment_decisions(supabase, args) {
     const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50)
-    const data = await rpc(supabase, 'app_list_investment_decisions', {
-      input_limit: limit,
-      input_before: optionalString(args.before) ?? null,
-    })
+    const page = cursorPage(args)
+    const data = page.enabled
+      ? await rpc(supabase, 'app_list_investment_decision_page', {
+          input_owner_user_id: null, input_filter: optionalString(args.filter) ?? 'current',
+          input_limit: limit, input_cursor: page.value,
+        })
+      : await rpc(supabase, 'app_list_investment_decisions', {
+          input_limit: limit, input_before: optionalString(args.before) ?? null,
+        })
     return { ok: true, data }
   },
   async get_investment_decision(supabase, args) {
@@ -468,11 +496,16 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async list_tasks(supabase, args) {
     const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50)
-    const data = await rpc(supabase, 'app_list_portfolio_tasks', {
-      input_state: optionalString(args.state) ?? null,
-      input_limit: limit,
-      input_before: optionalString(args.before) ?? null,
-    })
+    const page = cursorPage(args)
+    const data = page.enabled
+      ? await rpc(supabase, 'app_list_portfolio_task_page', {
+          input_owner_user_id: null, input_filter: optionalString(args.filter) ?? 'active',
+          input_limit: limit, input_cursor: page.value,
+        })
+      : await rpc(supabase, 'app_list_portfolio_tasks', {
+          input_state: optionalString(args.state) ?? null,
+          input_limit: limit, input_before: optionalString(args.before) ?? null,
+        })
     return { ok: true, data }
   },
   async get_task(supabase, args) {
@@ -616,10 +649,20 @@ const toolHandlers: Record<string, ToolHandler> = {
     return { ok: true, data }
   },
   async list_transactions(supabase, args) {
-    const data = await rpc(supabase, 'app_list_transactions', {
-      input_limit: Math.min(Math.max(Number(args.limit) || 50, 1), 100),
-      input_before: optionalString(args.before) ?? null,
-    })
+    const limit = Math.min(Math.max(Number(args.limit) || 50, 1), 100)
+    const page = cursorPage(args)
+    if (!page.enabled && (args.instrument_id != null || args.account_id != null)) {
+      throw new ToolInputError('account_id and instrument_id require cursor pagination; pass cursor:null')
+    }
+    const data = page.enabled
+      ? await rpc(supabase, 'app_list_transaction_page', {
+          input_instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
+          input_account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
+          input_limit: limit, input_cursor: page.value,
+        })
+      : await rpc(supabase, 'app_list_transactions', {
+          input_limit: limit, input_before: optionalString(args.before) ?? null,
+        })
     return { ok: true, data }
   },
   async get_holding_integrity(supabase, args) {

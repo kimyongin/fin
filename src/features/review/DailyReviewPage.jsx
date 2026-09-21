@@ -40,7 +40,12 @@ function localDateKey(value, timezone = 'Asia/Seoul') {
 
 function summaryText(value) {
   if (typeof value === 'string') return value
-  return value?.summary ?? value?.title ?? value?.body ?? ''
+  if (value?.summary || value?.title || value?.body) return value.summary ?? value.title ?? value.body
+  if (value && typeof value === 'object') {
+    const readable = Object.values(value).find((item) => typeof item === 'string' && item.trim())
+    return readable ?? '이전 형식의 점검 항목'
+  }
+  return ''
 }
 
 function StatusPills({ briefing }) {
