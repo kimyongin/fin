@@ -8,6 +8,7 @@ if (!['127.0.0.1', 'localhost'].includes(hostname)) throw new Error('MCP contrac
 
 const anonKey = process.env.SUPABASE_ANON_KEY
 const functionUrl = `${baseUrl}/functions/v1/portfolio-mcp-oauth`
+const tokenFunctionUrl = `${baseUrl}/functions/v1/portfolio-mcp`
 const commonHeaders = { apikey: anonKey, 'Content-Type': 'application/json' }
 let userId = null
 
@@ -19,6 +20,15 @@ async function call(accessToken, method, params = {}) {
   const response = await fetch(functionUrl, {
     method: 'POST',
     headers: { ...commonHeaders, ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+    body: JSON.stringify({ jsonrpc: '2.0', id: crypto.randomUUID(), method, params }),
+  })
+  return { response, body: await response.json().catch(() => null) }
+}
+
+async function callTokenMcp(agentToken, method, params = {}) {
+  const response = await fetch(tokenFunctionUrl, {
+    method: 'POST',
+    headers: { ...commonHeaders, Authorization: `Bearer ${agentToken}` },
     body: JSON.stringify({ jsonrpc: '2.0', id: crypto.randomUUID(), method, params }),
   })
   return { response, body: await response.json().catch(() => null) }
@@ -68,6 +78,25 @@ try {
 
   const profile = await call(session.access_token, 'tools/call', { name: 'get_profile', arguments: {} })
   assert(profile.response.ok && profile.body?.result?.isError === false, 'Authenticated MCP tools/call failed')
+
+  const agentToken = `fin_agent_contract_${crypto.randomUUID()}`
+  const tokenHash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(agentToken)))]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+  const tokenCreated = await fetch(`${baseUrl}/rest/v1/rpc/agent_create_token`, {
+    method: 'POST',
+    headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ input_name: 'MCP contract token', input_token_hash: tokenHash, input_token_prefix: `${agentToken.slice(0, 18)}...` }),
+  })
+  assert(tokenCreated.ok, `Local agent token creation failed (${tokenCreated.status})`)
+  const tokenInitialized = await callTokenMcp(agentToken, 'initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'contract-test', version: '1' } })
+  assert(tokenInitialized.response.ok && tokenInitialized.body?.result?.protocolVersion === '2024-11-05', `Token MCP initialize contract failed (${tokenInitialized.response.status}): ${JSON.stringify(tokenInitialized.body)}`)
+  const tokenTools = await callTokenMcp(agentToken, 'tools/list')
+  assert(tokenTools.body?.result?.tools?.some((tool) => tool.name === 'get_portfolio_state'), 'Token MCP tools/list contract failed')
+  const tokenPortfolio = await callTokenMcp(agentToken, 'tools/call', { name: 'get_portfolio_state', arguments: {} })
+  assert(tokenPortfolio.response.ok && tokenPortfolio.body?.result?.content?.[0]?.text, 'Token MCP authenticated tools/call failed')
+  const invalidTokenPortfolio = await callTokenMcp(`${agentToken}-invalid`, 'tools/call', { name: 'get_portfolio_state', arguments: {} })
+  assert(invalidTokenPortfolio.body?.error, 'Token MCP accepted an invalid agent token')
 
   const policyBefore = await call(session.access_token, 'tools/call', { name: 'get_investment_policy', arguments: {} })
   assert(policyBefore.body?.result?.structuredContent?.data?.profile == null, 'New contract user unexpectedly has an investment policy')
@@ -182,7 +211,7 @@ try {
   assert(toolError?.code === 'validation_error' && toolError?.retryable === false, 'Invalid tool input returned the wrong recovery contract')
   assert(typeof toolError?.request_id === 'string' && toolError.request_id.length > 20, 'Tool error did not include a request ID')
 
-  console.log('MCP initialize, workflow guides, policy save/read, daily briefing save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
+  console.log('OAuth and token MCP initialize/discovery/authentication, workflow guides, policy save/read, daily briefing save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
 } finally {
   if (userId) {
     await fetch(`${baseUrl}/auth/v1/admin/users/${userId}`, {

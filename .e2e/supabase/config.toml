@@ -28,5 +28,11 @@ port = 55323
 [inbucket]
 port = 55324
 
+[functions.portfolio-mcp]
+verify_jwt = false
+
+[functions.portfolio-mcp-oauth]
+verify_jwt = false
+
 [analytics]
 port = 55327

@@ -749,6 +749,38 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await expect(page.getByText('현재 자산을 입력하고, ChatGPT에서 첫 점검을 저장하세요')).toBeVisible()
 })
 
+test('creates, edits, and deletes a saved news record from the materials page', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#news')
+
+  const suffix = Date.now()
+  const originalFact = `E2E 뉴스 팩트 ${suffix}`
+  const editedFact = `${originalFact} 수정`
+  const opinion = `E2E 의견 ${suffix}`
+  await page.getByRole('button', { name: '뉴스 추가' }).click()
+  const createDialog = page.getByRole('dialog', { name: '뉴스 팩트 기록' })
+  await createDialog.getByLabel('국가').selectOption('US')
+  await createDialog.getByLabel('팩트').fill(originalFact)
+  await createDialog.getByLabel('의견 · 신호').fill(opinion)
+  await createDialog.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(page.getByText(originalFact, { exact: true })).toBeVisible()
+  await expect(page.getByText(opinion, { exact: true })).toBeVisible()
+
+  const record = page.getByText(originalFact, { exact: true }).locator('xpath=ancestor::li')
+  await record.getByRole('button', { name: '뉴스 기록 편집' }).click()
+  const editDialog = page.getByRole('dialog', { name: '뉴스 기록 편집' })
+  await editDialog.getByLabel('팩트').fill(editedFact)
+  await editDialog.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(page.getByText(editedFact, { exact: true })).toBeVisible()
+
+  await page.getByText(editedFact, { exact: true }).locator('xpath=ancestor::li').getByRole('button', { name: '뉴스 기록 편집' }).click()
+  const deleteButton = page.getByRole('dialog', { name: '뉴스 기록 편집' }).getByRole('button', { name: '기록 삭제' })
+  await deleteButton.click()
+  await expect(page.getByText('삭제 확인')).toBeVisible()
+  await deleteButton.click()
+  await expect(page.getByText(editedFact, { exact: true })).toHaveCount(0)
+})
+
 test('guides a new user from empty assets through OAuth setup and first review', async ({ page }) => {
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.setViewportSize({ width: 390, height: 844 })
@@ -844,6 +876,7 @@ test('keeps four primary destinations usable without horizontal overflow', async
     await expect(primary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '판단·할 일', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '투자 원칙', exact: true })).toBeVisible()
+    await expect.poll(() => primary.evaluate((element) => getComputedStyle(element).position)).toBe('fixed')
     const navigationBox = await primary.evaluate((element) => {
       const box = element.getBoundingClientRect()
       return { bottom: box.bottom, left: box.left, position: getComputedStyle(element).position, width: box.width }
