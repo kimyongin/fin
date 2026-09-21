@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select extensions.plan(16);
+select extensions.plan(19);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values
@@ -17,9 +17,9 @@ values ('00000000-0000-0000-0000-000000000701',9701,'TRADE',10,100);
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000701',true);
 set local role authenticated;
 
-create temp table trade_test_data (buy_preview uuid, sell_preview uuid, stale_preview uuid, buy_key uuid) on commit drop;
+create temp table trade_test_data (buy_preview uuid, sell_preview uuid, stale_preview uuid, competing_preview uuid, buy_key uuid) on commit drop;
 grant select, insert, update on trade_test_data to authenticated;
-insert into trade_test_data values (null,null,null,'70000000-0000-0000-0000-000000000001');
+insert into trade_test_data values (null,null,null,null,'70000000-0000-0000-0000-000000000001');
 
 update trade_test_data set buy_preview = (public.app_preview_trade_entry(9701,9701,'buy',10,200,current_date)->>'preview_id')::uuid;
 select extensions.is(
@@ -68,6 +68,19 @@ set local role authenticated;
 select extensions.throws_ok(
  $$select public.app_log_completed_trade((select stale_preview from trade_test_data),'70000000-0000-0000-0000-000000000004','app')$$,
  'P0001','Trade preview expired','expired preview is rejected');
+
+update trade_test_data set
+ stale_preview = (public.app_preview_trade_entry(9701,9701,'buy',1,100,current_date)->>'preview_id')::uuid,
+ competing_preview = (public.app_preview_trade_entry(9701,9701,'buy',2,100,current_date)->>'preview_id')::uuid;
+select extensions.is(
+ public.app_log_completed_trade((select stale_preview from trade_test_data),'70000000-0000-0000-0000-000000000005','app') #>> '{holding,quantity}',
+ '17.0000000000000000', 'the first of two previews updates the holding');
+select extensions.throws_ok(
+ $$select public.app_log_completed_trade((select competing_preview from trade_test_data),'70000000-0000-0000-0000-000000000006','app')$$,
+ 'P0001','Trade preview is stale; create a new preview','a competing preview cannot overwrite the first confirmation');
+select extensions.is(
+ (select count(*) from public.trade_entries where preview_id=(select competing_preview from trade_test_data)),
+ 0::bigint, 'the rejected competing preview creates no ledger row');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000702',true);
 select extensions.throws_ok(
