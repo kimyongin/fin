@@ -78,6 +78,7 @@ function App() {
   const [spreadsheetSaving, setSpreadsheetSaving] = useState(false)
   const [state, setState] = useState(() => createEmptyPortfolioState())
   const [loadError, setLoadError] = useState('')
+  const [lifecycleSelection, setLifecycleSelection] = useState(null)
   const { authStatus, session, setAuthStatus, setSession } = useSupabaseSession({
     isConfigured: isSupabaseConfigured,
     supabase,
@@ -439,10 +440,10 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : activeTab === 'decisions' ? '판단' : activeTab === 'tasks' ? '할 일' : activeTab === 'strategy' ? '원칙' : activeTab === 'news' ? '자료' : activeTab === 'activity' ? '활동' : activeTab === 'guide' ? '가이드' : '설정'
+  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : activeTab === 'decisions' || activeTab === 'tasks' ? '판단·할 일' : activeTab === 'strategy' ? '투자 원칙' : activeTab === 'news' ? '자료' : activeTab === 'activity' ? '활동' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
-    <main className="min-h-screen px-4 py-5 text-[var(--ink)] sm:px-6">
+    <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6 lg:pb-5 lg:pl-44">
       <div className="mx-auto max-w-6xl">
         <AppHeader
           activeTab={activeTab}
@@ -469,18 +470,29 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'today' && <DailyReviewPageView ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null} supabase={supabase} />}
-
-        {(activeTab === 'decisions' || activeTab === 'tasks') && (
-          <LifecyclePageView
-            mode={activeTab}
-            onModeChange={setActiveTab}
+        {activeTab === 'today' && (
+          <DailyReviewPageView
+            onOpenTask={(id) => {
+              setLifecycleSelection({ id, mode: 'tasks' })
+              setActiveTab('tasks')
+            }}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             supabase={supabase}
           />
         )}
 
-        {activeTab === 'overview' && (
+        {(activeTab === 'decisions' || activeTab === 'tasks') && (
+          <LifecyclePageView
+            initialSelection={lifecycleSelection}
+            mode={activeTab}
+            onModeChange={setActiveTab}
+            onSelectionHandled={() => setLifecycleSelection(null)}
+            ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
+            supabase={supabase}
+          />
+        )}
+
+        {activeTab === 'overview' && assetView !== 'allocation' && (
           <AssetsPageView
             accountTagFilter={accountTagFilter}
             accountById={accountById}
@@ -492,6 +504,7 @@ function App() {
             instrumentTagFilter={instrumentTagFilter}
             instruments={filteredInstrumentRows}
             onAssetViewChange={setAssetView}
+            onCompareTargets={() => setAssetView('allocation')}
             onCreateAccount={() => openAccountModal()}
             onCreateHolding={(ticker) => openHoldingModal({ ticker })}
             onCreateInstrument={() => openInstrumentModal()}
@@ -514,6 +527,19 @@ function App() {
             valuationQuality={valuationQuality}
             supabase={supabase}
             onTradeSaved={() => refreshState()}
+          />
+        )}
+        {activeTab === 'overview' && assetView === 'allocation' && (
+          <StrategyPageView
+            canEdit={canEdit}
+            onBack={() => setAssetView('tags')}
+            ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
+            section="allocation"
+            supabase={supabase}
+            tagCards={tagCards}
+            tags={state.tags}
+            totalValue={totalValue}
+            valuationQuality={valuationQuality}
           />
         )}
         {activeTab === 'settings' && (
@@ -562,6 +588,7 @@ function App() {
           <StrategyPageView
             canEdit={canEdit}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
+            section="principles"
             supabase={supabase}
             tagCards={tagCards}
             tags={state.tags}

@@ -2,8 +2,15 @@ import { expect, test } from '@playwright/test'
 import { callRpc, signInAs } from './helpers'
 
 async function openMenuTab(page, label) {
+  const primaryLabel = label === '판단' || label === '할 일' ? '판단·할 일' : label === '원칙' ? '투자 원칙' : label
+  const primary = page.locator('nav[aria-label="주요 메뉴"]:visible').getByRole('button', { name: primaryLabel, exact: true })
+  if (await primary.count()) {
+    await primary.click()
+    if (label === '판단') await page.getByRole('tab', { name: '판단 기록', exact: true }).click()
+    return
+  }
   await page.getByRole('button', { name: 'Open menu' }).click()
-  await page.locator('nav').getByRole('button', { name: label, exact: true }).click()
+  await page.locator('nav[aria-label="보조 메뉴"]').getByRole('button', { name: label, exact: true }).click()
 }
 
 test('loads the owner portfolio with a virtual Supabase user session', async ({ page }) => {
@@ -56,13 +63,69 @@ test('shows the latest saved daily review first on a mobile-sized screen', async
   })
   expect(saved.status, JSON.stringify(saved.body)).toBe(200)
 
+  const relatedTaskTitle = `E2E 브리핑 후속 확인 ${Date.now()}`
+  const relatedDecision = await callRpc(page, 'app_record_investment_decision', {
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: {
+      status: 'proposed',
+      subject: { kind: 'portfolio' },
+      question: '이 브리핑의 변화를 다음 점검에서 어떻게 확인할까?',
+      options: ['다음 점검에서 확인'],
+      source_briefing_id: saved.body.id,
+      timezone: 'Asia/Seoul',
+      authored_via: 'app',
+      follow_up_tasks: [{ title: relatedTaskTitle, subject: { kind: 'portfolio' }, trigger_text: '다음 점검' }],
+    },
+  })
+  expect(relatedDecision.status, JSON.stringify(relatedDecision.body)).toBe(200)
+
   await page.reload()
   await expect(page).toHaveURL(/#today$/)
+  await expect(page.getByText('오늘 저장한 점검')).toBeVisible()
   await expect(page.getByText(headline).first()).toBeVisible()
   await expect(page.getByText('자료 부족').first()).toBeVisible()
+  await page.getByRole('button', { name: relatedTaskTitle }).click()
+  await expect(page.getByRole('heading', { name: '할 일 상세' })).toBeVisible()
+  await page.getByRole('button', { name: '판단 1 보기' }).click()
+  await expect(page.getByRole('heading', { name: '판단 상세' })).toBeVisible()
+  await page.getByRole('button', { name: '닫기' }).click()
+  await openMenuTab(page, '오늘')
   await page.getByRole('button', { name: '전체 브리핑 보기' }).click()
   await expect(page.getByRole('heading', { name: '저장된 점검 상세' })).toBeVisible()
-  await expect(page.getByText('확인이 필요한 변화입니다.')).toBeVisible()
+  await expect(page.getByText('확인이 필요한 변화입니다.').last()).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
+test('labels an old partial no-action review as a saved conclusion', async ({ page }) => {
+  const oldReview = {
+    id: '10000000-0000-0000-0000-000000000001',
+    status: 'no_action',
+    coverage_status: 'partial',
+    headline: `당시 기준으로 유지하되 다음 확인 조건을 기다립니다 ${'긴 제목 '.repeat(18)}`,
+    analyzed_at: '2020-01-02T03:00:00Z',
+    timezone: 'Asia/Seoul',
+    changes: [1, 2, 3, 4].map((number) => ({ summary: `중요 변화 ${number}` })),
+    uncertainties: [],
+    scopes: [],
+    evidence: [],
+  }
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.route('**/rest/v1/rpc/app_list_daily_briefing_page', (route) => route.fulfill({
+    contentType: 'application/json',
+    status: 200,
+    body: JSON.stringify({ items: [oldReview], next_cursor: null }),
+  }))
+  await page.route('**/rest/v1/rpc/app_get_daily_briefing', (route) => route.fulfill({
+    contentType: 'application/json', status: 200, body: JSON.stringify(oldReview),
+  }))
+  await page.goto('/#today')
+
+  await expect(page.getByText('마지막 저장 점검')).toBeVisible()
+  await expect(page.getByText('행동 불필요').first()).toBeVisible()
+  await expect(page.getByText('일부 조사').first()).toBeVisible()
+  await expect(page.getByText('오늘 분석이 아니라 마지막으로 저장된 당시 결론입니다.')).toBeVisible()
+  await expect(page.getByText('중요 변화 3')).toBeVisible()
+  await expect(page.getByText('중요 변화 4')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
@@ -488,11 +551,15 @@ test('adds a friend and grants only that user shared portfolio access', async ({
 
   await friendPage.reload()
   await friendPage.getByLabel('포트폴리오 전환').selectOption('00000000-0000-0000-0000-00000000e201')
+  const sharedPrimary = friendPage.locator('nav[aria-label="주요 메뉴"]:visible')
+  await expect(sharedPrimary.getByRole('button', { name: '오늘', exact: true })).toBeVisible()
+  await expect(sharedPrimary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
+  await expect(sharedPrimary.getByRole('button', { name: '판단·할 일', exact: true })).toBeVisible()
+  await expect(sharedPrimary.getByRole('button', { name: '투자 원칙', exact: true })).toBeVisible()
   await friendPage.getByRole('button', { name: 'Open menu' }).click()
-  const sharedMenu = friendPage.locator('nav')
-  await expect(sharedMenu.getByRole('button', { name: '오늘', exact: true })).toBeVisible()
-  await expect(sharedMenu.getByRole('button', { name: '판단', exact: true })).toBeVisible()
-  await expect(sharedMenu.getByRole('button', { name: '할 일', exact: true })).toBeVisible()
+  const sharedMenu = friendPage.locator('nav[aria-label="보조 메뉴"]')
+  await expect(sharedMenu.getByRole('button', { name: '오늘', exact: true })).toHaveCount(0)
+  await expect(sharedMenu.getByRole('button', { name: '판단·할 일', exact: true })).toHaveCount(0)
   await expect(sharedMenu.getByRole('button', { name: '설정', exact: true })).toHaveCount(0)
   expect((await callRpc(friendPage, 'app_list_portfolio_task_page', {
     input_cursor: null, input_filter: 'active', input_limit: 20,
@@ -611,7 +678,7 @@ test('navigates the authenticated browser through strategy, activity, and settin
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
   }
 
-  await openTab('원칙', '원칙')
+  await openTab('원칙', '투자 원칙')
   await openTab('활동', '활동')
   await openTab('설정', '설정')
   const reviewSharing = page.getByRole('button', { name: '투자 점검 기록도 공유' })
@@ -636,7 +703,13 @@ test('keeps the saved strategy visible when valuation is incomplete', async ({ p
   })
   await openMenuTab(page, '원칙')
   await expect(page.getByText('E2E Display Strategy')).toBeVisible()
+  await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toHaveCount(0)
+  await openMenuTab(page, '자산')
+  await page.getByRole('button', { name: '목표와 비교' }).click()
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toBeVisible()
+  await expect(page).toHaveURL(/#allocation$/)
+  await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+  await expect(page).toHaveURL(/#overview$/)
 })
 
 test('shows incomplete valuation explicitly and suppresses allocation amounts', async ({ page }) => {
@@ -674,10 +747,34 @@ test('shows incomplete valuation explicitly and suppresses allocation amounts', 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
 
-  await openMenuTab(page, '원칙')
+  await page.getByRole('button', { name: '목표와 비교' }).click()
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toBeVisible()
   await expect(page.getByRole('heading', { name: '이번 달 적립금 배분' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '리밸런싱 제안' })).toHaveCount(0)
+})
+
+test('keeps four primary destinations usable without horizontal overflow', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    const primary = page.locator('nav[aria-label="주요 메뉴"]:visible')
+    await expect(primary.getByRole('button')).toHaveCount(4)
+    await expect(primary.getByRole('button', { name: '오늘', exact: true })).toBeVisible()
+    await expect(primary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
+    await expect(primary.getByRole('button', { name: '판단·할 일', exact: true })).toBeVisible()
+    await expect(primary.getByRole('button', { name: '투자 원칙', exact: true })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+
+  const assets = page.locator('nav[aria-label="주요 메뉴"]:visible').getByRole('button', { name: '자산', exact: true })
+  await assets.focus()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/#overview$/)
+  await page.getByRole('button', { name: 'Open menu' }).click()
+  const secondary = page.locator('nav[aria-label="보조 메뉴"]')
+  for (const label of ['자료', '활동', '설정', '가이드']) await expect(secondary.getByRole('button', { name: label, exact: true })).toBeVisible()
 })
 
 test('handles mocked price-sync Edge Function success and failure in the settings UI', async ({ page }) => {

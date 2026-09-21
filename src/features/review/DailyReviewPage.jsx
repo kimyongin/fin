@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import MarkdownContent from '../../components/MarkdownContent'
 import ModalShell from '../../components/ModalShell'
-import { fetchDailyBriefing, fetchDailyBriefingPage } from './data'
+import { fetchBriefingRelatedTasks, fetchDailyBriefing, fetchDailyBriefingPage } from './data'
 import PortfolioIntegritySummary from './PortfolioIntegritySummary'
 
 const reviewPrompt = '오늘 내 포트폴리오 점검하고 저장해줘'
@@ -14,7 +14,7 @@ const coverageLabels = {
 }
 
 const statusLabels = {
-  no_action: '현재 행동 불필요',
+  no_action: '행동 불필요',
   attention: '확인 필요',
   insufficient_data: '판단 자료 부족',
 }
@@ -24,6 +24,16 @@ function formatMoment(value) {
   return new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'medium',
     timeStyle: 'short',
+  }).format(new Date(value))
+}
+
+function localDateKey(value, timezone = 'Asia/Seoul') {
+  if (!value) return ''
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   }).format(new Date(value))
 }
 
@@ -122,8 +132,10 @@ function BriefingDetail({ briefing, loading, onClose }) {
   )
 }
 
-export default function DailyReviewPage({ ownerUserId = null, supabase }) {
+export default function DailyReviewPage({ onOpenTask, ownerUserId = null, supabase }) {
   const [briefings, setBriefings] = useState([])
+  const [latestDetail, setLatestDetail] = useState(null)
+  const [relatedTasks, setRelatedTasks] = useState([])
   const [nextCursor, setNextCursor] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -138,6 +150,9 @@ export default function DailyReviewPage({ ownerUserId = null, supabase }) {
       const page = await fetchDailyBriefingPage(supabase, { ownerUserId })
       setBriefings(page.items)
       setNextCursor(page.nextCursor)
+      const detail = page.items[0] ? await fetchDailyBriefing(supabase, page.items[0].id, ownerUserId) : null
+      setLatestDetail(detail)
+      setRelatedTasks(detail ? await fetchBriefingRelatedTasks(supabase, detail.id, ownerUserId) : [])
     } catch (nextError) {
       setError(nextError.message ?? '저장된 점검을 불러오지 못했습니다.')
     } finally {
@@ -182,20 +197,41 @@ export default function DailyReviewPage({ ownerUserId = null, supabase }) {
     window.setTimeout(() => setCopied(false), 1200)
   }
 
-  const latest = briefings[0]
+  const latest = latestDetail ?? briefings[0]
+  const latestIsToday = latest
+    ? localDateKey(latest.analyzed_at, latest.timezone) === localDateKey(new Date(), latest.timezone)
+    : false
 
   return (
     <section className="mt-8 grid gap-5">
-      {!ownerUserId && <PortfolioIntegritySummary supabase={supabase} />}
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">최근 저장된 점검</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">{latestIsToday ? '오늘 저장한 점검' : '마지막 저장 점검'}</p>
             {latest ? (
               <>
                 <div className="mt-3"><StatusPills briefing={latest} /></div>
-                <h2 className="mt-4 text-xl font-semibold leading-8 sm:text-2xl">{latest.headline}</h2>
+                <h2 className="mt-4 break-words text-xl font-semibold leading-8 sm:text-2xl">{latest.headline}</h2>
                 <p className="mt-2 text-xs text-[var(--muted-ink)]">분석 {formatMoment(latest.analyzed_at)}</p>
+                {!latestIsToday && <p className="mt-2 text-sm leading-6 text-amber-200">오늘 분석이 아니라 마지막으로 저장된 당시 결론입니다.</p>}
+                <section className="mt-5">
+                  <h3 className="text-sm font-semibold">중요한 변화</h3>
+                  {latest.changes?.length ? (
+                    <ul className="mt-2 grid gap-2">{latest.changes.slice(0, 3).map((change, index) => <li className="break-words rounded-2xl bg-[var(--surface-2)] px-4 py-3 text-sm leading-6" key={index}>{summaryText(change)}</li>)}</ul>
+                  ) : <p className="mt-2 text-sm text-[var(--muted-ink)]">저장된 중요 변화가 없습니다.</p>}
+                </section>
+                <section className="mt-5 rounded-2xl border border-[var(--line)] p-4">
+                  <h3 className="text-sm font-semibold">이 점검에서 이어갈 과제</h3>
+                  {relatedTasks.length ? (
+                    <ul className="mt-2 grid gap-2">
+                      {relatedTasks.map((task) => (
+                        <li key={task.id}>
+                          <button className="min-h-11 w-full rounded-xl bg-[var(--surface-2)] px-3 py-2 text-left text-sm font-semibold" onClick={() => onOpenTask?.(task.id)} type="button">{task.title}</button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">브리핑과 명시적으로 연결된 과제가 없습니다. 관련성 근거 없이 다른 할 일을 오늘의 과제로 표시하지 않습니다.</p>}
+                </section>
                 <button className="mt-5 min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-2)]" onClick={() => openDetail(latest.id)} type="button">
                   전체 브리핑 보기
                 </button>
@@ -216,6 +252,8 @@ export default function DailyReviewPage({ ownerUserId = null, supabase }) {
           </div>
         </div>
       </article>
+
+      {!ownerUserId && <PortfolioIntegritySummary supabase={supabase} />}
 
       {error && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</p>}
 

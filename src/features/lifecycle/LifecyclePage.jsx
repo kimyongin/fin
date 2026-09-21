@@ -103,7 +103,7 @@ function Detail({ entry, loading, onBack, onClose, onOpenDecision, onOpenTask })
   )
 }
 
-export default function LifecyclePage({ mode, onModeChange, ownerUserId = null, supabase }) {
+export default function LifecyclePage({ initialSelection = null, mode, onModeChange, onSelectionHandled, ownerUserId = null, supabase }) {
   const [filterByMode, setFilterByMode] = useState({ decisions: 'current', tasks: 'active' })
   const [items, setItems] = useState([])
   const [nextCursor, setNextCursor] = useState(null)
@@ -174,6 +174,12 @@ export default function LifecyclePage({ mode, onModeChange, ownerUserId = null, 
       setDetailLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!initialSelection || initialSelection.mode !== mode) return
+    openDetail(initialSelection.mode, initialSelection.id)
+    onSelectionHandled?.()
+  }, [initialSelection, mode, onSelectionHandled])
 
   function changeMode(nextMode) {
     scrollPositions.current[mode] = window.scrollY

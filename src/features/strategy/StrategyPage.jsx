@@ -679,6 +679,7 @@ function StrategyDashboard({
   tagCards,
   totalValue,
   valuationQuality,
+  showCalculations = true,
 }) {
   const { strategy, buckets } = strategyState;
   const principles = { ...emptyPrinciples, ...(strategy.principles ?? {}) };
@@ -827,7 +828,7 @@ function StrategyDashboard({
           />
         )}
       </article>
-      {!calculationAvailable ? (
+      {showCalculations && (!calculationAvailable ? (
         <article className="rounded-[28px] border border-amber-400/40 bg-amber-500/10 p-5 text-amber-100">
           <h2 className="text-lg font-semibold">비중 계산을 잠시 멈췄습니다.</h2>
           <p className="mt-2 text-sm leading-6">
@@ -959,7 +960,7 @@ function StrategyDashboard({
         </article>
       </div>
         </>
-      )}
+      ))}
     </section>
   );
 }
@@ -972,6 +973,8 @@ export default function StrategyPage({
   tags,
   totalValue,
   valuationQuality,
+  section = "all",
+  onBack,
 }) {
   const [strategyState, setStrategyState] = useState(
     createEmptyStrategyState(),
@@ -1084,7 +1087,16 @@ export default function StrategyPage({
     );
   return (
     <div className="mt-8 grid gap-5">
-      {canEdit && (
+      {onBack && (
+        <button
+          className="min-h-11 w-fit rounded-xl border border-[var(--line)] px-4 text-sm font-semibold"
+          onClick={onBack}
+          type="button"
+        >
+          자산으로 돌아가기
+        </button>
+      )}
+      {canEdit && section !== "allocation" && (
         <InvestmentPolicyCard
           onEdit={() => setEditingPolicy(true)}
           profile={policy}
@@ -1108,6 +1120,7 @@ export default function StrategyPage({
           tagCards={tagCards}
           totalValue={totalValue}
           valuationQuality={valuationQuality}
+          showCalculations={section !== "principles"}
         />
       ) : (
         <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">

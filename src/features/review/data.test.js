@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { fetchDailyBriefing, fetchDailyBriefingPage, fetchDailyBriefings } from './data'
+import { fetchBriefingRelatedTasks, fetchDailyBriefing, fetchDailyBriefingPage, fetchDailyBriefings } from './data'
 
 describe('daily review data adapter', () => {
   it('lists briefing summaries with a bounded cursor request', async () => {
@@ -52,5 +52,27 @@ describe('daily review data adapter', () => {
       input_limit: 20,
       input_owner_user_id: 'owner-1',
     })
+  })
+
+  it('finds only tasks explicitly linked through a briefing decision', async () => {
+    const supabase = { rpc: vi.fn(async (name, params) => {
+      if (name === 'app_list_investment_decisions') return {
+        data: [
+          { id: 'decision-1', source_briefing_id: 'briefing-1' },
+          { id: 'decision-2', source_briefing_id: 'briefing-2' },
+        ], error: null,
+      }
+      expect(params).toEqual({ input_decision_id: 'decision-1' })
+      return { data: { tasks: [{ id: 'task-1', title: '실적 확인' }] }, error: null }
+    }) }
+
+    await expect(fetchBriefingRelatedTasks(supabase, 'briefing-1'))
+      .resolves.toEqual([{ id: 'task-1', title: '실적 확인' }])
+  })
+
+  it('does not infer private briefing relationships in a shared view', async () => {
+    const supabase = { rpc: vi.fn() }
+    await expect(fetchBriefingRelatedTasks(supabase, 'briefing-1', 'owner-1')).resolves.toEqual([])
+    expect(supabase.rpc).not.toHaveBeenCalled()
   })
 })

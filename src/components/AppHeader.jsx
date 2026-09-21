@@ -46,8 +46,50 @@ function AppHeader({
     }
   }, [menuOpen])
 
+  const availableIds = new Set(tabs.map((tab) => tab.id))
+  const primaryTabs = [
+    availableIds.has('today') && { id: 'today', label: '오늘' },
+    availableIds.has('overview') && { id: 'overview', label: '자산' },
+    (availableIds.has('tasks') || availableIds.has('decisions')) && {
+      id: availableIds.has('tasks') ? 'tasks' : 'decisions',
+      label: '판단·할 일',
+      activeIds: ['tasks', 'decisions'],
+    },
+    availableIds.has('strategy') && { id: 'strategy', label: '투자 원칙' },
+  ].filter(Boolean)
+  const secondaryTabs = tabs.filter((tab) => ['news', 'activity', 'settings', 'guide'].includes(tab.id))
+
+  function PrimaryNavigation({ desktop = false }) {
+    return (
+      <nav
+        aria-label="주요 메뉴"
+        className={desktop
+          ? 'hidden lg:fixed lg:bottom-auto lg:left-4 lg:top-1/2 lg:z-50 lg:grid lg:w-36 lg:-translate-y-1/2 lg:gap-1 lg:rounded-2xl lg:border lg:border-[var(--line)] lg:bg-[var(--surface-3)] lg:p-2 lg:shadow-xl'
+          : 'fixed inset-x-0 bottom-0 z-50 grid border-t border-[var(--line)] bg-[var(--surface-3)] px-2 pt-2 shadow-2xl lg:hidden'}
+        style={desktop ? undefined : { paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', gridTemplateColumns: `repeat(${Math.max(primaryTabs.length, 1)}, minmax(0, 1fr))` }}
+      >
+        {primaryTabs.map((tab) => {
+          const selected = (tab.activeIds ?? [tab.id]).includes(activeTab)
+          return (
+            <button
+              aria-current={selected ? 'page' : undefined}
+              className={`${desktop ? 'min-h-11 rounded-xl px-3 text-left' : 'min-h-11 rounded-xl px-1 text-center text-xs'} font-semibold transition ${selected ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'}`}
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </nav>
+    )
+  }
+
   return (
     <header className="relative z-[60] mb-6" ref={menuRef}>
+      <PrimaryNavigation desktop />
+      <PrimaryNavigation />
       <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-3">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold">{pageTitle}</h1>
@@ -113,8 +155,8 @@ function AppHeader({
         </div>
       </div>
       {menuOpen && (
-        <nav className="absolute right-0 top-[calc(100%+10px)] z-10 grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-1.5 shadow-2xl shadow-black/40 backdrop-blur">
-          {tabs.map((tab) => (
+        <nav aria-label="보조 메뉴" className="absolute right-0 top-[calc(100%+10px)] z-10 grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-1.5 shadow-2xl shadow-black/40 backdrop-blur">
+          {secondaryTabs.map((tab) => (
             <button
               className={`rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
                 activeTab === tab.id

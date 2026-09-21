@@ -30,3 +30,30 @@ export async function fetchDailyBriefingPage(supabase, { cursor = null, limit = 
     nextCursor: data?.next_cursor ?? null,
   }
 }
+
+export async function fetchBriefingRelatedTasks(supabase, briefingId, ownerUserId = null) {
+  // Shared decision DTOs intentionally omit their source briefing. Do not infer a
+  // relationship for viewers when the owner has not explicitly exposed it.
+  if (ownerUserId) return []
+
+  const { data: decisions, error } = await supabase.rpc('app_list_investment_decisions', {
+    input_limit: 50,
+    input_before: null,
+  })
+  if (error) throw error
+
+  const matching = (Array.isArray(decisions) ? decisions : [])
+    .filter((decision) => decision.source_briefing_id === briefingId)
+    .slice(0, 10)
+  const details = await Promise.all(matching.map(async (decision) => {
+    const { data, error: detailError } = await supabase.rpc('app_get_investment_decision', {
+      input_decision_id: decision.id,
+    })
+    if (detailError) throw detailError
+    return data
+  }))
+
+  return [...new Map(details
+    .flatMap((decision) => decision?.tasks ?? [])
+    .map((task) => [task.id, task])).values()].slice(0, 3)
+}

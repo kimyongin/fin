@@ -606,6 +606,7 @@ export default function AssetsPage({
   instruments,
   onAccountTagFilterChange,
   onAssetViewChange,
+  onCompareTargets,
   onCreateAccount,
   onCreateHolding,
   onCreateHoldingForAccount,
@@ -677,27 +678,36 @@ export default function AssetsPage({
   return (
     <section className="grid gap-4">
       <div className="grid gap-3">
-        <div
-          aria-label="자산 보기 전환"
-          className="inline-grid w-full grid-cols-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-1 sm:w-auto"
-          role="tablist"
-        >
-          {assetViewOptions.map((option) => (
-            <button
-              aria-selected={assetView === option.id}
-              className={`min-w-0 whitespace-nowrap rounded-xl px-2 py-2.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
-                assetView === option.id
-                  ? "bg-[var(--accent)] text-white shadow-[0_6px_16px_rgba(219,106,33,0.35)]"
-                  : "text-[var(--muted-ink)] opacity-80 hover:text-[var(--ink)] hover:opacity-100"
-              }`}
-              key={option.id}
-              onClick={() => onAssetViewChange(option.id)}
-              role="tab"
-              type="button"
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div
+            aria-label="자산 보기 전환"
+            className="inline-grid w-full grid-cols-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-1 sm:w-auto"
+            role="tablist"
+          >
+            {assetViewOptions.map((option) => (
+              <button
+                aria-selected={assetView === option.id}
+                className={`min-w-0 whitespace-nowrap rounded-xl px-2 py-2.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
+                  assetView === option.id
+                    ? "bg-[var(--accent)] text-white shadow-[0_6px_16px_rgba(219,106,33,0.35)]"
+                    : "text-[var(--muted-ink)] opacity-80 hover:text-[var(--ink)] hover:opacity-100"
+                }`}
+                key={option.id}
+                onClick={() => onAssetViewChange(option.id)}
+                role="tab"
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <button
+            className="min-h-11 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]"
+            onClick={onCompareTargets}
+            type="button"
+          >
+            목표와 비교
+          </button>
         </div>
         <div className="flex flex-col gap-2 border-t border-[var(--line)] pt-3 sm:flex-row sm:items-center sm:justify-end">
           {assetView === "tags" ? (
