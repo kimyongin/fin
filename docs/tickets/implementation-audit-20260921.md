@@ -10,7 +10,7 @@
 | #33 OAuth MCP | 부분 완료 | OAuth 다중 사용자 endpoint, 35개 공통 tool schema/handler, 강화된 instructions, 로컬 인증 initialize/tools/list/오류 확인 | 운영 배포 후 인증 격리, ChatGPT 웹·모바일 새 세션 확인 |
 | #34 일일 문맥 | 부분 완료 | TTL·소유권·크기/개수 제한, snapshot, 이전 범위·열린 task·원칙·보유 이유·잔고 상태, DB 테스트 | 대표 대규모 계정 응답 크기/시간과 부분 조사 실사용 확인 |
 | #35 브리핑·판단·할 일 | 부분 완료 | 출처/scope 브리핑, 판단/질문 상태전이, 실행 계획/체결 진행도, 공유 DTO, 멱등/CAS | 정정 기사와 부분 성공을 포함한 실제 ChatGPT 대화 검증 |
-| #36 오늘 화면·온보딩 | 부분 완료 | 오늘/판단/할 일/원칙/보유 이유 화면, 친구 문맥, 공유 설정, Google 로그인 E2E | 실기기 반응형·빈 상태·지인 OAuth 온보딩 |
+| #36 오늘 화면·온보딩 | 부분 완료 | 네 개 주 메뉴, 오늘 결론/변화/연결 과제, 판단·할 일 통합, 자산 목표 비교, OAuth 빠른 시작·복구 안내, 친구 문맥, Google 로그인 E2E | 본인·지인 실제 계정의 새 OAuth 연결과 웹·모바일 저장/재조회 |
 | #37 완료 매매 기록 | 완료(로컬 구현) | preview/log/list, numeric 원가, 초과 매도·stale·멱등, 모바일 기록 E2E | 운영 legacy 전환은 #39 배포 게이트 |
 | #38 보정·취소·편집 통합 | 완료(로컬 구현) | 타입별 절대 보정, 필드 확인, 기준점 인식 취소, 직접/표 편집 checkpoint, 앱 UI와 전체 E2E | 운영 legacy 전환은 #39 배포 게이트 |
 | #39 파일럿 | 미완료 | 로컬 자동 회귀 기반만 준비 | 운영 배포, 보안/실기기 확인, 실제 5일 출근 사용 관찰 |
@@ -23,11 +23,11 @@
 
 2026-09-21 `master`에서 다음을 실행했다.
 
-- `npm run test:db`: 16개 SQL 파일, 223개 assertion 통과.
-- `npm test -- --run`: 13개 파일, 53개 테스트 통과.
-- `npm run test:e2e`: Chromium 22개 통과. 자산 CRUD/공유/전략/뉴스/표 입력과 새 일일 점검·원칙·보유 이유·매매·보정·Google OAuth 시작 경로를 포함한다.
+- `npm run test:db`: 18개 SQL 파일, 259개 assertion 통과.
+- `npm test -- --run`: 13개 파일, 59개 테스트 통과.
+- `npm run test:e2e`: Chromium 27개 통과. 자산 CRUD/공유/전략/뉴스/표 입력, 새 일일 점검·연결 과제·판단/할 일·원칙·보유 이유·매매·보정, 5개 화면 폭 탐색, OAuth 온보딩과 Google 로그인 시작 경로를 포함한다.
 - `npm run build`: production build 통과. 500 kB 초과 chunk 경고는 성능 후속이며 기능 실패가 아니다.
-- `npm run check:encoding`: 251개 텍스트 파일 통과.
+- `npm run check:encoding`: 262개 텍스트 파일 통과.
 - 로컬 Supabase Edge runtime: 인증 누락은 401, 임시 인증 사용자의 `initialize`는 protocol `2025-06-18`, `tools/list`는 35개, 미지원 method는 JSON-RPC `-32601`. 임시 사용자는 검사 후 삭제했다.
 
 ## 명시적으로 완료 처리하지 않은 것

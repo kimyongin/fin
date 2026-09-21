@@ -691,7 +691,31 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await expect(reviewSharing).toHaveAttribute('aria-pressed', 'false')
   await expect(page.getByText(/^버전 \d{8}T\d{6}Z$/)).toBeVisible()
   await openTab('가이드', '가이드')
-  await expect(page.getByText('자산 구조 만들기')).toBeVisible()
+  await expect(page.getByText('현재 자산을 입력하고, ChatGPT에서 첫 점검을 저장하세요')).toBeVisible()
+})
+
+test('guides a new user from empty assets through OAuth setup and first review', async ({ page }) => {
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-outsider@example.com')
+  await page.goto('/#today')
+
+  await expect(page.getByText('아직 저장된 점검이 없습니다.')).toBeVisible()
+  await page.getByRole('button', { name: '연결 가이드 보기' }).click()
+  await expect(page).toHaveURL(/#guide$/)
+  await expect(page.getByText('/functions/v1/portfolio-mcp-oauth')).toBeVisible()
+  await page.getByRole('button', { name: 'OAuth MCP 주소 복사' }).click()
+  await expect(page.getByRole('button', { name: '복사했어요' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('portfolio-mcp-oauth')
+  await page.getByRole('button', { name: '첫 점검 문구 복사' }).click()
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('오늘 내 포트폴리오 점검하고 저장해줘')
+  await expect(page.getByText('분석만 요청하면 저장하지 않습니다.')).toBeVisible()
+  await expect(page.getByText('앱은 주문하지 않습니다.')).toBeVisible()
+  await page.getByText('로그인 또는 승인을 취소함').click()
+  await expect(page.getByText('Portfolio 데이터는 바뀌지 않습니다.')).toBeVisible()
+  await page.getByRole('button', { name: '자산 입력하기' }).click()
+  await expect(page).toHaveURL(/#overview$/)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
 test('keeps the saved strategy visible when valuation is incomplete', async ({ page }) => {

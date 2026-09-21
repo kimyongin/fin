@@ -1,7 +1,11 @@
 export async function writeClipboard(text) {
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text)
-    return
+    try {
+      await navigator.clipboard.writeText(text)
+      return
+    } catch {
+      // Browser permission can reject the modern API even when it is present.
+    }
   }
 
   const textarea = document.createElement('textarea')

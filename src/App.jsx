@@ -472,6 +472,7 @@ function App() {
 
         {activeTab === 'today' && (
           <DailyReviewPageView
+            onNavigate={setActiveTab}
             onOpenTask={(id) => {
               setLifecycleSelection({ id, mode: 'tasks' })
               setActiveTab('tasks')
@@ -611,7 +612,7 @@ function App() {
             onRefresh={loadAgentActions}
           />
         )}
-        {activeTab === 'guide' && <GuidePageView />}
+        {activeTab === 'guide' && <GuidePageView onNavigate={setActiveTab} />}
 
         <PortfolioEditorModals
           {...editor}

@@ -132,7 +132,7 @@ function BriefingDetail({ briefing, loading, onClose }) {
   )
 }
 
-export default function DailyReviewPage({ onOpenTask, ownerUserId = null, supabase }) {
+export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = null, supabase }) {
   const [briefings, setBriefings] = useState([])
   const [latestDetail, setLatestDetail] = useState(null)
   const [relatedTasks, setRelatedTasks] = useState([])
@@ -240,6 +240,7 @@ export default function DailyReviewPage({ onOpenTask, ownerUserId = null, supaba
               <>
                 <h2 className="mt-3 text-xl font-semibold">아직 저장된 점검이 없습니다.</h2>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted-ink)]">ChatGPT가 조사하고 설명한 결과를 Portfolio에 저장하면 여기에서 계속 확인할 수 있습니다.</p>
+                {!ownerUserId && <div className="mt-4 flex flex-wrap gap-2"><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => onNavigate?.('overview')} type="button">자산 입력하기</button><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => onNavigate?.('guide')} type="button">연결 가이드 보기</button></div>}
               </>
             )}
           </div>
