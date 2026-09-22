@@ -40,6 +40,9 @@ revision 10 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | list_operating_rules / observed-local | 특정 workflow에 저장된 활성 데이터 관리 규칙을 읽습니다. 빈 목록과 조회 실패를 구분하고 applicability를 실제 입력과 대조합니다. | W06 |
 | save_operating_rule / observed-local | 사용자가 기억하라고 요청한 적용 조건과 처리 규칙을 CAS·멱등 방식으로 저장합니다. 규칙은 금융 검증이나 현재 지시를 우회하지 않습니다. | W06 |
 | archive_operating_rule / observed-local | 더 이상 적용하지 않을 규칙을 이력은 보존한 채 보관합니다. 과거 대조 결과나 보유값은 바꾸지 않습니다. | W06 |
+| list_todo_bundles / observed-local | 여러 세부 항목을 묶은 ToDo를 상태별로 조회합니다. 묶음 상태는 일반 항목과 연결 과제의 현재 상태에서 계산됩니다. | W03/W06 |
+| get_todo_bundle / observed-local | 묶음의 정렬된 항목, 연결 과제, 적용 규칙 snapshot, 판단·확인 관계를 읽습니다. | W03/W06 |
+| save_todo_bundle / observed-local | 사용자 요청에 따라 여러 결과·후속 작업을 한 묶음으로 원자 저장합니다. 생략 항목은 유지하고 명시한 ID만 제거하며 과제 상태나 금융 기록은 대신 변경하지 않습니다. | W03/W06 |
 | get_holding_thesis / observed-local | 종목 공통 보유 이유와 선택한 계좌의 재정의, 실제 적용 출처와 version을 읽습니다. 기존 메모나 미입력 이유를 추론하지 않습니다. | W02 |
 | save_holding_thesis / observed-local | 사용자가 명시적으로 저장/변경한 종목 공통 또는 계좌별 보유 이유만 현재 version과 함께 수정합니다. 메모·잔고·체결·판단·할 일은 변경하지 않습니다. | W02 |
 | link_task_to_holding_thesis / observed-local | 현재 version을 읽은 보유 이유와 할 일을 연결만 합니다. 이유·할 일 상태·잔고·체결은 변경하지 않습니다. | W02,W04 |

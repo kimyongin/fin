@@ -333,6 +333,27 @@ test('creates, revises, and archives a reconciliation operating rule', async ({ 
   expect(archived.body.rules[0]).toMatchObject({ status: 'archived', version: 3 })
 })
 
+test('creates one ToDo bundle with several general items and opens its detail', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+  await openMenuTab(page, '할 일')
+
+  await page.getByRole('button', { name: '묶음 추가' }).click()
+  await page.getByLabel('묶음 이름').fill('월요일 포트폴리오 정리')
+  await page.getByLabel('요약').fill('한 번의 점검에서 이어갈 작업')
+  await page.getByLabel('세부 항목 · 한 줄에 하나').fill('잔고 확인\n평균가 확인\n다음 점검 질문 정리')
+  await page.getByLabel('태그 · 쉼표로 구분').fill('점검, 월요일')
+  await page.getByRole('button', { name: '묶음 저장' }).click()
+
+  const bundleButton = page.getByRole('button', { name: /월요일 포트폴리오 정리/ })
+  await expect(bundleButton).toContainText('3개')
+  await bundleButton.click()
+  await expect(page.getByRole('heading', { name: '월요일 포트폴리오 정리' })).toBeVisible()
+  await expect(page.getByText('잔고 확인', { exact: true })).toBeVisible()
+  await expect(page.getByText('다음 점검 질문 정리', { exact: true })).toBeVisible()
+})
+
 test('saves an instrument holding thesis and includes it in daily context', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')

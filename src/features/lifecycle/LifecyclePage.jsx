@@ -9,6 +9,9 @@ import {
   fetchInvestmentDecisionPage,
   fetchPortfolioTask,
   fetchPortfolioTaskPage,
+  fetchTodoBundle,
+  fetchTodoBundlePage,
+  saveTodoBundle,
 } from './data'
 
 const decisionStatus = { proposed: '제안', adopted: '내가 채택함', dismissed: '채택하지 않음', superseded: '새 판단으로 대체됨' }
@@ -105,6 +108,33 @@ function Detail({ entry, loading, onBack, onClose, onOpenDecision, onOpenTask })
   )
 }
 
+function TodoBundleModal({ onClose, onSave, saving }) {
+  const [draft, setDraft] = useState({ title: '', summary: '', tags: '', items: '', completed: false })
+  const valid = draft.title.trim() && draft.items.split('\n').some((line) => line.trim())
+  return <ModalShell onClose={onClose} title="ToDo 묶음 추가">
+    <div className="grid gap-4">
+      <p className="text-sm leading-6 text-[var(--muted-ink)]">한 번의 작업에서 처리하거나 이어갈 항목을 한 묶음으로 기록합니다. 한 줄이 세부 항목 하나입니다.</p>
+      <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">묶음 이름</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
+      <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">요약</span><textarea className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, summary: event.target.value })} rows={2} value={draft.summary} /></label>
+      <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">세부 항목 · 한 줄에 하나</span><textarea className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, items: event.target.value })} rows={6} value={draft.items} /></label>
+      <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">태그 · 쉼표로 구분</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, tags: event.target.value })} value={draft.tags} /></label>
+      <label className="flex min-h-11 items-center gap-2 text-sm"><input checked={draft.completed} onChange={(event) => setDraft({ ...draft, completed: event.target.checked })} type="checkbox" />이미 수행한 결과로 기록</label>
+      <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!valid || saving} onClick={() => onSave(draft)} type="button">{saving ? '저장 중' : '묶음 저장'}</button></div>
+    </div>
+  </ModalShell>
+}
+
+function TodoBundleDetail({ bundle, onClose }) {
+  const statusLabel = { in_progress: '진행 중', paused: '보류', completed: '완료', cancelled: '취소' }
+  return <ModalShell onClose={onClose} title="ToDo 묶음 상세" variant="detail">
+    <div className="grid gap-5">
+      <section><span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{statusLabel[bundle.status] ?? bundle.status}</span><h3 className="mt-4 text-xl font-semibold">{bundle.title}</h3>{bundle.summary && <p className="mt-2 text-sm text-[var(--muted-ink)]">{bundle.summary}</p>}</section>
+      <ol className="grid gap-2">{bundle.items.map((item) => <li className="rounded-2xl bg-[var(--surface-2)] p-3" key={item.id}><div className="flex justify-between gap-3 text-sm"><span>{item.kind === 'task' ? item.task?.title : item.title}</span><span className="text-xs text-[var(--muted-ink)]">{item.kind === 'task' ? '연결 과제' : item.status}</span></div>{item.result && <p className="mt-1 text-xs text-[var(--muted-ink)]">{item.result}</p>}</li>)}</ol>
+      {bundle.tags?.length > 0 && <div className="flex flex-wrap gap-2">{bundle.tags.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-1 text-xs" key={tag}>{tag}</span>)}</div>}
+    </div>
+  </ModalShell>
+}
+
 export default function LifecyclePage({ initialSelection = null, mode, onModeChange, onSelectionHandled, ownerUserId = null, supabase }) {
   const [filterByMode, setFilterByMode] = useState({ decisions: 'current', tasks: 'active' })
   const [items, setItems] = useState([])
@@ -115,10 +145,46 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
   const [detail, setDetail] = useState(null)
   const [detailHistory, setDetailHistory] = useState([])
   const [detailLoading, setDetailLoading] = useState(false)
+  const [todoBundles, setTodoBundles] = useState([])
+  const [todoEditorOpen, setTodoEditorOpen] = useState(false)
+  const [todoDetail, setTodoDetail] = useState(null)
+  const [savingTodo, setSavingTodo] = useState(false)
   const scrollPositions = useRef({})
   const listRequestGate = useRef(createRequestGate())
   const detailRequestGate = useRef(createRequestGate())
   const filter = filterByMode[mode]
+
+  useEffect(() => {
+    if (mode !== 'tasks' || ownerUserId) return
+    fetchTodoBundlePage(supabase, { filter: 'active', limit: 5 })
+      .then((page) => setTodoBundles(page.items))
+      .catch((nextError) => setError(nextError.message ?? 'ToDo 묶음을 불러오지 못했습니다.'))
+  }, [mode, ownerUserId, supabase])
+
+  async function createTodo(draft) {
+    setSavingTodo(true)
+    setError('')
+    try {
+      const performedAt = draft.completed ? new Date().toISOString() : null
+      const bundle = await saveTodoBundle(supabase, {
+        idempotencyKey: crypto.randomUUID(), title: draft.title, summary: draft.summary,
+        tags: draft.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        items: draft.items.split('\n').map((title) => title.trim()).filter(Boolean).map((title, sortOrder) => ({
+          kind: 'general', sort_order: sortOrder, title, status: draft.completed ? 'done' : 'open',
+          result: draft.completed ? '완료' : null, performed_at: performedAt,
+        })),
+      })
+      setTodoBundles((current) => [bundle, ...current])
+      setTodoEditorOpen(false)
+    } catch (nextError) {
+      setError(nextError.message ?? 'ToDo 묶음을 저장하지 못했습니다.')
+    } finally { setSavingTodo(false) }
+  }
+
+  async function openTodo(bundleId) {
+    try { setTodoDetail(await fetchTodoBundle(supabase, bundleId)) }
+    catch (nextError) { setError(nextError.message ?? 'ToDo 묶음을 불러오지 못했습니다.') }
+  }
 
   function dismissDetail() {
     detailRequestGate.current.invalidate()
@@ -224,6 +290,11 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
         <FilterChips ariaLabel="목록 필터" onChange={(nextFilter) => setFilterByMode((current) => ({ ...current, [mode]: nextFilter }))} options={filterOptions[mode]} value={filter} />
       </header>
 
+      {mode === 'tasks' && !ownerUserId && <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
+        <div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold">ToDo 묶음</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">한 번에 한 일과 이어갈 일을 여러 항목으로 모읍니다.</p></div><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => setTodoEditorOpen(true)} type="button">묶음 추가</button></div>
+        {todoBundles.length === 0 ? <p className="mt-4 text-sm text-[var(--muted-ink)]">진행 중인 묶음이 없습니다.</p> : <div className="mt-4 grid gap-2">{todoBundles.map((bundle) => <button className="rounded-2xl bg-[var(--surface-2)] p-3 text-left" key={bundle.id} onClick={() => openTodo(bundle.id)} type="button"><div className="flex justify-between gap-3"><span className="text-sm font-semibold">{bundle.title}</span><span className="text-xs text-[var(--muted-ink)]">{bundle.item_count ?? bundle.items?.length ?? 0}개 · {bundle.status === 'paused' ? '보류' : '진행 중'}</span></div></button>)}</div>}
+      </section>}
+
       <div aria-labelledby={`lifecycle-view-${mode}`} className="grid gap-5" id="lifecycle-panel" role="tabpanel" tabIndex={0}>
       {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => loadPage()} type="button">다시 시도</button></div>}
       {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">기록을 불러오는 중입니다.</p> : items.length === 0 ? <EmptyState mode={mode} /> : (
@@ -241,6 +312,8 @@ export default function LifecyclePage({ initialSelection = null, mode, onModeCha
       )}
       </div>
       {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
+      {todoEditorOpen && <TodoBundleModal onClose={() => setTodoEditorOpen(false)} onSave={createTodo} saving={savingTodo} />}
+      {todoDetail && <TodoBundleDetail bundle={todoDetail} onClose={() => setTodoDetail(null)} />}
     </section>
   )
 }

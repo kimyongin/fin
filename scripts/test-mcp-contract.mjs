@@ -181,6 +181,24 @@ try {
   })
   assert(ruleArchived.body?.result?.structuredContent?.data?.rule?.status === 'archived', 'Operating rule archive contract failed')
 
+  const todoArgs = {
+    schema_version: 1, bundle_id: null, expected_version: null, idempotency_key: crypto.randomUUID(),
+    title: 'Contract session outcomes', summary: 'Four results saved as one bundle.', tags: ['contract', 'contract'],
+    items: ['Read data', 'Checked fields', 'Saved rule', 'Recorded result'].map((title, index) => ({
+      kind: 'general', sort_order: index, title, status: 'done', result: `${title} completed.`, performed_at: new Date().toISOString(),
+    })),
+    remove_item_ids: [], rule_ids: [savedRule.id], decision_ids: null, verification_ids: null,
+  }
+  const todoSaved = await call(session.access_token, 'tools/call', { name: 'save_todo_bundle', arguments: todoArgs })
+  const savedTodo = todoSaved.body?.result?.structuredContent?.data
+  assert(savedTodo?.status === 'completed' && savedTodo?.items?.length === 4, 'ToDo bundle save contract failed')
+  const todoRetry = await call(session.access_token, 'tools/call', { name: 'save_todo_bundle', arguments: todoArgs })
+  assert(todoRetry.body?.result?.structuredContent?.data?.id === savedTodo.id, 'ToDo bundle idempotent retry failed')
+  const todoList = await call(session.access_token, 'tools/call', { name: 'list_todo_bundles', arguments: { filter: 'completed' } })
+  assert(todoList.body?.result?.structuredContent?.data?.items?.some((item) => item.id === savedTodo.id), 'ToDo bundle list contract failed')
+  const todoDetail = await call(session.access_token, 'tools/call', { name: 'get_todo_bundle', arguments: { bundle_id: savedTodo.id } })
+  assert(todoDetail.body?.result?.structuredContent?.data?.rules?.[0]?.id === savedRule.id, 'ToDo bundle rule snapshot contract failed')
+
   const context = await call(session.access_token, 'tools/call', {
     name: 'get_daily_context',
     arguments: { schema_version: 1, timezone: 'Asia/Seoul' },

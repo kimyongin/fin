@@ -12,6 +12,7 @@ import {
   productFeedbackToolNames,
   tradeEntryToolNames,
   tradeReversalToolNames,
+  todoBundleToolNames,
   workflowGuideToolNames,
 } from './portfolio-tools.ts'
 import { getWorkflowGuide, renderWorkflowGuideMarkdown, validateWorkflowGuides, workflowGuideTopics } from './workflow-guides.ts'
@@ -35,6 +36,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeReversalToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(todoBundleToolNames.every((name) => names.includes(name))).toBe(true)
     expect(productFeedbackToolNames.every((name) => names.includes(name))).toBe(true)
     expect(workflowGuideToolNames.every((name) => names.includes(name))).toBe(true)
   })
@@ -209,6 +211,17 @@ describe('portfolio MCP tool definitions', () => {
     expect((save.inputSchema as any).properties).not.toHaveProperty('risk_tolerance_text')
     expect(archive.annotations.idempotentHint).toBe(true)
     expect(getWorkflowGuide('reconciliation')?.steps[0].tools).toEqual(['list_operating_rules'])
+  })
+
+  it('keeps ToDo bundle item updates explicit and separate from task transitions', () => {
+    const list = tool('list_todo_bundles')
+    const save = tool('save_todo_bundle')
+    expect(list.annotations.readOnlyHint).toBe(true)
+    expect(save.annotations.idempotentHint).toBe(true)
+    expect((save.inputSchema as any).required).toContain('remove_item_ids')
+    expect(save.description).toContain('omitted existing items remain')
+    expect(save.description).toContain('their own tools')
+    expect((save.inputSchema as any).properties).not.toHaveProperty('task_action')
   })
 
   it('keeps holding theses explicit, scoped, and separate from holdings', () => {

@@ -137,6 +137,27 @@ const nonNegativeDecimalStringSchema = {
   pattern: '^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,16})?$',
   description: 'A non-negative decimal encoded as a string; JSON numbers are not accepted.',
 }
+const todoItemInputSchema = {
+  oneOf: [
+    {
+      type: 'object',
+      properties: {
+        id: { type: ['string', 'null'], format: 'uuid' }, kind: { const: 'general' }, sort_order: { type: 'integer', minimum: 0 },
+        title: { type: 'string', minLength: 1, maxLength: 500 }, status: { type: 'string', enum: ['open', 'done', 'cancelled', 'paused'] },
+        result: { type: ['string', 'null'], maxLength: 4000 }, performed_at: { type: ['string', 'null'], format: 'date-time' },
+      },
+      required: ['kind', 'sort_order', 'title', 'status'], additionalProperties: false,
+    },
+    {
+      type: 'object',
+      properties: {
+        id: { type: ['string', 'null'], format: 'uuid' }, kind: { const: 'task' }, sort_order: { type: 'integer', minimum: 0 },
+        task_id: { type: 'string', format: 'uuid' },
+      },
+      required: ['kind', 'sort_order', 'task_id'], additionalProperties: false,
+    },
+  ],
+}
 
 const briefingItemSchema = {
   description: 'A concise displayable item. Prefer summary; title and body remain accepted for existing clients.',
@@ -900,6 +921,42 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: idempotentWriteAnnotations,
   },
   {
+    name: 'list_todo_bundles',
+    title: 'List ToDo bundles',
+    description: 'List owner-only multi-item work bundles. Use active for unfinished or paused bundles and completed for finished outcomes. Bundle status is derived from current general items and linked research or execution tasks, so reopened tasks and reversed fills can make a bundle active again.',
+    inputSchema: { type: 'object', properties: {
+      filter: { type: 'string', enum: ['active', 'completed', 'cancelled', 'all'], default: 'active' },
+      limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 }, cursor: { type: ['object', 'null'] },
+    }, additionalProperties: false },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'get_todo_bundle',
+    title: 'Get a ToDo bundle',
+    description: 'Read one owner-only ToDo bundle with ordered general items, live linked task state, rule snapshots, and related decision or verification IDs. A linked task remains authoritative for its own lifecycle and execution progress.',
+    inputSchema: { type: 'object', properties: { bundle_id: { type: 'string', format: 'uuid' } }, required: ['bundle_id'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'save_todo_bundle',
+    title: 'Save a multi-item ToDo bundle',
+    description: 'Create or revise one owner-only bundle after the user asks to record work or follow-ups. The items array atomically upserts only supplied stable item IDs; omitted existing items remain and remove_item_ids explicitly removes items. General items store open/done/cancelled/paused results; task items reference existing research or execution tasks whose state must be changed with their own tools. A successful financial write is never repeated merely because this separate bundle save failed.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, bundle_id: { type: ['string', 'null'], format: 'uuid' }, expected_version: { type: ['integer', 'null'], minimum: 1 },
+      idempotency_key: { type: 'string', format: 'uuid' }, title: { type: 'string', minLength: 1, maxLength: 500 }, summary: { type: ['string', 'null'], maxLength: 4000 },
+      tags: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 50 } },
+      items: { type: 'array', maxItems: 50, items: todoItemInputSchema },
+      remove_item_ids: { type: 'array', items: { type: 'string', format: 'uuid' } },
+      rule_ids: { type: ['array', 'null'], items: { type: 'string', format: 'uuid' } },
+      decision_ids: { type: ['array', 'null'], items: { type: 'string', format: 'uuid' } },
+      verification_ids: { type: ['array', 'null'], items: { type: 'string', format: 'uuid' } },
+    }, required: ['schema_version','bundle_id','expected_version','idempotency_key','title','summary','tags','items','remove_item_ids','rule_ids','decision_ids','verification_ids'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
     name: 'get_holding_thesis',
     title: 'Holding thesis',
     description: 'Read the explicitly saved reason for holding one instrument. With account_id, returns both the instrument-wide base and any account override, plus the applied source. Missing fields remain unknown and instrument or holding notes are separate.',
@@ -1067,6 +1124,12 @@ export const operatingRuleToolNames = [
   'list_operating_rules',
   'save_operating_rule',
   'archive_operating_rule',
+] as const
+
+export const todoBundleToolNames = [
+  'list_todo_bundles',
+  'get_todo_bundle',
+  'save_todo_bundle',
 ] as const
 
 export const holdingThesisToolNames = [
