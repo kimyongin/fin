@@ -6,6 +6,7 @@ export const workflowGuideTopics = [
   'trade_entry',
   'reconciliation',
   'todo',
+  'activity_report',
   'product_feedback',
 ] as const
 
@@ -298,6 +299,38 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'For a lost response, retry identical input with the same idempotency key.',
     ],
     unavailable_steps: ['Automatic grouping by chat session or elapsed time is not available.'],
+  },
+  activity_report: {
+    topic: 'activity_report',
+    guide_id: 'portfolio.activity-report',
+    purpose: 'Build a user-requested daily, weekly, or monthly retrospective from complete period sources and save a traceable report without inventing intent.',
+    scenario_ids: ['A05', 'A06'],
+    related_tools: ['get_activity_report_context', 'list_activity_reports', 'save_activity_report'],
+    source_paths: [
+      'docs/design/tasks-and-events.md',
+      'supabase/functions/_shared/mcp/portfolio-tools.ts',
+      'supabase/functions/portfolio-mcp-oauth/index.ts',
+      'supabase/migrations/20260922080000_activity_reports.sql',
+    ],
+    steps: [
+      { id: 'choose-period', title: 'Choose the exact period', instruction: 'Confirm daily, weekly, or monthly scope, inclusive start/end dates, and timezone. A request to inspect a period does not itself authorize saving.', tools: [] },
+      { id: 'page-all-sources', title: 'Read every source page', instruction: 'Call get_activity_report_context and continue with next_cursor until null. Keep all source event IDs. Do not use a saved daily report as the only source for a weekly or monthly report.', tools: ['get_activity_report_context'] },
+      { id: 'separate-facts', title: 'Separate facts and interpretation', instruction: 'Distinguish value edits, completed tasks, actual trades, and verification. Explain a reason only when a saved note or decision states it. Treat current_open_tasks as current-at-request, not historical period-end state.', tools: [] },
+      { id: 'compare-existing', title: 'Check existing reports', instruction: 'Use list_activity_reports to find the same period and its version. If needs_regeneration is true, explain that later in-period actions made it stale.', tools: ['list_activity_reports'] },
+      { id: 'save-if-requested', title: 'Save the requested report', instruction: 'Call save_activity_report only after explicit save intent. Include every consulted event ID and referenced task or decision ID; a save never schedules another report.', tools: ['save_activity_report'] },
+    ],
+    boundaries: [
+      'Portfolio does not run an LLM or generate reports on a schedule; ChatGPT composes them on request.',
+      'Automatic change events prove what changed, not why the user changed it.',
+      'Saving a report does not add an investment action event or mutate tasks, decisions, trades, or holdings.',
+      'Do not claim a historical period-end open-task state when only the current snapshot is available.',
+    ],
+    recovery: [
+      'If any source page fails, do not save a complete report; resume from the last successful cursor or report incomplete coverage.',
+      'For a version conflict, re-read saved reports and regenerate from current period sources.',
+      'Retry a lost save response with the same idempotency key and identical source IDs.',
+    ],
+    unavailable_steps: ['Automatic scheduled generation and exact historical period-end task reconstruction are not available.'],
   },
   product_feedback: {
     topic: 'product_feedback',

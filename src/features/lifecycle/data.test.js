@@ -4,6 +4,7 @@ import {
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
   fetchActionTimeline,
+  fetchActivityReports,
   fetchLinkedTodoTaskIds,
   fetchInvestmentDecisions,
   fetchPortfolioTask,
@@ -84,6 +85,12 @@ describe('decision and task data adapters', () => {
       input_owner_user_id: 'owner', input_filter: 'done', input_from: '2026-09-01', input_to: null,
       input_limit: 30, input_cursor: null, input_timezone: 'Asia/Seoul',
     })
+  })
+
+  it('lists saved activity reports with their freshness state', async () => {
+    const supabase = { rpc: vi.fn(async () => ({ data: { items: [{ id: 'report', needs_regeneration: true }], next_cursor: null }, error: null })) }
+    await expect(fetchActivityReports(supabase)).resolves.toEqual({ items: [{ id: 'report', needs_regeneration: true }], nextCursor: null })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_activity_reports', { input_limit: 10, input_cursor: null })
   })
 })
 

@@ -145,6 +145,13 @@ export async function fetchActionTimeline(supabase, {
   }
 }
 
+export async function fetchActivityReports(supabase, { cursor = null, limit = 10 } = {}) {
+  return normalizePage(await rpc(supabase, 'app_list_activity_reports', {
+    input_limit: limit,
+    input_cursor: cursor,
+  }))
+}
+
 export async function fetchGeneralTask(supabase, taskId) {
   const data = await rpc(supabase, 'app_get_general_task', { input_task_id: taskId })
   if (!data) throw new Error('일반 할 일을 찾을 수 없거나 접근할 수 없습니다.')

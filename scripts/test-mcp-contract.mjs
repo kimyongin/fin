@@ -78,7 +78,7 @@ try {
   const listed = await call(session.access_token, 'tools/list')
   assert(listed.response.ok && listed.body?.result?.tools?.some((tool) => tool.name === 'get_profile'), 'MCP tools/list contract failed')
   const guideDefinition = listed.body?.result?.tools?.find((tool) => tool.name === 'get_workflow_guide')
-  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 8, 'Workflow guide topics were not advertised')
+  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 9, 'Workflow guide topics were not advertised')
 
   for (const topic of guideDefinition.inputSchema.properties.topic.enum) {
     const guideResult = await call(session.access_token, 'tools/call', { name: 'get_workflow_guide', arguments: { topic } })
@@ -90,6 +90,21 @@ try {
 
   const profile = await call(session.access_token, 'tools/call', { name: 'get_profile', arguments: {} })
   assert(profile.response.ok && profile.body?.result?.isError === false, 'Authenticated MCP tools/call failed')
+
+  const reportDateParts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()).map((part) => [part.type, part.value]))
+  const reportDate = `${reportDateParts.year}-${reportDateParts.month}-${reportDateParts.day}`
+  const reportContext = await call(session.access_token, 'tools/call', { name: 'get_activity_report_context', arguments: { period_start: reportDate, period_end: reportDate, timezone: 'Asia/Seoul', limit: 200, cursor: null } })
+  assert(reportContext.body?.result?.structuredContent?.data?.next_cursor === null, 'Activity report context contract failed')
+  const reportArgs = {
+    schema_version: 1, report_id: null, expected_version: null, idempotency_key: crypto.randomUUID(),
+    period_kind: 'daily', period_start: reportDate, period_end: reportDate, timezone: 'Asia/Seoul',
+    title: 'Contract activity report', summary: 'No persisted action was required for this contract context.',
+    highlights: [], open_items: [], source_event_ids: [], source_task_ids: [], source_decision_ids: [],
+  }
+  const reportSaved = await call(session.access_token, 'tools/call', { name: 'save_activity_report', arguments: reportArgs })
+  assert(reportSaved.body?.result?.structuredContent?.data?.version === 1, 'Activity report save contract failed')
+  const reportList = await call(session.access_token, 'tools/call', { name: 'list_activity_reports', arguments: { limit: 20, cursor: null } })
+  assert(reportList.body?.result?.structuredContent?.data?.items?.some((item) => item.id === reportSaved.body.result.structuredContent.data.id), 'Activity report list contract failed')
 
   const feedbackArgs = {
     schema_version: 1,
