@@ -1,5 +1,7 @@
 # [MCP-first] 실제 잔고 확인 시점·범위 기록과 상태 표시
 
+2026-09-22: 일부 후속 설계는 #69~#74로 대체한다. [전환 범위](./todo-principles-transition.md)를 적용하고 아래 기존 구현/미완료 검증 이력은 보존한다.
+
 ## 구현 인계 확정 사항 (2026-09-20)
 
 - 필독: [ADR-0002](https://github.com/kimyongin/fin/blob/master/docs/adr/0002-cost-basis-reconciliation-and-sharing.md), [ADR-0003](https://github.com/kimyongin/fin/blob/master/docs/adr/0003-extensible-feature-sharing.md), [구현 계약 초안](https://github.com/kimyongin/fin/blob/master/docs/design/implementation-contract-draft.md).
