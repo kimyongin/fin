@@ -34,7 +34,13 @@ const serverInstructions = [
 ].join(' ')
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
-const toolDefinitions = portfolioToolDefinitions.map((definition) => ({
+// Existing clients may finish an in-flight legacy call, but new agent sessions
+// should see only the current principle and private-note paths.
+const hiddenLegacyToolNames = new Set([
+  'get_investment_policy', 'save_investment_policy',
+  'get_holding_thesis', 'save_holding_thesis', 'link_task_to_holding_thesis',
+])
+const toolDefinitions = portfolioToolDefinitions.filter((definition) => !hiddenLegacyToolNames.has(definition.name)).map((definition) => ({
   ...definition,
   securitySchemes: oauthSecurity,
 }))

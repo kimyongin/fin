@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Manual activity context and category correction contract",
+  "review_reason": "OAuth MCP discovery hides legacy policy and thesis tools while cached calls remain supported",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d5222800",
-      "contract_digest": "13b9bee254ce156988ccb54a98a8104d25c4acab5828cebce99225dc86ab1bbb"
+      "contract_digest": "9c754680a83023424a25203733208a488e5241c1e8278450ee180ede624e5dac"
     },
     "holding_thesis": {
       "revision": "fnv1a32:e8f68540",
-      "contract_digest": "20c2a026e0e6d7d2ac43b5476b2110a069754a8415f9053d572300b8f219e4e1"
+      "contract_digest": "82a99af848b6c2618d53a1ade8541351a76914885da0b5e2c4383f47d811ff6e"
     },
     "daily_review": {
       "revision": "fnv1a32:79601eb6",
-      "contract_digest": "9b6d8f9b0b3f0259ee3a3570f14cd2189085e99e29d2966deb0ba98aa9847b10"
+      "contract_digest": "9eb95d1daa16a5c5285e8452baae98903b8a665529b6a2eb884f7bc398843dd3"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "cb1be391ca3db68ae0745eb29847f81e2a06df99a7e9c089844183f4e5a840b1"
+      "contract_digest": "2a9e531c8715481b4933be84d0a5336494fa5be3815a70ea416886aa518d87ad"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "d991e51a3f05144d413ecb5d7b9abac174f8ecbfa61aabfffc958af3a6e1a34b"
+      "contract_digest": "c888c6da7146761eb0933f6543c80d5218ecfe05d05272959d6c3887fbdad490"
     },
     "reconciliation": {
       "revision": "fnv1a32:f69d58bf",
-      "contract_digest": "3b3cf02f7a611fe602e5330dd8dc5d38a01e4039116ecec0c4ef5ec2cde74032"
+      "contract_digest": "9b294c2b42d2fee7ecc0418381776cac2ac9eaf5dfd90e95941aec7b2f432dfa"
     },
     "todo": {
       "revision": "fnv1a32:223cef20",
-      "contract_digest": "3241bf4fc30b3a950fa37c030fdb58aef2f61e77689b9a3e6251cc9543c92080"
+      "contract_digest": "7288678e20688b3a77ed196d0c65e3f3650b8f18370887f83ef58afd563682da"
     },
     "activity_report": {
       "revision": "fnv1a32:a12e16a6",
-      "contract_digest": "c464d5e58b5200d056b1a7159c6873182ed1d5c93420d095a423d8ccefdfbc9a"
+      "contract_digest": "282d86c313a65960eaa08f8e2a72b913f7baf8d0281ba0a4466fe4e46ae5393d"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "6a9ef7d9af0c005c8782546266ae217f5d93887c27f5eebe0075935b07ebb703"
+      "contract_digest": "124a0f8571029bb0c754444f9d3f35531ae56201892f87426572603f39c98b8d"
     }
   }
 }

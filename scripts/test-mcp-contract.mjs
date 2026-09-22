@@ -77,6 +77,13 @@ try {
 
   const listed = await call(session.access_token, 'tools/list')
   assert(listed.response.ok && listed.body?.result?.tools?.some((tool) => tool.name === 'get_profile'), 'MCP tools/list contract failed')
+  const discoveredNames = new Set(listed.body.result.tools.map((tool) => tool.name))
+  for (const currentTool of ['list_principles','save_principle','list_private_holding_notes','save_private_holding_note']) {
+    assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
+  }
+  for (const legacyTool of ['get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis']) {
+    assert(!discoveredNames.has(legacyTool), `${legacyTool} remained in new-session discovery`)
+  }
   const guideDefinition = listed.body?.result?.tools?.find((tool) => tool.name === 'get_workflow_guide')
   assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 9, 'Workflow guide topics were not advertised')
 

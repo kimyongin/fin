@@ -35,8 +35,8 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_task / observed-local | 본인의 할 일 상세·이력·연결 판단 ID를 읽습니다. 조회로 완료·보류·종료하지 않습니다. | W04,W08 |
 | transition_investment_decision / observed-local | 현재 version을 읽은 뒤 사용자의 명시적 의도로 proposed 판단을 채택하거나 거절합니다. 기존 선택지와 이유를 요구하며 주문·체결·원칙을 변경하지 않습니다. | W03 |
 | transition_task / observed-local | 현재 version을 읽고 조사 질문을 대기·해결·재개하거나 사용자의 요청으로 보류·재개·종료합니다. 해결은 답과 출처, 재개는 새 근거가 필요하며 매매 진행도를 변경하지 않습니다. | W04,W08 |
-| get_investment_policy / observed-local | 본인이 명시적으로 저장한 개인 투자 기준과 기존 운용 전략을 함께 읽습니다. 미입력을 보유 종목이나 운용 모드에서 추론하지 않습니다. | W02 |
-| save_investment_policy / observed-local | 사용자가 명시적으로 저장/변경한 개인 기준 필드만 현재 version과 함께 수정합니다. null은 명시적 삭제이며 목표 비중·운용 모드·보유·판단은 변경하지 않습니다. | W02 |
+| get_investment_policy / legacy-hidden | 구 개인 기준 조회. 기존 세션 호환 호출만 허용하며 새 세션은 `list_principles`를 사용합니다. | W02 |
+| save_investment_policy / legacy-hidden | 구 개인 기준 저장. 기존 세션 호환 호출만 허용하며 새 세션은 `save_principle`을 사용합니다. | W02 |
 | list_operating_rules / observed-local | 특정 workflow에 저장된 활성 데이터 관리 규칙을 읽습니다. 빈 목록과 조회 실패를 구분하고 applicability를 실제 입력과 대조합니다. | W06 |
 | save_operating_rule / observed-local | 사용자가 기억하라고 요청한 적용 조건과 처리 규칙을 CAS·멱등 방식으로 저장합니다. 규칙은 금융 검증이나 현재 지시를 우회하지 않습니다. | W06 |
 | archive_operating_rule / observed-local | 더 이상 적용하지 않을 규칙을 이력은 보존한 채 보관합니다. 과거 대조 결과나 보유값은 바꾸지 않습니다. | W06 |
@@ -53,9 +53,9 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_activity_report_context / observed-local | 지정 기간 활동의 최신 현재 내용과 태그를 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |
 | list_activity_reports / observed-local | 저장된 일간·주간·월간 활동 리포트와 포함 활동 수정·기간 이동·새 원본에 따른 재생성 필요 상태를 조회합니다. 자동 재작성하지 않습니다. | A06 |
 | save_activity_report / observed-local | 사용자가 요청한 기간 회고를 원본 event/task/decision ID와 함께 버전 저장합니다. 자동 생성이나 투자 행동 기록은 만들지 않습니다. | A06 |
-| get_holding_thesis / observed-local | 종목 공통 보유 이유와 선택한 계좌의 재정의, 실제 적용 출처와 version을 읽습니다. 기존 메모나 미입력 이유를 추론하지 않습니다. | W02 |
-| save_holding_thesis / observed-local | 사용자가 명시적으로 저장/변경한 종목 공통 또는 계좌별 보유 이유만 현재 version과 함께 수정합니다. 메모·잔고·체결·판단·할 일은 변경하지 않습니다. | W02 |
-| link_task_to_holding_thesis / observed-local | 현재 version을 읽은 보유 이유와 할 일을 연결만 합니다. 이유·할 일 상태·잔고·체결은 변경하지 않습니다. | W02,W04 |
+| get_holding_thesis / legacy-hidden | 구 보유 이유 조회. 기존 세션 호환 호출만 허용하며 새 세션은 `list_private_holding_notes`를 사용합니다. | W02 |
+| save_holding_thesis / legacy-hidden | 구 보유 이유 저장. 기존 세션 호환 호출만 허용하며 새 세션은 `save_private_holding_note`를 사용합니다. | W02 |
+| link_task_to_holding_thesis / legacy-hidden | 구 보유 이유-할 일 연결. 새 세션은 필요한 후속 할 일을 직접 등록합니다. | W02,W04 |
 | preview_trade_entry / observed-local | 이미 체결된 시장형 매매 입력이 현재 수량·평균가를 어떻게 바꾸는지 서버에서 미리 계산합니다. 저장·주문·현금 이동·잔고 확인은 하지 않습니다. | W05 |
 | log_completed_trade / observed-local | 사용자가 기록을 요청한 완료 매매의 유효한 preview를 멱등 확정해 로컬 수량·평균가를 갱신합니다. 증권사 주문이나 잔고 확인은 하지 않습니다. | W05 |
 | list_transactions / observed-local | Portfolio 새 원장에 기록한 완료 체결을 읽습니다. 증권사 전체 거래내역이나 legacy/미입력 거래까지 완전하다고 설명하지 않습니다. | W05,W06 |
