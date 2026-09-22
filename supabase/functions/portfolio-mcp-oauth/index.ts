@@ -674,7 +674,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   async transition_general_task(supabase, args) {
     requireSchemaVersion(args)
     const action = requireString(args.action, 'action')
-    if (!['complete','reopen','pause','resume','cancel'].includes(action)) throw new ToolInputError('action is invalid')
+    if (!['complete','reopen','cancel'].includes(action)) throw new ToolInputError('action is invalid')
     const data = await rpc(supabase, 'app_transition_general_task', {
       input_task_id: requireUuid(args.task_id, 'task_id'),
       input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),

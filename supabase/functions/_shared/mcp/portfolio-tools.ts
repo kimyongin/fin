@@ -860,13 +860,13 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'transition_general_task',
-    title: 'Complete or control a general task',
-    description: 'Complete, reopen, pause, resume, or cancel one general task after reading its current version. Completion records a linked action event; reopening preserves that history. A result describes what actually happened and must not be invented.',
+    title: 'Complete, correct, or end a general task',
+    description: 'Complete the current occurrence, reopen an incorrectly checked occurrence, or end a recurring task after reading its current version. Completion creates one linked action event. Use cancel to end future recurrence without creating a completed performance; existing completed activities remain. A result describes what actually happened and must not be invented. Pause/resume is legacy behavior and is not offered for new work.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 }, task_id: { type: 'string', format: 'uuid' }, expected_version: { type: 'integer', minimum: 1 },
-        idempotency_key: { type: 'string', format: 'uuid' }, action: { type: 'string', enum: ['complete','reopen','pause','resume','cancel'] },
+        idempotency_key: { type: 'string', format: 'uuid' }, action: { type: 'string', enum: ['complete','reopen','cancel'] },
         result: { type: ['string', 'null'], maxLength: 4000 }, reason: { type: ['string', 'null'], maxLength: 1000 },
         occurrence_on: { type: ['string', 'null'], format: 'date' },
       },

@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "OAuth MCP discovery hides legacy policy and thesis tools while cached calls remain supported",
+  "review_reason": "Clarify linked completion activity for recurring task transition",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d5222800",
-      "contract_digest": "9c754680a83023424a25203733208a488e5241c1e8278450ee180ede624e5dac"
+      "contract_digest": "b908d49caf2c45033a1b1d08b5baf6a8b5cb0293a7150fc94a3257c0143164a7"
     },
     "holding_thesis": {
       "revision": "fnv1a32:e8f68540",
-      "contract_digest": "82a99af848b6c2618d53a1ade8541351a76914885da0b5e2c4383f47d811ff6e"
+      "contract_digest": "251c5082df3ff8645fcc67947cd79fca2efb587fb6108e3844ca81e4b31946f4"
     },
     "daily_review": {
       "revision": "fnv1a32:79601eb6",
-      "contract_digest": "9eb95d1daa16a5c5285e8452baae98903b8a665529b6a2eb884f7bc398843dd3"
+      "contract_digest": "798b41c3a092d583d30810ff0423e12ead6795c466956b796fe16b98a4a11e6f"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "2a9e531c8715481b4933be84d0a5336494fa5be3815a70ea416886aa518d87ad"
+      "contract_digest": "710713509f54f153d262a1765392d81ccdac8ac1b22c7b0202e6fd22b3af450e"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "c888c6da7146761eb0933f6543c80d5218ecfe05d05272959d6c3887fbdad490"
+      "contract_digest": "bc5b86faacdd4174eb55e524cfb2ce5f8b94c6cade26d682693c93901bf9c58d"
     },
     "reconciliation": {
       "revision": "fnv1a32:f69d58bf",
-      "contract_digest": "9b294c2b42d2fee7ecc0418381776cac2ac9eaf5dfd90e95941aec7b2f432dfa"
+      "contract_digest": "7ed07d2856c0920c20cc31c4264158cac33c1f87db3d6652e18b1490617669d0"
     },
     "todo": {
-      "revision": "fnv1a32:223cef20",
-      "contract_digest": "7288678e20688b3a77ed196d0c65e3f3650b8f18370887f83ef58afd563682da"
+      "revision": "fnv1a32:665dd041",
+      "contract_digest": "e10849bc970dad2f6a955e62314bfe8dc2c0e67e6193ef4e87192acfe0bb8866"
     },
     "activity_report": {
       "revision": "fnv1a32:a12e16a6",
-      "contract_digest": "282d86c313a65960eaa08f8e2a72b913f7baf8d0281ba0a4466fe4e46ae5393d"
+      "contract_digest": "89ea7318d874f782a650088d0b73d84f68c38d348082f0899d0f9882836aab77"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "124a0f8571029bb0c754444f9d3f35531ae56201892f87426572603f39c98b8d"
+      "contract_digest": "e6dba82bd8191a686d4152537c639b1faa63792690400e56968f96c9ee487ff8"
     }
   }
 }

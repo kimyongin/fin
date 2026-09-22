@@ -379,6 +379,19 @@ test('creates and completes a general task while keeping manual work as activity
   const detail = await callRpc(page, 'app_get_activity', { input_activity_id: manualEvent.id, input_owner_user_id: null })
   expect(detail.status, JSON.stringify(detail.body)).toBe(200)
   expect(detail.body.record_kind).toBe('research')
+
+  const repeatingTitle = `E2E 종료할 반복 ${Date.now()}`
+  await page.getByRole('button', { name: '활동 추가', exact: true }).click()
+  const repeatDialog = page.getByRole('dialog', { name: '활동 추가' })
+  await repeatDialog.getByRole('textbox', { name: '할 일', exact: true }).fill(repeatingTitle)
+  await repeatDialog.getByLabel('매일 반복').check()
+  await repeatDialog.getByRole('button', { name: '저장', exact: true }).click()
+  await page.getByText(repeatingTitle, { exact: true }).click()
+  const detailDialog = page.getByRole('dialog', { name: '할 일 상세' })
+  await detailDialog.getByRole('button', { name: '반복 종료', exact: true }).click()
+  await detailDialog.getByRole('button', { name: '반복 종료 확인' }).click()
+  await expect(detailDialog).toBeHidden()
+  await expect(pendingSection.getByText(repeatingTitle, { exact: true })).toHaveCount(0)
 })
 
 test('saves a private holding reason without exposing it in the shared portfolio DTO', async ({ page }) => {

@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(18);
+select extensions.plan(21);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001711','authenticated','authenticated','recurring-owner@example.com','',now(),now(),now());
@@ -49,6 +49,12 @@ select extensions.is(public.app_transition_general_task((select id from portfoli
 select extensions.is((select count(*) from activity_events where task_id=(select id from portfolio_tasks where title='매일 잔고 확인') and occurrence_on is null
   and action_type in ('pause_general_task','resume_general_task')),2::bigint,'control transitions are not occurrence completions');
 select extensions.is(jsonb_array_length(public.app_list_general_task_page('completed',20,null)->'items'),1,'completed filter uses the current local occurrence');
+select extensions.is(public.app_transition_general_task((select id from portfolio_tasks where title='매일 잔고 확인'),7,'cancel',null,'사용자가 반복 종료',
+  null,'18aaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','app') #>> '{status}','cancelled','ending recurrence closes future appearances');
+select extensions.is((select count(*) from activity_events where task_id=(select id from portfolio_tasks where title='매일 잔고 확인')
+  and action_type='complete_general_task'),3::bigint,'ending recurrence preserves earlier completions without inventing another');
+select extensions.is((select count(*) from general_task_occurrence_states where task_id=(select id from portfolio_tasks where title='매일 잔고 확인')
+  and occurrence_on>(clock_timestamp() at time zone 'Asia/Seoul')::date),0::bigint,'ending recurrence does not materialize future dates');
 
 select * from extensions.finish();
 rollback;
