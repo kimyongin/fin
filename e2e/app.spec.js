@@ -6,8 +6,6 @@ async function openMenuTab(page, label) {
   const primary = page.locator('nav[aria-label="주요 메뉴"]:visible').getByRole('button', { name: primaryLabel, exact: true })
   if (await primary.count()) {
     await primary.click()
-    if (label === '판단') await page.getByRole('tab', { name: '판단 모아보기', exact: true }).click()
-    if (label === '활동') await page.getByRole('tab', { name: '활동', exact: true }).click()
     return
   }
   await page.getByRole('button', { name: 'Open menu' }).click()
@@ -217,10 +215,12 @@ test('shows an adopted decision and its research follow-up without implying a tr
   })
   expect(resolved.status, JSON.stringify(resolved.body)).toBe(200)
 
-  await openMenuTab(page, '판단')
-  await expect(page.getByRole('heading', { name: question, exact: true })).toBeVisible()
+  await openMenuTab(page, '활동')
+  await page.getByLabel('활동 목록 필터').getByRole('button', { name: '한 일', exact: true }).click()
+  await expect(page.getByRole('button', { name: question, exact: true }).first()).toBeVisible()
+  await page.getByRole('button', { name: question, exact: true }).first().click()
+  await page.getByRole('button', { name: '판단 상세 보기' }).click()
   await expect(page.getByText('내가 채택함').first()).toBeVisible()
-  await page.getByText(question).click()
   await expect(page.getByText(taskTitle)).toBeVisible()
   await page.getByText(taskTitle).click()
   await expect(page.getByRole('heading', { name: '할 일 상세' })).toBeVisible()
@@ -229,14 +229,11 @@ test('shows an adopted decision and its research follow-up without implying a tr
   await expect(page.getByRole('heading', { name: '판단 상세' })).toBeVisible()
   await expect(page.getByRole('heading', { name: question, exact: true }).last()).toBeVisible()
   await page.getByRole('button', { name: '닫기' }).click()
-
-  await page.getByRole('tab', { name: '활동', exact: true }).click()
   await expect(page).toHaveURL(/#tasks$/)
-  await page.getByLabel('활동 목록 필터').getByRole('button', { name: '한 일', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '조사 과제 상태 변경' }).first()).toBeVisible()
+  await expect(page.getByText('조사 과제 상태 변경', { exact: true }).first()).toBeVisible()
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
-    await expect(page.getByRole('tablist', { name: '활동과 판단 보기 전환' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: '활동' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
 })
@@ -256,7 +253,7 @@ test('retries the combined work queue after a read error', async ({ page }) => {
   await expect(page.getByText('E2E lifecycle failure')).toBeVisible()
   await page.getByRole('button', { name: '다시 시도' }).click()
   await expect.poll(() => calls).toBeGreaterThanOrEqual(3)
-  await expect(page.getByRole('tab', { name: '활동', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('heading', { level: 1, name: '활동' })).toBeVisible()
 })
 
 test('saves a private investment policy and includes its version in daily context', async ({ page }) => {
@@ -330,7 +327,8 @@ test('shows one unified action surface without legacy bundle controls', async ({
   await page.goto('/')
   await openMenuTab(page, '할 일')
 
-  await expect(page.getByRole('tab', { name: '활동', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('heading', { level: 1, name: '활동' })).toBeVisible()
+  await expect(page.getByRole('tablist', { name: '활동과 판단 보기 전환' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '활동 추가', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '할 일 추가', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '한 일 기록', exact: true })).toHaveCount(0)

@@ -778,7 +778,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_activity',
     title: 'Activity detail',
-    description: 'Read one performed activity with its current title, note, result, conclusion, linked originating task, and follow-up tasks. Use the returned editable_fields and version before an update. Reading never creates a task, changes financial facts, or marks anything complete.',
+    description: 'Read one performed activity with its current title, note, result, conclusion, source target ID, linked originating task, and follow-up tasks. For a decision activity, use its investment_decisions target ID with the decision tools instead of treating the activity as the decision source. Use editable_fields and version before an update. Reading never creates a task, changes financial facts, or marks anything complete.',
     inputSchema: {
       type: 'object',
       properties: { activity_id: { type: 'integer', minimum: 1 } },

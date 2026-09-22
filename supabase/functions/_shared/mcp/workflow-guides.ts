@@ -284,6 +284,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/migrations/20260922162016_activity_current_content.sql',
       'supabase/migrations/20260922163825_activity_tags_and_search.sql',
       'supabase/migrations/20260922165358_activity_semantic_search.sql',
+      'supabase/migrations/20260922174210_activity_decision_navigation.sql',
     ],
     steps: [
       { id: 'classify-intent', title: 'Classify intent versus performed fact', instruction: 'Do not write for analysis alone. A future ordinary follow-up is a general task. Work already performed is one activity with optional result and conclusion. A completed Portfolio mutation is already an automatic activity.', tools: [] },
@@ -299,6 +300,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'A general task or narrative activity is not a completed brokerage trade or verified balance.',
       'Do not duplicate a successful automatic event as manual activity or another completed task.',
       'Legacy ToDo bundle tools are no longer advertised; migrated source and relationships remain available for audit.',
+      'A decision activity links to the existing decision source; it does not replace decision status, history, evidence, or task relations.',
     ],
     recovery: [
       'If a prior financial or domain write succeeded, never repeat it to repair a task or activity record.',

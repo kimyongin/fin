@@ -14,7 +14,7 @@ function formatDateTime(value) {
   return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
-export default function ActivityDetailModal({ activity, loading, onClose, onSaved, ownerUserId, supabase }) {
+export default function ActivityDetailModal({ activity, loading, onClose, onOpenDecision, onOpenTask, onSaved, ownerUserId, supabase }) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -110,7 +110,9 @@ export default function ActivityDetailModal({ activity, loading, onClose, onSave
 
       {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4"><ActivityTagPicker disabled={saving} onChange={setSelectedTagIds} onTagsChanged={(tags, ids) => { setAvailableTags(tags); setSelectedTagIds(ids) }} selectedIds={selectedTagIds} supabase={supabase} tags={availableTags} /><div className="mt-3 flex justify-end"><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold disabled:opacity-50" disabled={saving} onClick={saveTags} type="button">태그 저장</button></div></section>}
 
-      {activity.follow_up_tasks?.length > 0 && <section><h4 className="text-sm font-semibold">이어진 할 일</h4><ul className="mt-2 grid gap-2">{activity.follow_up_tasks.map((task) => <li className="rounded-2xl bg-[var(--surface-2)] p-3 text-sm" key={task.id}>{task.title}{task.due_date ? <span className="ml-2 text-xs text-[var(--muted-ink)]">{task.due_date}</span> : null}</li>)}</ul></section>}
+      {activity.target_table === 'investment_decisions' && activity.target_id && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-left text-sm font-semibold" onClick={() => onOpenDecision(activity.target_id)} type="button">판단 상세 보기</button>}
+      {activity.origin_task && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-left text-sm font-semibold" onClick={() => onOpenTask(activity.origin_task.id)} type="button">원래 할 일 보기 · {activity.origin_task.title}</button>}
+      {activity.follow_up_tasks?.length > 0 && <section><h4 className="text-sm font-semibold">이어진 할 일</h4><div className="mt-2 grid gap-2">{activity.follow_up_tasks.map((task) => <button className="rounded-2xl bg-[var(--surface-2)] p-3 text-left text-sm" key={task.id} onClick={() => onOpenTask(task.id)} type="button">{task.title}{task.due_date ? <span className="ml-2 text-xs text-[var(--muted-ink)]">{task.due_date}</span> : null}</button>)}</div></section>}
       {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4"><h4 className="text-sm font-semibold">후속 할 일</h4><p className="mt-1 text-xs text-[var(--muted-ink)]">이 활동을 계기로 다음에 할 일을 남깁니다.</p><div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm" onChange={(event) => setFollowUp({ ...followUp, title: event.target.value })} placeholder="예: 다음 실적 발표 확인" value={followUp.title} /><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm" onChange={(event) => setFollowUp({ ...followUp, dueDate: event.target.value })} type="date" value={followUp.dueDate} /><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold disabled:opacity-50" disabled={saving || !followUp.title.trim()} onClick={addFollowUp} type="button">추가</button></div></section>}
     </div>}
   </ModalShell>
