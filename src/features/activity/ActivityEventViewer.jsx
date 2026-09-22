@@ -15,9 +15,9 @@ const actionLabels = {
   bulk_edit_portfolio: '표로 자산 일괄 수정',
   update_entity_note: '대상 메모 수정', save_operating_rule: '데이터 관리 규칙 저장',
   archive_operating_rule: '데이터 관리 규칙 보관', save_todo_bundle: 'ToDo 묶음 저장',
-  create_general_task: '할 일 추가', update_general_task: '할 일 수정', complete_general_task: '할 일 완료',
+  create_general_task: '할 일 추가', update_general_task: '할 일 수정', complete_general_task: '활동',
   reopen_general_task: '할 일 다시 열기', pause_general_task: '할 일 보류', resume_general_task: '할 일 재개',
-  cancel_general_task: '할 일 취소', record_manual_activity: '한 일 기록', verify_holding: '보유 정보 확인',
+  cancel_general_task: '할 일 취소', record_manual_activity: '활동', verify_holding: '보유 정보 확인',
   link_trade_to_task: '체결과 실행 계획 연결', transition_execution_task: '실행 계획 상태 변경',
   transition_portfolio_task: '조사 과제 상태 변경', transition_investment_decision: '투자 판단 상태 변경',
   record_investment_decision: '투자 판단 기록', save_daily_briefing: '일일 점검 저장',
@@ -99,6 +99,7 @@ function SnapshotCopyButton({ label, snapshot }) {
 }
 
 function eventTarget(action) {
+  if (action.title) return repairMojibake(action.title)
   const data = eventData(action)
   if (action.action_type === 'bulk_edit_portfolio') return `${data.row_count ?? 0}개 보유내역`
   return repairMojibake(data.title ?? data.display_name ?? data.name ?? data.ticker ?? data.account_name ?? action.target_table ?? '포트폴리오')
@@ -158,20 +159,22 @@ function ChangeSummary({ action }) {
   )
 }
 
-export function ActivityEvent({ action }) {
+export function ActivityEvent({ action, onOpenActivity }) {
   const failed = action.status === 'failed'
+  const narrativeActivity = ['record_manual_activity', 'complete_general_task'].includes(action.action_type)
   return (
     <li className="relative grid gap-3 py-4 pl-5 first:pt-0 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-5 sm:pl-0">
       <span aria-hidden="true" className={`absolute left-0 top-6 h-2.5 w-2.5 rounded-full sm:left-[6.18rem] ${failed ? 'bg-red-400' : action.source === 'agent' ? 'bg-[var(--accent)]' : 'bg-emerald-400'}`} />
       <time className="text-xs text-[var(--muted-ink)] sm:pt-1">{formatTime(action.occurred_at ?? action.created_at)}</time>
       <article className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-sm font-semibold text-[var(--ink)]">{actionLabels[action.action_type] ?? action.action_type}</h3>
-          <span className="text-sm text-[var(--muted-ink)]">{eventTarget(action)}</span>
+          {onOpenActivity ? <button className="text-left text-sm font-semibold text-[var(--ink)] hover:text-[var(--accent)]" onClick={() => onOpenActivity(action)} type="button">{eventTarget(action)}</button> : <h3 className="text-sm font-semibold text-[var(--ink)]">{eventTarget(action)}</h3>}
+          {!narrativeActivity && <span className="text-sm text-[var(--muted-ink)]">{actionLabels[action.action_type] ?? action.action_type}</span>}
           <span className={`rounded-full border px-2 py-0.5 text-xs ${failed ? 'border-red-400/40 text-red-100' : 'border-[var(--line)] text-[var(--muted-ink)]'}`}>{failed ? '실패' : action.source === 'agent' ? '에이전트' : '앱'}</span>
         </div>
         {eventContext(action) && <p className="mt-1 text-xs text-[var(--muted-ink)]">{eventContext(action)}{action.target_id ? ` · #${action.target_id}` : ''}</p>}
-        <div className="mt-3 border-l-2 border-[var(--line)] pl-3"><ChangeSummary action={action} /></div>
+        {(action.result || action.conclusion || action.note) && <div className="mt-3 grid gap-2 border-l-2 border-[var(--line)] pl-3">{action.result && <p className="text-sm leading-6"><span className="font-medium">결과:</span> {repairMojibake(action.result)}</p>}{action.conclusion && <p className="text-sm leading-6"><span className="font-medium">결론:</span> {repairMojibake(action.conclusion)}</p>}{action.note && <p className="text-sm leading-6 text-[var(--muted-ink)]">{repairMojibake(action.note)}</p>}</div>}
+        {!narrativeActivity && <div className="mt-3 border-l-2 border-[var(--line)] pl-3"><ChangeSummary action={action} /></div>}
         {action.source === 'agent' && action.natural_language_request && <p className="mt-3 text-sm leading-6 text-[var(--muted-ink)]"><span className="font-medium text-[var(--ink)]">요청:</span> {repairMojibake(action.natural_language_request)}</p>}
         {action.error_message && <p className="mt-3 text-sm text-red-100">{repairMojibake(action.error_message)}</p>}
       </article>
@@ -179,12 +182,12 @@ export function ActivityEvent({ action }) {
   )
 }
 
-export default function ActivityEventViewer({ actions, loading, showDateGroups = true }) {
+export default function ActivityEventViewer({ actions, loading, onOpenActivity, showDateGroups = true }) {
   if (!loading && actions.length === 0) {
     return <p className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3 text-sm text-[var(--muted-ink)]">아직 기록된 작업이 없습니다.</p>
   }
   if (!showDateGroups) {
-    return <ol className="relative border-l border-[var(--line)] sm:border-l-0">{actions.map((action) => <ActivityEvent action={action} key={action.id} />)}</ol>
+    return <ol className="relative border-l border-[var(--line)] sm:border-l-0">{actions.map((action) => <ActivityEvent action={action} key={action.id} onOpenActivity={onOpenActivity} />)}</ol>
   }
   return (
     <div className="grid gap-5">
@@ -192,7 +195,7 @@ export default function ActivityEventViewer({ actions, loading, showDateGroups =
         <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]" key={group.label}>
           <h2 className="border-b border-[var(--line)] pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">{group.label}</h2>
           <ol className="relative mt-4 border-l border-[var(--line)] sm:border-l-0">
-            {group.actions.map((action) => <ActivityEvent action={action} key={action.id} />)}
+            {group.actions.map((action) => <ActivityEvent action={action} key={action.id} onOpenActivity={onOpenActivity} />)}
           </ol>
         </article>
       ))}

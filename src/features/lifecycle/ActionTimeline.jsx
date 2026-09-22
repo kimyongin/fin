@@ -21,7 +21,7 @@ function statusLabel(task) {
   return task.status === 'partial' ? '일부 체결' : '실행 예정'
 }
 
-export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenTask, ownerUserId, refreshKey = 0, supabase }) {
+export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenActivity, onOpenTask, ownerUserId, refreshKey = 0, supabase }) {
   const [filter, setFilter] = useState('all')
   const [page, setPage] = useState({ pending: [], days: [], nextCursor: null })
   const [loading, setLoading] = useState(true)
@@ -85,7 +85,7 @@ export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenTas
           const summary = Object.entries(day.counts ?? {}).map(([label, count]) => `${label} ${count}`).join(' · ')
           return <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]" key={day.date}>
             <button aria-expanded={!collapsed} className="flex min-h-11 w-full items-center justify-between gap-3 text-left" onClick={() => toggleDay(day.date)} type="button"><span><span className="block text-sm font-semibold">{formatDay(day.date)}</span><span className="mt-1 block text-xs text-[var(--muted-ink)]">{summary || `${day.item_count}건`}</span></span><span aria-hidden="true" className="text-[var(--muted-ink)]">{collapsed ? '펼치기' : '접기'}</span></button>
-            {!collapsed && <div className="mt-3 border-t border-[var(--line)] pt-4"><ActivityEventViewer actions={day.items} loading={false} showDateGroups={false} /></div>}
+            {!collapsed && <div className="mt-3 border-t border-[var(--line)] pt-4"><ActivityEventViewer actions={day.items} loading={false} onOpenActivity={onOpenActivity} showDateGroups={false} /></div>}
           </article>
         })}
         {page.nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold disabled:opacity-50" disabled={loadingMore} onClick={() => load({ append: true, cursor: page.nextCursor })} type="button">{loadingMore ? '불러오는 중' : '이전 기록 더 보기'}</button>}

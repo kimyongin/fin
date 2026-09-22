@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  createActivityFollowUp,
+  fetchActivity,
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
   fetchActionTimeline,
@@ -9,6 +11,8 @@ import {
   fetchPortfolioTask,
   fetchPortfolioTaskPage,
   fetchPortfolioTasks,
+  recordManualActivity,
+  updateActivity,
 } from './data'
 
 describe('decision and task data adapters', () => {
@@ -87,5 +91,34 @@ describe('decision and task data adapters', () => {
     const supabase = { rpc: vi.fn(async () => ({ data: { items: [{ id: 'report', needs_regeneration: true }], next_cursor: null }, error: null })) }
     await expect(fetchActivityReports(supabase)).resolves.toEqual({ items: [{ id: 'report', needs_regeneration: true }], nextCursor: null })
     expect(supabase.rpc).toHaveBeenCalledWith('app_list_activity_reports', { input_limit: 10, input_cursor: null })
+  })
+
+  it('creates, reads, edits, and follows up one activity without exposing storage types', async () => {
+    const supabase = { rpc: vi.fn(async (_name, params) => ({ data: { id: params.input_activity_id ?? 7, version: 1 }, error: null })) }
+    const idempotencyKey = crypto.randomUUID()
+
+    await recordManualActivity(supabase, { title: '실적 확인', result: '보유', conclusion: '유지', idempotencyKey })
+    await fetchActivity(supabase, 7)
+    await updateActivity(supabase, { id: 7, version: 1 }, { result: '다음 달 재확인' })
+    await createActivityFollowUp(supabase, 7, { title: '다음 실적 확인', dueDate: '2026-10-23', idempotencyKey })
+
+    expect(supabase.rpc.mock.calls[0]).toEqual(['app_create_activity', {
+      input_idempotency_key: idempotencyKey,
+      input_payload: {
+        title: '실적 확인', note: null, result: '보유', conclusion: '유지', occurred_at: null,
+        timezone: 'Asia/Seoul', instrument_id: null, account_id: null, authored_via: 'app',
+      },
+    }])
+    expect(supabase.rpc.mock.calls[1]).toEqual(['app_get_activity', { input_activity_id: 7, input_owner_user_id: null }])
+    expect(supabase.rpc.mock.calls[2][0]).toBe('app_update_activity')
+    expect(supabase.rpc.mock.calls[2][1]).toMatchObject({ input_activity_id: 7, input_expected_version: 1, input_patch: { result: '다음 달 재확인' } })
+    expect(supabase.rpc.mock.calls[3]).toEqual(['app_create_activity_follow_up', {
+      input_origin_event_id: 7,
+      input_idempotency_key: idempotencyKey,
+      input_payload: {
+        title: '다음 실적 확인', subject: { kind: 'portfolio' }, due_date: '2026-10-23', timezone: 'Asia/Seoul',
+        trigger_text: null, recurrence_kind: 'none', recurrence_start_on: null, authored_via: 'app',
+      },
+    }])
   })
 })

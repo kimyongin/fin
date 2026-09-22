@@ -272,9 +272,9 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
   todo: {
     topic: 'todo',
     guide_id: 'portfolio.action-tasks',
-    purpose: 'Use one unified action model: tasks describe future intent, domain changes create automatic events, and manual activity records only user-reported work outside Portfolio.',
+    purpose: 'Use one activity experience: tasks describe future intent, performed activities keep their current optional result and conclusion, and domain changes create protected automatic activities.',
     scenario_ids: ['A01', 'A02', 'A03', 'A04', 'A05'],
-    related_tools: ['list_general_tasks', 'get_general_task', 'save_general_task', 'transition_general_task', 'record_manual_activity', 'list_tasks', 'get_task'],
+    related_tools: ['list_general_tasks', 'get_general_task', 'get_activity', 'save_general_task', 'transition_general_task', 'record_manual_activity', 'update_activity', 'list_tasks', 'get_task'],
     source_paths: [
       'docs/design/tasks-and-events.md',
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
@@ -283,15 +283,16 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/migrations/20260922083000_retire_todo_bundles.sql',
     ],
     steps: [
-      { id: 'classify-intent', title: 'Classify intent versus performed fact', instruction: 'Do not write for analysis alone. A future ordinary follow-up is a general task. A completed Portfolio mutation is already an automatic event. Work completed outside Portfolio is manual activity only when the user asks to record it.', tools: [] },
+      { id: 'classify-intent', title: 'Classify intent versus performed fact', instruction: 'Do not write for analysis alone. A future ordinary follow-up is a general task. Work already performed is one activity with optional result and conclusion. A completed Portfolio mutation is already an automatic activity.', tools: [] },
       { id: 'read-existing', title: 'Read existing tasks', instruction: 'Use list_general_tasks and get_general_task for ordinary follow-ups. Use list_tasks or get_task for authoritative research and execution tasks; never copy those into a general task.', tools: ['list_general_tasks', 'get_general_task', 'list_tasks', 'get_task'] },
-      { id: 'save-future-task', title: 'Save future intent', instruction: 'Call save_general_task for one user-meaningful future follow-up, or several independent calls when the user explicitly lists several independent tasks. Use daily recurrence only for an explicitly recurring task.', tools: ['save_general_task'] },
+      { id: 'save-future-task', title: 'Save future intent', instruction: 'Call save_general_task for one user-meaningful future follow-up. When it directly follows a recorded activity, pass origin_activity_id. Use daily recurrence only for an explicitly recurring task.', tools: ['save_general_task'] },
       { id: 'complete-existing', title: 'Complete the matching task', instruction: 'Call transition_general_task after the user reports completing an existing general task. The server creates the linked completion event; do not also create manual activity for the same work.', tools: ['transition_general_task'] },
-      { id: 'record-unplanned-work', title: 'Record unplanned outside work', instruction: 'Call record_manual_activity only for work already done outside Portfolio with no prior task and explicit save intent. It never changes financial truth.', tools: ['record_manual_activity'] },
+      { id: 'record-unplanned-work', title: 'Record completed work', instruction: 'Call record_manual_activity for explicit user-reported work already done when there is no matching task to complete. Result and conclusion are optional. It never changes financial truth.', tools: ['record_manual_activity'] },
+      { id: 'revise-current-activity', title: 'Revise the same activity', instruction: 'Read get_activity, then call update_activity when the user corrects or adds a result, conclusion, note, or allowed date/context. Do not create another activity for the same performance.', tools: ['get_activity', 'update_activity'] },
       { id: 'verify-result', title: 'Verify current state', instruction: 'Read the affected task after a task write. Report separate domain writes separately; automatic events require no second save.', tools: ['get_general_task'] },
     ],
     boundaries: [
-      'A general task or manual activity is not an adopted investment decision, completed brokerage trade, or verified balance.',
+      'A general task or narrative activity is not a completed brokerage trade or verified balance.',
       'Do not duplicate a successful automatic event as manual activity or another completed task.',
       'Legacy ToDo bundle tools are no longer advertised; migrated source and relationships remain available for audit.',
     ],

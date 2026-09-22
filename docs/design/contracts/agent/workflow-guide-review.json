@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Reviewed todo and activity_report after adding the future #80-#85 planning notice to tasks-and-events.md. Current tool behavior and guide instructions remain unchanged; new activity results, tags and search are not advertised until implementation in #81-#84.",
+  "review_reason": "Updated todo guidance and tool contracts for editable activities and linked follow-up tasks in #80-#81.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
-      "contract_digest": "4aec0ac8910cf694f81091573818f06e33246f98da94bc71becf68167ca11ce0"
+      "contract_digest": "ef311103bb0d4d656d89311e4d4091191802d38ecf5aefc7620acfedddccd9b7"
     },
     "holding_thesis": {
       "revision": "fnv1a32:62ae4aff",
-      "contract_digest": "da65d8f8e3e10b9e010eb1630197b1551b672878a995ff768ef9f38d7ab9dd23"
+      "contract_digest": "9a3dbc7dbeea617d8313a79bd5e59acfec68b875b8bcca92bbcb97c9e9d054dc"
     },
     "daily_review": {
       "revision": "fnv1a32:6d145d21",
-      "contract_digest": "e7b22cd106cb5f6f6421896aee2b844d33583a6286cc0bfef294cac9ca42859c"
+      "contract_digest": "9e75fe6b90babbe6c9efc607788d8adaa98d129376fd32f594fad02c3839e404"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "925d00d7814b35c10538a47c7a1ec74b36c8db51fb4ce471beb3bf9a6efbc55c"
+      "contract_digest": "6be7b167359bf32621221f51d8c0e6b20ce429b940fa17c2f4cedc18ed3cf570"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "2d541d5b01b462bca5fe24854565ffe17869e4af705eab9abfc49abd5d0678c2"
+      "contract_digest": "04f6c8850e31be7e176d09f13d69d0c65380e9f0d4e01f5bee587cf3c15bb1fd"
     },
     "reconciliation": {
       "revision": "fnv1a32:f69d58bf",
-      "contract_digest": "4dbeaf265506eb35a8bd77aee1720082222059e66f21e2fb121fbd749e9fd7b3"
+      "contract_digest": "f33a61466606bcb5aa909b45875ddf0b295231b6a757d90a26489b0a8219e108"
     },
     "todo": {
-      "revision": "fnv1a32:b9e9b5fd",
-      "contract_digest": "2a267b4ecc7c7a76d48c5acfb6e7fac1f1db9556dcd623de5d42d2abbb8ba16e"
+      "revision": "fnv1a32:fc6c1739",
+      "contract_digest": "9ddbca2fb2c0d6ecff067d200270ccaa377ba5a6a81e6052a66f86d46f5253c9"
     },
     "activity_report": {
       "revision": "fnv1a32:224df9ef",
-      "contract_digest": "16b5f52679905cf22de2dce68363b43892407b199a362e19dcb2b19d22ba3b44"
+      "contract_digest": "c41656284c28b2ab55f03420d76d6e844c7d4e5b2180960ac372d69dc3018646"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "07a484bad1b88c59499b2dc13ad9796db65f4624cba56408eedf56f1e36ade90"
+      "contract_digest": "0ab3c3c8a16b41c9d522cc00b44a64f3b7b55f7de492b89956a605795c6cebee"
     }
   }
 }

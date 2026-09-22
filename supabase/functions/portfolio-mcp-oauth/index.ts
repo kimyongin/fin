@@ -29,7 +29,7 @@ const serverInstructions = [
   'Before a multi-step Portfolio task, use get_workflow_guide when its advertised topic matches the user\'s request; do not repeat the same revision in one conversation.',
   'Report a write as saved only after its tool returns success; retry a lost response with the same idempotency key and re-read after a version conflict.',
   'Treat feedback about the Portfolio product separately from investment records: explicit clear registration requests may be saved directly, while an agent-initiated suggestion requires one user confirmation and must never include transcripts, portfolio data, credentials, or guessed causes.',
-  'Use tasks for future intent and automatic action events for successful Portfolio changes. Record manual activity only for explicit user-reported work outside Portfolio; never duplicate the same action in both places.',
+  'Use tasks for future intent and activities for performed work, optional results, and conclusions. Complete a known matching task instead of duplicating the same performance; successful Portfolio mutations already create their own protected activity.',
 ].join(' ')
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
@@ -570,24 +570,40 @@ const toolHandlers: Record<string, ToolHandler> = {
     if (!data) throw new PortfolioRpcError({ message: 'General task not found' })
     return { ok: true, data }
   },
+  async get_activity(supabase, args) {
+    const data = await rpc(supabase, 'app_get_activity', {
+      input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),
+      input_owner_user_id: null,
+    })
+    if (!data) throw new PortfolioRpcError({ message: 'Activity not found' })
+    return { ok: true, data }
+  },
   async save_general_task(supabase, args) {
     requireSchemaVersion(args)
     const taskId = args.task_id == null ? null : requireUuid(args.task_id, 'task_id')
     const expectedVersion = args.expected_version == null ? null : requirePositiveInteger(args.expected_version, 'expected_version')
     if ((taskId == null) !== (expectedVersion == null)) throw new ToolInputError('task_id and expected_version must both be set for an update')
-    const data = await rpc(supabase, 'app_save_general_task', {
-      input_task_id: taskId,
-      input_expected_version: expectedVersion,
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_payload: {
+    const idempotencyKey = requireUuid(args.idempotency_key, 'idempotency_key')
+    const payload = {
         title: requireString(args.title, 'title'), subject: requireRecord(args.subject, 'subject'),
         due_date: optionalString(args.due_date) ?? null, timezone: requireString(args.timezone, 'timezone'),
         trigger_text: optionalString(args.trigger_text) ?? null, change_reason: optionalString(args.change_reason) ?? null,
         recurrence_kind: optionalString(args.recurrence_kind) ?? 'none',
         recurrence_start_on: optionalString(args.recurrence_start_on) ?? null,
         authored_via: 'agent',
-      },
-    })
+    }
+    const originActivityId = args.origin_activity_id == null ? null : requirePositiveInteger(args.origin_activity_id, 'origin_activity_id')
+    if (originActivityId != null && taskId != null) throw new ToolInputError('origin_activity_id is only accepted when creating a task')
+    const data = originActivityId == null
+      ? await rpc(supabase, 'app_save_general_task', {
+          input_task_id: taskId, input_expected_version: expectedVersion,
+          input_idempotency_key: idempotencyKey, input_payload: payload,
+        })
+      : await rpc(supabase, 'app_create_activity_follow_up', {
+          input_origin_event_id: originActivityId,
+          input_idempotency_key: idempotencyKey,
+          input_payload: payload,
+        })
     return { ok: true, data }
   },
   async transition_general_task(supabase, args) {
@@ -605,10 +621,33 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async record_manual_activity(supabase, args) {
     requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_record_manual_activity', {
-      input_title: requireString(args.title, 'title'), input_result: optionalString(args.result) ?? null,
-      input_occurred_at: optionalString(args.occurred_at) ?? null, input_timezone: requireString(args.timezone, 'timezone'),
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
+    const data = await rpc(supabase, 'app_create_activity', {
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_payload: {
+        title: requireString(args.title, 'title'),
+        note: optionalString(args.note) ?? null,
+        result: optionalString(args.result) ?? null,
+        conclusion: optionalString(args.conclusion) ?? null,
+        occurred_at: optionalString(args.occurred_at) ?? null,
+        timezone: requireString(args.timezone, 'timezone'),
+        instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
+        account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
+        authored_via: 'agent',
+      },
+    })
+    return { ok: true, data }
+  },
+  async update_activity(supabase, args) {
+    requireSchemaVersion(args)
+    const patch = requireRecord(args.patch, 'patch')
+    const allowed = new Set(['title', 'note', 'result', 'conclusion', 'occurred_at', 'timezone', 'instrument_id', 'account_id'])
+    for (const key of Object.keys(patch)) if (!allowed.has(key)) throw new ToolInputError(`patch.${key} is not editable`)
+    const data = await rpc(supabase, 'app_update_activity', {
+      input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_patch: patch,
+      input_authored_via: 'agent',
     })
     return { ok: true, data }
   },

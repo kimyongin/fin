@@ -116,6 +116,15 @@ export async function fetchActivityReports(supabase, { cursor = null, limit = 10
   }))
 }
 
+export async function fetchActivity(supabase, activityId, ownerUserId = null) {
+  const data = await rpc(supabase, 'app_get_activity', {
+    input_activity_id: activityId,
+    input_owner_user_id: ownerUserId,
+  })
+  if (!data) throw new Error('활동 기록을 찾을 수 없거나 접근할 수 없습니다.')
+  return data
+}
+
 export async function fetchGeneralTask(supabase, taskId) {
   const data = await rpc(supabase, 'app_get_general_task', { input_task_id: taskId })
   if (!data) throw new Error('일반 할 일을 찾을 수 없거나 접근할 수 없습니다.')
@@ -155,12 +164,45 @@ export async function transitionGeneralTask(supabase, task, action, { result = n
 }
 
 export async function recordManualActivity(supabase, activity) {
-  return rpc(supabase, 'app_record_manual_activity', {
-    input_title: activity.title.trim(),
-    input_result: activity.result?.trim() || null,
-    input_occurred_at: activity.occurredAt || null,
-    input_timezone: activity.timezone ?? 'Asia/Seoul',
+  return rpc(supabase, 'app_create_activity', {
     input_idempotency_key: activity.idempotencyKey,
+    input_payload: {
+      title: activity.title.trim(),
+      note: activity.note?.trim() || null,
+      result: activity.result?.trim() || null,
+      conclusion: activity.conclusion?.trim() || null,
+      occurred_at: activity.occurredAt || null,
+      timezone: activity.timezone ?? 'Asia/Seoul',
+      instrument_id: activity.instrumentId ?? null,
+      account_id: activity.accountId ?? null,
+      authored_via: 'app',
+    },
+  })
+}
+
+export async function updateActivity(supabase, activity, patch) {
+  return rpc(supabase, 'app_update_activity', {
+    input_activity_id: activity.id,
+    input_expected_version: activity.version,
+    input_idempotency_key: crypto.randomUUID(),
+    input_patch: patch,
     input_authored_via: 'app',
+  })
+}
+
+export async function createActivityFollowUp(supabase, activityId, task) {
+  return rpc(supabase, 'app_create_activity_follow_up', {
+    input_origin_event_id: activityId,
+    input_idempotency_key: task.idempotencyKey,
+    input_payload: {
+      title: task.title.trim(),
+      subject: task.subject ?? { kind: 'portfolio' },
+      due_date: task.dueDate || null,
+      timezone: task.timezone ?? 'Asia/Seoul',
+      trigger_text: task.triggerText?.trim() || null,
+      recurrence_kind: task.recurrenceKind ?? 'none',
+      recurrence_start_on: task.recurrenceKind === 'daily' ? task.recurrenceStartOn : null,
+      authored_via: 'app',
+    },
   })
 }

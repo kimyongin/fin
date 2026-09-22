@@ -776,6 +776,19 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: readOnlyAnnotations,
   },
   {
+    name: 'get_activity',
+    title: 'Activity detail',
+    description: 'Read one performed activity with its current title, note, result, conclusion, linked originating task, and follow-up tasks. Use the returned editable_fields and version before an update. Reading never creates a task, changes financial facts, or marks anything complete.',
+    inputSchema: {
+      type: 'object',
+      properties: { activity_id: { type: 'integer', minimum: 1 } },
+      required: ['activity_id'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
     name: 'save_general_task',
     title: 'Save a general portfolio task',
     description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. This stores intent only and never claims the work, trade, or verification happened.',
@@ -790,8 +803,9 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         trigger_text: { type: ['string', 'null'], maxLength: 1000 }, change_reason: { type: ['string', 'null'], maxLength: 1000 },
         recurrence_kind: { type: 'string', enum: ['none', 'daily'], default: 'none' },
         recurrence_start_on: { type: ['string', 'null'], format: 'date' },
+        origin_activity_id: { type: ['integer', 'null'], minimum: 1 },
       },
-      required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','change_reason','recurrence_kind','recurrence_start_on'],
+      required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','change_reason','recurrence_kind','recurrence_start_on','origin_activity_id'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -817,16 +831,43 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'record_manual_activity',
-    title: 'Record work done outside Portfolio',
-    description: 'Record a user-reported action that already happened outside Portfolio and had no prior task. Use only after the user asks to save it; never infer an action from discussion or future intent. This does not create a task or change financial data.',
+    title: 'Record a completed activity',
+    description: 'Record one user-reported activity that already happened, with optional result, conclusion, note, account, or instrument context. Use only after explicit save intent. A prior task is optional; complete a known matching task instead of duplicating the same performance. This does not create a task and never changes financial data.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
-        title: { type: 'string', minLength: 1, maxLength: 500 }, result: { type: ['string', 'null'], maxLength: 4000 },
+        title: { type: 'string', minLength: 1, maxLength: 500 }, note: { type: ['string', 'null'], maxLength: 4000 },
+        result: { type: ['string', 'null'], maxLength: 4000 }, conclusion: { type: ['string', 'null'], maxLength: 4000 },
         occurred_at: { type: ['string', 'null'], format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
+        instrument_id: { type: ['integer', 'null'], minimum: 1 }, account_id: { type: ['integer', 'null'], minimum: 1 },
       },
-      required: ['schema_version','idempotency_key','title','result','occurred_at','timezone'],
+      required: ['schema_version','idempotency_key','title','note','result','conclusion','occurred_at','timezone','instrument_id','account_id'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'update_activity',
+    title: 'Update a performed activity',
+    description: 'Revise the current editable narrative of one activity after reading get_activity. Manual work and task completions may change their title, date, note, result, conclusion, and optional account/instrument context. Automatic financial facts expose note only; protected before/after values, references, quantities, and timestamps cannot be overwritten here. This updates the same activity rather than adding another one.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 }, activity_id: { type: 'integer', minimum: 1 }, expected_version: { type: 'integer', minimum: 1 },
+        idempotency_key: { type: 'string', format: 'uuid' },
+        patch: {
+          type: 'object', minProperties: 1,
+          properties: {
+            title: { type: 'string', minLength: 1, maxLength: 500 }, note: { type: ['string', 'null'], maxLength: 4000 },
+            result: { type: ['string', 'null'], maxLength: 4000 }, conclusion: { type: ['string', 'null'], maxLength: 4000 },
+            occurred_at: { type: 'string', format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
+            instrument_id: { type: ['integer', 'null'], minimum: 1 }, account_id: { type: ['integer', 'null'], minimum: 1 },
+          }, additionalProperties: false,
+        },
+      },
+      required: ['schema_version','activity_id','expected_version','idempotency_key','patch'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -1175,9 +1216,11 @@ export const decisionTaskToolNames = [
 export const actionTaskToolNames = [
   'list_general_tasks',
   'get_general_task',
+  'get_activity',
   'save_general_task',
   'transition_general_task',
   'record_manual_activity',
+  'update_activity',
 ] as const
 
 export const activityReportToolNames = [

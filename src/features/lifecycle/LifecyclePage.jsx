@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 import ModalShell from '../../components/ModalShell'
-import { FilterChips, PageToolbar, ViewTabs } from '../../components/PageControls'
+import { FilterChips } from '../../components/PageControls'
+import ActivityDetailModal from './ActivityDetailModal'
 import ActionTimeline from './ActionTimeline'
 import { createRequestGate } from '../../lib/requestGate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
@@ -9,6 +10,7 @@ import {
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
   fetchGeneralTask,
+  fetchActivity,
   fetchPortfolioTask,
   fetchPortfolioTaskPage,
   recordManualActivity,
@@ -18,7 +20,6 @@ import {
 
 const decisionStatus = { proposed: '제안', adopted: '내가 채택함', dismissed: '채택하지 않음', superseded: '새 판단으로 대체됨' }
 const taskStatus = { open: '확인 필요', waiting: '자료 대기', resolved: '답을 확인함', closed: '종료' }
-const modeOptions = [{ id: 'tasks', label: '활동' }, { id: 'decisions', label: '판단 모아보기' }]
 const filterOptions = {
   tasks: [{ id: 'active', label: '미완료' }, { id: 'paused', label: '보류' }, { id: 'closed', label: '종료' }, { id: 'all', label: '전체' }],
   decisions: [{ id: 'current', label: '현재 판단' }, { id: 'closed', label: '종료된 판단' }, { id: 'all', label: '전체' }],
@@ -157,10 +158,12 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
   const [generalEditor, setGeneralEditor] = useState(null)
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [actionRefreshKey, setActionRefreshKey] = useState(0)
+  const [activityDetail, setActivityDetail] = useState(null)
+  const [activityDetailLoading, setActivityDetailLoading] = useState(false)
   const scrollPositions = useRef({})
   const listRequestGate = useRef(createRequestGate())
   const detailRequestGate = useRef(createRequestGate())
-  const effectiveMode = mode === 'activity' ? 'tasks' : mode
+  const effectiveMode = 'tasks'
   const filter = filterByMode[effectiveMode]
 
   async function saveGeneralAction(draft) {
@@ -190,6 +193,27 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
       setActionRefreshKey((value) => value + 1)
       onRefreshActivity?.()
     } catch (nextError) { setError(nextError.message ?? '할 일을 완료하지 못했습니다.') }
+  }
+
+  async function openActivity(action) {
+    setActivityDetailLoading(true)
+    setError('')
+    setActivityDetail(action)
+    try {
+      setActivityDetail(await fetchActivity(supabase, action.id, ownerUserId))
+    } catch (nextError) {
+      setActivityDetail(null)
+      setError(nextError.message ?? '활동을 불러오지 못했습니다.')
+    } finally { setActivityDetailLoading(false) }
+  }
+
+  async function refreshActivityDetail(saved, options = {}) {
+    setActivityDetail(saved)
+    setActionRefreshKey((value) => value + 1)
+    onRefreshActivity?.()
+    if (options.reload || !saved?.follow_up_tasks) {
+      try { setActivityDetail(await fetchActivity(supabase, saved.id, ownerUserId)) } catch { /* 목록 새로고침으로 복구 */ }
+    }
   }
 
   function dismissDetail() {
@@ -314,16 +338,13 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
     <section className="grid gap-5">
       <header className="grid gap-3">
         <p className="text-sm leading-6 text-[var(--muted-ink)]">해야 할 일과 실제로 수행한 활동, 그 근거가 된 판단을 한곳에서 이어서 봅니다.</p>
-        <PageToolbar>
-          <ViewTabs ariaLabel="활동과 판단 보기 전환" className="grid-cols-2" idBase="lifecycle-view" onChange={changeMode} options={modeOptions} panelId="lifecycle-panel" value={effectiveMode} />
-        </PageToolbar>
-        {effectiveMode === 'decisions' && <FilterChips ariaLabel="목록 필터" onChange={(nextFilter) => setFilterByMode((current) => ({ ...current, decisions: nextFilter }))} options={filterOptions.decisions} value={filter} />}
       </header>
 
       <div aria-labelledby={`lifecycle-view-${effectiveMode}`} className="grid gap-5" id="lifecycle-panel" role="tabpanel" tabIndex={0}>
       {effectiveMode === 'tasks' ? <ActionTimeline
         onAdd={() => setGeneralEditor('task')}
         onCompleteGeneralTask={completeGeneralTask}
+        onOpenActivity={openActivity}
         onOpenTask={openActionTask}
         ownerUserId={ownerUserId}
         refreshKey={actionRefreshKey}
@@ -346,6 +367,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
       </>}
       </div>
       {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
+      {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={() => setActivityDetail(null)} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} saving={savingGeneral} />}
     </section>
   )
