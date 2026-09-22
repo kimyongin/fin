@@ -1,5 +1,5 @@
 # ADR-0005 — ToDo 묶음과 원칙 통합
-상태: Accepted · 2026-09-22 · 구현 전
+상태: Partially superseded by [ADR-0006](./0006-tasks-and-action-events.md) · 2026-09-22. 메모/운영 규칙은 유지하며 번들 모델과 활동 분리 경험은 대체한다. 아래는 이전 구현 결정 이력이다.
 
 여러 작업의 완료 행과 반복 설명 부담을 줄인다. [공통 설계](../design/todo-principles-integration.md)를 적용한다.
 ToDo는 묶음+항목으로 제공하고 기존 research/execution/판단/매매/검증/활동 원본은 유지한다. 데이터 관리 규칙은 원칙 화면의 독립 현재값으로 제공하며 기존 대상별 note를 재사용한다.
