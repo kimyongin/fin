@@ -2,7 +2,7 @@
 
 ## 현재 작업 — 저장 구조 전반 단순화 (#86~#91)
 
-2026-09-23 · 설계/티켓 작성 완료, 구현 전. [단순성 원칙](../engineering/SIMPLICITY.md), [ADR-0008](../adr/0008-minimal-portfolio-storage.md), [재설계](../design/minimal-portfolio.md)를 우선한다. 아래 이전 티켓의 별도 도메인/이력/원장 유지 요구는 충돌 범위에서 대체된다.
+2026-09-23 · 로컬 수직 슬라이스 구현 중이며 #86~#91 전체 완료·운영 배포 전. [단순성 원칙](../engineering/SIMPLICITY.md), [ADR-0008](../adr/0008-minimal-portfolio-storage.md), [재설계](../design/minimal-portfolio.md)를 우선한다. 아래 이전 티켓의 별도 도메인/이력/원장 유지 요구는 충돌 범위에서 대체된다. 실제 진척과 잔여 조건은 각 티켓의 진행 기록을 따른다.
 
 | 순서 | GitHub | 로컬 명세 |
 | --- | --- | --- |
