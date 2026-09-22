@@ -275,6 +275,13 @@ test('saves private principles and reads the current revision on mobile', async 
   expect(principles.body.items).toEqual(expect.arrayContaining([expect.objectContaining({
     kind: 'investment', body: '장기 투자하고 자주 매매하지 않는다.',
   })]))
+  const context = await callRpc(page, 'app_create_daily_context', {
+    input_subject_tickers: null, input_timezone: 'Asia/Seoul',
+  })
+  expect(context.status, JSON.stringify(context.body)).toBe(200)
+  expect(context.body.snapshot.principles.items).toEqual(expect.arrayContaining([
+    expect.objectContaining({ kind: 'investment', body: '장기 투자하고 자주 매매하지 않는다.' }),
+  ]))
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 

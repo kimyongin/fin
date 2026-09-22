@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "New owner-only principle read/save route and policy interview guide; other guide topics retain their prior behavior despite shared tool registry digest changes",
+  "review_reason": "Daily context now snapshots current owner-only principles; other guides retain prior behavior during compatibility transition",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d5222800",
-      "contract_digest": "7962d029b4b4677c2275b1a799a2248af8522c6d3f30b8ee16dc644018924bdc"
+      "contract_digest": "2d3db6dd3a64fcb6280d5c91db68b912862aab68bf407275f698a4804fc43ee4"
     },
     "holding_thesis": {
       "revision": "fnv1a32:62ae4aff",
-      "contract_digest": "7ec2d9d0a02579b2bcb41fa15e60982400a992a2a9d885ccfeb25507dcdd2674"
+      "contract_digest": "2a10fd3c5926daeffdca89f5f4dcb5ba8ee33d8c1c0385ae0cefa5988209e741"
     },
     "daily_review": {
-      "revision": "fnv1a32:6d145d21",
-      "contract_digest": "27e941b9b1e2f344cd5746681a51f59575615e077b597cc2728133b51bf9de14"
+      "revision": "fnv1a32:3296404e",
+      "contract_digest": "0a122c575a8611448531a0d29b19ab3f6815f6e3cfff3e7689cf8f5a7302b6ca"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "ff4ca570072e02079e88a70ba6e51aebc8973e159251ff4b4601fe453cd79a8e"
+      "contract_digest": "29921a0e5af2a952a2a19ad8063d22d3018c37c32127e307bd0358b379927eb0"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "edf9e93a671a5c24f53f11f2971a80af350b90e500e7913eca9237f21ff82290"
+      "contract_digest": "c474ff0681a41d36ab46c120364bb225e4c101dea4020f064531f311f5705b47"
     },
     "reconciliation": {
       "revision": "fnv1a32:f69d58bf",
-      "contract_digest": "90bcdc3091c6ccf752956f7f195085f495f4b90facfebeeba78a3c4a439ca281"
+      "contract_digest": "c59df0d093ca3e5f40d7ec5779e6777bdc83ca81685af892c9f79305be68f6c5"
     },
     "todo": {
       "revision": "fnv1a32:7fe9766d",
-      "contract_digest": "182aa3cfbedb2f5b2a3057670b3a4d05d40e1c2ed13fe1b2d9ba6f337cff4652"
+      "contract_digest": "40d318f72b2f022da7c3cf1e3b13f61ed0e1461b697e314403145a5d24b3b894"
     },
     "activity_report": {
       "revision": "fnv1a32:a12e16a6",
-      "contract_digest": "04b8f9719569ce502a83c4806469b7674dac4722785a41161337cfebceecfe33"
+      "contract_digest": "5733bc1d64e0df5f848385cc8205e21b0b6a350d355b6bcb6235ea442eae5576"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "20616a471664c6f3fa0e18940b4172f5dc729026822fe8d654d15d22df1ab775"
+      "contract_digest": "dc8b6bfd2c7e81dd605c7400b76b85fb98fdd60ede7b5f6e22c14d28da507009"
     }
   }
 }

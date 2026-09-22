@@ -519,7 +519,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_strategy_state',
     title: 'Investment strategy',
-    description: 'Read allocation modes, target buckets, and tag mappings when the task is specifically about allocation or rebalancing. Use get_investment_policy instead when personal goals, risk preferences, liquidity needs, or restrictions are relevant.',
+    description: 'Read allocation modes, target buckets, and tag mappings when the task is specifically about allocation or rebalancing. Use list_principles for saved personal goals, risk preferences, liquidity needs, or operating rules. Do not treat old strategy notes as the new principle source.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: readOnlyAnnotations,
   },

@@ -142,9 +142,10 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/202609210001_daily_review_foundation.sql',
+      'supabase/migrations/20260922185521_daily_context_current_principles.sql',
     ],
     steps: [
-      { id: 'prepare-context', title: 'Prepare one review context', instruction: 'Call get_daily_context once for this review. Use the returned immutable snapshot instead of rebuilding the same context with separate portfolio, strategy, news, and activity calls. The snapshot includes the unified current open-task list; legacy ToDo bundles are retired.', tools: ['get_daily_context'] },
+      { id: 'prepare-context', title: 'Prepare one review context', instruction: 'Call get_daily_context once for this review. Use the returned snapshot instead of rebuilding it with separate portfolio, strategy, news, and activity calls. The snapshot includes current owner-only principles and open tasks; legacy ToDo bundles are retired. Missing principles remain unknown.', tools: ['get_daily_context'] },
       { id: 'inspect-history', title: 'Inspect prior review when useful', instruction: 'Use list_daily_briefings and get_daily_briefing when the current context indicates a prior review or unresolved coverage that needs detail.', tools: ['list_daily_briefings', 'get_daily_briefing'] },
       { id: 'research-current', title: 'Research current external information', instruction: 'Use ChatGPT web research for current news and primary sources. Record checked, failed, and unverified coverage separately. Portfolio does not search the public web.', tools: [] },
       { id: 'explain-result', title: 'Explain decision-relevant changes', instruction: 'Separate sourced facts, interpretation, uncertainty, and suggested questions. Report no_action only after sufficient checking; incomplete research is insufficient_data or partial coverage.', tools: [] },
