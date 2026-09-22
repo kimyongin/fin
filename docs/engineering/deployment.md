@@ -61,3 +61,14 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 피드백 운영자: 개발자 본인 계정을 운영 DB에서 UUID 기준으로 지정
 - 미검증: 실제 ChatGPT 웹·모바일의 명시적 접수 및 능동 제안 행동 평가
 - 마지막 이전 정상 앱 commit: `f7d5ec0`
+
+## ToDo・원칙 통합 배포 순서
+
+#69~#74는 additive migration과 이전 URL/RPC 호환을 전제로 한다. 운영 적용 시 다음 순서를 바꾸지 않는다.
+
+1. migration `20260922040431`(메모) → `20260922042127`(운영 규칙) → `20260922044008`(ToDo 묶음) → `20260922051216`(탐색 호환) → `20260922051908`(daily context)을 적용한다.
+2. 기존 앱의 자산・task RPC가 정상인 상태에서 OAuth MCP Edge Function을 배포하고 tools/list, 여덟 workflow guide topic, 규칙・묶음 read/write 계약을 확인한다.
+3. 인증된 원격 readiness가 새 RPC와 기존 client 계약을 모두 통과한 뒤 앱을 공개한다. ChatGPT에서는 액션을 새로 고치고 새 세션을 사용한다.
+4. 공개 뒤 `docs/design/contracts/todo-principles-validation.md`의 운영 항목과 agent evaluation E21~E24를 웹・모바일에서 기록한다.
+
+문제가 생기면 적용된 migration을 삭제하거나 과거 migration을 고치지 않는다. Edge 배포 전이면 앱을 공개하지 않고, Edge 배포 뒤 앱 공개 전이면 호환 가능한 전진 수정으로 복구한다. 앱 공개 뒤 UI 문제는 마지막 정상 앱 commit으로 되돌릴 수 있지만 DB・Edge는 이전 앱과 호환되는 상태를 유지한다.

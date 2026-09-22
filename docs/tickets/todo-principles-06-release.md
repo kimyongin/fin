@@ -2,7 +2,7 @@
 
 GitHub: https://github.com/kimyongin/fin/issues/74
 
-상태: 설계 완료・구현 전 · 2026-09-22
+상태: 로컬 통합 검증 완료・Edge type/운영 배포/사람 평가 대기 · 2026-09-22
 선행: 01~05 (동일 todo-principles 시리즈)
 
 ## 기준과 기존 구현
@@ -16,9 +16,17 @@ T01~T06 fixture를 각 slice부터 작성하여 마지막 통합 검증에 재�
 
 ## 인수 조건
 - [ ] 실제 새 웹/모바일 세션에서 규칙 재사용과 여러 작업 한 묶음 저장을 확인하거나 미검증으로 명시한다. 자동 결과/배포 결과/사람 평가를 구분한다. 배포는 명시적 요청 시 실행하며 미실행을 완료 체크하지 않는다.
-- [ ] DB→RPC/OAuth→앱의 해당 사용자 시나리오를 연결하고 실제 검증 결과를 기록한다.
-- [ ] 문서/도구 설명/가이드 변경 영향, 증분 migration 및 schema/OVERVIEW.md(해당 시)를 갱신한다.
-- [ ] npm run check:encoding 및 변경 위험에 맞는 검증을 통과하고 미검증 범위를 기록한다.
+- [x] DB→RPC/OAuth→앱의 해당 사용자 시나리오를 연결하고 실제 검증 결과를 기록한다.
+- [x] 문서/도구 설명/가이드 변경 영향, 증분 migration 및 schema/OVERVIEW.md(해당 시)를 갱신한다.
+- [x] npm run check:encoding 및 변경 위험에 맞는 검증을 통과하고 미검증 범위를 기록한다.
+
+## 로컬 릴리스 결과
+
+- T01~T06의 DB・RPC/OAuth・앱 근거를 `docs/design/contracts/todo-principles-validation.md`에 연결했다.
+- 배포 Runbook에 다섯 증분 migration → Edge → readiness → 앱 → 실제 ChatGPT 평가 순서와 전진 복구 원칙을 추가했다.
+- agent evaluation에 E21 운영 규칙 재사용, E22 여러 결과 한 묶음, E23 규칙만 기억, E24 읽기만 수행 사례를 추가했다.
+- 2026-09-22: pgTAP 23 files / 381 tests, 실제 로컬 Edge 런타임을 사용하는 OAuth MCP contract, Playwright 32 tests, Vitest 22 files / 141 tests, build, workflow guide check, encoding check를 통과했다.
+- standalone `npm run check:edge`는 로컬에 `deno` 실행 파일이 없어 실행하지 못했다. 운영 DB/Edge/앱 배포, 원격 readiness, 새 ChatGPT 웹・모바일 사람 평가도 실행하지 않았다. 따라서 첫 번째 인수 조건과 GitHub 이슈는 열린 상태로 유지한다.
 
 ## 제외・진행 규칙
 운영 데이터에 테스트용 매매/보정/규칙을 임의 저장하지 않는다.
