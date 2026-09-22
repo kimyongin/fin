@@ -803,6 +803,26 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
+  async list_principles(supabase, args) {
+    const data = await rpc(supabase, 'app_list_principles', {
+      input_on: args.on_date ?? null,
+      input_timezone: args.timezone ?? 'Asia/Seoul',
+      input_include_ended: args.include_ended === true,
+    })
+    return { ok: true, data }
+  },
+  async save_principle(supabase, args) {
+    requireSchemaVersion(args)
+    const data = await rpc(supabase, 'app_save_principle', {
+      input_principle_id: requireUuid(args.principle_id, 'principle_id'),
+      input_expected_row_id: args.expected_row_id == null ? null : requirePositiveInteger(args.expected_row_id, 'expected_row_id'),
+      input_kind: requireString(args.kind, 'kind'),
+      input_body: requireString(args.body, 'body'),
+      input_scope: args.scope == null ? null : requireString(args.scope, 'scope'),
+      input_end: args.end === true,
+    })
+    return { ok: true, data }
+  },
   async get_investment_policy(supabase) {
     const data = await rpc(supabase, 'app_get_investment_policy')
     return { ok: true, data }

@@ -41,6 +41,29 @@ export async function fetchInvestmentPolicy(supabase) {
   return data?.profile ?? null
 }
 
+export async function fetchPrinciples(supabase, { onDate = null, includeEnded = false } = {}) {
+  const { data, error } = await supabase.rpc('app_list_principles', {
+    input_on: onDate,
+    input_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Seoul',
+    input_include_ended: includeEnded,
+  })
+  if (error) throw error
+  return data?.items ?? []
+}
+
+export async function savePrinciple(supabase, { principleId, expectedRowId = null, kind, body, scope = null, end = false }) {
+  const { data, error } = await supabase.rpc('app_save_principle', {
+    input_principle_id: principleId,
+    input_expected_row_id: expectedRowId,
+    input_kind: kind,
+    input_body: body.trim(),
+    input_scope: scope?.trim() || null,
+    input_end: end,
+  })
+  if (error) throw error
+  return data
+}
+
 export async function saveInvestmentPolicy(supabase, {
   expectedVersion,
   idempotencyKey,

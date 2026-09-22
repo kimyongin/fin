@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import MarkdownContent from "../../components/MarkdownContent";
 import ModalShell from "../../components/ModalShell";
+import PrincipleJournal from "./PrincipleJournal";
 import { formatKrw, formatPercent } from "../../lib/format";
 import {
   archiveOperatingRule,
@@ -1231,15 +1232,7 @@ export default function StrategyPage({
         </button>
       )}
       {canEdit && section !== "allocation" && (
-        <>
-          <InvestmentPolicyCard onEdit={() => setEditingPolicy(true)} profile={policy} />
-          <OperatingRulesCard
-            onAdd={() => setEditingRule(null)}
-            onArchive={archiveRule}
-            onEdit={setEditingRule}
-            rules={operatingRules}
-          />
-        </>
+        <PrincipleJournal supabase={supabase} />
       )}
       {error && (
         <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">

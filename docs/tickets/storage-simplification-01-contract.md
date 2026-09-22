@@ -1,7 +1,14 @@
 # [저장 단순화] 최소 저장 계약과 전체 테이블 처분 확정
 
-상태: 설계 완료 · 구현 전 · 2026-09-23
+상태: 전수 조사/최소 계약 작성, 첫 원칙 슬라이스 진행 중 · 2026-09-23
+2026-09-23 조사/계약: [전수 대조](../design/storage-inventory-20260923.md), [최소 계약](../design/storage-contract-20260923.md). 운영은 62개, 로컬은 78개 테이블이며 양쪽 데이터 건수와 함수 수를 확인했다. 운영 배포/행 수준 이관은 미실행이다.
 GitHub: https://github.com/kimyongin/fin/issues/86
+
+## 구현 기록 (2026-09-23)
+
+- 운영 62/로컬 78 테이블, 83개 합집합의 건수·처분·소비자 그룹을 `storage-inventory-20260923.md`에 기록했다. 운영은 읽기만 수행했다.
+- `storage-contract-20260923.md`에 활동/할 일/원칙/현재 자산의 최소 계약과 공유 경계를 기록했다. 각 기능의 저장·재조회 fixture 및 최종 수치 측정은 남았다.
+- 원칙 하나를 사용자 승인 후 저장→재조회→과거일 조회하는 첫 수직 슬라이스를 시작했다. 운영 배포/구 구조 종료는 미완료다.
 선행: 없음
 시나리오: S1~S10
 기준: docs/engineering/SIMPLICITY.md, docs/adr/0008-minimal-portfolio-storage.md, docs/design/minimal-portfolio.md
