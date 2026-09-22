@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Changed only user-facing navigation and entry terminology from 행동 to 활동, and unified the add entry; task/event responsibilities and MCP tool behavior remain unchanged.",
+  "review_reason": "Reviewed todo and activity_report after adding the future #80-#85 planning notice to tasks-and-events.md. Current tool behavior and guide instructions remain unchanged; new activity results, tags and search are not advertised until implementation in #81-#84.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
@@ -29,11 +29,11 @@
     },
     "todo": {
       "revision": "fnv1a32:b9e9b5fd",
-      "contract_digest": "b455bdf5ad40b771f505dadb52f12ddcd5ce29e5f390b4fcf32861dd57352011"
+      "contract_digest": "2a267b4ecc7c7a76d48c5acfb6e7fac1f1db9556dcd623de5d42d2abbb8ba16e"
     },
     "activity_report": {
       "revision": "fnv1a32:224df9ef",
-      "contract_digest": "dc863b9ec8d31686aa9e65973b27b4782af7c93a5c6f1068fafdf069ff19784d"
+      "contract_digest": "16b5f52679905cf22de2dce68363b43892407b199a362e19dcb2b19d22ba3b44"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",

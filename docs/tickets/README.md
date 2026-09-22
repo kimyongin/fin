@@ -1,6 +1,26 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
-## 현재 개발 기준 — 태스크・자동 행동 이벤트 (2026-09-22)
+## 현재 개발 기준 — 활동·결과·태그·검색 (2026-09-23)
+
+최신 단순화: 기존 activity_events를 편집 가능한 활동 저장으로 활용한다. 별도 결과 테이블과 일반 편집의 의무 수정 이력·판단 정정 자동 분류는 제외한다. 자동 금융 원본의 보호와 기존 반복 동작은 유지한다. ADR-0007 및 #80~#85의 축소된 인수 조건을 따른다.
+
+[새 설계](../design/activity-simplification.md)와 [ADR-0007](../adr/0007-activity-results-and-search.md)을 먼저 읽는다. 사용자에게 활동 하나로 할 일·한 일·결론을 제공한다. 판단 모아보기 탭과 등록 경로별 라벨을 제거하고 다중 활동 태그 및 조건·키워드·유사도 검색을 제공하는 계획이다. 물리적 판단 테이블 통합 여부는 #80에서 결정한다.
+
+티켓 #80 계약 → #81 활동/결과 수직 통합 → #82 태그/기본 검색 → #83 하이브리드 검색. #84 문맥/MCP 가이드는 각 slice와 함께, #85 전환/검증은 첫 slice부터 진행한다. **현재는 티켓 작성 완료·구현 전**이다. #75~#79 기반과 미검증 게이트는 보존하며 아래 이전 기준과 충돌하면 이 절을 우선한다. 검색용 임베딩의 비용/실행 방식은 #83에서 검증하며 뉴스 조사·의견 생성은 ChatGPT가 담당한다.
+
+
+## 활동 단순화 티켓
+
+| 순서 | GitHub | 로컬 명세 |
+| --- | --- | --- |
+| 1 | [#80 활동·결과 통합 계약과 기존 판단 데이터 매핑](https://github.com/kimyongin/fin/issues/80) | [명세](./activity-simplification-01-contract.md) |
+| 2 | [#81 할 일·한 일·판단 결과를 하나의 활동 경험으로 통합](https://github.com/kimyongin/fin/issues/81) | [명세](./activity-simplification-02-activity.md) |
+| 3 | [#82 다중 활동 태그와 조건·키워드 검색](https://github.com/kimyongin/fin/issues/82) | [명세](./activity-simplification-03-tags-search.md) |
+| 4 | [#83 조건·키워드·유사도 하이브리드 검색](https://github.com/kimyongin/fin/issues/83) | [명세](./activity-simplification-04-semantic.md) |
+| 5 | [#84 일일 문맥·리포트·MCP 작업 가이드 정합성](https://github.com/kimyongin/fin/issues/84) | [명세](./activity-simplification-05-context-guides.md) |
+| 6 | [#85 기존 기록 전환·통합 회귀·릴리스 인계](https://github.com/kimyongin/fin/issues/85) | [명세](./activity-simplification-06-transition.md) |
+
+## 이전 개발 기준 — 태스크・자동 행동 이벤트 (2026-09-22)
 
 [설계](../design/tasks-and-events.md)와 [ADR-0006](../adr/0006-tasks-and-action-events.md)이 우선한다. 내부 태스크/이벤트는 분리하고 사용자에게는 예정된 행동과 수행한 행동을 하나의 목록으로 제공한다. 값 수정은 자동 이벤트, 태스크 완료는 연결 이벤트, 매일 반복은 회차별 유효 완료 이벤트로 기록한다. 영구 번들은 제거 방향이며 날짜별 표시와 요청 기반 일/주/월 리포트를 제공한다.
 
