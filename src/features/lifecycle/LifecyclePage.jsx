@@ -18,7 +18,7 @@ import {
 
 const decisionStatus = { proposed: '제안', adopted: '내가 채택함', dismissed: '채택하지 않음', superseded: '새 판단으로 대체됨' }
 const taskStatus = { open: '확인 필요', waiting: '자료 대기', resolved: '답을 확인함', closed: '종료' }
-const modeOptions = [{ id: 'tasks', label: '행동' }, { id: 'decisions', label: '판단 모아보기' }]
+const modeOptions = [{ id: 'tasks', label: '활동' }, { id: 'decisions', label: '판단 모아보기' }]
 const filterOptions = {
   tasks: [{ id: 'active', label: '미완료' }, { id: 'paused', label: '보류' }, { id: 'closed', label: '종료' }, { id: 'all', label: '전체' }],
   decisions: [{ id: 'current', label: '현재 판단' }, { id: 'closed', label: '종료된 판단' }, { id: 'all', label: '전체' }],
@@ -37,12 +37,13 @@ function taskStatusLabel(task) {
   return taskStatus[task.research_state] ?? task.research_state
 }
 
-function GeneralActionModal({ kind, onClose, onSave, saving }) {
+function GeneralActionModal({ kind, onClose, onKindChange, onSave, saving }) {
   const [draft, setDraft] = useState({ title: '', result: '', dueDate: '', triggerText: '', recurrenceKind: 'none', recurrenceStartOn: new Date().toLocaleDateString('en-CA') })
   const isTask = kind === 'task'
-  return <ModalShell onClose={onClose} title={isTask ? '할 일 추가' : '한 일 기록'}>
+  return <ModalShell onClose={onClose} title="활동 추가">
     <div className="grid gap-4">
-      <p className="text-sm leading-6 text-[var(--muted-ink)]">{isTask ? '앞으로 할 일을 등록합니다. 완료하면 실제 행동 기록이 연결됩니다.' : '앱 밖에서 이미 한 행동만 기록합니다. 예정된 일은 할 일로 등록하세요.'}</p>
+      <fieldset><legend className="text-xs text-[var(--muted-ink)]">활동 상태</legend><div className="mt-2 grid grid-cols-2 gap-2"><button aria-pressed={isTask} className={`min-h-11 rounded-xl border px-3 text-sm font-semibold ${isTask ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--line)]'}`} onClick={() => onKindChange('task')} type="button">할 예정</button><button aria-pressed={!isTask} className={`min-h-11 rounded-xl border px-3 text-sm font-semibold ${!isTask ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--line)]'}`} onClick={() => onKindChange('activity')} type="button">이미 했음</button></div></fieldset>
+      <p className="text-sm leading-6 text-[var(--muted-ink)]">{isTask ? '앞으로 할 일을 등록합니다. 완료하면 실제 활동 기록이 연결됩니다.' : '앱 밖에서 이미 한 일을 기록합니다.'}</p>
       <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{isTask ? '할 일' : '한 일'}</span><input autoFocus className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
       <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{isTask ? '확인할 때' : '결과 또는 메모'}</span><textarea className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, [isTask ? 'triggerText' : 'result']: event.target.value })} rows={3} value={isTask ? draft.triggerText : draft.result} /></label>
       {isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">예정일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, dueDate: event.target.value })} type="date" value={draft.dueDate} /></label>}
@@ -120,7 +121,7 @@ function Detail({ entry, loading, onBack, onClose, onOpenDecision, onOpenTask })
               <div className="mt-2 flex flex-wrap gap-2">{item.decision_ids.map((decisionId, index) => <button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" key={decisionId} onClick={() => onOpenDecision(decisionId)} type="button">판단 {index + 1} 보기</button>)}</div>
             </section>
           )}
-          <p className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--muted-ink)]">{item.kind === 'execution' ? '이 항목은 실행 계획입니다. 연결된 실제 체결만 진행도에 반영되며 계획 자체는 주문이나 체결이 아닙니다.' : item.kind === 'general' ? '이 항목은 앞으로 할 일입니다. 완료하면 실제로 수행한 행동 기록이 별도로 연결됩니다.' : '이 항목은 조사·점검할 질문입니다. 매매 주문이나 체결 기록이 아닙니다.'}</p>
+          <p className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--muted-ink)]">{item.kind === 'execution' ? '이 항목은 실행 계획입니다. 연결된 실제 체결만 진행도에 반영되며 계획 자체는 주문이나 체결이 아닙니다.' : item.kind === 'general' ? '이 항목은 앞으로 할 일입니다. 완료하면 실제로 수행한 활동 기록이 별도로 연결됩니다.' : '이 항목은 조사·점검할 질문입니다. 매매 주문이나 체결 기록이 아닙니다.'}</p>
         </div>
       )}
     </ModalShell>
@@ -293,17 +294,16 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
   return (
     <section className="grid gap-5">
       <header className="grid gap-3">
-        <p className="text-sm leading-6 text-[var(--muted-ink)]">해야 할 행동과 실제로 수행한 기록, 그 근거가 된 판단을 한곳에서 이어서 봅니다.</p>
+        <p className="text-sm leading-6 text-[var(--muted-ink)]">해야 할 일과 실제로 수행한 활동, 그 근거가 된 판단을 한곳에서 이어서 봅니다.</p>
         <PageToolbar>
-          <ViewTabs ariaLabel="행동과 판단 보기 전환" className="grid-cols-2" idBase="lifecycle-view" onChange={changeMode} options={modeOptions} panelId="lifecycle-panel" value={effectiveMode} />
+          <ViewTabs ariaLabel="활동과 판단 보기 전환" className="grid-cols-2" idBase="lifecycle-view" onChange={changeMode} options={modeOptions} panelId="lifecycle-panel" value={effectiveMode} />
         </PageToolbar>
         {effectiveMode === 'decisions' && <FilterChips ariaLabel="목록 필터" onChange={(nextFilter) => setFilterByMode((current) => ({ ...current, decisions: nextFilter }))} options={filterOptions.decisions} value={filter} />}
       </header>
 
       <div aria-labelledby={`lifecycle-view-${effectiveMode}`} className="grid gap-5" id="lifecycle-panel" role="tabpanel" tabIndex={0}>
       {effectiveMode === 'tasks' ? <ActionTimeline
-        onAddActivity={() => setGeneralEditor('activity')}
-        onAddTask={() => setGeneralEditor('task')}
+        onAdd={() => setGeneralEditor('task')}
         onCompleteGeneralTask={completeGeneralTask}
         onOpenTask={openActionTask}
         ownerUserId={ownerUserId}
@@ -327,7 +327,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
       </>}
       </div>
       {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
-      {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onSave={saveGeneralAction} saving={savingGeneral} />}
+      {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} saving={savingGeneral} />}
     </section>
   )
 }

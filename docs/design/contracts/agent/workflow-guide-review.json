@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Aligned the unified action workflow scenario IDs and source references with the implemented task/event design.",
+  "review_reason": "Changed only user-facing navigation and entry terminology from 행동 to 활동, and unified the add entry; task/event responsibilities and MCP tool behavior remain unchanged.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
@@ -29,11 +29,11 @@
     },
     "todo": {
       "revision": "fnv1a32:b9e9b5fd",
-      "contract_digest": "a2dbc6bbabc7ab4506c195c6950360e7d1300b3361c8c468b19a1dc53809e28b"
+      "contract_digest": "b455bdf5ad40b771f505dadb52f12ddcd5ce29e5f390b4fcf32861dd57352011"
     },
     "activity_report": {
       "revision": "fnv1a32:224df9ef",
-      "contract_digest": "31d21a6208ff9f80e3222ef61b8c4ef2c2eb8a0d0951c3d49c6f944ea09d4ea3"
+      "contract_digest": "dc863b9ec8d31686aa9e65973b27b4782af7c93a5c6f1068fafdf069ff19784d"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",

@@ -2,12 +2,12 @@ import { expect, test } from '@playwright/test'
 import { callRpc, signInAs } from './helpers'
 
 async function openMenuTab(page, label) {
-  const primaryLabel = ['판단', '할 일', '활동'].includes(label) ? '행동' : label === '원칙' ? '투자 원칙' : label
+  const primaryLabel = ['판단', '할 일', '활동'].includes(label) ? '활동' : label
   const primary = page.locator('nav[aria-label="주요 메뉴"]:visible').getByRole('button', { name: primaryLabel, exact: true })
   if (await primary.count()) {
     await primary.click()
     if (label === '판단') await page.getByRole('tab', { name: '판단 모아보기', exact: true }).click()
-    if (label === '활동') await page.getByRole('tab', { name: '행동', exact: true }).click()
+    if (label === '활동') await page.getByRole('tab', { name: '활동', exact: true }).click()
     return
   }
   await page.getByRole('button', { name: 'Open menu' }).click()
@@ -148,7 +148,7 @@ test('labels an old partial no-action review as a saved conclusion', async ({ pa
   await page.goto('/#today')
 
   await expect(page.getByText('마지막 저장 점검')).toBeVisible()
-  await expect(page.getByText('행동 불필요').first()).toBeVisible()
+  await expect(page.getByText('추가 조치 없음').first()).toBeVisible()
   await expect(page.getByText('일부 조사').first()).toBeVisible()
   await expect(page.getByText('오늘 분석이 아니라 마지막으로 저장된 당시 결론입니다.')).toBeVisible()
   await expect(page.getByText('중요 변화 3')).toBeVisible()
@@ -230,13 +230,13 @@ test('shows an adopted decision and its research follow-up without implying a tr
   await expect(page.getByRole('heading', { name: question, exact: true }).last()).toBeVisible()
   await page.getByRole('button', { name: '닫기' }).click()
 
-  await page.getByRole('tab', { name: '행동', exact: true }).click()
+  await page.getByRole('tab', { name: '활동', exact: true }).click()
   await expect(page).toHaveURL(/#tasks$/)
-  await page.getByLabel('행동 목록 필터').getByRole('button', { name: '한 일', exact: true }).click()
+  await page.getByLabel('활동 목록 필터').getByRole('button', { name: '한 일', exact: true }).click()
   await expect(page.getByRole('heading', { name: '조사 과제 상태 변경' }).first()).toBeVisible()
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
-    await expect(page.getByRole('tablist', { name: '행동과 판단 보기 전환' })).toBeVisible()
+    await expect(page.getByRole('tablist', { name: '활동과 판단 보기 전환' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
 })
@@ -256,7 +256,7 @@ test('retries the combined work queue after a read error', async ({ page }) => {
   await expect(page.getByText('E2E lifecycle failure')).toBeVisible()
   await page.getByRole('button', { name: '다시 시도' }).click()
   await expect.poll(() => calls).toBeGreaterThanOrEqual(3)
-  await expect(page.getByRole('tab', { name: '행동', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('tab', { name: '활동', exact: true })).toHaveAttribute('aria-selected', 'true')
 })
 
 test('saves a private investment policy and includes its version in daily context', async ({ page }) => {
@@ -330,11 +330,12 @@ test('shows one unified action surface without legacy bundle controls', async ({
   await page.goto('/')
   await openMenuTab(page, '할 일')
 
-  await expect(page.getByRole('tab', { name: '행동', exact: true })).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('button', { name: '할 일 추가', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '한 일 기록', exact: true })).toBeVisible()
+  await expect(page.getByRole('tab', { name: '활동', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('button', { name: '활동 추가', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '할 일 추가', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '한 일 기록', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '묶음 추가' })).toHaveCount(0)
-  await expect(page.getByLabel('행동 목록 필터').getByRole('button', { name: '전체' })).toBeVisible()
+  await expect(page.getByLabel('활동 목록 필터').getByRole('button', { name: '전체' })).toBeVisible()
 })
 
 test('creates and completes a general task while keeping manual work as activity', async ({ page }) => {
@@ -344,8 +345,9 @@ test('creates and completes a general task while keeping manual work as activity
   await openMenuTab(page, '할 일')
 
   const taskTitle = `E2E 일반 할 일 ${Date.now()}`
-  await page.getByRole('button', { name: '할 일 추가', exact: true }).click()
-  const taskDialog = page.getByRole('dialog', { name: '할 일 추가' })
+  await page.getByRole('button', { name: '활동 추가', exact: true }).click()
+  const taskDialog = page.getByRole('dialog', { name: '활동 추가' })
+  await expect(taskDialog.getByRole('button', { name: '할 예정', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await taskDialog.getByRole('textbox', { name: '할 일', exact: true }).fill(taskTitle)
   await taskDialog.getByLabel('확인할 때').fill('퇴근 전에 확인')
   await taskDialog.getByLabel('매일 반복').check()
@@ -359,8 +361,9 @@ test('creates and completes a general task while keeping manual work as activity
   await expect(page.getByText(taskTitle, { exact: true })).toBeVisible()
 
   const activityTitle = `E2E 앱 밖 행동 ${Date.now()}`
-  await page.getByRole('button', { name: '한 일 기록', exact: true }).click()
-  const activityDialog = page.getByRole('dialog', { name: '한 일 기록' })
+  await page.getByRole('button', { name: '활동 추가', exact: true }).click()
+  const activityDialog = page.getByRole('dialog', { name: '활동 추가' })
+  await activityDialog.getByRole('button', { name: '이미 했음', exact: true }).click()
   await activityDialog.getByRole('textbox', { name: '한 일', exact: true }).fill(activityTitle)
   await activityDialog.getByLabel('결과 또는 메모').fill('증권사 기준을 확인함')
   await activityDialog.getByRole('button', { name: '저장', exact: true }).click()
@@ -682,12 +685,12 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   const sharedPrimary = friendPage.locator('nav[aria-label="주요 메뉴"]:visible')
   await expect(sharedPrimary.getByRole('button', { name: '오늘', exact: true })).toBeVisible()
   await expect(sharedPrimary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
-  await expect(sharedPrimary.getByRole('button', { name: '행동', exact: true })).toBeVisible()
-  await expect(sharedPrimary.getByRole('button', { name: '투자 원칙', exact: true })).toBeVisible()
+  await expect(sharedPrimary.getByRole('button', { name: '활동', exact: true })).toBeVisible()
+  await expect(sharedPrimary.getByRole('button', { name: '원칙', exact: true })).toBeVisible()
   await friendPage.getByRole('button', { name: 'Open menu' }).click()
   const sharedMenu = friendPage.locator('nav[aria-label="보조 메뉴"]')
   await expect(sharedMenu.getByRole('button', { name: '오늘', exact: true })).toHaveCount(0)
-  await expect(sharedMenu.getByRole('button', { name: '행동', exact: true })).toHaveCount(0)
+  await expect(sharedMenu.getByRole('button', { name: '활동', exact: true })).toHaveCount(0)
   await expect(sharedMenu.getByRole('button', { name: '설정', exact: true })).toHaveCount(0)
 
   await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
@@ -835,8 +838,8 @@ test('navigates the authenticated browser through strategy, activity, and settin
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
   }
 
-  await openTab('원칙', '투자 원칙')
-  await openTab('활동', '행동')
+  await openTab('원칙', '원칙')
+  await openTab('활동', '활동')
   await openTab('설정', '설정')
   const reviewSharing = page.getByRole('button', { name: '투자 점검 기록도 공유' })
   await expect(reviewSharing).toHaveAttribute('aria-pressed', 'false')
@@ -976,8 +979,8 @@ test('keeps four primary destinations usable without horizontal overflow', async
     await expect(primary.getByRole('button')).toHaveCount(4)
     await expect(primary.getByRole('button', { name: '오늘', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
-    await expect(primary.getByRole('button', { name: '행동', exact: true })).toBeVisible()
-    await expect(primary.getByRole('button', { name: '투자 원칙', exact: true })).toBeVisible()
+    await expect(primary.getByRole('button', { name: '활동', exact: true })).toBeVisible()
+    await expect(primary.getByRole('button', { name: '원칙', exact: true })).toBeVisible()
     await expect.poll(() => primary.evaluate((element) => {
       const box = element.getBoundingClientRect()
       return {
@@ -1040,11 +1043,11 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
   const destinations = [
     ['today', '오늘'],
     ['overview', '자산'],
-    ['decisions', '행동'],
-    ['tasks', '행동'],
-    ['strategy', '투자 원칙'],
+    ['decisions', '활동'],
+    ['tasks', '활동'],
+    ['strategy', '원칙'],
     ['news', '자료'],
-    ['activity', '행동'],
+    ['activity', '활동'],
     ['feedback', '피드백'],
     ['settings', '설정'],
     ['guide', '가이드'],

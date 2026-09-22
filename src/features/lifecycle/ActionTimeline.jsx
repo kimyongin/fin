@@ -21,7 +21,7 @@ function statusLabel(task) {
   return task.status === 'partial' ? '일부 체결' : '실행 예정'
 }
 
-export default function ActionTimeline({ onAddActivity, onAddTask, onCompleteGeneralTask, onOpenTask, ownerUserId, refreshKey = 0, supabase }) {
+export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenTask, ownerUserId, refreshKey = 0, supabase }) {
   const [filter, setFilter] = useState('all')
   const [page, setPage] = useState({ pending: [], days: [], nextCursor: null })
   const [loading, setLoading] = useState(true)
@@ -42,7 +42,7 @@ export default function ActionTimeline({ onAddActivity, onAddTask, onCompleteGen
         ? { pending: current.pending, days: [...current.days, ...next.days], nextCursor: next.nextCursor }
         : next)
     } catch (nextError) {
-      if (request.isCurrent()) setError(nextError.message ?? '행동 목록을 불러오지 못했습니다.')
+      if (request.isCurrent()) setError(nextError.message ?? '활동 목록을 불러오지 못했습니다.')
     } finally {
       if (request.isCurrent()) { setLoading(false); setLoadingMore(false) }
     }
@@ -66,13 +66,13 @@ export default function ActionTimeline({ onAddActivity, onAddTask, onCompleteGen
     <header className="grid gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-2xl text-sm leading-6 text-[var(--muted-ink)]">앞으로 할 일은 위에서 놓치지 않고, 실제로 한 일은 날짜별 기록으로 이어서 봅니다.</p>
-        {!ownerUserId && <div className="flex gap-2"><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={onAddActivity} type="button">한 일 기록</button><button className="rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white" onClick={onAddTask} type="button">할 일 추가</button></div>}
+        {!ownerUserId && <button className="rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white" onClick={onAdd} type="button">활동 추가</button>}
       </div>
-      <FilterChips ariaLabel="행동 목록 필터" onChange={setFilter} options={filters} value={filter} />
+      <FilterChips ariaLabel="활동 목록 필터" onChange={setFilter} options={filters} value={filter} />
     </header>
 
     {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => load()} type="button">다시 시도</button></div>}
-    {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">행동 목록을 불러오는 중입니다.</p> : <>
+    {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">활동 목록을 불러오는 중입니다.</p> : <>
       {filter !== 'done' && <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
         <div className="flex items-end justify-between gap-3"><div><h2 className="font-semibold">지금 할 일</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">미완료 과제 {page.pending.length}개</p></div></div>
         {page.pending.length === 0 ? <p className="mt-4 text-sm text-[var(--muted-ink)]">현재 이어갈 일이 없습니다.</p> : <div className="mt-4 grid gap-2">{page.pending.map((task) => <article className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] p-3" key={task.id}><button className="min-w-0 flex-1 text-left" onClick={() => onOpenTask(task)} type="button"><span className="block break-words text-sm font-semibold">{task.title}</span><span className="mt-1 block text-xs text-[var(--muted-ink)]">{statusLabel(task)}{task.due_date ? ` · ${task.due_date}` : ''}</span></button>{task.kind === 'general' && !ownerUserId && <button className="min-h-11 shrink-0 rounded-xl border border-[var(--line)] px-3 text-sm" onClick={() => onCompleteGeneralTask(task)} type="button">완료</button>}</article>)}</div>}
@@ -80,7 +80,7 @@ export default function ActionTimeline({ onAddActivity, onAddTask, onCompleteGen
 
       {filter !== 'pending' && <section className="grid gap-3">
         <div><h2 className="font-semibold">날짜별 한 일</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">수행 사실과 변경 전후 값을 확인합니다.</p></div>
-        {page.days.length === 0 ? <p className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted-ink)]">조건에 맞는 행동 기록이 없습니다.</p> : page.days.map((day) => {
+        {page.days.length === 0 ? <p className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted-ink)]">조건에 맞는 활동 기록이 없습니다.</p> : page.days.map((day) => {
           const collapsed = collapsedDays.has(day.date)
           const summary = Object.entries(day.counts ?? {}).map(([label, count]) => `${label} ${count}`).join(' · ')
           return <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]" key={day.date}>

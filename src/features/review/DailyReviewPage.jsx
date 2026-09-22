@@ -15,7 +15,7 @@ const coverageLabels = {
 }
 
 const statusLabels = {
-  no_action: '행동 불필요',
+  no_action: '추가 조치 없음',
   attention: '확인 필요',
   insufficient_data: '판단 자료 부족',
 }
@@ -308,7 +308,7 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
       {!ownerUserId && <PortfolioIntegritySummary supabase={supabase} />}
 
       {!ownerUserId && <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
-        <div className="flex items-start justify-between gap-3"><div><h2 className="text-base font-semibold">오늘 이어갈 일</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">통합 행동 목록의 현재 미완료 과제를 보여줍니다.</p></div><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => onNavigate?.('tasks')} type="button">전체 보기</button></div>
+        <div className="flex items-start justify-between gap-3"><div><h2 className="text-base font-semibold">오늘 이어갈 일</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">통합 활동 목록의 현재 미완료 과제를 보여줍니다.</p></div><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => onNavigate?.('tasks')} type="button">전체 보기</button></div>
         {todoOverview.error ? <p className="mt-4 text-sm text-red-100">{todoOverview.error}</p> : visibleTodoTasks.length === 0 ? <p className="mt-4 text-sm text-[var(--muted-ink)]">현재 이어갈 일이 없습니다.</p> : <div className="mt-4 grid gap-2">{visibleTodoTasks.map((task) => <button className="min-h-11 rounded-xl bg-[var(--surface-2)] px-3 text-left text-sm font-semibold" key={task.id} onClick={() => onOpenTask?.(task.id)} type="button">{task.title}</button>)}</div>}
       </article>}
 
