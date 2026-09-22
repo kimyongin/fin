@@ -879,7 +879,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'record_manual_activity',
     title: 'Record a completed activity',
-    description: 'Record one user-reported activity that already happened, with optional result, conclusion, note, account, or instrument context. Use only after explicit save intent. A prior task is optional; complete a known matching task instead of duplicating the same performance. This does not create a task and never changes financial data.',
+    description: 'Record one user-reported activity that already happened. Classify research, review, decision, or retrospective work with category; omit it for general work. Include factual source links and scope in context when relevant, distinguishing facts from conclusions. Use only after explicit save intent. Complete a known matching task instead of duplicating the same performance. This does not create a task or change financial data; choosing a category cannot claim a completed trade or reconciliation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -888,6 +888,8 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         result: { type: ['string', 'null'], maxLength: 4000 }, conclusion: { type: ['string', 'null'], maxLength: 4000 },
         occurred_at: { type: ['string', 'null'], format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
         instrument_id: { type: ['integer', 'null'], minimum: 1 }, account_id: { type: ['integer', 'null'], minimum: 1 },
+        category: { type: 'string', enum: ['general','research','review','decision','retrospective'], default: 'general' },
+        context: { type: ['object','null'], description: 'Optional structured scope and sources; sources is an array of up to 20 {title,url} HTTP(S) links. Do not include secrets or unrelated personal data.', additionalProperties: true },
       },
       required: ['schema_version','idempotency_key','title','note','result','conclusion','occurred_at','timezone','instrument_id','account_id'],
       additionalProperties: false,

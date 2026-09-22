@@ -49,6 +49,8 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('transition_general_task').description).toContain('linked action event')
     expect(tool('record_manual_activity').description).toContain('already happened')
     expect(tool('record_manual_activity').description).toContain('does not create a task')
+    expect((tool('record_manual_activity').inputSchema as any).properties.category.enum).toEqual(['general','research','review','decision','retrospective'])
+    expect((tool('record_manual_activity').inputSchema as any).properties.context.type).toContain('object')
     expect((tool('save_general_task').inputSchema as any).properties.recurrence_kind.enum).toEqual(['none', 'daily'])
   })
 

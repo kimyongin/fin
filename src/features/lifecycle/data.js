@@ -267,6 +267,8 @@ export async function recordManualActivity(supabase, activity) {
       timezone: activity.timezone ?? 'Asia/Seoul',
       instrument_id: activity.instrumentId ?? null,
       account_id: activity.accountId ?? null,
+      category: activity.category ?? 'general',
+      context: activity.context ?? null,
       authored_via: 'app',
     },
   })

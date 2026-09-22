@@ -368,12 +368,17 @@ test('creates and completes a general task while keeping manual work as activity
   await expect(activityDialog.getByLabel('수행일')).toBeVisible()
   await activityDialog.getByRole('textbox', { name: '한 일', exact: true }).fill(activityTitle)
   await activityDialog.getByLabel('결과 또는 메모').fill('증권사 기준을 확인함')
+  await activityDialog.getByLabel('활동 종류 (선택)').selectOption('research')
   await activityDialog.getByRole('button', { name: '저장', exact: true }).click()
   await expect(activityDialog).toBeHidden()
   const events = await callRpc(page, 'app_list_recent_activity', { limit_count: 100, input_owner_user_id: null })
   expect(events.status, JSON.stringify(events.body)).toBe(200)
   expect(events.body).toContainEqual(expect.objectContaining({ action_type: 'complete_general_task' }))
   expect(events.body).toContainEqual(expect.objectContaining({ action_type: 'record_manual_activity' }))
+  const manualEvent = events.body.find((event) => event.action_type === 'record_manual_activity' && event.after_data?.title === activityTitle)
+  const detail = await callRpc(page, 'app_get_activity', { input_activity_id: manualEvent.id, input_owner_user_id: null })
+  expect(detail.status, JSON.stringify(detail.body)).toBe(200)
+  expect(detail.body.record_kind).toBe('research')
 })
 
 test('saves a private holding reason without exposing it in the shared portfolio DTO', async ({ page }) => {

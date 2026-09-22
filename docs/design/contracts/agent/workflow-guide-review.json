@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Private current holding notes replace thesis as the agent workflow source; daily review snapshot includes owner-only notes",
+  "review_reason": "Categorized private activity records and owner-only sharing filter",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d5222800",
-      "contract_digest": "5b550d0e2c889b18b0985bf6b2709dec41dd88434866e0ade0491d9b7c7dfbdd"
+      "contract_digest": "aad5e2805d7be24d5f3eadedbbaef1056c1a011fe55b204c762dfac0372d14e6"
     },
     "holding_thesis": {
       "revision": "fnv1a32:e8f68540",
-      "contract_digest": "2a8715fd585a2d4a41152cfe2a745a6112bdf605a3a52e1f4f4d5f90b4940253"
+      "contract_digest": "0c229406ccf6db627acb4b8c243a389d9da29af8799e9981c7dc99f90057a545"
     },
     "daily_review": {
       "revision": "fnv1a32:79601eb6",
-      "contract_digest": "247b1ae2ef58f77d8637bfa65ac8a918a148933e7a5dcae6d2185be66eae505f"
+      "contract_digest": "b97fcdaf49c46d3694d35de0c62810df7dafc529eb5211c615a98b17bfd578a7"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "013d69c5104a1604589f4f36cbb989e4445153c4e7444d038b38eedbbb9d6d2e"
+      "contract_digest": "e20121f2372d50595209a1715ed8945a2034b611b89548da53663a491ed335ac"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "867bc1da8087cac8d0928640732873062beb896bfa015609ecd954e038709f85"
+      "contract_digest": "2b51d57bbd17a79ba4a062688bec23a1fa13844e56e60e37c6d4a6e483f65c20"
     },
     "reconciliation": {
       "revision": "fnv1a32:f69d58bf",
-      "contract_digest": "681ec0c4ddc4fde9648e0ba7b92bdf9e7a6b6f1aba5acb057c5f17093084a466"
+      "contract_digest": "a3bbcf498a6f7881f6e4d6850db641220f845fe991c9e25522cdee17c7939f35"
     },
     "todo": {
-      "revision": "fnv1a32:7fe9766d",
-      "contract_digest": "a2bb09695629425e098da06116eb91c6562e9b2139a9fe7e01d7b49c1ba243b1"
+      "revision": "fnv1a32:f31888af",
+      "contract_digest": "ed92569bc05c9d47cbeef84172255edd4d5e606481f78e56656fc5f0aa6d1dff"
     },
     "activity_report": {
       "revision": "fnv1a32:a12e16a6",
-      "contract_digest": "aee1402d0fe2e80af494d2ff294b64755bd7fb48af73c2d719009c53629a1386"
+      "contract_digest": "dd8dc7141794b83bd6d319e3d15a9e0f51d9445bc4eb83872119c63ffa07b403"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "9674c031db70fbebde502af9c3cfb0665864af40cd09c483458125079f1fe557"
+      "contract_digest": "664ade4d6259e875ac9599e7d339c9f1efcc8160907875c528fefb1b40412f86"
     }
   }
 }

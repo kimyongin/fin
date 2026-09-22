@@ -45,7 +45,7 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 저장합니다. 활동에서 직접 이어진 할 일은 origin_activity_id로 선택 연결합니다. | A02,A04 |
 | transition_general_task / observed-local | 현재 version과 회차 날짜를 확인해 일반 할 일을 완료・재개・보류・종료하고 연결 이벤트를 한 번만 남깁니다. 같은 일을 manual activity로 중복 기록하지 않습니다. | A02,A04 |
 | get_activity / observed-local | 활동의 현재 제목·메모·결과·결론, 편집 허용 필드, 원본 대상 ID, 수행 태스크와 후속 할 일을 조회합니다. 판단 활동의 target ID는 기존 판단 정본을 상세 조회하는 데 사용합니다. | A03 |
-| record_manual_activity / observed-local | 이미 수행한 일을 선택 결과·결론·메모와 함께 한 활동으로 기록합니다. 잔고・체결・검증 같은 금융 원본은 바꾸거나 증명하지 않습니다. | A03 |
+| record_manual_activity / observed-local | 이미 수행한 일을 일반·조사·점검·판단·회고 중 하나의 활동으로 기록합니다. 분류는 생략하면 일반이며, 조사 출처·범위는 선택적 context에 넣습니다. 분류만으로 잔고·체결·검증 사실을 만들 수 없습니다. 민감한 조사·점검·판단·회고 본문은 소유자만 봅니다. | A03 |
 | update_activity / observed-local | 같은 수행의 현재 활동을 수정합니다. 자동 금융 원본은 보호하고 허용된 설명 필드만 바꿉니다. | A03 |
 | search_activities / observed-local | 할 일과 한 일을 기간·상태·결론·종목·계좌·활동 태그·키워드로 함께 검색합니다. 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 실행 여부를 알리며, 불가능하면 정상 키워드 결과를 유지합니다. | A03,A06 |
 | list_activity_tags, save_activity_tag, delete_activity_tag / observed-local | 자산 배분과 분리된 사용자 활동 태그 사전을 조회·추가·이름 변경·삭제합니다. | A03 |

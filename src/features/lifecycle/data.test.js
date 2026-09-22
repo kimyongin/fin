@@ -109,7 +109,7 @@ describe('decision and task data adapters', () => {
       input_idempotency_key: idempotencyKey,
       input_payload: {
         title: '실적 확인', note: null, result: '보유', conclusion: '유지', occurred_at: null,
-        timezone: 'Asia/Seoul', instrument_id: null, account_id: null, authored_via: 'app',
+        timezone: 'Asia/Seoul', instrument_id: null, account_id: null, category: 'general', context: null, authored_via: 'app',
       },
     }])
     expect(supabase.rpc.mock.calls[1]).toEqual(['app_get_activity', { input_activity_id: 7, input_owner_user_id: null }])

@@ -691,6 +691,8 @@ const toolHandlers: Record<string, ToolHandler> = {
         timezone: requireString(args.timezone, 'timezone'),
         instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
         account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
+        category: args.category == null ? 'general' : requireString(args.category, 'category'),
+        context: args.context == null ? null : requireRecord(args.context, 'context'),
         authored_via: 'agent',
       },
     })
