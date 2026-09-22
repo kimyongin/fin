@@ -20,8 +20,8 @@ import {
   matchesTagFilter,
 } from "../../lib/portfolioMath";
 import SpreadsheetEditor from "./SpreadsheetEditor";
-import HoldingThesisModal from "./HoldingThesisModal";
-import { fetchHoldingTheses, saveHoldingThesis } from "./holdingThesisData";
+import HoldingReasonModal from "./HoldingReasonModal";
+import { fetchPrivateHoldingNotes, savePrivateHoldingNote } from "./privateHoldingNotesData";
 import TradeEntryModal from "./TradeEntryModal";
 import HoldingIntegrityModal from "./HoldingIntegrityModal";
 
@@ -424,10 +424,11 @@ function InstrumentsPage({
   onCreateHolding,
   onEditHolding,
   onEditInstrument,
-  onEditThesis,
+  onEditReason,
   onRecordTrade,
   onReconcileHolding,
-  thesisByInstrumentId,
+  reasonByInstrumentId,
+  privateNotes,
 }) {
   return (
     <section className="grid gap-3">
@@ -439,7 +440,7 @@ function InstrumentsPage({
       <div className="grid gap-3 lg:grid-cols-2">
         {instruments.map((instrument) => {
           const linkedHoldings = holdingsByTicker.get(instrument.ticker) ?? [];
-          const thesis = thesisByInstrumentId.get(Number(instrument.id));
+          const reason = reasonByInstrumentId.get(Number(instrument.id));
           return (
             <article
               className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]"
@@ -478,12 +479,12 @@ function InstrumentsPage({
                   valueMeta={`${instrument.accountCount}개 계좌`}
                 />
                 <ValuationQualityNote item={instrument} />
-                {thesis && (
+                {reason && (
                   <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--muted-ink)]">
                     <span className="font-semibold text-[var(--ink)]">
                       보유 이유
                     </span>{" "}
-                    · {thesis.reason_text}
+                    · {reason.note}
                   </p>
                 )}
               </PortfolioEntityHeader>
@@ -499,6 +500,9 @@ function InstrumentsPage({
                       const account = accountById.get(holding.account_id);
                       const accountName =
                         account?.name ?? `계좌 ${holding.account_id}`;
+                      const accountReason = privateNotes.find((item) =>
+                        Number(item.instrument_id) === Number(instrument.id)
+                        && Number(item.account_id) === Number(holding.account_id));
 
                       return (
                         <div
@@ -526,6 +530,7 @@ function InstrumentsPage({
                                 )}
                                 valueMeta={holdingValueMeta(holding)}
                               />
+                              {accountReason && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-[var(--muted-ink)]">보유 이유 · {accountReason.note}</p>}
                             </div>
                             {canEdit && (
                               <div className="flex shrink-0 gap-1">
@@ -573,10 +578,10 @@ function InstrumentsPage({
                     )}
                   <button
                     className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                    onClick={() => onEditThesis(instrument, linkedHoldings)}
+                    onClick={() => onEditReason(instrument, linkedHoldings)}
                     type="button"
                   >
-                    {thesis ? "보유 이유 편집" : "보유 이유 추가"}
+                    {reason ? "보유 메모 편집" : "보유 메모 추가"}
                   </button>
                   <button
                     className="rounded-2xl border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
@@ -630,50 +635,49 @@ export default function AssetsPage({
   supabase,
   onTradeSaved,
 }) {
-  const [theses, setTheses] = useState([]);
-  const [thesisEditor, setThesisEditor] = useState(null);
-  const [thesisError, setThesisError] = useState("");
-  const [thesisSaving, setThesisSaving] = useState(false);
+  const [privateNotes, setPrivateNotes] = useState([]);
+  const [reasonEditor, setReasonEditor] = useState(null);
+  const [reasonError, setReasonError] = useState("");
+  const [reasonSaving, setReasonSaving] = useState(false);
   const [tradeEditor, setTradeEditor] = useState(null);
   const [integrityEditor, setIntegrityEditor] = useState(null);
   useEffect(() => {
     let active = true;
     if (!canEdit || !supabase) return undefined;
-    fetchHoldingTheses(supabase)
+    fetchPrivateHoldingNotes(supabase)
       .then((items) => {
-        if (active) setTheses(items);
+        if (active) setPrivateNotes(items);
       })
       .catch((error) => {
-        if (active) setThesisError(error.message);
+        if (active) setReasonError(error.message);
       });
     return () => {
       active = false;
     };
   }, [canEdit, supabase]);
-  const thesisByInstrumentId = useMemo(
+  const reasonByInstrumentId = useMemo(
     () =>
       new Map(
-        theses
-          .filter((item) => item.account_id == null && item.is_active)
+        privateNotes
+          .filter((item) => item.account_id == null)
           .map((item) => [Number(item.instrument_id), item]),
       ),
-    [theses],
+    [privateNotes],
   );
-  async function handleThesisSave(payload) {
-    setThesisSaving(true);
-    setThesisError("");
+  async function handleReasonSave(payload) {
+    setReasonSaving(true);
+    setReasonError("");
     try {
-      await saveHoldingThesis(supabase, {
+      await savePrivateHoldingNote(supabase, {
         ...payload,
-        instrumentId: thesisEditor.instrument.id,
-        idempotencyKey: crypto.randomUUID(),
+        instrumentId: reasonEditor.instrument.id,
       });
-      setTheses(await fetchHoldingTheses(supabase));
-      setThesisEditor(null);
+      setPrivateNotes(await fetchPrivateHoldingNotes(supabase));
+      setReasonEditor(null);
     } catch (error) {
-      setThesisError(error.message);
+      setReasonError(error.message);
     } finally {
-      setThesisSaving(false);
+      setReasonSaving(false);
     }
   }
   return (
@@ -737,8 +741,8 @@ export default function AssetsPage({
           onCreateHolding={onCreateHolding}
           onEditHolding={onEditHolding}
           onEditInstrument={onEditInstrument}
-          onEditThesis={(instrument, linkedHoldings) =>
-            setThesisEditor({
+          onEditReason={(instrument, linkedHoldings) =>
+            setReasonEditor({
               instrument,
               accounts: linkedHoldings
                 .map((holding) => accountById.get(holding.account_id))
@@ -756,7 +760,8 @@ export default function AssetsPage({
           onReconcileHolding={(instrument, holding) =>
             setIntegrityEditor({ instrument, holding })
           }
-          thesisByInstrumentId={thesisByInstrumentId}
+          reasonByInstrumentId={reasonByInstrumentId}
+          privateNotes={privateNotes}
         />
       )}
       {assetView === "sheet" && (
@@ -772,19 +777,19 @@ export default function AssetsPage({
         />
       )}
       </div>
-      {thesisError && (
+      {reasonError && (
         <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-          {thesisError}
+          {reasonError}
         </p>
       )}
-      {thesisEditor && (
-        <HoldingThesisModal
-          accounts={thesisEditor.accounts}
-          instrument={thesisEditor.instrument}
-          onClose={() => setThesisEditor(null)}
-          onSave={handleThesisSave}
-          saving={thesisSaving}
-          theses={theses}
+      {reasonEditor && (
+        <HoldingReasonModal
+          accounts={reasonEditor.accounts}
+          instrument={reasonEditor.instrument}
+          onClose={() => setReasonEditor(null)}
+          onSave={handleReasonSave}
+          saving={reasonSaving}
+          notes={privateNotes}
         />
       )}
       {tradeEditor && (

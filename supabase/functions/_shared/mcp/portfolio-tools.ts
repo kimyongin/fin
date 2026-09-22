@@ -459,7 +459,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_workflow_guide',
     title: 'Portfolio workflow guide',
-    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for a policy interview, holding thesis, daily review, decision/follow-up, completed trade entry, balance correction, activity report, or product-feedback flow. This guide does not read user data, perform the workflow, or replace explicit save intent.',
+    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for a policy interview, holding reason, daily review, decision/follow-up, completed trade entry, balance correction, activity report, or product-feedback flow. This guide does not read user data, perform the workflow, or replace explicit save intent.',
     inputSchema: {
       type: 'object',
       properties: { topic: { type: 'string', enum: workflowGuideTopics } },
@@ -587,7 +587,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_daily_context',
     title: 'Prepare daily review context',
-    description: 'Start a daily review by creating one short-lived authenticated snapshot. Use this instead of separately reading portfolio, strategy, saved news, and activity for the same review. It does not save an analysis, mark a review complete, or fetch public news.',
+    description: 'Start a daily review by creating one short-lived owner-only snapshot. It includes current principles and private_holding_notes; treat older investment_policy and holding_theses keys as transition copies, not the new source. Use the snapshot instead of separately reading portfolio, strategy, saved news, and activity for the same review. It does not save an analysis, mark a review complete, or fetch public news.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1121,6 +1121,25 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: idempotentWriteAnnotations,
   },
   {
+    name: 'list_private_holding_notes',
+    title: 'Read private holding reasons',
+    description: 'Read the owner-only current reasons stored on instruments and account holdings. An account note overrides the instrument-wide reason for that account; a missing note means no reason was saved. These notes are not included in shared portfolio reads. Do not infer a reason from price or holdings.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'save_private_holding_note',
+    title: 'Save one private holding reason',
+    description: 'Save or clear an explicitly approved owner-only reason directly on an existing instrument or account holding. Read current notes first and provide the current expected_note to avoid overwriting a concurrent edit. Omit account_id for the instrument-wide note; use account_id for an existing holding. This never changes quantity, average cost, a trade, or public notes.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, instrument_id: { type: 'integer', minimum: 1 },
+      account_id: { type: ['integer','null'], minimum: 1 },
+      expected_note: { type: ['string','null'], maxLength: 25000 },
+      note: { type: ['string','null'], maxLength: 25000 },
+    }, required: ['schema_version','instrument_id','account_id','expected_note','note'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
     name: 'get_holding_thesis',
     title: 'Holding thesis',
     description: 'Read the explicitly saved reason for holding one instrument. With account_id, returns both the instrument-wide base and any account override, plus the applied source. Missing fields remain unknown and instrument or holding notes are separate.',
@@ -1315,6 +1334,8 @@ export const operatingRuleToolNames = [
 ] as const
 
 export const holdingThesisToolNames = [
+  'list_private_holding_notes',
+  'save_private_holding_note',
   'get_holding_thesis',
   'save_holding_thesis',
   'link_task_to_holding_thesis',

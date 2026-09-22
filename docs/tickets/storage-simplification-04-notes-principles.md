@@ -11,6 +11,8 @@ GitHub: https://github.com/kimyongin/fin/issues/89
 - 구 개인 정책·운영 규칙 도구/API와 전략 notes는 전환 기간 동안 살아 있다. 후속 작업은 보유 이유 비공개 메모 이관, 구 도구/화면 정리, 공유/실제 MCP 호출 검증, 운영 데이터 대조다. 이 기록은 #89 전체 완료를 의미하지 않는다.
 - 격리 E2E baseline은 현재 앱 스키마보다 오래돼 전략 JSON 컬럼만 E2E 전용 증분 migration으로 보정했다. 격리 DB 530건, MCP 계약 검사, 새 원칙의 모바일 저장/수정/종료 2개 브라우저 테스트 통과. 이전 원칙/운영 규칙 UI를 가정한 두 테스트는 새 흐름으로 교체했다. 새 화면의 360/768/1024/1440px 수동 검토와 실제 ChatGPT 웹·모바일 호출은 미검증이다.
 - 기존 점검 흐름과의 접점을 위해 `app_create_daily_context`의 저장 snapshot에 현행 `principles.items`를 추가했다. 구 `investment_policy` 키는 소비자 이전까지 남겨 둔다. 신규 원칙을 저장해도 이전 정책 카드/스냅샷이 자동 갱신된다고 주장하지 않는다.
+- 보유 이유는 기존 공개 `note`에 합치면 친구에게 노출된다. 따라서 같은 instrument/holding 행의 `private_note`로 옮기고, 기존 공개 메모는 그대로 두었다. 현재 활성 thesis의 원문/기간/재검토 조건/날짜를 해당 행에 줄바꿈 문장으로 복사하며 구 행은 지우지 않았다. 일반 portfolio DTO 및 자동 활동 payload에서 중첩 private_note를 제거하고, 소유자 전용 조회·현재값 CAS 편집·점검 문맥 연결을 구현했다. pgTAP 13건에서 친구 공유/기존 공개 메모/금융 버전 불변을 검증했다. 보유가 없는 과거 이유와 링크는 #91 보관 전 대조가 필요하다.
+- 격리 E2E 전체 34개 DB 파일 543건, MCP 계약(신규 원칙 도구 포함), 브라우저 33건 통과. 앱 자산 화면의 보유 이유 편집은 비공개 메모로 전환했지만 구 thesis API/테이블과 자동 점검 문맥의 구 복사본은 #91까지 남는다. 친구 공유와 계좌별 예외의 브라우저 수동 검수, 실제 ChatGPT 웹/모바일 평가는 미실시다.
 선행: 01
 시나리오: S1/S8/S9/S10
 기준: docs/engineering/SIMPLICITY.md, docs/adr/0008-minimal-portfolio-storage.md, docs/design/minimal-portfolio.md

@@ -874,6 +874,20 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
+  async list_private_holding_notes(supabase) {
+    const data = await rpc(supabase, 'app_list_private_holding_notes')
+    return { ok: true, data }
+  },
+  async save_private_holding_note(supabase, args) {
+    requireSchemaVersion(args)
+    const data = await rpc(supabase, 'app_save_private_holding_note', {
+      input_instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      input_account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
+      input_expected_note: args.expected_note == null ? null : requireString(args.expected_note, 'expected_note'),
+      input_note: args.note == null ? null : requireString(args.note, 'note'),
+    })
+    return { ok: true, data }
+  },
   async get_holding_thesis(supabase, args) {
     const accountId = args.account_id == null
       ? null

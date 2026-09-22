@@ -91,6 +91,19 @@ try {
   const profile = await call(session.access_token, 'tools/call', { name: 'get_profile', arguments: {} })
   assert(profile.response.ok && profile.body?.result?.isError === false, 'Authenticated MCP tools/call failed')
 
+  const initialPrinciples = await call(session.access_token, 'tools/call', { name: 'list_principles', arguments: {} })
+  assert(initialPrinciples.body?.result?.structuredContent?.data?.items?.length === 0, 'New MCP user unexpectedly has principles')
+  const principleArgs = {
+    schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
+    kind: 'investment', body: 'Contract-approved long-term rule', scope: null, end: false,
+  }
+  const savedPrinciple = await call(session.access_token, 'tools/call', { name: 'save_principle', arguments: principleArgs })
+  assert(savedPrinciple.body?.result?.structuredContent?.data?.body === principleArgs.body, 'MCP principle save failed')
+  const listedPrinciples = await call(session.access_token, 'tools/call', { name: 'list_principles', arguments: {} })
+  assert(listedPrinciples.body?.result?.structuredContent?.data?.items?.some((item) => item.principle_id === principleArgs.principle_id), 'MCP principle readback failed')
+  const privateNotes = await call(session.access_token, 'tools/call', { name: 'list_private_holding_notes', arguments: {} })
+  assert(privateNotes.body?.result?.structuredContent?.data?.items?.length === 0, 'New MCP user unexpectedly has private holding notes')
+
   const reportDateParts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()).map((part) => [part.type, part.value]))
   const reportDate = `${reportDateParts.year}-${reportDateParts.month}-${reportDateParts.day}`
   const reportContext = await call(session.access_token, 'tools/call', { name: 'get_activity_report_context', arguments: { period_start: reportDate, period_end: reportDate, timezone: 'Asia/Seoul', limit: 200, cursor: null } })

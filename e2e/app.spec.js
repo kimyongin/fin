@@ -376,7 +376,7 @@ test('creates and completes a general task while keeping manual work as activity
   expect(events.body).toContainEqual(expect.objectContaining({ action_type: 'record_manual_activity' }))
 })
 
-test('saves an instrument holding thesis and includes it in daily context', async ({ page }) => {
+test('saves a private holding reason without exposing it in the shared portfolio DTO', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
@@ -388,32 +388,28 @@ test('saves an instrument holding thesis and includes it in daily context', asyn
   await openMenuTab(page, '자산')
   await page.getByRole('tab').nth(2).click()
   const card = page.locator('article').filter({ hasText: 'E2E Apple' }).first()
-  await card.getByRole('button', { name: '보유 이유 추가' }).click()
-  await page.getByLabel('왜 보유하는가').fill('장기 서비스 성장성을 보고 보유한다.')
-  await page.getByLabel('예상 보유 기간').fill('3년 이상')
-  await page.getByLabel('다시 판단할 조건').fill('성장률이 두 분기 연속 둔화하면 재검토한다.')
-  await page.getByLabel('변경 이유').fill('종목의 핵심 가설을 처음 기록합니다.')
-  await page.getByRole('button', { name: '보유 이유 저장' }).click()
+  await card.getByRole('button', { name: '보유 메모 추가' }).click()
+  const editor = page.getByRole('dialog', { name: 'E2E Apple 보유 메모' })
+  await editor.getByLabel('보유 이유·다음 확인 조건').fill('장기 서비스 성장성을 보고 보유한다.')
+  await editor.getByRole('button', { name: '메모 저장' }).click()
 
   await expect(card.getByText('장기 서비스 성장성을 보고 보유한다.')).toBeVisible()
-  const thesis = await callRpc(page, 'app_get_holding_thesis', {
-    input_instrument_id: instrument.id,
-    input_account_id: null,
-  })
-  expect(thesis.status, JSON.stringify(thesis.body)).toBe(200)
-  expect(thesis.body.instrument_base).toMatchObject({
-    version: 1,
-    reason_text: '장기 서비스 성장성을 보고 보유한다.',
-  })
+  const notes = await callRpc(page, 'app_list_private_holding_notes')
+  expect(notes.status, JSON.stringify(notes.body)).toBe(200)
+  expect(notes.body.items).toContainEqual(expect.objectContaining({
+    instrument_id: instrument.id, account_id: null, note: '장기 서비스 성장성을 보고 보유한다.',
+  }))
+  const publicState = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
+  expect(JSON.stringify(publicState.body)).not.toContain('장기 서비스 성장성을 보고 보유한다.')
 
   const context = await callRpc(page, 'app_create_daily_context', {
     input_subject_tickers: null,
     input_timezone: 'Asia/Seoul',
   })
   expect(context.status, JSON.stringify(context.body)).toBe(200)
-  expect(context.body.snapshot.holding_theses).toContainEqual(expect.objectContaining({
+  expect(context.body.snapshot.private_holding_notes).toContainEqual(expect.objectContaining({
     instrument_id: instrument.id,
-    version: 1,
+    note: '장기 서비스 성장성을 보고 보유한다.',
   }))
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })

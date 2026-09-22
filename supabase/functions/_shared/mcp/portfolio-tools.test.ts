@@ -245,6 +245,16 @@ describe('portfolio MCP tool definitions', () => {
     expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('note')
   })
 
+  it('advertises the direct private holding-note path without financial writes', () => {
+    const read = tool('list_private_holding_notes')
+    const save = tool('save_private_holding_note')
+    expect(read.annotations.readOnlyHint).toBe(true)
+    expect(save.annotations.idempotentHint).toBe(true)
+    expect((save.inputSchema as any).properties).not.toHaveProperty('quantity')
+    expect((save.inputSchema as any).properties.expected_note.type).toEqual(['string', 'null'])
+    expect(getWorkflowGuide('holding_thesis')?.related_tools).toContain('save_private_holding_note')
+  })
+
   it('separates trade preview, confirmation, and brokerage actions', () => {
     expect(tool('preview_trade_entry').annotations).toMatchObject({ readOnlyHint: false, idempotentHint: false })
     expect(tool('log_completed_trade').annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
