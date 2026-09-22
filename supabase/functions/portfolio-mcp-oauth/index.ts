@@ -29,6 +29,7 @@ const serverInstructions = [
   'Before a multi-step Portfolio task, use get_workflow_guide when its advertised topic matches the user\'s request; do not repeat the same revision in one conversation.',
   'Report a write as saved only after its tool returns success; retry a lost response with the same idempotency key and re-read after a version conflict.',
   'Treat feedback about the Portfolio product separately from investment records: explicit clear registration requests may be saved directly, while an agent-initiated suggestion requires one user confirmation and must never include transcripts, portfolio data, credentials, or guessed causes.',
+  'Use one ToDo bundle for several user-meaningful results or follow-ups only when the user asks to record them; analysis alone creates nothing, linked tasks remain authoritative, and a failed bundle save never justifies repeating a successful financial write.',
 ].join(' ')
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')

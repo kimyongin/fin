@@ -78,7 +78,7 @@ try {
   const listed = await call(session.access_token, 'tools/list')
   assert(listed.response.ok && listed.body?.result?.tools?.some((tool) => tool.name === 'get_profile'), 'MCP tools/list contract failed')
   const guideDefinition = listed.body?.result?.tools?.find((tool) => tool.name === 'get_workflow_guide')
-  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 7, 'Workflow guide topics were not advertised')
+  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 8, 'Workflow guide topics were not advertised')
 
   for (const topic of guideDefinition.inputSchema.properties.topic.enum) {
     const guideResult = await call(session.access_token, 'tools/call', { name: 'get_workflow_guide', arguments: { topic } })
@@ -205,6 +205,8 @@ try {
   })
   const contextData = context.body?.result?.structuredContent?.data
   assert(context.body?.result?.isError === false && contextData?.context_id && contextData?.expires_at, 'Daily context contract failed')
+  assert(contextData?.snapshot?.todo_bundles?.status === 'available' && Array.isArray(contextData?.snapshot?.todo_bundles?.items), 'Daily context ToDo bundle summary contract failed')
+  assert(contextData?.snapshot?.open_tasks?.status === 'available' && Array.isArray(contextData?.snapshot?.open_tasks?.items), 'Daily context unbundled task contract failed')
 
   const saved = await call(session.access_token, 'tools/call', {
     name: 'save_daily_briefing',

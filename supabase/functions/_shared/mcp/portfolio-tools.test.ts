@@ -60,7 +60,7 @@ describe('portfolio MCP tool definitions', () => {
 
   it('publishes every reviewed multi-step topic from one validated guide registry', () => {
     expect(workflowGuideTopics).toEqual([
-      'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation', 'product_feedback',
+      'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation', 'todo', 'product_feedback',
     ])
     for (const topic of workflowGuideTopics) {
       const guide = getWorkflowGuide(topic)!
@@ -222,6 +222,10 @@ describe('portfolio MCP tool definitions', () => {
     expect(save.description).toContain('omitted existing items remain')
     expect(save.description).toContain('their own tools')
     expect((save.inputSchema as any).properties).not.toHaveProperty('task_action')
+    const guide = getWorkflowGuide('todo')!
+    expect(guide.related_tools).toContain('save_todo_bundle')
+    expect(guide.boundaries.join(' ')).toContain('not an adopted investment decision')
+    expect(guide.recovery.join(' ')).toContain('retry only save_todo_bundle')
   })
 
   it('keeps holding theses explicit, scoped, and separate from holdings', () => {

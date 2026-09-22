@@ -1,35 +1,39 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Reviewed #70 operating-rule contracts, reconciliation guide ordering, and owner-only app management.",
+  "review_reason": "Reviewed #73 daily-context ToDo summaries, explicit bundle-save intent, and partial-failure recovery across daily review, reconciliation, and todo workflows.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
-      "contract_digest": "744698f56a9ca473aff3fa5fc625a283f8c3c07b3d3889654193a4503a61760e"
+      "contract_digest": "f9e772197d97376712ecab26a319287704feaf118c67b240764e42744e9e14ae"
     },
     "holding_thesis": {
       "revision": "fnv1a32:62ae4aff",
-      "contract_digest": "e2529a7723792fb2a18fb2555a192ba6c44a9e57d4f214f0f33d8a4efca5ea5f"
+      "contract_digest": "0c3679549011b168ecb4644992d01d18c97c70b807303ce0ad47715ce80ab043"
     },
     "daily_review": {
-      "revision": "fnv1a32:40650a5d",
-      "contract_digest": "2bb72fb2690dcbeba3027b7bbcf3251d01a8349f6024df3528ebe5bea64865c2"
+      "revision": "fnv1a32:a7592e1e",
+      "contract_digest": "40f1c9e022348f87f7e96d19157f6e6e144921e7b102a75cc314c784e5a34380"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "76ae6c5599185c306c58dec72afbee570586c876d0753db4f3fe6742145a148e"
+      "contract_digest": "c4c5d995d58af0a3002a329a7cd38ba062b8ad97636e45fad5031e379f4a1f0b"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "13e223c6c27d26e8c571615333ff727eae4cbb1c3ed3773141b086635996afde"
+      "contract_digest": "c284e72ea52da13e10045836a30c5cf381c26fc3daf2f007a9bb0f3dc54e2aba"
     },
     "reconciliation": {
-      "revision": "fnv1a32:f37ead84",
-      "contract_digest": "307bc47e8816aed9f826d6f862ec004c94a8c55db7fa0147bb07b4388373ebd2"
+      "revision": "fnv1a32:74b7b215",
+      "contract_digest": "abbe30715a2cccf3a01a79c6dfb89a09755b339dd02be50a24f7f49e6f4e0003"
+    },
+    "todo": {
+      "revision": "fnv1a32:0d4e9e91",
+      "contract_digest": "44c9a350b43fcae5e17b54c69903e0be252fd50c1bb86a3bb4b188c401f9fe81"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "b56f601372dc819047365cf378ce21e10ed7fedbba52c945ed9fa93efa7af644"
+      "contract_digest": "79e9bcbe17255284680923ca108f70337f8a3e21a79d0c8bef51bcda0fa7e8f8"
     }
   }
 }

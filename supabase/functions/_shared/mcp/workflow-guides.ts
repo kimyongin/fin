@@ -5,6 +5,7 @@ export const workflowGuideTopics = [
   'decision_followup',
   'trade_entry',
   'reconciliation',
+  'todo',
   'product_feedback',
 ] as const
 
@@ -143,7 +144,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/migrations/202609210001_daily_review_foundation.sql',
     ],
     steps: [
-      { id: 'prepare-context', title: 'Prepare one review context', instruction: 'Call get_daily_context once for this review. Use the returned immutable snapshot instead of rebuilding the same context with separate portfolio, strategy, news, and activity calls.', tools: ['get_daily_context'] },
+      { id: 'prepare-context', title: 'Prepare one review context', instruction: 'Call get_daily_context once for this review. Use the returned immutable snapshot instead of rebuilding the same context with separate portfolio, strategy, news, and activity calls. The snapshot includes active ToDo bundle summaries and only open tasks that are not already in a bundle.', tools: ['get_daily_context'] },
       { id: 'inspect-history', title: 'Inspect prior review when useful', instruction: 'Use list_daily_briefings and get_daily_briefing when the current context indicates a prior review or unresolved coverage that needs detail.', tools: ['list_daily_briefings', 'get_daily_briefing'] },
       { id: 'research-current', title: 'Research current external information', instruction: 'Use ChatGPT web research for current news and primary sources. Record checked, failed, and unverified coverage separately. Portfolio does not search the public web.', tools: [] },
       { id: 'explain-result', title: 'Explain decision-relevant changes', instruction: 'Separate sourced facts, interpretation, uncertainty, and suggested questions. Report no_action only after sufficient checking; incomplete research is insufficient_data or partial coverage.', tools: [] },
@@ -152,6 +153,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     ],
     boundaries: [
       'A review request alone does not authorize saving, adopting a decision, recording a trade, or verifying a brokerage balance.',
+      'Reading or analyzing the daily context does not authorize creating a ToDo bundle. Save work results only when the user asks to record them.',
       'Do not invent missing preferences, holding reasons, prices, returns, or current news.',
       'Research failure and no meaningful change are different outcomes.',
     ],
@@ -232,7 +234,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     guide_id: 'portfolio.reconciliation',
     purpose: 'Choose the correct operation for an absolute balance correction, cancellation of a wrong local trade record, or a field-scoped brokerage comparison.',
     scenario_ids: ['W06', 'W08', 'S18', 'S19', 'S20', 'S21', 'S22'],
-    related_tools: ['list_operating_rules', 'find_holdings', 'get_holding_integrity', 'get_portfolio_integrity', 'preview_holding_reconciliation', 'reconcile_holding', 'list_transactions', 'preview_trade_reversal', 'reverse_trade_entry', 'verify_holdings'],
+    related_tools: ['list_operating_rules', 'find_holdings', 'get_holding_integrity', 'get_portfolio_integrity', 'preview_holding_reconciliation', 'reconcile_holding', 'list_transactions', 'preview_trade_reversal', 'reverse_trade_entry', 'verify_holdings', 'save_todo_bundle'],
     source_paths: [
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
@@ -249,12 +251,14 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       { id: 'preview-and-reverse', title: 'Preview and reverse a wrong local trade', instruction: 'Call preview_trade_reversal for the exact trade, explain the replay or protected-checkpoint effect, and use reverse_trade_entry after confirmation.', tools: ['preview_trade_reversal', 'reverse_trade_entry'] },
       { id: 'record-verification', title: 'Record a comparison without changing values', instruction: 'Call verify_holdings at the current version with only the named fields the user explicitly checked.', tools: ['verify_holdings'] },
       { id: 'verify-integrity', title: 'Read the resulting integrity state', instruction: 'Re-read holding integrity after a mutation and report verified, changed-since, or never-verified accurately.', tools: ['get_holding_integrity'] },
+      { id: 'save-results-if-requested', title: 'Optionally group the work results', instruction: 'Only when the user asks to record the session work, call save_todo_bundle once with several ordered general result items and links to the applied rule, decision, or verification IDs. If a financial write already succeeded but bundle save fails, retry only the bundle with the same key and references; never repeat the financial write.', tools: ['save_todo_bundle'] },
     ],
     boundaries: [
       'A reconciliation is an absolute local checkpoint, not a synthetic trade.',
       'A reversal invalidates a Portfolio record; it does not cancel a brokerage order or create an opposite real trade.',
       'Verification records only fields the user explicitly compared and never changes balance values.',
       'Saved operating rules guide file interpretation but cannot override current user instructions, ownership checks, financial validation, or an explicit conflict in the input.',
+      'A request only to remember an operating rule creates or updates the rule; it does not need a completed ToDo item.',
       'A trade before the latest correction checkpoint may be reversed without changing the current holding.',
     ],
     recovery: [
@@ -263,6 +267,37 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'If the target holding or trade is ambiguous, ask the user before any preview or write.',
     ],
     unavailable_steps: ['Automatic brokerage import and brokerage order cancellation are not available.'],
+  },
+  todo: {
+    topic: 'todo',
+    guide_id: 'portfolio.todo-bundle',
+    purpose: 'Group several completed results or future follow-ups into one explicit work record without duplicating authoritative investment or financial state.',
+    scenario_ids: ['T04', 'T05', 'T06'],
+    related_tools: ['list_todo_bundles', 'get_todo_bundle', 'save_todo_bundle', 'list_tasks', 'get_task'],
+    source_paths: [
+      'docs/design/todo-principles-integration.md',
+      'supabase/functions/_shared/mcp/portfolio-tools.ts',
+      'supabase/functions/portfolio-mcp-oauth/index.ts',
+      'supabase/migrations/20260922044008_todo_bundles.sql',
+    ],
+    steps: [
+      { id: 'classify-intent', title: 'Classify whether a record is requested', instruction: 'Do not write for analysis alone. A request to remember only a reusable operating rule does not require a ToDo. Use a bundle when the user asks to record several work results or follow-ups together.', tools: [] },
+      { id: 'read-existing', title: 'Read the current work record', instruction: 'Use list_todo_bundles and get_todo_bundle to resume an existing bundle. Use list_tasks or get_task before linking an authoritative research or execution task.', tools: ['list_todo_bundles', 'get_todo_bundle', 'list_tasks', 'get_task'] },
+      { id: 'separate-item-kinds', title: 'Separate general results from authoritative tasks', instruction: 'Use general items for concise completed results or ordinary follow-ups. Link existing research/execution tasks instead of copying their title, state, answer, or fill progress into general items.', tools: [] },
+      { id: 'save-atomically', title: 'Save one reviewed bundle', instruction: 'Call save_todo_bundle with the current bundle version and one idempotency key. Upsert only supplied stable item IDs, omit existing items to preserve them, and use remove_item_ids only for explicit removals. Save multiple results as one item array rather than many bundles.', tools: ['save_todo_bundle'] },
+      { id: 'verify-result', title: 'Verify the saved bundle', instruction: 'Read the returned or persisted bundle and report each linked operation separately. Bundle status is derived and may change when a task reopens or an execution fill is reversed.', tools: ['get_todo_bundle'] },
+    ],
+    boundaries: [
+      'A done general item is not an adopted investment decision, completed brokerage trade, or verified balance.',
+      'Saving a bundle never transitions a linked task and never mutates holdings, decisions, rules, or verifications.',
+      'Do not create one completed bundle item for every low-level API call; summarize user-meaningful results.',
+    ],
+    recovery: [
+      'If a prior financial or domain write succeeded and bundle save failed, preserve the successful IDs and retry only save_todo_bundle.',
+      'For a bundle version conflict, re-read the bundle and merge only the still-requested item changes.',
+      'For a lost response, retry identical input with the same idempotency key.',
+    ],
+    unavailable_steps: ['Automatic grouping by chat session or elapsed time is not available.'],
   },
   product_feedback: {
     topic: 'product_feedback',

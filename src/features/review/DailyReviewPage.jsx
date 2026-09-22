@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import MarkdownContent from '../../components/MarkdownContent'
 import ModalShell from '../../components/ModalShell'
 import { fetchBriefingRelatedTasks, fetchDailyBriefing, fetchDailyBriefingPage } from './data'
+import { fetchLinkedTodoTaskIds, fetchPortfolioTaskPage, fetchTodoBundlePage } from '../lifecycle/data'
 import PortfolioIntegritySummary from './PortfolioIntegritySummary'
 import { createRequestGate } from '../../lib/requestGate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
@@ -147,6 +148,7 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
   const [selected, setSelected] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [relatedTasksError, setRelatedTasksError] = useState('')
+  const [todoOverview, setTodoOverview] = useState({ bundles: [], tasks: [], error: '' })
   const listRequestGate = useRef(createRequestGate())
   const detailRequestGate = useRef(createRequestGate())
 
@@ -222,6 +224,24 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
     }
   }, [ownerUserId, supabase])
 
+  useEffect(() => {
+    if (ownerUserId) {
+      setTodoOverview({ bundles: [], tasks: [], error: '' })
+      return undefined
+    }
+    let active = true
+    Promise.all([
+      fetchTodoBundlePage(supabase, { filter: 'active', limit: 5 }),
+      fetchPortfolioTaskPage(supabase, { filter: 'active', limit: 20 }),
+      fetchLinkedTodoTaskIds(supabase),
+    ]).then(([bundlePage, taskPage, linkedIds]) => {
+      if (!active) return
+      const linked = new Set(linkedIds)
+      setTodoOverview({ bundles: bundlePage.items, tasks: taskPage.items.filter((task) => !linked.has(task.id)).slice(0, 5), error: '' })
+    }).catch((nextError) => active && setTodoOverview({ bundles: [], tasks: [], error: nextError.message ?? '오늘 이어갈 일을 불러오지 못했습니다.' }))
+    return () => { active = false }
+  }, [ownerUserId, supabase])
+
   async function openDetail(briefingId) {
     const request = detailRequestGate.current.begin()
     setDetailLoading(true)
@@ -241,6 +261,8 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
   }
 
   const latest = latestDetail ?? briefings[0]
+  const relatedTaskIds = new Set(relatedTasks.map((task) => task.id))
+  const visibleTodoTasks = todoOverview.tasks.filter((task) => !relatedTaskIds.has(task.id))
   const latestIsToday = latest
     ? localDateKey(latest.analyzed_at, latest.timezone) === localDateKey(new Date(), latest.timezone)
     : false
@@ -289,6 +311,14 @@ export default function DailyReviewPage({ onNavigate, onOpenTask, ownerUserId = 
       </article>
 
       {!ownerUserId && <PortfolioIntegritySummary supabase={supabase} />}
+
+      {!ownerUserId && <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+        <div className="flex items-start justify-between gap-3"><div><h2 className="text-base font-semibold">오늘 이어갈 일</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">ToDo 묶음과 아직 묶지 않은 기존 과제를 중복 없이 보여줍니다.</p></div><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => onNavigate?.('tasks')} type="button">전체 보기</button></div>
+        {todoOverview.error ? <p className="mt-4 text-sm text-red-100">{todoOverview.error}</p> : todoOverview.bundles.length === 0 && visibleTodoTasks.length === 0 ? <p className="mt-4 text-sm text-[var(--muted-ink)]">현재 이어갈 일이 없습니다.</p> : <div className="mt-4 grid gap-4">
+          {todoOverview.bundles.length > 0 && <section><h3 className="text-xs font-semibold text-[var(--muted-ink)]">ToDo 묶음</h3><div className="mt-2 grid gap-2">{todoOverview.bundles.map((bundle) => <button className="min-h-11 rounded-xl bg-[var(--surface-2)] px-3 text-left text-sm font-semibold" key={bundle.id} onClick={() => onNavigate?.('tasks')} type="button">{bundle.title} · {bundle.item_count}개</button>)}</div></section>}
+          {visibleTodoTasks.length > 0 && <section><h3 className="text-xs font-semibold text-[var(--muted-ink)]">아직 묶지 않은 과제</h3><div className="mt-2 grid gap-2">{visibleTodoTasks.map((task) => <button className="min-h-11 rounded-xl bg-[var(--surface-2)] px-3 text-left text-sm font-semibold" key={task.id} onClick={() => onOpenTask?.(task.id)} type="button">{task.title}</button>)}</div></section>}
+        </div>}
+      </article>}
 
       {error && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</p>}
 

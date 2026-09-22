@@ -353,6 +353,9 @@ test('creates one ToDo bundle with several general items and opens its detail', 
   await expect(page.getByRole('heading', { name: '월요일 포트폴리오 정리' })).toBeVisible()
   await expect(page.getByText('잔고 확인', { exact: true })).toBeVisible()
   await expect(page.getByText('다음 점검 질문 정리', { exact: true })).toBeVisible()
+  await page.goto('/#today')
+  await expect(page.getByRole('heading', { name: '오늘 이어갈 일' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /월요일 포트폴리오 정리 · 3개/ })).toBeVisible()
 })
 
 test('saves an instrument holding thesis and includes it in daily context', async ({ page }) => {

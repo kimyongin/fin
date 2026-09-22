@@ -75,7 +75,7 @@ revision 10 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 
 2026-09-21: 아래 최초 계약안은 [현재 설계](./workflow-guide-design.md)와 #63~#65로 구체화했다. 로컬 0.6.0 tools/list에는 여기에 product_feedback을 더한 일곱 topic이 등록되어 있다. 운영 배포와 모델 평가는 남아 있으며 아래 문구는 과거 검토 기록이다.
 
-`get_workflow_guide` / planned / read-only: topic은 daily_review, policy, decision, research_task, trade_entry, reconciliation 중 하나. 출력은 guide_id/revision, 실제 사용 가능한 도구에 한정한 steps, 금지 부수 효과, 오류 후 다음 행동, unavailable_steps다. 사용자별 데이터나 저장 기능이 없다. unknown topic은 validation_error.
+`get_workflow_guide` / observed-local / read-only: topic은 daily_review, policy, holding_thesis, decision_followup, trade_entry, reconciliation, todo, product_feedback 중 하나. 출력은 guide_id/revision, 실제 사용 가능한 도구에 한정한 steps, 금지 부수 효과, 오류 후 다음 행동, unavailable_steps다. 사용자별 데이터나 저장 기능이 없다. unknown topic은 validation_error.
 
 설명 후보: ‘여러 단계가 필요한 Portfolio 작업의 사용 순서와 주의점을 읽습니다. 간단한 조회마다 호출할 필요는 없습니다. 가이드는 기능을 실행하거나 사용자 승인을 대신하지 않습니다.’
 
