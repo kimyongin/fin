@@ -861,7 +861,7 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await expect(page.getByText('현재 자산을 입력하고, ChatGPT에서 첫 점검을 저장하세요')).toBeVisible()
 })
 
-test('creates, edits, and deletes a saved news record from the materials page', async ({ page }) => {
+test('keeps legacy news records accessible while new research belongs in activity', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#news')
 
@@ -869,12 +869,17 @@ test('creates, edits, and deletes a saved news record from the materials page', 
   const originalFact = `E2E 뉴스 팩트 ${suffix}`
   const editedFact = `${originalFact} 수정`
   const opinion = `E2E 의견 ${suffix}`
-  await page.getByRole('button', { name: '뉴스 추가' }).click()
-  const createDialog = page.getByRole('dialog', { name: '뉴스 팩트 기록' })
-  await createDialog.getByLabel('국가').selectOption('US')
-  await createDialog.getByLabel('팩트').fill(originalFact)
-  await createDialog.getByLabel('의견 · 신호').fill(opinion)
-  await createDialog.getByRole('button', { name: '저장', exact: true }).click()
+  const created = await callRpc(page, 'app_save_news_fact', {
+    input_fact_date: new Date().toISOString().slice(0, 10), input_country_code: 'US',
+    input_axis: 'general', input_title: originalFact, input_source_name: '',
+    input_source_url: '', input_body: originalFact,
+  })
+  expect(created.status).toBe(200)
+  const factId = Array.isArray(created.body) ? created.body[0].id : created.body.id
+  expect((await callRpc(page, 'app_save_news_fact_annotation', { input_fact_id: factId, input_signal: 'observe', input_body: opinion })).status).toBe(200)
+  await page.reload()
+  await expect(page.getByText('새 조사는 활동에서 기록하세요.')).toBeVisible()
+  await expect(page.getByRole('button', { name: '뉴스 추가' })).toHaveCount(0)
   await expect(page.getByText(originalFact, { exact: true })).toBeVisible()
   await expect(page.getByText(opinion, { exact: true })).toBeVisible()
 
@@ -1006,7 +1011,8 @@ test('keeps four primary destinations usable without horizontal overflow', async
   await expect(page).toHaveURL(/#overview$/)
   await page.getByRole('button', { name: 'Open menu' }).click()
   const secondary = page.locator('nav[aria-label="보조 메뉴"]')
-  for (const label of ['자료', '피드백', '설정', '가이드']) await expect(secondary.getByRole('button', { name: label, exact: true })).toBeVisible()
+  for (const label of ['피드백', '설정', '가이드']) await expect(secondary.getByRole('button', { name: label, exact: true })).toBeVisible()
+  await expect(secondary.getByRole('button', { name: '자료', exact: true })).toHaveCount(0)
   await expect(secondary.getByRole('button', { name: '활동 내역', exact: true })).toHaveCount(0)
 })
 

@@ -371,6 +371,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
     <section className="grid gap-5">
       <header className="grid gap-3">
         <p className="text-sm leading-6 text-[var(--muted-ink)]">해야 할 일과 실제로 수행한 활동, 그 근거가 된 판단을 한곳에서 이어서 봅니다.</p>
+        {!ownerUserId && <a className="w-fit text-xs text-[var(--muted-ink)] underline hover:text-[var(--ink)]" href="#news">이전 자료 기록 보기</a>}
       </header>
 
       <div aria-labelledby={`lifecycle-view-${effectiveMode}`} className="grid gap-5" id="lifecycle-panel" role="tabpanel" tabIndex={0}>

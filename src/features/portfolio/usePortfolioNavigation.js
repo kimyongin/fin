@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { allTabs } from '../../constants/portfolio'
 
-const tabIds = new Set(allTabs.map((tab) => tab.id))
+const tabIds = new Set([...allTabs.map((tab) => tab.id), 'news'])
 
 function tabFromHash(fallback = 'today') {
   if (typeof window === 'undefined') return fallback
@@ -64,7 +64,8 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
   }, [activeTab, assetView])
 
   useEffect(() => {
-    if (!tabs.some((tab) => tab.id === activeTab)) {
+    const legacyNewsAllowed = activeTab === 'news' && (canEdit || sharedFeatureAccess?.features?.news)
+    if (!tabs.some((tab) => tab.id === activeTab) && !legacyNewsAllowed) {
       setActiveTab(!canEdit && sharedFeatureAccess === null ? 'overview' : (tabs[0]?.id ?? 'guide'))
     }
   }, [activeTab, canEdit, sharedFeatureAccess, tabs])

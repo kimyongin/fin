@@ -4,7 +4,6 @@ export const allTabs = [
   { id: 'decisions', label: '판단 모아보기' },
   { id: 'tasks', label: '활동' },
   { id: 'strategy', label: '원칙' },
-  { id: 'news', label: '자료' },
   { id: 'activity', label: '활동 내역 (이전 주소)' },
   { id: 'feedback', label: '피드백' },
   { id: 'settings', label: '설정' },
