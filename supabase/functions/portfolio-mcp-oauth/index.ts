@@ -4,7 +4,7 @@ import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
 import {
   actionTaskToolNames, activityReportToolNames, dailyReviewToolNames, decisionTaskToolNames, entityNoteToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
-  investmentPolicyToolNames, operatingRuleToolNames, portfolioToolDefinitions, todoBundleToolNames, tradeEntryToolNames, tradeReversalToolNames,
+  investmentPolicyToolNames, operatingRuleToolNames, portfolioToolDefinitions, tradeEntryToolNames, tradeReversalToolNames,
   productFeedbackToolNames, workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
 import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
@@ -29,7 +29,7 @@ const serverInstructions = [
   'Before a multi-step Portfolio task, use get_workflow_guide when its advertised topic matches the user\'s request; do not repeat the same revision in one conversation.',
   'Report a write as saved only after its tool returns success; retry a lost response with the same idempotency key and re-read after a version conflict.',
   'Treat feedback about the Portfolio product separately from investment records: explicit clear registration requests may be saved directly, while an agent-initiated suggestion requires one user confirmation and must never include transcripts, portfolio data, credentials, or guessed causes.',
-  'Use one ToDo bundle for several user-meaningful results or follow-ups only when the user asks to record them; analysis alone creates nothing, linked tasks remain authoritative, and a failed bundle save never justifies repeating a successful financial write.',
+  'Use tasks for future intent and automatic action events for successful Portfolio changes. Record manual activity only for explicit user-reported work outside Portfolio; never duplicate the same action in both places.',
 ].join(' ')
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
@@ -756,35 +756,6 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
-  async list_todo_bundles(supabase, args) {
-    const data = await rpc(supabase, 'app_list_todo_bundles', {
-      input_filter: optionalString(args.filter) ?? 'active',
-      input_limit: args.limit == null ? 20 : requirePositiveInteger(args.limit, 'limit'),
-      input_cursor: args.cursor ?? null,
-    })
-    return { ok: true, data }
-  },
-  async get_todo_bundle(supabase, args) {
-    const data = await rpc(supabase, 'app_get_todo_bundle', { input_bundle_id: requireUuid(args.bundle_id, 'bundle_id') })
-    if (!data) throw new PortfolioRpcError({ message: 'ToDo bundle not found' })
-    return { ok: true, data }
-  },
-  async save_todo_bundle(supabase, args) {
-    requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_save_todo_bundle', {
-      input_bundle_id: args.bundle_id == null ? null : requireUuid(args.bundle_id, 'bundle_id'),
-      input_expected_version: args.expected_version == null ? null : requirePositiveInteger(args.expected_version, 'expected_version'),
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_title: requireString(args.title, 'title'), input_summary: optionalString(args.summary),
-      input_tags: requireArray(args.tags, 'tags'), input_items: requireArray(args.items, 'items'),
-      input_remove_item_ids: requireArray(args.remove_item_ids, 'remove_item_ids'),
-      input_rule_ids: args.rule_ids == null ? null : requireArray(args.rule_ids, 'rule_ids'),
-      input_decision_ids: args.decision_ids == null ? null : requireArray(args.decision_ids, 'decision_ids'),
-      input_verification_ids: args.verification_ids == null ? null : requireArray(args.verification_ids, 'verification_ids'),
-      input_authored_via: 'agent',
-    })
-    return { ok: true, data }
-  },
   async get_holding_thesis(supabase, args) {
     const accountId = args.account_id == null
       ? null
@@ -893,7 +864,6 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   activityReports: activityReportToolNames,
   investmentPolicy: investmentPolicyToolNames,
   operatingRules: operatingRuleToolNames,
-  todoBundles: todoBundleToolNames,
   holdingThesis: holdingThesisToolNames,
   tradeEntry: tradeEntryToolNames,
   holdingIntegrity: holdingIntegrityToolNames,

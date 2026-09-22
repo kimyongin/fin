@@ -76,42 +76,6 @@ export async function fetchPortfolioTaskPage(supabase, {
   }))
 }
 
-export async function fetchTodoBundlePage(supabase, { cursor = null, filter = 'active', limit = 20 } = {}) {
-  return normalizePage(await rpc(supabase, 'app_list_todo_bundles', {
-    input_filter: filter,
-    input_limit: limit,
-    input_cursor: cursor,
-  }))
-}
-
-export async function fetchTodoBundle(supabase, bundleId) {
-  const data = await rpc(supabase, 'app_get_todo_bundle', { input_bundle_id: bundleId })
-  if (!data) throw new Error('ToDo 묶음을 찾을 수 없거나 접근할 수 없습니다.')
-  return data
-}
-
-export async function fetchLinkedTodoTaskIds(supabase) {
-  const data = await rpc(supabase, 'app_list_todo_linked_task_ids')
-  return Array.isArray(data) ? data : []
-}
-
-export async function saveTodoBundle(supabase, bundle) {
-  return rpc(supabase, 'app_save_todo_bundle', {
-    input_bundle_id: bundle.id ?? null,
-    input_expected_version: bundle.expectedVersion ?? null,
-    input_idempotency_key: bundle.idempotencyKey,
-    input_title: bundle.title.trim(),
-    input_summary: bundle.summary?.trim() || null,
-    input_tags: bundle.tags ?? [],
-    input_items: bundle.items ?? [],
-    input_remove_item_ids: bundle.removeItemIds ?? [],
-    input_rule_ids: bundle.ruleIds ?? null,
-    input_decision_ids: bundle.decisionIds ?? null,
-    input_verification_ids: bundle.verificationIds ?? null,
-    input_authored_via: 'app',
-  })
-}
-
 export async function fetchGeneralTaskPage(supabase, { cursor = null, filter = 'active', limit = 20 } = {}) {
   return normalizePage(await rpc(supabase, 'app_list_general_task_page', {
     input_filter: filter,

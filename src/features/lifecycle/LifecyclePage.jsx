@@ -9,15 +9,10 @@ import {
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
   fetchGeneralTask,
-  fetchGeneralTaskPage,
-  fetchLinkedTodoTaskIds,
   fetchPortfolioTask,
   fetchPortfolioTaskPage,
-  fetchTodoBundle,
-  fetchTodoBundlePage,
   recordManualActivity,
   saveGeneralTask,
-  saveTodoBundle,
   transitionGeneralTask,
 } from './data'
 
@@ -132,34 +127,6 @@ function Detail({ entry, loading, onBack, onClose, onOpenDecision, onOpenTask })
   )
 }
 
-function TodoBundleModal({ availableTasks, onClose, onSave, saving }) {
-  const [draft, setDraft] = useState({ title: '', summary: '', tags: '', items: '', completed: false, taskIds: [] })
-  const valid = draft.title.trim() && (draft.items.split('\n').some((line) => line.trim()) || draft.taskIds.length > 0)
-  return <ModalShell onClose={onClose} title="ToDo 묶음 추가">
-    <div className="grid gap-4">
-      <p className="text-sm leading-6 text-[var(--muted-ink)]">한 번의 작업에서 처리하거나 이어갈 항목을 한 묶음으로 기록합니다. 한 줄이 세부 항목 하나입니다.</p>
-      <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">묶음 이름</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
-      <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">요약</span><textarea className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, summary: event.target.value })} rows={2} value={draft.summary} /></label>
-      <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">세부 항목 · 한 줄에 하나</span><textarea className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, items: event.target.value })} rows={6} value={draft.items} /></label>
-      <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">태그 · 쉼표로 구분</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, tags: event.target.value })} value={draft.tags} /></label>
-      <label className="flex min-h-11 items-center gap-2 text-sm"><input checked={draft.completed} onChange={(event) => setDraft({ ...draft, completed: event.target.checked })} type="checkbox" />이미 수행한 결과로 기록</label>
-      {availableTasks.length > 0 && <fieldset><legend className="text-xs text-[var(--muted-ink)]">기존 조사·실행 과제 편입</legend><div className="mt-2 grid gap-2">{availableTasks.map((task) => <label className="flex min-h-11 items-center gap-2 rounded-xl bg-[var(--surface-2)] px-3 text-sm" key={task.id}><input checked={draft.taskIds.includes(task.id)} onChange={() => setDraft({ ...draft, taskIds: draft.taskIds.includes(task.id) ? draft.taskIds.filter((id) => id !== task.id) : [...draft.taskIds, task.id] })} type="checkbox" />{task.title}</label>)}</div></fieldset>}
-      <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!valid || saving} onClick={() => onSave(draft)} type="button">{saving ? '저장 중' : '묶음 저장'}</button></div>
-    </div>
-  </ModalShell>
-}
-
-function TodoBundleDetail({ bundle, onClose, onOpenTask }) {
-  const statusLabel = { in_progress: '진행 중', paused: '보류', completed: '완료', cancelled: '취소' }
-  return <ModalShell onClose={onClose} title="ToDo 묶음 상세" variant="detail">
-    <div className="grid gap-5">
-      <section><span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{statusLabel[bundle.status] ?? bundle.status}</span><h3 className="mt-4 text-xl font-semibold">{bundle.title}</h3>{bundle.summary && <p className="mt-2 text-sm text-[var(--muted-ink)]">{bundle.summary}</p>}</section>
-      <ol className="grid gap-2">{bundle.items.map((item) => <li className="rounded-2xl bg-[var(--surface-2)] p-3" key={item.id}><div className="flex justify-between gap-3 text-sm">{item.kind === 'task' ? <button className="text-left font-semibold hover:text-[var(--accent)]" onClick={() => onOpenTask(item.task_id)} type="button">{item.task?.title}</button> : <span>{item.title}</span>}<span className="text-xs text-[var(--muted-ink)]">{item.kind === 'task' ? '연결 과제' : item.status}</span></div>{item.result && <p className="mt-1 text-xs text-[var(--muted-ink)]">{item.result}</p>}</li>)}</ol>
-      {bundle.tags?.length > 0 && <div className="flex flex-wrap gap-2">{bundle.tags.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-1 text-xs" key={tag}>{tag}</span>)}</div>}
-    </div>
-  </ModalShell>
-}
-
 export default function LifecyclePage({ actions = [], activityError = '', activityLoading = false, initialSelection = null, mode, onModeChange, onRefreshActivity, onSelectionHandled, ownerUserId = null, supabase }) {
   const [filterByMode, setFilterByMode] = useState({ decisions: 'current', tasks: 'active' })
   const [items, setItems] = useState([])
@@ -170,13 +137,6 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
   const [detail, setDetail] = useState(null)
   const [detailHistory, setDetailHistory] = useState([])
   const [detailLoading, setDetailLoading] = useState(false)
-  const [todoBundles, setTodoBundles] = useState([])
-  const [todoFilter, setTodoFilter] = useState('active')
-  const [linkedTodoTaskIds, setLinkedTodoTaskIds] = useState(new Set())
-  const [todoEditorOpen, setTodoEditorOpen] = useState(false)
-  const [todoDetail, setTodoDetail] = useState(null)
-  const [savingTodo, setSavingTodo] = useState(false)
-  const [generalTasks, setGeneralTasks] = useState([])
   const [generalEditor, setGeneralEditor] = useState(null)
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [actionRefreshKey, setActionRefreshKey] = useState(0)
@@ -186,27 +146,12 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
   const effectiveMode = mode === 'activity' ? 'tasks' : mode
   const filter = filterByMode[effectiveMode]
 
-  useEffect(() => {
-    if (mode !== 'tasks' || ownerUserId) return
-    Promise.all([fetchTodoBundlePage(supabase, { filter: todoFilter, limit: 20 }), fetchLinkedTodoTaskIds(supabase)])
-      .then(([page, taskIds]) => { setTodoBundles(page.items); setLinkedTodoTaskIds(new Set(taskIds)) })
-      .catch((nextError) => setError(nextError.message ?? 'ToDo 묶음을 불러오지 못했습니다.'))
-  }, [mode, ownerUserId, supabase, todoFilter])
-
-  useEffect(() => {
-    if (mode !== 'tasks' || ownerUserId) return
-    fetchGeneralTaskPage(supabase, { filter: 'active', limit: 100 })
-      .then((page) => setGeneralTasks(page.items))
-      .catch((nextError) => setError(nextError.message ?? '일반 할 일을 불러오지 못했습니다.'))
-  }, [mode, ownerUserId, supabase])
-
   async function saveGeneralAction(draft) {
     setSavingGeneral(true)
     setError('')
     try {
       if (generalEditor === 'task') {
-        const saved = await saveGeneralTask(supabase, { ...draft, idempotencyKey: crypto.randomUUID() })
-        setGeneralTasks((current) => [saved, ...current])
+        await saveGeneralTask(supabase, { ...draft, idempotencyKey: crypto.randomUUID() })
       } else {
         await recordManualActivity(supabase, { ...draft, idempotencyKey: crypto.randomUUID() })
         onRefreshActivity?.()
@@ -222,39 +167,9 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
     setError('')
     try {
       await transitionGeneralTask(supabase, task, 'complete', { occurrenceOn: task.occurrence_on })
-      setGeneralTasks((current) => current.filter((item) => item.id !== task.id))
       setActionRefreshKey((value) => value + 1)
       onRefreshActivity?.()
     } catch (nextError) { setError(nextError.message ?? '할 일을 완료하지 못했습니다.') }
-  }
-
-  async function createTodo(draft) {
-    setSavingTodo(true)
-    setError('')
-    try {
-      const performedAt = draft.completed ? new Date().toISOString() : null
-      const bundle = await saveTodoBundle(supabase, {
-        idempotencyKey: crypto.randomUUID(), title: draft.title, summary: draft.summary,
-        tags: draft.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-        items: [
-          ...draft.items.split('\n').map((title) => title.trim()).filter(Boolean).map((title, sortOrder) => ({
-          kind: 'general', sort_order: sortOrder, title, status: draft.completed ? 'done' : 'open',
-          result: draft.completed ? '완료' : null, performed_at: performedAt,
-          })),
-          ...draft.taskIds.map((taskId, index) => ({ kind: 'task', task_id: taskId, sort_order: 1000 + index })),
-        ],
-      })
-      setTodoBundles((current) => [bundle, ...current])
-      setLinkedTodoTaskIds((current) => new Set([...current, ...draft.taskIds]))
-      setTodoEditorOpen(false)
-    } catch (nextError) {
-      setError(nextError.message ?? 'ToDo 묶음을 저장하지 못했습니다.')
-    } finally { setSavingTodo(false) }
-  }
-
-  async function openTodo(bundleId) {
-    try { setTodoDetail(await fetchTodoBundle(supabase, bundleId)) }
-    catch (nextError) { setError(nextError.message ?? 'ToDo 묶음을 불러오지 못했습니다.') }
   }
 
   function dismissDetail() {
@@ -373,7 +288,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
     scrollPositions.current[mode] = window.scrollY
     onModeChange(nextMode)
   }
-  const displayItems = mode === 'tasks' && !ownerUserId ? items.filter((item) => !linkedTodoTaskIds.has(item.id)) : items
+  const displayItems = items
 
   return (
     <section className="grid gap-5">

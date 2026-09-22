@@ -472,7 +472,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? 'ToDo' : activeTab === 'strategy' ? '투자 원칙' : activeTab === 'news' ? '자료' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
+  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? '행동' : activeTab === 'strategy' ? '투자 원칙' : activeTab === 'news' ? '자료' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
     <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6">

@@ -54,10 +54,10 @@ select extensions.is(public.app_save_todo_bundle('72000000-0000-0000-0000-000000
  '72000000-0000-0000-0000-000000000106','실적 확인',null,'["실적"]',
  '[{"id":"72000000-0000-0000-0000-000000000205","kind":"task","task_id":"72000000-0000-0000-0000-000000000010","sort_order":0}]','[]',null,null,null,'app') #>> '{status}',
  'in_progress','an open research task makes its bundle active');
-select extensions.is(jsonb_array_length(public.app_create_daily_context('Asia/Seoul',null) #> '{snapshot,todo_bundles,items}'),1,
-    'daily context includes the active ToDo bundle summary');
-select extensions.is(jsonb_array_length(public.app_create_daily_context('Asia/Seoul',null) #> '{snapshot,open_tasks,items}'),0,
-    'daily context excludes a task already represented by a ToDo bundle');
+select extensions.is(public.app_create_daily_context('Asia/Seoul',null) #>> '{snapshot,todo_bundles,status}','retired',
+    'daily context declares the legacy ToDo bundle projection retired');
+select extensions.is(jsonb_array_length(public.app_create_daily_context('Asia/Seoul',null) #> '{snapshot,open_tasks,items}'),1,
+    'daily context exposes the linked task through the unified pending task list');
 
 reset role;
 update public.portfolio_tasks set control_state='paused',version=version+1 where id='72000000-0000-0000-0000-000000000010';

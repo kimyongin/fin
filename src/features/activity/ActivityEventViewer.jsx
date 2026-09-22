@@ -19,6 +19,8 @@ const actionLabels = {
   reopen_general_task: '할 일 다시 열기', pause_general_task: '할 일 보류', resume_general_task: '할 일 재개',
   cancel_general_task: '할 일 취소', record_manual_activity: '한 일 기록', verify_holding: '보유 정보 확인',
   link_trade_to_task: '체결과 실행 계획 연결', transition_execution_task: '실행 계획 상태 변경',
+  transition_portfolio_task: '조사 과제 상태 변경', transition_investment_decision: '투자 판단 상태 변경',
+  record_investment_decision: '투자 판단 기록', save_daily_briefing: '일일 점검 저장',
 }
 
 const fieldLabels = {
@@ -99,7 +101,7 @@ function SnapshotCopyButton({ label, snapshot }) {
 function eventTarget(action) {
   const data = eventData(action)
   if (action.action_type === 'bulk_edit_portfolio') return `${data.row_count ?? 0}개 보유내역`
-  return repairMojibake(data.display_name ?? data.name ?? data.ticker ?? data.account_name ?? action.target_table ?? '포트폴리오')
+  return repairMojibake(data.title ?? data.display_name ?? data.name ?? data.ticker ?? data.account_name ?? action.target_table ?? '포트폴리오')
 }
 
 function eventContext(action) {

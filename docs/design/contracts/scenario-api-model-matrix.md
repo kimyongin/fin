@@ -1,6 +1,6 @@
 # 사용자 시나리오 → API → 데이터 변경 점검표
 
-2026-09-21 · 설계와 로컬 구현 최종 대조. API 상세: [일일 점검](./daily-review-api.md), [원칙·판단·실행](./lifecycle-model-api.md). 아래 이름은 구현된 목적 중심 RPC/MCP 또는 유지된 앱 서비스다. 운영 배포·실사용 통과를 뜻하지 않는다.
+2026-09-22 · 설계와 로컬 구현 최종 대조. API 상세: [일일 점검](./daily-review-api.md), [원칙·판단·실행](./lifecycle-model-api.md), [태스크・이벤트](../tasks-and-events.md). 아래 이름은 구현된 목적 중심 RPC/MCP 또는 유지된 앱 서비스다. 운영 배포·실사용 통과를 뜻하지 않는다.
 
 공통 쓰기에는 성공 receipt/감사가 따라간다. 아래 표는 사용자 데이터 변화를 중심으로 표기한다. 사용자의 지시가 없으면 ‘읽기/제안’을 ‘저장/채택’으로 승격하지 않는다.
 
@@ -26,8 +26,12 @@
 | S18 | 거래를 잘못 적었으니 기록 취소 | preview_trade_reversal → reverse_trade_entry | reversal+필요 투영/진행도+audit | 역방향 실제 거래 생성, 이력 삭제 | #38 |
 | S19 | 증권사 실제값은 25주/평균68,000 | preview_holding_reconciliation → reconcile_holding | checkpoint+투영; 명시한 경우 verification | 과거 원장 재입력 강제, 실행 task 완료 | #38/#42 |
 | T03 | 미래에셋 XLS 해석 규칙을 기억하고 다음 대조에서 적용 | list/save/archive_operating_rule → reconciliation guide | operating_rules 현재값/version/이력/보관 | 개인 투자 기준에 혼합, 조회 실패를 규칙 없음으로 간주, 검증 우회 | #70 |
-| T04 | 한 세션의 대조·메모·확인 결과 여러 개를 하나로 기록 | save_todo_bundle → list/get_todo_bundle | todo_bundles/items + 규칙 snapshot + 판단/확인 관계 | 결과마다 독립 완료 레코드 생성, 금융 성공 재실행 | #71 |
-| T05 | 일반 할 일과 기존 조사/실행 과제를 한 묶음에서 이어감 | save/get_todo_bundle + 기존 task 전이 API | 일반 상태는 item, 연결 과제 상태는 기존 원본에서 파생 | task 상태 복제, 묶음 저장으로 과제/보유 변경 | #71 |
+| A01 | 앱에서 값을 변경 | 기존 도메인 저장 API → 서버 자동 이벤트 | 도메인 원본 + activity_events | 별도 완료 기록 요구, 실패/무변경/재시도 중복 이벤트 | #75 |
+| A02 | 일반 할 일을 등록・완료・재개 | save/transition_general_task → list_action_timeline | portfolio_tasks/history + 연결 activity_events | 완료 사실 삭제, 금융 도메인 변경 | #75/#77 |
+| A03 | 사전 할 일 없이 앱 밖에서 한 일을 기록 | record_manual_activity → list_action_timeline | reported activity_event | 금융 성공/검증 사실로 승격 | #75/#77 |
+| A04 | 매일 반복 행동을 오늘 완료하고 내일 다시 수행 | save/transition_general_task(occurrence_on) | task recurrence + occurrence projection + events | 매일 task 행 복제, 다른 이벤트로 완료 추정 | #76 |
+| A05 | 할 일과 한 일을 한 화면에서 확인 | list_action_timeline(filter/date/cursor) | 읽기 전용 통합 projection | 제목/날짜 추정 병합, task 없는 이벤트 누락 | #77 |
+| A06 | 일/주/월 행동 회고를 요청해 저장 | get_activity_report_context → save/list_activity_report | reports/revisions + 원본 ID | 자동 생성, 일간 요약만으로 주・월간 생성 | #78 |
 | S20 | 보정 전 과거 매수를 취소 | preview/reverse_trade_entry | 과거 reversal, 관련 계획 진행도 | 최신 절대 checkpoint 잔고 덮어쓰기 | #38 |
 | S21 | 증권사와 수량만 비교했는데 맞음 | verify_holdings(fields=[quantity]) | verification item+해당 version/value | 평균가까지 확인, 수량/원가 변경 | #42 |
 | T01 | 계좌·종목·보유 메모만 수정 | update_entity_note(expected_note) | 기존 entity.note, receipt, 활동 1건 | 수량·원가·holding state/version·검증 상태 | #69 |
@@ -62,6 +66,6 @@
 
 ## 통과 기준과 판정
 
-로컬 통과: 위 24개 시나리오를 구현 API와 다시 대조했고 범용 CRUD/워크플로 엔진/자동 주문을 추가하지 않았다. 공통 MCP schema 53개 단위 테스트, DB 223개 assertion, 앱 E2E 22개가 통과했다.
+로컬 통과: 기존 투자 시나리오와 A01~A06을 구현 API와 다시 대조했고 범용 CRUD/워크플로 엔진/자동 주문을 추가하지 않았다. 2026-09-22 기준 Vitest 102건, DB 450건, 앱 E2E 33건과 MCP 계약 검사가 통과했다.
 
 외부 게이트: 운영 legacy 행 이관과 RLS 직접 접근 감사, 배포된 OAuth의 ChatGPT 웹·모바일 새 세션, 대규모 응답 시간, 5일 사용성 관찰. 이는 로컬 계약 설계 완료와 구분한다.

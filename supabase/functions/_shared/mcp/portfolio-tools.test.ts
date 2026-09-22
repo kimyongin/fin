@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   actionTaskToolNames,
+  activityReportToolNames,
   dailyReviewToolNames,
   decisionTaskToolNames,
   entityNoteToolNames,
@@ -13,7 +14,6 @@ import {
   productFeedbackToolNames,
   tradeEntryToolNames,
   tradeReversalToolNames,
-  todoBundleToolNames,
   workflowGuideToolNames,
 } from './portfolio-tools.ts'
 import { getWorkflowGuide, renderWorkflowGuideMarkdown, validateWorkflowGuides, workflowGuideTopics } from './workflow-guides.ts'
@@ -31,6 +31,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(dailyReviewToolNames.every((name) => names.includes(name))).toBe(true)
     expect(decisionTaskToolNames.every((name) => names.includes(name))).toBe(true)
     expect(actionTaskToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(activityReportToolNames.every((name) => names.includes(name))).toBe(true)
     expect(entityNoteToolNames.every((name) => names.includes(name))).toBe(true)
     expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
     expect(operatingRuleToolNames.every((name) => names.includes(name))).toBe(true)
@@ -38,7 +39,6 @@ describe('portfolio MCP tool definitions', () => {
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeReversalToolNames.every((name) => names.includes(name))).toBe(true)
-    expect(todoBundleToolNames.every((name) => names.includes(name))).toBe(true)
     expect(productFeedbackToolNames.every((name) => names.includes(name))).toBe(true)
     expect(workflowGuideToolNames.every((name) => names.includes(name))).toBe(true)
   })
@@ -224,19 +224,14 @@ describe('portfolio MCP tool definitions', () => {
     expect(getWorkflowGuide('reconciliation')?.steps[0].tools).toEqual(['list_operating_rules'])
   })
 
-  it('keeps ToDo bundle item updates explicit and separate from task transitions', () => {
-    const list = tool('list_todo_bundles')
-    const save = tool('save_todo_bundle')
-    expect(list.annotations.readOnlyHint).toBe(true)
-    expect(save.annotations.idempotentHint).toBe(true)
-    expect((save.inputSchema as any).required).toContain('remove_item_ids')
-    expect(save.description).toContain('omitted existing items remain')
-    expect(save.description).toContain('their own tools')
-    expect((save.inputSchema as any).properties).not.toHaveProperty('task_action')
+  it('advertises unified action tasks instead of legacy ToDo bundles', () => {
+    const names = portfolioToolDefinitions.map((definition) => definition.name)
+    expect(names).not.toContain('save_todo_bundle')
+    expect(names).not.toContain('list_todo_bundles')
     const guide = getWorkflowGuide('todo')!
-    expect(guide.related_tools).toContain('save_todo_bundle')
-    expect(guide.boundaries.join(' ')).toContain('not an adopted investment decision')
-    expect(guide.recovery.join(' ')).toContain('retry only save_todo_bundle')
+    expect(guide.related_tools).toContain('save_general_task')
+    expect(guide.related_tools).toContain('record_manual_activity')
+    expect(guide.boundaries.join(' ')).toContain('Legacy ToDo bundle tools are no longer advertised')
   })
 
   it('keeps holding theses explicit, scoped, and separate from holdings', () => {

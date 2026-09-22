@@ -2,7 +2,7 @@
 
 > 실행 가능한 description/inputSchema/outputSchema/annotations의 단일 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`다. 이 문서는 제품 의도와 과거 문구의 검토 카탈로그이며, 문구를 런타임 계약으로 복사하거나 현재 제공 기능으로 간주하지 않는다. 실제 제공 상태는 OAuth `tools/list`와 공통 정의의 자동 테스트에서 확인한다.
 
-revision 10 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
+revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
 
 ## 설명 작성 형식
 
@@ -10,7 +10,7 @@ revision 10 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 
 ## 현 OAuth 작업 트리에서 확인한 도구
 
-근거: 공통 도구 정의와 `supabase/functions/portfolio-mcp-oauth/index.ts` handler, 2026-09-21. 로컬 OAuth 종단간 호출을 검증했지만 운영 배포 상태는 아직 검증하지 않았다. prompt/resource 실험 이름은 도구로 세지 않는다. 다른 MCP endpoint 전체 인벤토리를 뜻하지 않는다.
+근거: 공통 도구 정의와 `supabase/functions/portfolio-mcp-oauth/index.ts` handler, 2026-09-22. 로컬 OAuth 종단간 호출을 검증했지만 운영 배포 상태는 아직 검증하지 않았다. prompt/resource 실험 이름은 도구로 세지 않는다. 다른 MCP endpoint 전체 인벤토리를 뜻하지 않는다.
 
 | 이름 / 상태 | description 후보 | 가이드 |
 | --- | --- | --- |
@@ -40,9 +40,14 @@ revision 10 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | list_operating_rules / observed-local | 특정 workflow에 저장된 활성 데이터 관리 규칙을 읽습니다. 빈 목록과 조회 실패를 구분하고 applicability를 실제 입력과 대조합니다. | W06 |
 | save_operating_rule / observed-local | 사용자가 기억하라고 요청한 적용 조건과 처리 규칙을 CAS·멱등 방식으로 저장합니다. 규칙은 금융 검증이나 현재 지시를 우회하지 않습니다. | W06 |
 | archive_operating_rule / observed-local | 더 이상 적용하지 않을 규칙을 이력은 보존한 채 보관합니다. 과거 대조 결과나 보유값은 바꾸지 않습니다. | W06 |
-| list_todo_bundles / observed-local | 여러 세부 항목을 묶은 ToDo를 상태별로 조회합니다. 묶음 상태는 일반 항목과 연결 과제의 현재 상태에서 계산됩니다. | W03/W06 |
-| get_todo_bundle / observed-local | 묶음의 정렬된 항목, 연결 과제, 적용 규칙 snapshot, 판단·확인 관계를 읽습니다. | W03/W06 |
-| save_todo_bundle / observed-local | 사용자 요청에 따라 여러 결과·후속 작업을 한 묶음으로 원자 저장합니다. 생략 항목은 유지하고 명시한 ID만 제거하며 과제 상태나 금융 기록은 대신 변경하지 않습니다. | W03/W06 |
+| list_general_tasks / observed-local | 본인의 일반 할 일을 상태별로 읽습니다. 조사・실행 과제나 이미 수행한 이벤트 목록을 대신하지 않습니다. | A02,A04 |
+| get_general_task / observed-local | 일반 할 일의 현재 상태와 보존된 이력을 읽습니다. 조회로 회차를 완료하거나 재개하지 않습니다. | A02,A04 |
+| save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 저장합니다. 이미 수행된 일이나 금융 사실은 만들지 않습니다. | A02,A04 |
+| transition_general_task / observed-local | 현재 version과 회차 날짜를 확인해 일반 할 일을 완료・재개・보류・종료하고 연결 이벤트를 한 번만 남깁니다. 같은 일을 manual activity로 중복 기록하지 않습니다. | A02,A04 |
+| record_manual_activity / observed-local | 사전 task 없이 앱 밖에서 이미 수행한 일을 사용자의 명시적 요청으로 기록합니다. 잔고・체결・검증 같은 금융 원본은 바꾸거나 증명하지 않습니다. | A03 |
+| get_activity_report_context / observed-local | 지정 기간의 성공 행동 원본을 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |
+| list_activity_reports / observed-local | 저장된 일간·주간·월간 활동 리포트와 새 원본 발생에 따른 재생성 필요 상태를 조회합니다. | A06 |
+| save_activity_report / observed-local | 사용자가 요청한 기간 회고를 원본 event/task/decision ID와 함께 버전 저장합니다. 자동 생성이나 투자 행동 기록은 만들지 않습니다. | A06 |
 | get_holding_thesis / observed-local | 종목 공통 보유 이유와 선택한 계좌의 재정의, 실제 적용 출처와 version을 읽습니다. 기존 메모나 미입력 이유를 추론하지 않습니다. | W02 |
 | save_holding_thesis / observed-local | 사용자가 명시적으로 저장/변경한 종목 공통 또는 계좌별 보유 이유만 현재 version과 함께 수정합니다. 메모·잔고·체결·판단·할 일은 변경하지 않습니다. | W02 |
 | link_task_to_holding_thesis / observed-local | 현재 version을 읽은 보유 이유와 할 일을 연결만 합니다. 이유·할 일 상태·잔고·체결은 변경하지 않습니다. | W02,W04 |
@@ -73,9 +78,9 @@ revision 10 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 
 ## 선택적 가이드 도구 계약안 — 구현 이력
 
-2026-09-21: 아래 최초 계약안은 [현재 설계](./workflow-guide-design.md)와 #63~#65로 구체화했다. 로컬 0.6.0 tools/list에는 여기에 product_feedback을 더한 일곱 topic이 등록되어 있다. 운영 배포와 모델 평가는 남아 있으며 아래 문구는 과거 검토 기록이다.
+2026-09-21: 아래 최초 계약안은 [현재 설계](./workflow-guide-design.md)와 #63~#65로 구체화했다. 2026-09-22 로컬 registry에는 product_feedback과 activity_report를 포함한 아홉 topic이 등록되어 있다. 운영 배포와 모델 평가는 남아 있으며 아래 문구는 과거 검토 기록이다.
 
-`get_workflow_guide` / observed-local / read-only: topic은 daily_review, policy, holding_thesis, decision_followup, trade_entry, reconciliation, todo, product_feedback 중 하나. 출력은 guide_id/revision, 실제 사용 가능한 도구에 한정한 steps, 금지 부수 효과, 오류 후 다음 행동, unavailable_steps다. 사용자별 데이터나 저장 기능이 없다. unknown topic은 validation_error.
+`get_workflow_guide` / observed-local / read-only: topic은 daily_review, policy, holding_thesis, decision_followup, trade_entry, reconciliation, todo, activity_report, product_feedback 중 하나. 출력은 guide_id/revision, 실제 사용 가능한 도구에 한정한 steps, 금지 부수 효과, 오류 후 다음 행동, unavailable_steps다. 사용자별 데이터나 저장 기능이 없다. unknown topic은 validation_error.
 
 설명 후보: ‘여러 단계가 필요한 Portfolio 작업의 사용 순서와 주의점을 읽습니다. 간단한 조회마다 호출할 필요는 없습니다. 가이드는 기능을 실행하거나 사용자 승인을 대신하지 않습니다.’
 

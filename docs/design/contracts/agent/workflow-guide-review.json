@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Added source-complete activity report tools and a dedicated on-request reporting workflow; legacy todo guidance remains scheduled for the final transition.",
+  "review_reason": "Aligned the unified action workflow scenario IDs and source references with the implemented task/event design.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
-      "contract_digest": "fe1bdc52f7ad6f9f0ebe72dbd137424dae7c401ca267227fad22ab5e0aec791a"
+      "contract_digest": "4aec0ac8910cf694f81091573818f06e33246f98da94bc71becf68167ca11ce0"
     },
     "holding_thesis": {
       "revision": "fnv1a32:62ae4aff",
-      "contract_digest": "791def74c4bcc67d78d3a6689ad1d31cdfbe27fc29072cb6e27c0e886c441cdc"
+      "contract_digest": "da65d8f8e3e10b9e010eb1630197b1551b672878a995ff768ef9f38d7ab9dd23"
     },
     "daily_review": {
-      "revision": "fnv1a32:a7592e1e",
-      "contract_digest": "297034e41ac42e774a432208159b216fa2e303b8aaf2c42becb12bb99b48ceca"
+      "revision": "fnv1a32:6d145d21",
+      "contract_digest": "e7b22cd106cb5f6f6421896aee2b844d33583a6286cc0bfef294cac9ca42859c"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "700a33359a37e59f75e9a130bac556f044fc917909a7231a6931dc6587842b3e"
+      "contract_digest": "925d00d7814b35c10538a47c7a1ec74b36c8db51fb4ce471beb3bf9a6efbc55c"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "23b12d5e38e67b6fc93172b53a93f1a57e4cefd8fc63ff15338b74718fc63c3c"
+      "contract_digest": "2d541d5b01b462bca5fe24854565ffe17869e4af705eab9abfc49abd5d0678c2"
     },
     "reconciliation": {
-      "revision": "fnv1a32:74b7b215",
-      "contract_digest": "6eaea8eceb04d22faddc3d793b5712d334d50ed519c72602ac149862fb594da3"
+      "revision": "fnv1a32:f69d58bf",
+      "contract_digest": "4dbeaf265506eb35a8bd77aee1720082222059e66f21e2fb121fbd749e9fd7b3"
     },
     "todo": {
-      "revision": "fnv1a32:0d4e9e91",
-      "contract_digest": "a1d759f69a308a54ffb6a2d8b8fdcff4240c553d5e43a7397280da6fd2ed226b"
+      "revision": "fnv1a32:b9e9b5fd",
+      "contract_digest": "a2dbc6bbabc7ab4506c195c6950360e7d1300b3361c8c468b19a1dc53809e28b"
     },
     "activity_report": {
       "revision": "fnv1a32:224df9ef",
-      "contract_digest": "e7021fe424d7a6a1d6664255a4f3545af937ab29d5d0eed7bd88b52469b52a60"
+      "contract_digest": "31d21a6208ff9f80e3222ef61b8c4ef2c2eb8a0d0951c3d49c6f944ea09d4ea3"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "77cef6237849c62085298f864bb5fa94600ccdc15c2ff14260bcaae893cf3e68"
+      "contract_digest": "07a484bad1b88c59499b2dc13ad9796db65f4624cba56408eedf56f1e36ade90"
     }
   }
 }
