@@ -849,6 +849,57 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: idempotentWriteAnnotations,
   },
   {
+    name: 'list_operating_rules',
+    title: 'List saved operating rules',
+    description: 'Read the owner-only current data-handling rules for one workflow before interpreting an external file or reconciling records. An empty rules array means no rule is saved; a tool error must not be treated as an empty result. Applicability text describes when a rule applies and must be checked against the actual input.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workflow_key: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,99}$' },
+        include_archived: { type: 'boolean', default: false },
+      },
+      required: ['workflow_key'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'save_operating_rule',
+    title: 'Save a data-handling rule',
+    description: 'Create or revise an owner-only operating rule only when the user explicitly asks Portfolio to remember it. Read the workflow rules first, use the current version for edits, and save applicability separately from the rule body. A rule guides interpretation but never bypasses validation, permissions, or the user\'s current instruction.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 }, rule_id: { type: ['string', 'null'], format: 'uuid' },
+        expected_version: { type: ['integer', 'null'], minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
+        title: { type: 'string', minLength: 1, maxLength: 200 }, workflow_key: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,99}$' },
+        applicability: { type: 'string', minLength: 1, maxLength: 2000 }, body: { type: 'string', minLength: 1, maxLength: 10000 },
+        change_reason: { type: 'string', minLength: 1, maxLength: 1000 },
+      },
+      required: ['schema_version', 'rule_id', 'expected_version', 'idempotency_key', 'title', 'workflow_key', 'applicability', 'body', 'change_reason'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'archive_operating_rule',
+    title: 'Archive an operating rule',
+    description: 'Archive an obsolete owner-only operating rule after reading its current version and confirming the user no longer wants it applied. Archiving preserves history and does not modify holdings, prior reconciliations, or other investment principles.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 }, rule_id: { type: 'string', format: 'uuid' }, expected_version: { type: 'integer', minimum: 1 },
+        idempotency_key: { type: 'string', format: 'uuid' }, reason: { type: 'string', minLength: 1, maxLength: 1000 },
+      },
+      required: ['schema_version', 'rule_id', 'expected_version', 'idempotency_key', 'reason'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
     name: 'get_holding_thesis',
     title: 'Holding thesis',
     description: 'Read the explicitly saved reason for holding one instrument. With account_id, returns both the instrument-wide base and any account override, plus the applied source. Missing fields remain unknown and instrument or holding notes are separate.',
@@ -1010,6 +1061,12 @@ export const decisionTaskToolNames = [
 export const investmentPolicyToolNames = [
   'get_investment_policy',
   'save_investment_policy',
+] as const
+
+export const operatingRuleToolNames = [
+  'list_operating_rules',
+  'save_operating_rule',
+  'archive_operating_rule',
 ] as const
 
 export const holdingThesisToolNames = [

@@ -232,14 +232,16 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     guide_id: 'portfolio.reconciliation',
     purpose: 'Choose the correct operation for an absolute balance correction, cancellation of a wrong local trade record, or a field-scoped brokerage comparison.',
     scenario_ids: ['W06', 'W08', 'S18', 'S19', 'S20', 'S21', 'S22'],
-    related_tools: ['find_holdings', 'get_holding_integrity', 'get_portfolio_integrity', 'preview_holding_reconciliation', 'reconcile_holding', 'list_transactions', 'preview_trade_reversal', 'reverse_trade_entry', 'verify_holdings'],
+    related_tools: ['list_operating_rules', 'find_holdings', 'get_holding_integrity', 'get_portfolio_integrity', 'preview_holding_reconciliation', 'reconcile_holding', 'list_transactions', 'preview_trade_reversal', 'reverse_trade_entry', 'verify_holdings'],
     source_paths: [
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/202609210011_reconciliation_and_verification.sql',
       'supabase/migrations/202609210012_trade_reversal.sql',
+      'supabase/migrations/20260922042127_operating_rules.sql',
     ],
     steps: [
+      { id: 'read-rules', title: 'Read saved reconciliation rules', instruction: 'Call list_operating_rules with workflow_key reconciliation before interpreting a brokerage file. Check each applicability statement against the actual file. An empty list and a failed read are different; never guess a saved convention after a read failure.', tools: ['list_operating_rules'] },
       { id: 'classify-operation', title: 'Classify the correction', instruction: 'Use reconciliation for actual current values, reversal for a wrong Portfolio trade record, and verification when the current values are already correct and the user only compared named fields with the brokerage.', tools: [] },
       { id: 'resolve-and-read', title: 'Resolve and inspect the holding', instruction: 'Use find_holdings when needed, then read holding or portfolio integrity. For a reversal, use list_transactions to identify the exact local trade.', tools: ['find_holdings', 'get_holding_integrity', 'get_portfolio_integrity', 'list_transactions'] },
       { id: 'preview-correction', title: 'Preview an absolute correction', instruction: 'Call preview_holding_reconciliation with the actual values and explicitly compared fields. Explain that it establishes a new checkpoint and is not a trade.', tools: ['preview_holding_reconciliation'] },
@@ -252,6 +254,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'A reconciliation is an absolute local checkpoint, not a synthetic trade.',
       'A reversal invalidates a Portfolio record; it does not cancel a brokerage order or create an opposite real trade.',
       'Verification records only fields the user explicitly compared and never changes balance values.',
+      'Saved operating rules guide file interpretation but cannot override current user instructions, ownership checks, financial validation, or an explicit conflict in the input.',
       'A trade before the latest correction checkpoint may be reversed without changing the current holding.',
     ],
     recovery: [

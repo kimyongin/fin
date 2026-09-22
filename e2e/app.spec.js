@@ -301,6 +301,38 @@ test('saves a private investment policy and includes its version in daily contex
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
+test('creates, revises, and archives a reconciliation operating rule', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+  await openMenuTab(page, '원칙')
+
+  await page.getByRole('button', { name: '규칙 추가' }).click()
+  await page.getByLabel('규칙 이름').fill('미래에셋 XLS 잔고')
+  await page.getByLabel('언제 적용하나요?').fill('미래에셋 국내주식 잔고 XLS')
+  await page.getByLabel('어떻게 해석하나요?').fill('평균가는 매입금액을 수량으로 나눈다.')
+  await page.getByLabel('변경 이유').fill('반복할 데이터 해석 기준을 저장합니다.')
+  await page.getByRole('button', { name: '규칙 저장' }).click()
+
+  const ruleCard = page.locator('section').filter({ hasText: '미래에셋 XLS 잔고' }).first()
+  await expect(ruleCard.getByText('평균가는 매입금액을 수량으로 나눈다.')).toBeVisible()
+  await ruleCard.getByRole('button', { name: '편집' }).click()
+  await page.getByLabel('어떻게 해석하나요?').fill('매입금액과 평가금액을 구분하고 수량 0은 계산하지 않는다.')
+  await page.getByLabel('변경 이유').fill('0수량과 금액 열의 의미를 명확히 합니다.')
+  await page.getByRole('button', { name: '규칙 저장' }).click()
+  await expect(ruleCard.getByText('매입금액과 평가금액을 구분하고 수량 0은 계산하지 않는다.')).toBeVisible()
+  await expect(ruleCard.getByText('v2')).toBeVisible()
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await ruleCard.getByRole('button', { name: '보관' }).click()
+  await expect(page.getByText('미래에셋 XLS 잔고')).toHaveCount(0)
+  const archived = await callRpc(page, 'app_list_operating_rules', {
+    input_workflow_key: 'reconciliation', input_include_archived: true,
+  })
+  expect(archived.status, JSON.stringify(archived.body)).toBe(200)
+  expect(archived.body.rules[0]).toMatchObject({ status: 'archived', version: 3 })
+})
+
 test('saves an instrument holding thesis and includes it in daily context', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')

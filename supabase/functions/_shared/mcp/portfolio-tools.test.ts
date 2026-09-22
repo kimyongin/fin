@@ -7,6 +7,7 @@ import {
   holdingThesisToolNames,
   holdingIntegrityToolNames,
   investmentPolicyToolNames,
+  operatingRuleToolNames,
   portfolioToolDefinitions,
   productFeedbackToolNames,
   tradeEntryToolNames,
@@ -29,6 +30,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(decisionTaskToolNames.every((name) => names.includes(name))).toBe(true)
     expect(entityNoteToolNames.every((name) => names.includes(name))).toBe(true)
     expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(operatingRuleToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingThesisToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
@@ -194,6 +196,19 @@ describe('portfolio MCP tool definitions', () => {
     expect((save.inputSchema as any).properties.expected_version.type).toEqual(['integer', 'null'])
     expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('mode')
     expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('target_percentage')
+  })
+
+  it('models operating rules as owner-only workflow guidance rather than investment policy', () => {
+    const list = tool('list_operating_rules')
+    const save = tool('save_operating_rule')
+    const archive = tool('archive_operating_rule')
+    expect(list.annotations.readOnlyHint).toBe(true)
+    expect(list.description).toContain('tool error')
+    expect(save.annotations.idempotentHint).toBe(true)
+    expect((save.inputSchema as any).required).toContain('applicability')
+    expect((save.inputSchema as any).properties).not.toHaveProperty('risk_tolerance_text')
+    expect(archive.annotations.idempotentHint).toBe(true)
+    expect(getWorkflowGuide('reconciliation')?.steps[0].tools).toEqual(['list_operating_rules'])
   })
 
   it('keeps holding theses explicit, scoped, and separate from holdings', () => {

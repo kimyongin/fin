@@ -3,10 +3,13 @@ import MarkdownContent from "../../components/MarkdownContent";
 import ModalShell from "../../components/ModalShell";
 import { formatKrw, formatPercent } from "../../lib/format";
 import {
+  archiveOperatingRule,
   createEmptyStrategyState,
   fetchInvestmentPolicy,
+  fetchOperatingRules,
   fetchStrategyState,
   saveInvestmentPolicy,
+  saveOperatingRule,
   saveStrategy,
 } from "./data";
 
@@ -670,6 +673,94 @@ function InvestmentPolicyCard({ onEdit, profile }) {
   );
 }
 
+function OperatingRuleModal({ onClose, onSave, rule, saving }) {
+  const [draft, setDraft] = useState(() => ({
+    title: rule?.title ?? "",
+    applicability: rule?.applicability ?? "",
+    body: rule?.body ?? "",
+    changeReason: "",
+  }));
+  const field = (key, label, placeholder, rows = 3) => (
+    <label className="grid gap-1.5">
+      <span className="text-xs text-[var(--muted-ink)]">{label}</span>
+      <textarea
+        className={`${inputClass()} resize-y`}
+        onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
+        placeholder={placeholder}
+        rows={rows}
+        value={draft[key]}
+      />
+    </label>
+  );
+  const valid = draft.title.trim() && draft.applicability.trim() && draft.body.trim() && draft.changeReason.trim();
+  return (
+    <ModalShell onClose={onClose} title={rule ? "데이터 관리 규칙 편집" : "데이터 관리 규칙 추가"}>
+      <div className="grid gap-4">
+        <p className="text-sm leading-6 text-[var(--muted-ink)]">
+          현재는 잔고 대조에 적용됩니다. 적용 조건과 처리 방법을 나눠 적으면 ChatGPT가 실제 파일과 대조할 수 있습니다.
+        </p>
+        <label className="grid gap-1.5">
+          <span className="text-xs text-[var(--muted-ink)]">규칙 이름</span>
+          <input className={inputClass()} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} />
+        </label>
+        {field("applicability", "언제 적용하나요?", "예: 미래에셋 HTS에서 내려받은 국내주식 잔고 XLS", 2)}
+        {field("body", "어떻게 해석하나요?", "예: 평균가가 없으면 매입금액을 수량으로 나누되, 수량이 0이면 계산하지 않는다.", 5)}
+        <label className="grid gap-1.5">
+          <span className="text-xs text-[var(--muted-ink)]">변경 이유</span>
+          <input className={inputClass()} onChange={(event) => setDraft({ ...draft, changeReason: event.target.value })} value={draft.changeReason} />
+        </label>
+        <div className="flex justify-end gap-2">
+          <button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button>
+          <button
+            className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            disabled={!valid || saving}
+            onClick={() => onSave(draft)}
+            type="button"
+          >
+            {saving ? "저장 중" : "규칙 저장"}
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+function OperatingRulesCard({ onAdd, onArchive, onEdit, rules }) {
+  return (
+    <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">데이터 관리 규칙</h2>
+          <p className="mt-1 text-sm text-[var(--muted-ink)]">파일과 앱 데이터를 대조할 때 반복해서 사용할 해석 기준입니다.</p>
+        </div>
+        <button className="shrink-0 rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={onAdd} type="button">규칙 추가</button>
+      </div>
+      {rules.length === 0 ? (
+        <p className="mt-4 text-sm text-[var(--muted-ink)]">저장된 규칙이 없습니다. 규칙이 없어도 잔고 대조는 사용할 수 있습니다.</p>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {rules.map((rule) => (
+            <section className="rounded-2xl bg-[var(--surface-2)] p-4" key={rule.id}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold">{rule.title}</h3>
+                  <p className="mt-1 text-xs text-[var(--muted-ink)]">적용 조건 · {rule.applicability}</p>
+                </div>
+                <span className="text-xs text-[var(--muted-ink)]">v{rule.version}</span>
+              </div>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{rule.body}</p>
+              <div className="mt-3 flex gap-2">
+                <button className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs" onClick={() => onEdit(rule)} type="button">편집</button>
+                <button className="rounded-lg px-3 py-1.5 text-xs text-[var(--muted-ink)] hover:text-red-300" onClick={() => onArchive(rule)} type="button">보관</button>
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
 function StrategyDashboard({
   canEdit,
   onEdit,
@@ -980,27 +1071,33 @@ export default function StrategyPage({
     createEmptyStrategyState(),
   );
   const [policy, setPolicy] = useState(null);
+  const [operatingRules, setOperatingRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
   const [editingMode, setEditingMode] = useState(false);
   const [editingPrinciples, setEditingPrinciples] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState(false);
+  const [editingRule, setEditingRule] = useState(undefined);
   const [draft, setDraft] = useState(emptyDraft());
   const [saving, setSaving] = useState(false);
   const [savingPolicy, setSavingPolicy] = useState(false);
+  const [savingRule, setSavingRule] = useState(false);
   const policySaveAttempt = useRef(null);
+  const ruleSaveAttempt = useRef(null);
   useEffect(() => {
     let active = true;
     setLoading(true);
     Promise.all([
       fetchStrategyState(supabase, ownerUserId),
       canEdit ? fetchInvestmentPolicy(supabase) : Promise.resolve(null),
+      canEdit ? fetchOperatingRules(supabase, "reconciliation") : Promise.resolve([]),
     ])
-      .then(([next, nextPolicy]) => {
+      .then(([next, nextPolicy, nextRules]) => {
         if (!active) return;
         setStrategyState(next);
         setPolicy(nextPolicy);
+        setOperatingRules(nextRules);
         setDraft(next.strategy ? createDraft(next) : emptyDraft());
         setEditing(false);
       })
@@ -1051,6 +1148,43 @@ export default function StrategyPage({
       setSavingPolicy(false);
     }
   }
+  async function persistRule(ruleDraft) {
+    setSavingRule(true);
+    setError("");
+    const signature = JSON.stringify({ id: editingRule?.id ?? null, version: editingRule?.version ?? null, ...ruleDraft });
+    if (ruleSaveAttempt.current?.signature !== signature) ruleSaveAttempt.current = { signature, key: crypto.randomUUID() };
+    try {
+      const nextRule = await saveOperatingRule(supabase, {
+        id: editingRule?.id ?? null,
+        expectedVersion: editingRule?.version ?? null,
+        idempotencyKey: ruleSaveAttempt.current.key,
+        title: ruleDraft.title,
+        workflowKey: "reconciliation",
+        applicability: ruleDraft.applicability,
+        body: ruleDraft.body,
+        changeReason: ruleDraft.changeReason,
+      });
+      setOperatingRules((current) => [nextRule, ...current.filter((item) => item.id !== nextRule.id)]);
+      ruleSaveAttempt.current = null;
+      setEditingRule(undefined);
+    } catch (nextError) {
+      setError(nextError.message ?? "데이터 관리 규칙을 저장하지 못했습니다.");
+    } finally {
+      setSavingRule(false);
+    }
+  }
+  async function archiveRule(rule) {
+    if (!window.confirm(`“${rule.title}” 규칙을 보관할까요?`)) return;
+    setError("");
+    try {
+      await archiveOperatingRule(supabase, {
+        id: rule.id, expectedVersion: rule.version, idempotencyKey: crypto.randomUUID(), reason: "앱에서 규칙을 보관했습니다.",
+      });
+      setOperatingRules((current) => current.filter((item) => item.id !== rule.id));
+    } catch (nextError) {
+      setError(nextError.message ?? "데이터 관리 규칙을 보관하지 못했습니다.");
+    }
+  }
   if (loading)
     return (
       <p className="mt-8 text-sm text-[var(--muted-ink)]">
@@ -1097,10 +1231,15 @@ export default function StrategyPage({
         </button>
       )}
       {canEdit && section !== "allocation" && (
-        <InvestmentPolicyCard
-          onEdit={() => setEditingPolicy(true)}
-          profile={policy}
-        />
+        <>
+          <InvestmentPolicyCard onEdit={() => setEditingPolicy(true)} profile={policy} />
+          <OperatingRulesCard
+            onAdd={() => setEditingRule(null)}
+            onArchive={archiveRule}
+            onEdit={setEditingRule}
+            rules={operatingRules}
+          />
+        </>
       )}
       {error && (
         <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
@@ -1163,6 +1302,14 @@ export default function StrategyPage({
           onSave={persistPolicy}
           profile={policy}
           saving={savingPolicy}
+        />
+      )}
+      {editingRule !== undefined && (
+        <OperatingRuleModal
+          onClose={() => setEditingRule(undefined)}
+          onSave={persistRule}
+          rule={editingRule}
+          saving={savingRule}
         />
       )}
     </div>

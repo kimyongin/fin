@@ -57,3 +57,40 @@ export async function saveInvestmentPolicy(supabase, {
   if (error) throw error
   return data?.profile ?? null
 }
+
+export async function fetchOperatingRules(supabase, workflowKey = null, includeArchived = false) {
+  const { data, error } = await supabase.rpc('app_list_operating_rules', {
+    input_workflow_key: workflowKey,
+    input_include_archived: includeArchived,
+  })
+  if (error) throw error
+  return data?.rules ?? []
+}
+
+export async function saveOperatingRule(supabase, rule) {
+  const { data, error } = await supabase.rpc('app_save_operating_rule', {
+    input_rule_id: rule.id ?? null,
+    input_expected_version: rule.expectedVersion ?? null,
+    input_idempotency_key: rule.idempotencyKey,
+    input_title: rule.title.trim(),
+    input_workflow_key: rule.workflowKey,
+    input_applicability: rule.applicability.trim(),
+    input_body: rule.body.trim(),
+    input_change_reason: rule.changeReason.trim(),
+    input_authored_via: 'app',
+  })
+  if (error) throw error
+  return data?.rule
+}
+
+export async function archiveOperatingRule(supabase, rule) {
+  const { data, error } = await supabase.rpc('app_archive_operating_rule', {
+    input_rule_id: rule.id,
+    input_expected_version: rule.expectedVersion,
+    input_idempotency_key: rule.idempotencyKey,
+    input_reason: rule.reason.trim(),
+    input_authored_via: 'app',
+  })
+  if (error) throw error
+  return data?.rule
+}

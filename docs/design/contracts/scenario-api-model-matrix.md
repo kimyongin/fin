@@ -25,6 +25,7 @@
 | S17 | 6주 체결 뒤 남은 계획 취소 | transition_task(cancel) | control_state cancelled/history, 진행6주 보존 | 실제 6주 체결 취소/잔고 복구 | #35 |
 | S18 | 거래를 잘못 적었으니 기록 취소 | preview_trade_reversal → reverse_trade_entry | reversal+필요 투영/진행도+audit | 역방향 실제 거래 생성, 이력 삭제 | #38 |
 | S19 | 증권사 실제값은 25주/평균68,000 | preview_holding_reconciliation → reconcile_holding | checkpoint+투영; 명시한 경우 verification | 과거 원장 재입력 강제, 실행 task 완료 | #38/#42 |
+| T03 | 미래에셋 XLS 해석 규칙을 기억하고 다음 대조에서 적용 | list/save/archive_operating_rule → reconciliation guide | operating_rules 현재값/version/이력/보관 | 개인 투자 기준에 혼합, 조회 실패를 규칙 없음으로 간주, 검증 우회 | #70 |
 | S20 | 보정 전 과거 매수를 취소 | preview/reverse_trade_entry | 과거 reversal, 관련 계획 진행도 | 최신 절대 checkpoint 잔고 덮어쓰기 | #38 |
 | S21 | 증권사와 수량만 비교했는데 맞음 | verify_holdings(fields=[quantity]) | verification item+해당 version/value | 평균가까지 확인, 수량/원가 변경 | #42 |
 | T01 | 계좌·종목·보유 메모만 수정 | update_entity_note(expected_note) | 기존 entity.note, receipt, 활동 1건 | 수량·원가·holding state/version·검증 상태 | #69 |
