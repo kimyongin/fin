@@ -369,6 +369,9 @@ test('creates and completes a general task while keeping manual work as activity
   await activityDialog.getByRole('textbox', { name: '한 일', exact: true }).fill(activityTitle)
   await activityDialog.getByLabel('결과 또는 메모').fill('증권사 기준을 확인함')
   await activityDialog.getByLabel('활동 종류 (선택)').selectOption('research')
+  await activityDialog.getByLabel('확인한 범위').fill('보유 종목 공시')
+  await activityDialog.getByLabel('출처 제목').fill('공식 공시')
+  await activityDialog.getByLabel('출처 URL').fill('https://example.com/disclosure')
   await activityDialog.getByRole('button', { name: '저장', exact: true }).click()
   await expect(activityDialog).toBeHidden()
   const events = await callRpc(page, 'app_list_recent_activity', { limit_count: 100, input_owner_user_id: null })
@@ -379,6 +382,7 @@ test('creates and completes a general task while keeping manual work as activity
   const detail = await callRpc(page, 'app_get_activity', { input_activity_id: manualEvent.id, input_owner_user_id: null })
   expect(detail.status, JSON.stringify(detail.body)).toBe(200)
   expect(detail.body.record_kind).toBe('research')
+  expect(detail.body.after_data.context).toMatchObject({ scope: '보유 종목 공시', sources: [{ title: '공식 공시', url: 'https://example.com/disclosure' }] })
 
   const repeatingTitle = `E2E 종료할 반복 ${Date.now()}`
   await page.getByRole('button', { name: '활동 추가', exact: true }).click()

@@ -44,8 +44,9 @@ function taskStatusLabel(task) {
 
 function GeneralActionModal({ kind, onClose, onKindChange, onSave, onTagsChanged, saving, supabase, tags }) {
   const today = new Date().toLocaleDateString('en-CA')
-  const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', category: 'general', tagIds: [] })
+  const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', category: 'general', scope: '', sourceTitle: '', sourceUrl: '', tagIds: [] })
   const isTask = kind === 'task'
+  const sourceComplete = (!draft.sourceTitle.trim() && !draft.sourceUrl.trim()) || Boolean(draft.sourceTitle.trim() && /^https?:\/\/\S+$/i.test(draft.sourceUrl.trim()))
 
   function setAlreadyDone(checked) {
     if (checked) {
@@ -54,6 +55,21 @@ function GeneralActionModal({ kind, onClose, onKindChange, onSave, onTagsChanged
       return
     }
     onKindChange('task')
+  }
+
+  function submit() {
+    const scope = draft.scope.trim()
+    const sourceUrl = draft.sourceUrl.trim()
+    const context = !isTask && (scope || sourceUrl) ? {
+      ...(scope ? { scope } : {}),
+      ...(sourceUrl ? { sources: [{ title: draft.sourceTitle.trim(), url: sourceUrl }] } : {}),
+    } : null
+    onSave({
+      ...draft,
+      context,
+      dueDate: isTask && draft.recurrenceKind !== 'daily' ? draft.scheduleDate : '',
+      recurrenceStartOn: isTask && draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : null,
+    })
   }
 
   return <ModalShell onClose={onClose} title="활동 추가">
@@ -71,8 +87,9 @@ function GeneralActionModal({ kind, onClose, onKindChange, onSave, onTagsChanged
       {isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{draft.recurrenceKind === 'daily' ? '반복 시작일' : '예정일'}</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, scheduleDate: event.target.value })} type="date" value={draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : draft.scheduleDate} /></label>}
       {!isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">수행일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" max={today} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
       {!isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">활동 종류 (선택)</span><select className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, category: event.target.value })} value={draft.category}><option value="general">일반</option><option value="research">조사</option><option value="review">점검</option><option value="decision">판단</option><option value="retrospective">회고</option></select></label>}
+      {!isTask && <section className="grid gap-3 rounded-2xl border border-[var(--line)] p-3"><p className="text-xs text-[var(--muted-ink)]">조사 범위와 출처 (선택)</p><label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">확인한 범위</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" maxLength={2000} onChange={(event) => setDraft({ ...draft, scope: event.target.value })} placeholder="예: 보유 종목의 오늘 공시" value={draft.scope} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">출처 제목</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" maxLength={300} onChange={(event) => setDraft({ ...draft, sourceTitle: event.target.value })} value={draft.sourceTitle} /></label><label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">출처 URL</span><input className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" maxLength={2000} onChange={(event) => setDraft({ ...draft, sourceUrl: event.target.value })} placeholder="https://" type="url" value={draft.sourceUrl} /></label></div>{!sourceComplete && <p className="text-xs text-red-200">출처 제목과 http(s) URL을 함께 입력하세요.</p>}</section>}
       <ActivityTagPicker disabled={saving} onChange={(tagIds) => setDraft({ ...draft, tagIds })} onTagsChanged={(nextTags, tagIds) => { onTagsChanged(nextTags); setDraft((current) => ({ ...current, tagIds })) }} selectedIds={draft.tagIds} supabase={supabase} tags={tags} />
-      <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!draft.title.trim() || saving} onClick={() => onSave({ ...draft, dueDate: isTask && draft.recurrenceKind !== 'daily' ? draft.scheduleDate : '', recurrenceStartOn: isTask && draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : null })} type="button">{saving ? '저장 중' : '저장'}</button></div>
+      <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!draft.title.trim() || saving || !sourceComplete} onClick={submit} type="button">{saving ? '저장 중' : '저장'}</button></div>
     </div>
   </ModalShell>
 }
