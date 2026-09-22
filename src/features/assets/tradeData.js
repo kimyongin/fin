@@ -34,13 +34,3 @@ export async function listTransactionPage(supabase, { accountId = null, cursor =
 export async function listTransactions(supabase, filters = {}) {
   return (await listTransactionPage(supabase, filters)).items
 }
-export async function previewTradeReversal(supabase,tradeId,reason){const{data,error}=await supabase.rpc('app_preview_trade_reversal',{input_trade_id:tradeId,input_reason:reason.trim()});if(error)throw error;return data}
-export async function confirmTradeReversal(supabase, previewId, idempotencyKey) {
-  const { data, error } = await supabase.rpc('app_reverse_trade_entry', {
-    input_preview_id: previewId,
-    input_idempotency_key: idempotencyKey,
-    input_authored_via: 'app',
-  })
-  if (error) throw error
-  return data
-}

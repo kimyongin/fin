@@ -64,8 +64,8 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | preview_holding_reconciliation / observed-local | 사용자가 제시한 실제 현재값으로 시장형/평가형/현금성 잔고를 바꿀 영향을 미리 계산합니다. 아직 값을 바꾸거나 확인 완료로 기록하지 않습니다. | W06 |
 | reconcile_holding / observed-local | 사용자가 확인한 최신 preview를 절대 기준점으로 저장합니다. 거래를 만들지 않고 명시한 필드만 선택적으로 실제 확인 기록에 포함합니다. | W06 |
 | verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드와 선택적 확인 메모를 기록합니다. 저장 결과와 최신 integrity 조회에서 메모·작성 경로를 다시 읽습니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
-| preview_trade_reversal / observed-local | 잘못 기록한 체결 취소의 후속 잔고 영향을 계산합니다. 보정 이전 거래이면 현재 잔고 영향이 없을 수 있습니다. 아직 취소하지 않습니다. | W06 |
-| reverse_trade_entry / observed-local | 확인된 preview로 기존 체결 기록을 무효화하고 필요한 잔고를 갱신합니다. 증권사 주문 취소나 반대 방향 실제 매매가 아니며 원본 이력은 보존합니다. | W06 |
+| preview_trade_reversal / retired-from-MCP | 과거 취소 미리보기 도구. 신규 MCP 목록과 호출 처리에서 제거했다. 구 DB RPC는 이관 대조 후 정리한다. | W06 |
+| reverse_trade_entry / retired-from-MCP | 과거 체결 취소 도구. 신규 MCP 목록과 호출 처리에서 제거했다. 오류는 증권사 현재값 확인 후 보정한다. | W06 |
 | save_execution_task / observed-local | 사용자가 명시적으로 기억해 달라는 시장형 수량 매수·매도 계획을 저장합니다. 계획만 기록하며 주문·체결·잔고를 만들지 않습니다. | W03,W05 |
 | link_trade_to_task / observed-local | 이미 기록한 체결을 계좌·종목·방향이 같은 실행 계획 하나에 연결해 진행도를 계산합니다. 체결이나 잔고는 변경하지 않습니다. | W05 |
 | transition_execution_task / observed-local | 사용자 요청으로 실행 계획만 보류·재개·취소합니다. 기존 체결과 잔고는 유지하며 계획 취소는 체결 취소가 아닙니다. | W03,W05 |

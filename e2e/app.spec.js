@@ -484,17 +484,8 @@ test('previews and records a completed trade on mobile', async ({ page }) => {
   expect(state.body.holdings.find((item) => item.ticker === 'E2EAPL')).toMatchObject({ quantity: 3 })
 
   await card.getByRole('button', { name: '매매 기록' }).click()
-  await page.getByRole('button', { name: '기록 취소' }).click()
-  await page.getByPlaceholder('취소 이유').fill('E2E 잘못 입력한 체결 정정')
-  await page.getByRole('button', { name: '취소 영향 미리보기' }).click()
-  await expect(page.getByText('현재 잔고를 다시 계산합니다.')).toBeVisible()
-  await page.getByRole('button', { name: '거래 기록 취소 확정' }).click()
-  await expect(page.getByText('취소됨')).toBeVisible()
-
-  const reversedTransactions = await callRpc(page, 'app_list_transactions', { input_limit: 10, input_before: null })
-  expect(reversedTransactions.body.find((item) => item.ticker === 'E2EAPL')?.reversed_at).toBeTruthy()
-  const restoredState = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
-  expect(restoredState.body.holdings.find((item) => item.ticker === 'E2EAPL')).toMatchObject({ quantity: 2 })
+  await expect(page.getByRole('button', { name: '기록 취소' })).toHaveCount(0)
+  await expect(page.getByText(/증권사에서 확인한 현재 수량·평균가로 보정/)).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
@@ -511,7 +502,7 @@ test('reconciles and verifies one holding without broadening the checked fields'
   await page.getByRole('checkbox',{name:'수량'}).check()
   await page.getByLabel('보정 이유').fill('증권사 수량과 평균가로 현재값을 맞춥니다.')
   await page.getByRole('button',{name:'보정 미리보기'}).click()
-  await expect(page.getByText(/2\.0000000000000000 → 4/)).toBeVisible()
+  await expect(page.getByText(/3\.0000000000000000 → 4/)).toBeVisible()
   await page.getByRole('button',{name:'보정 확정'}).click()
   await expect(page.getByRole('heading',{name:'E2E Apple 잔고 맞추기'})).toBeHidden()
   const state=await callRpc(page,'app_get_portfolio_state',{input_owner_user_id:null})

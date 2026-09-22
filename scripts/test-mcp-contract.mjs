@@ -84,6 +84,9 @@ try {
   for (const legacyTool of ['get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis']) {
     assert(!discoveredNames.has(legacyTool), `${legacyTool} remained in new-session discovery`)
   }
+  for (const retiredTool of ['preview_trade_reversal','reverse_trade_entry']) {
+    assert(!discoveredNames.has(retiredTool), `${retiredTool} remained in MCP discovery`)
+  }
   const guideDefinition = listed.body?.result?.tools?.find((tool) => tool.name === 'get_workflow_guide')
   assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 9, 'Workflow guide topics were not advertised')
 

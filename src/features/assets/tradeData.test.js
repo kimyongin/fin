@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { confirmTrade, confirmTradeReversal, listTransactionPage, previewTrade, previewTradeReversal } from './tradeData'
+import { confirmTrade, listTransactionPage, previewTrade } from './tradeData'
 
 describe('trade data', () => {
   it('previews decimal inputs without client arithmetic', async () => {
@@ -12,12 +12,6 @@ describe('trade data', () => {
     const supabase = { rpc: vi.fn(async () => ({ data: { trade_id: 't' }, error: null })) }
     await confirmTrade(supabase, 'preview', 'key')
     expect(supabase.rpc).toHaveBeenCalledWith('app_log_completed_trade', { input_preview_id: 'preview', input_idempotency_key: 'key', input_authored_via: 'app' })
-  })
-  it('previews reversal by original trade id without creating an opposite side',async()=>{const supabase={rpc:vi.fn(async()=>({data:{preview_id:'r'},error:null}))};await previewTradeReversal(supabase,'trade',' 정정 ');expect(supabase.rpc).toHaveBeenCalledWith('app_preview_trade_reversal',{input_trade_id:'trade',input_reason:'정정'})})
-  it('reuses the caller-owned reversal idempotency key', async () => {
-    const supabase = { rpc: vi.fn(async () => ({ data: { reversal_id: 'r' }, error: null })) }
-    await confirmTradeReversal(supabase, 'preview', 'stable-key')
-    expect(supabase.rpc).toHaveBeenCalledWith('app_reverse_trade_entry', expect.objectContaining({ input_idempotency_key: 'stable-key' }))
   })
   it('filters transaction pages on the server before applying the limit', async () => {
     const cursor = { created_at: '2026-09-21T00:00:00Z', id: crypto.randomUUID() }

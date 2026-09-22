@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import ModalShell from '../../components/ModalShell'
 import { formatNumber, formatUnitPrice } from '../../lib/format'
-import { confirmTrade, confirmTradeReversal, listTransactions, previewTrade, previewTradeReversal } from './tradeData'
+import { confirmTrade, listTransactions, previewTrade } from './tradeData'
 
 const inputClass = 'min-w-0 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]'
 
@@ -12,11 +12,6 @@ export default function TradeEntryModal({ accounts, instrument, onClose, onSaved
   const [error, setError] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
   const [transactions, setTransactions] = useState([])
-  const [reversal, setReversal] = useState(null)
-
-  async function refreshTransactions() {
-    setTransactions(await listTransactions(supabase, { instrumentId: instrument.id }))
-  }
 
   useEffect(() => {
     let active = true
@@ -79,36 +74,11 @@ export default function TradeEntryModal({ accounts, instrument, onClose, onSaved
     }
   }
 
-  async function runReversal(action) {
-    setSaving(true)
-    setError('')
-    try { await action() } catch (nextError) { setError(nextError.message) } finally { setSaving(false) }
-  }
-
-  async function confirmReversal() {
-    if (!reversal?.preview) return
-    await runReversal(async () => {
-      if (!reversal.committed) {
-        await confirmTradeReversal(supabase, reversal.preview.preview_id, reversal.idempotencyKey)
-        setReversal((current) => ({ ...current, committed: true }))
-        setSavedMessage('거래 취소 기록은 저장되었습니다.')
-      }
-      try {
-        await onSaved()
-        await refreshTransactions()
-        setReversal(null)
-        setSavedMessage('')
-      } catch (refreshError) {
-        setError(`취소 기록은 저장됐지만 화면을 새로 불러오지 못했습니다. 다시 불러오세요. (${refreshError.message})`)
-      }
-    })
-  }
-
   const field = (key, label, props = {}) => <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{label}</span><input className={inputClass} onChange={(event) => changeDraft({ [key]: event.target.value })} value={draft[key]} {...props} /></label>
   const preview = attempt?.preview
 
   return <ModalShell closeDisabled={saving && !attempt?.committed} onClose={onClose} title={`${instrument.display_name} 매매 기록`}><div className="grid gap-4">
-    <p className="text-sm leading-6 text-[var(--muted-ink)]">이미 체결된 매매만 기록합니다. 증권사 주문이나 현금 이동은 실행하지 않습니다.</p>
+    <p className="text-sm leading-6 text-[var(--muted-ink)]">이미 체결된 매매만 기록합니다. 증권사 주문이나 현금 이동은 실행하지 않습니다. 잘못 입력한 기록은 되돌리지 않고 증권사에서 확인한 현재 수량·평균가로 보정합니다.</p>
     <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">계좌</span><select className={inputClass} onChange={(event) => changeDraft({ accountId: event.target.value })} value={draft.accountId}>{accounts.map((account) => <option key={account.id} value={String(account.id)}>{account.name}</option>)}</select></label>
     <div className="grid grid-cols-2 gap-3"><button className={`rounded-xl border px-3 py-2 text-sm ${draft.side === 'buy' ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)]'}`} onClick={() => changeDraft({ side: 'buy' })} type="button">매수</button><button className={`rounded-xl border px-3 py-2 text-sm ${draft.side === 'sell' ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)]'}`} onClick={() => changeDraft({ side: 'sell' })} type="button">매도</button></div>
     <div className="grid gap-4 sm:grid-cols-2">{field('quantity', '체결 수량', { inputMode: 'decimal', placeholder: '10' })}{field('unitPrice', `체결 단가 (${instrument.currency})`, { inputMode: 'decimal', placeholder: '70000' })}{field('executedOn', '체결일', { type: 'date' })}</div>
@@ -116,6 +86,6 @@ export default function TradeEntryModal({ accounts, instrument, onClose, onSaved
     {savedMessage && <p className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">{savedMessage}</p>}
     {error && <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">{error}</p>}
     <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm disabled:opacity-50" disabled={saving && !attempt?.committed} onClick={onClose} type="button">취소</button>{preview ? <button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={saving} onClick={handleConfirm} type="button">{saving ? '처리 중' : attempt.committed ? '새로고침 후 닫기' : '체결 기록 확정'}</button> : <button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={saving || !draft.accountId || !draft.quantity || !draft.unitPrice || !draft.executedOn} onClick={handlePreview} type="button">{saving ? '계산 중' : '변경 미리보기'}</button>}</div>
-    {transactions.length > 0 && <section className="border-t border-[var(--line)] pt-4"><h3 className="text-sm font-semibold">최근 기록</h3><div className="mt-2 grid gap-2">{transactions.map((trade) => <div className="rounded-xl bg-[var(--surface-2)] p-3 text-sm" key={trade.id}><div className="flex items-center justify-between gap-3"><span>{trade.executed_on} · {trade.side === 'buy' ? '매수' : '매도'} {formatNumber(Number(trade.quantity))}주</span>{trade.reversed_at ? <span className="text-[var(--muted-ink)]">취소됨</span> : <button className="text-red-300" onClick={() => setReversal({ trade, reason: '', preview: null, idempotencyKey: null, committed: false })} type="button">기록 취소</button>}</div>{reversal?.trade.id === trade.id && <div className="mt-3 grid gap-2"><input className={inputClass} onChange={(event) => setReversal({ ...reversal, reason: event.target.value, preview: null, idempotencyKey: null, committed: false })} placeholder="취소 이유" value={reversal.reason}/>{reversal.preview ? <><p className="text-xs text-[var(--muted-ink)]">{reversal.preview.affects_current ? '현재 잔고를 다시 계산합니다.' : '이후 보정값이 있어 현재 잔고는 유지합니다.'}</p><button className="rounded-xl bg-red-500/80 px-3 py-2 disabled:opacity-50" disabled={saving} onClick={confirmReversal} type="button">{reversal.committed ? '새로고침 다시 시도' : '거래 기록 취소 확정'}</button></> : <button className="rounded-xl border border-[var(--line)] px-3 py-2" disabled={!reversal.reason.trim() || saving} onClick={() => runReversal(async () => { const nextPreview = await previewTradeReversal(supabase, trade.id, reversal.reason); setReversal({ ...reversal, preview: nextPreview, idempotencyKey: crypto.randomUUID(), committed: false }) })} type="button">취소 영향 미리보기</button>}</div>}</div>)}</div></section>}
+    {transactions.length > 0 && <section className="border-t border-[var(--line)] pt-4"><h3 className="text-sm font-semibold">최근 기록</h3><div className="mt-2 grid gap-2">{transactions.map((trade) => <div className="rounded-xl bg-[var(--surface-2)] p-3 text-sm" key={trade.id}><span>{trade.executed_on} · {trade.side === 'buy' ? '매수' : '매도'} {formatNumber(Number(trade.quantity))}주{trade.reversed_at ? ' · 과거 취소 기록' : ''}</span></div>)}</div></section>}
   </div></ModalShell>
 }

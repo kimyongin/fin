@@ -4,7 +4,7 @@ import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
 import {
   actionTaskToolNames, activityReportToolNames, dailyReviewToolNames, decisionTaskToolNames, entityNoteToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
-  investmentPolicyToolNames, operatingRuleToolNames, portfolioToolDefinitions, tradeEntryToolNames, tradeReversalToolNames,
+  investmentPolicyToolNames, operatingRuleToolNames, portfolioToolDefinitions, tradeEntryToolNames,
   productFeedbackToolNames, workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
 import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
@@ -990,8 +990,6 @@ const toolHandlers: Record<string, ToolHandler> = {
     requireSchemaVersion(args)
     return { ok: true, data: await rpc(supabase, 'app_verify_holding', { input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id'), input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'), input_fields: requireArray(args.fields, 'fields'), input_verified_on: requireString(args.verified_on, 'verified_on'), input_note: args.note == null ? null : requireString(args.note, 'note'), input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_source: 'agent' }) }
   },
-  async preview_trade_reversal(supabase,args){return{ok:true,data:await rpc(supabase,'app_preview_trade_reversal',{input_trade_id:requireUuid(args.trade_id,'trade_id'),input_reason:requireString(args.reason,'reason')})}},
-  async reverse_trade_entry(supabase,args){requireSchemaVersion(args);return{ok:true,data:await rpc(supabase,'app_reverse_trade_entry',{input_preview_id:requireUuid(args.preview_id,'preview_id'),input_idempotency_key:requireUuid(args.idempotency_key,'idempotency_key'),input_authored_via:'agent'})}},
 }
 
 validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
@@ -1007,7 +1005,6 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   holdingThesis: holdingThesisToolNames,
   tradeEntry: tradeEntryToolNames,
   holdingIntegrity: holdingIntegrityToolNames,
-  tradeReversal: tradeReversalToolNames,
 })
 validateWorkflowGuides(portfolioToolDefinitions.map((definition) => definition.name))
 

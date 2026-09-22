@@ -13,7 +13,6 @@ import {
   portfolioToolDefinitions,
   productFeedbackToolNames,
   tradeEntryToolNames,
-  tradeReversalToolNames,
   workflowGuideToolNames,
 } from './portfolio-tools.ts'
 import { getWorkflowGuide, renderWorkflowGuideMarkdown, validateWorkflowGuides, workflowGuideTopics } from './workflow-guides.ts'
@@ -38,7 +37,6 @@ describe('portfolio MCP tool definitions', () => {
     expect(holdingThesisToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
-    expect(tradeReversalToolNames.every((name) => names.includes(name))).toBe(true)
     expect(productFeedbackToolNames.every((name) => names.includes(name))).toBe(true)
     expect(workflowGuideToolNames.every((name) => names.includes(name))).toBe(true)
   })
@@ -294,9 +292,7 @@ describe('portfolio MCP tool definitions', () => {
     expect((preview.outputSchema as any).properties.data.required).toContain('preview_id')
     expect((tool('reconcile_holding').outputSchema as any).properties.data.required).toContain('holding_state_version')
   })
-  it('models cancellation as previewed reversal rather than an opposite trade',()=>{
-    expect(tool('preview_trade_reversal').annotations.idempotentHint).toBe(false)
-    expect(tool('reverse_trade_entry').annotations.idempotentHint).toBe(true)
-    expect((tool('reverse_trade_entry').inputSchema as any).properties).not.toHaveProperty('side')
+  it('does not offer local trade reversal as a new agent action',()=>{
+    expect(portfolioToolDefinitions.some((definition) => ['preview_trade_reversal','reverse_trade_entry'].includes(definition.name))).toBe(false)
   })
 })
