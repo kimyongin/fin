@@ -284,6 +284,13 @@ export async function updateActivity(supabase, activity, patch) {
   })
 }
 
+export async function deleteManualActivity(supabase, activity) {
+  return rpc(supabase, 'app_delete_manual_activity', {
+    input_activity_id: activity.id,
+    input_expected_version: activity.version,
+  })
+}
+
 export async function createActivityFollowUp(supabase, activityId, task) {
   return rpc(supabase, 'app_create_activity_follow_up', {
     input_origin_event_id: activityId,

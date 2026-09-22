@@ -401,7 +401,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
       </>}
       </div>
       {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
-      {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={() => setActivityDetail(null)} onOpenDecision={(id) => { setActivityDetail(null); openDetail('decisions', id) }} onOpenTask={(id) => { setActivityDetail(null); openDetail('tasks', id) }} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
+      {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={() => setActivityDetail(null)} onDeleted={() => { setActivityDetail(null); setActionRefreshKey((value) => value + 1) }} onOpenDecision={(id) => { setActivityDetail(null); openDetail('decisions', id) }} onOpenTask={(id) => { setActivityDetail(null); openDetail('tasks', id) }} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} onTagsChanged={setActivityTagsState} saving={savingGeneral} supabase={supabase} tags={activityTags} />}
     </section>
   )

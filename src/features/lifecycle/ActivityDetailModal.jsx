@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import ModalShell from '../../components/ModalShell'
 import ActivityTagPicker from './ActivityTagPicker'
-import { createActivityFollowUp, fetchActivityTags, setActivityTags, updateActivity } from './data'
+import { createActivityFollowUp, deleteManualActivity, fetchActivityTags, setActivityTags, updateActivity } from './data'
 
 function localDate(value) {
   if (!value) return ''
@@ -16,10 +16,11 @@ function formatDateTime(value) {
 
 const activityKindLabels = { general: '일반', research: '조사', review: '점검', decision: '판단', retrospective: '회고', trade: '매매', reconciliation: '보정', task: '할 일' }
 
-export default function ActivityDetailModal({ activity, loading, onClose, onOpenDecision, onOpenTask, onSaved, ownerUserId, supabase }) {
+export default function ActivityDetailModal({ activity, loading, onClose, onDeleted, onOpenDecision, onOpenTask, onSaved, ownerUserId, supabase }) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [draft, setDraft] = useState({ title: '', note: '', result: '', conclusion: '', occurredOn: '', recordKind: 'general' })
   const [followUp, setFollowUp] = useState({ title: '', dueDate: '' })
   const [availableTags, setAvailableTags] = useState([])
@@ -37,6 +38,7 @@ export default function ActivityDetailModal({ activity, loading, onClose, onOpen
       recordKind: activity.record_kind ?? 'general',
     })
     setEditing(false)
+    setConfirmDelete(false)
     setError('')
     setSelectedTagIds((activity.tags ?? []).map((tag) => tag.id))
   }, [activity])
@@ -93,6 +95,16 @@ export default function ActivityDetailModal({ activity, loading, onClose, onOpen
     finally { setSaving(false) }
   }
 
+  async function removeManualActivity() {
+    setSaving(true); setError('')
+    try {
+      await deleteManualActivity(supabase, activity)
+      onDeleted()
+    } catch (nextError) {
+      setError(nextError.message ?? '활동을 삭제하지 못했습니다.')
+    } finally { setSaving(false) }
+  }
+
   return <ModalShell onClose={onClose} title="활동 상세" variant="detail">
     {loading || !activity ? <p className="py-8 text-sm text-[var(--muted-ink)]">활동을 불러오는 중입니다.</p> : <div className="grid gap-6">
       {error && <p className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
@@ -114,6 +126,7 @@ export default function ActivityDetailModal({ activity, loading, onClose, onOpen
       {activity.after_data?.context && <section><h4 className="text-sm font-semibold">조사 범위와 출처</h4>{activity.after_data.context.scope && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--muted-ink)]">{typeof activity.after_data.context.scope === 'string' ? activity.after_data.context.scope : JSON.stringify(activity.after_data.context.scope)}</p>}{Array.isArray(activity.after_data.context.sources) && <ul className="mt-2 grid gap-2">{activity.after_data.context.sources.filter((source) => /^https?:\/\//i.test(source?.url ?? '')).map((source, index) => <li key={`${source.url}-${index}`}><a className="break-words text-sm text-[var(--accent)] underline" href={source.url} rel="noreferrer" target="_blank">{String(source.title ?? source.url)}</a></li>)}</ul>}</section>}
 
       {!ownerUserId && editable.size > 0 && <div className="flex justify-end gap-2">{editing ? <><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" disabled={saving} onClick={() => setEditing(false)} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={saving || (editable.has('title') && !draft.title.trim())} onClick={save} type="button">{saving ? '저장 중' : '저장'}</button></> : <button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={() => setEditing(true)} type="button">수정</button>}</div>}
+      {!ownerUserId && activity.action_type === 'record_manual_activity' && !editing && <div className="flex items-center justify-end gap-2">{confirmDelete && <span className="text-xs text-[var(--muted-ink)]">후속 할 일은 유지됩니다.</span>}<button className="rounded-xl border border-red-400/40 px-4 py-2 text-sm text-red-200 disabled:opacity-50" disabled={saving} onClick={() => confirmDelete ? removeManualActivity() : setConfirmDelete(true)} type="button">{confirmDelete ? '삭제 확인' : '활동 삭제'}</button>{confirmDelete && <button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" disabled={saving} onClick={() => setConfirmDelete(false)} type="button">취소</button>}</div>}
 
       {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4"><ActivityTagPicker disabled={saving} onChange={setSelectedTagIds} onTagsChanged={(tags, ids) => { setAvailableTags(tags); setSelectedTagIds(ids) }} selectedIds={selectedTagIds} supabase={supabase} tags={availableTags} /><div className="mt-3 flex justify-end"><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold disabled:opacity-50" disabled={saving} onClick={saveTags} type="button">태그 저장</button></div></section>}
 

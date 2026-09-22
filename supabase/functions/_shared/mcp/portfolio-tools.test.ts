@@ -50,6 +50,9 @@ describe('portfolio MCP tool definitions', () => {
     expect((tool('transition_general_task').inputSchema as any).properties.action.enum).toEqual(['complete','reopen','cancel'])
     expect((tool('record_manual_activity').inputSchema as any).properties.category.enum).toEqual(['general','research','review','decision','retrospective'])
     expect((tool('record_manual_activity').inputSchema as any).properties.context.type).toContain('object')
+    expect(tool('delete_manual_activity').description).toContain('follow-up tasks')
+    expect(tool('delete_manual_activity').description).toContain('never changes a holding')
+    expect((tool('delete_manual_activity').inputSchema as any).required).toEqual(['schema_version', 'activity_id', 'expected_version'])
     expect((tool('save_general_task').inputSchema as any).properties.recurrence_kind.enum).toEqual(['none', 'daily'])
   })
 

@@ -394,6 +394,28 @@ test('creates and completes a general task while keeping manual work as activity
   await expect(pendingSection.getByText(repeatingTitle, { exact: true })).toHaveCount(0)
 })
 
+test('deletes a manual activity without offering deletion for automatic events', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const title = `E2E 삭제할 조사 ${Date.now()}`
+  const created = await callRpc(page, 'app_create_activity', {
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: { title, category: 'research', authored_via: 'app', timezone: 'Asia/Seoul' },
+  })
+  expect(created.status, JSON.stringify(created.body)).toBe(200)
+  await page.reload()
+  await page.getByRole('button', { name: title, exact: true }).click()
+  const detail = page.getByRole('dialog', { name: '활동 상세' })
+  await detail.getByRole('button', { name: '활동 삭제' }).click()
+  await expect(detail.getByText('후속 할 일은 유지됩니다.')).toBeVisible()
+  await detail.getByRole('button', { name: '삭제 확인' }).click()
+  await expect(detail).toBeHidden()
+  await expect(page.getByRole('button', { name: title, exact: true })).toHaveCount(0)
+  const deleted = await callRpc(page, 'app_get_activity', { input_activity_id: created.body.id, input_owner_user_id: null })
+  expect(deleted.status).toBe(200)
+  expect(deleted.body).toBeNull()
+})
+
 test('saves a private holding reason without exposing it in the shared portfolio DTO', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')

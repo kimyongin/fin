@@ -925,6 +925,23 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: idempotentWriteAnnotations,
   },
   {
+    name: 'delete_manual_activity',
+    title: 'Delete a manually recorded activity',
+    description: 'Delete only a user-reported manual activity after explicit user confirmation and reading its current version with get_activity. It disappears from activity lists, keyword and semantic search; linked follow-up tasks and saved report text remain unchanged. This never changes a holding, trade, or task completion. Automatic financial and task-completion events cannot be deleted with this tool.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        activity_id: { type: 'integer', minimum: 1 },
+        expected_version: { type: 'integer', minimum: 1 },
+      },
+      required: ['schema_version', 'activity_id', 'expected_version'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
     name: 'get_activity_report_context',
     title: 'Read source actions for a period report',
     description: 'Page through every successful owner action in one date range before writing an activity report. Continue with next_cursor until null; do not summarize only the first page. It also returns current open tasks, explicitly labeled as current rather than historical period-end state. Reading never saves a report.',
@@ -1314,6 +1331,7 @@ export const actionTaskToolNames = [
   'transition_general_task',
   'record_manual_activity',
   'update_activity',
+  'delete_manual_activity',
 ] as const
 
 export const activityReportToolNames = [

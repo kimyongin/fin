@@ -718,6 +718,14 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
+  async delete_manual_activity(supabase, args) {
+    requireSchemaVersion(args)
+    const data = await rpc(supabase, 'app_delete_manual_activity', {
+      input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+    })
+    return { ok: true, data }
+  },
   async get_activity_report_context(supabase, args) {
     const data = await rpc(supabase, 'app_get_activity_report_context', {
       input_period_start: requireString(args.period_start, 'period_start'), input_period_end: requireString(args.period_end, 'period_end'),
