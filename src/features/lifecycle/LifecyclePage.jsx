@@ -38,17 +38,34 @@ function taskStatusLabel(task) {
 }
 
 function GeneralActionModal({ kind, onClose, onKindChange, onSave, saving }) {
-  const [draft, setDraft] = useState({ title: '', result: '', dueDate: '', triggerText: '', recurrenceKind: 'none', recurrenceStartOn: new Date().toLocaleDateString('en-CA') })
+  const today = new Date().toLocaleDateString('en-CA')
+  const [draft, setDraft] = useState({ title: '', result: '', dueDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', recurrenceStartOn: today })
   const isTask = kind === 'task'
+
+  function setAlreadyDone(checked) {
+    if (checked) {
+      setDraft((current) => ({ ...current, dueDate: '', recurrenceKind: 'none' }))
+      onKindChange('activity')
+      return
+    }
+    onKindChange('task')
+  }
+
   return <ModalShell onClose={onClose} title="활동 추가">
     <div className="grid gap-4">
-      <fieldset><legend className="text-xs text-[var(--muted-ink)]">활동 상태</legend><div className="mt-2 grid grid-cols-2 gap-2"><button aria-pressed={isTask} className={`min-h-11 rounded-xl border px-3 text-sm font-semibold ${isTask ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--line)]'}`} onClick={() => onKindChange('task')} type="button">할 예정</button><button aria-pressed={!isTask} className={`min-h-11 rounded-xl border px-3 text-sm font-semibold ${!isTask ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--line)]'}`} onClick={() => onKindChange('activity')} type="button">이미 했음</button></div></fieldset>
       <p className="text-sm leading-6 text-[var(--muted-ink)]">{isTask ? '앞으로 할 일을 등록합니다. 완료하면 실제 활동 기록이 연결됩니다.' : '앱 밖에서 이미 한 일을 기록합니다.'}</p>
       <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{isTask ? '할 일' : '한 일'}</span><input autoFocus className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
       <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{isTask ? '확인할 때' : '결과 또는 메모'}</span><textarea className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, [isTask ? 'triggerText' : 'result']: event.target.value })} rows={3} value={isTask ? draft.triggerText : draft.result} /></label>
+      <fieldset>
+        <legend className="text-xs text-[var(--muted-ink)]">옵션</legend>
+        <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1">
+          <label className={`flex min-h-11 items-center gap-2 text-sm ${isTask ? '' : 'text-[var(--muted-ink)]'}`}><input checked={isTask && draft.recurrenceKind === 'daily'} disabled={!isTask} onChange={(event) => setDraft({ ...draft, recurrenceKind: event.target.checked ? 'daily' : 'none' })} type="checkbox" />매일 반복</label>
+          <label className="flex min-h-11 items-center gap-2 text-sm"><input checked={!isTask} onChange={(event) => setAlreadyDone(event.target.checked)} type="checkbox" />이미 했음</label>
+        </div>
+      </fieldset>
       {isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">예정일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, dueDate: event.target.value })} type="date" value={draft.dueDate} /></label>}
-      {isTask && <label className="flex min-h-11 items-center gap-2 text-sm"><input checked={draft.recurrenceKind === 'daily'} onChange={(event) => setDraft({ ...draft, recurrenceKind: event.target.checked ? 'daily' : 'none' })} type="checkbox" />매일 반복</label>}
       {isTask && draft.recurrenceKind === 'daily' && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">반복 시작일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, recurrenceStartOn: event.target.value })} type="date" value={draft.recurrenceStartOn} /></label>}
+      {!isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">수행일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" max={today} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
       <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!draft.title.trim() || saving} onClick={() => onSave(draft)} type="button">{saving ? '저장 중' : '저장'}</button></div>
     </div>
   </ModalShell>
@@ -154,7 +171,10 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
       if (generalEditor === 'task') {
         await saveGeneralTask(supabase, { ...draft, idempotencyKey: crypto.randomUUID() })
       } else {
-        await recordManualActivity(supabase, { ...draft, idempotencyKey: crypto.randomUUID() })
+        const occurredAt = draft.occurredOn && draft.occurredOn !== new Date().toLocaleDateString('en-CA')
+          ? `${draft.occurredOn}T12:00:00+09:00`
+          : null
+        await recordManualActivity(supabase, { ...draft, occurredAt, idempotencyKey: crypto.randomUUID() })
         onRefreshActivity?.()
       }
       setActionRefreshKey((value) => value + 1)

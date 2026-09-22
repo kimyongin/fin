@@ -347,7 +347,7 @@ test('creates and completes a general task while keeping manual work as activity
   const taskTitle = `E2E 일반 할 일 ${Date.now()}`
   await page.getByRole('button', { name: '활동 추가', exact: true }).click()
   const taskDialog = page.getByRole('dialog', { name: '활동 추가' })
-  await expect(taskDialog.getByRole('button', { name: '할 예정', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(taskDialog.getByLabel('이미 했음')).not.toBeChecked()
   await taskDialog.getByRole('textbox', { name: '할 일', exact: true }).fill(taskTitle)
   await taskDialog.getByLabel('확인할 때').fill('퇴근 전에 확인')
   await taskDialog.getByLabel('매일 반복').check()
@@ -363,7 +363,9 @@ test('creates and completes a general task while keeping manual work as activity
   const activityTitle = `E2E 앱 밖 행동 ${Date.now()}`
   await page.getByRole('button', { name: '활동 추가', exact: true }).click()
   const activityDialog = page.getByRole('dialog', { name: '활동 추가' })
-  await activityDialog.getByRole('button', { name: '이미 했음', exact: true }).click()
+  await activityDialog.getByLabel('이미 했음').check()
+  await expect(activityDialog.getByLabel('매일 반복')).toBeDisabled()
+  await expect(activityDialog.getByLabel('수행일')).toBeVisible()
   await activityDialog.getByRole('textbox', { name: '한 일', exact: true }).fill(activityTitle)
   await activityDialog.getByLabel('결과 또는 메모').fill('증권사 기준을 확인함')
   await activityDialog.getByRole('button', { name: '저장', exact: true }).click()
