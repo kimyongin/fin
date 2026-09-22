@@ -46,6 +46,8 @@
 
 설정 이름은 `src/lib/config.js` 기준 VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY다. `.env.local`에 개발용 값을 두고 비밀값을 출력/커밋하지 않는다. VITE 변수에 service role/개인 토큰을 넣지 않는다. 로컬 Supabase 로그인/redirect 설정은 대상 환경에 맞춰 확인한다. E2E용 가상 인증은 실제 Google/OAuth end-to-end 성공을 증명하지 않는다.
 
+일반 로컬 Supabase를 사용할 때는 `VITE_SUPABASE_URL=http://127.0.0.1:54321`과 `supabase status -o env`의 공개 ANON_KEY를 `.env.local`에 둔다. 로컬 Google 로그인은 `supabase/config.toml`의 provider 설정이 `GOOGLE_OAUTH_CLIENT_ID`와 `GOOGLE_OAUTH_CLIENT_SECRET`을 요구하므로, `supabase start` 프로세스 환경 또는 CLI가 읽는 git 제외 `.env`에 제공한다. Google OAuth 클라이언트에는 `http://127.0.0.1:54321/auth/v1/callback`을 승인된 redirect URI로 등록해야 한다. 운영 키나 service role은 사용하지 않는다.
+
 원격과 일반 로컬 및 E2E baseline이 같은 스키마라고 가정하지 않는다. [실제 대조](../design/schema-audit-20260921.md)에서 차이를 확인했다. 새 migration은 관련 E2E baseline에도 반영하고 데이터 없는 재현 가능성을 검증하되 기존 migration 이력을 수정하지 않는다.
 
 ## 변경별 검증
