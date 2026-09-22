@@ -27,10 +27,13 @@
 | previous_review | 이전 분석 ID/분석 시각/상태/요약. 저장 도착순과 분석 시각순을 구분 |
 | research_windows | 대상별 요청 구간·이전 실패·겹침 설정. 과거 전체 조사 강제 금지 |
 | open_tasks / decisions | 현재 버전과 간단 요약; 상세는 별도 조회. 미구현 관계는 unavailable 명시 |
+| recent_activity | 최신 수행 활동의 현재 제목·메모·결과·결론과 원본 참조. 같은 활동 편집은 새 행을 만들지 않으며 태스크 생성/수정 유지보수 이벤트는 제외 |
 | context_id | 서버에 임시 보관된 불변 문맥 ID. 인증된 소유자만 접근 |
 | completeness | complete 또는 truncated, 누락 영역·추가 조회 방법 |
 
 조회는 review_run/브리핑/열람/잔고 확인을 생성하지 않는다. 데이터 없으면 초기 등록 안내와 empty 상태를 반환한다. 누락 환율은 null이지 0이 아니다. 한 번의 DB snapshot 안에서 읽어 서로 다른 시점의 버전과 보유값을 섞지 않는다.
+
+저장된 활동 리포트는 생성 당시 요약을 보존한다. 참조 활동의 현재 내용이 수정되거나 기간 밖으로 이동했거나, 현재 기간에 포함되는 새 활동이 생기면 `needs_regeneration=true`를 반환한다. 이를 위해 별도 결과 revision이나 편집 이벤트를 만들지 않고 활동 ID·`updated_at`·현재 기간만 대조하며, 서버가 리포트를 자동 재작성하지 않는다.
 
 문맥에는 요청 대상과 조사 기간의 manifest를 포함한다. 저장 scopes가 이를 덮는지 확인하고 누락 구간은 unverified로 기록해 complete가 되지 못하게 한다. 일부 대상으로 요청했다면 complete도 그 대상 범위에만 적용한다. truncated 문맥을 전체 포트폴리오 완료로 저장하지 못한다. 페이지는 같은 context_id의 snapshot을 읽는다. 서버 context의 크기/페이지 한도는 첫 기능에서 검증한다.
 

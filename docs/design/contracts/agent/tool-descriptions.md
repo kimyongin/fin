@@ -50,8 +50,8 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | search_activities / observed-local | 할 일과 한 일을 기간·상태·결론·종목·계좌·활동 태그·키워드로 함께 검색합니다. 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 실행 여부를 알리며, 불가능하면 정상 키워드 결과를 유지합니다. | A03,A06 |
 | list_activity_tags, save_activity_tag, delete_activity_tag / observed-local | 자산 배분과 분리된 사용자 활동 태그 사전을 조회·추가·이름 변경·삭제합니다. | A03 |
 | set_activity_tags, set_general_task_tags / observed-local | 활동 또는 일반 할 일의 태그 집합을 교체합니다. 완료 시 현재 태그만 복사되고 과거 회차는 바뀌지 않습니다. | A03 |
-| get_activity_report_context / observed-local | 지정 기간의 성공 행동 원본을 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |
-| list_activity_reports / observed-local | 저장된 일간·주간·월간 활동 리포트와 새 원본 발생에 따른 재생성 필요 상태를 조회합니다. | A06 |
+| get_activity_report_context / observed-local | 지정 기간 활동의 최신 현재 내용과 태그를 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |
+| list_activity_reports / observed-local | 저장된 일간·주간·월간 활동 리포트와 포함 활동 수정·기간 이동·새 원본에 따른 재생성 필요 상태를 조회합니다. 자동 재작성하지 않습니다. | A06 |
 | save_activity_report / observed-local | 사용자가 요청한 기간 회고를 원본 event/task/decision ID와 함께 버전 저장합니다. 자동 생성이나 투자 행동 기록은 만들지 않습니다. | A06 |
 | get_holding_thesis / observed-local | 종목 공통 보유 이유와 선택한 계좌의 재정의, 실제 적용 출처와 version을 읽습니다. 기존 메모나 미입력 이유를 추론하지 않습니다. | W02 |
 | save_holding_thesis / observed-local | 사용자가 명시적으로 저장/변경한 종목 공통 또는 계좌별 보유 이유만 현재 version과 함께 수정합니다. 메모·잔고·체결·판단·할 일은 변경하지 않습니다. | W02 |

@@ -933,7 +933,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'list_activity_reports',
     title: 'List saved activity reports',
-    description: 'List saved daily, weekly, or monthly activity reports. needs_regeneration means a later in-period source action is not included, so present the report as stale rather than current. Pass next_cursor unchanged.',
+    description: 'List saved daily, weekly, or monthly activity reports. needs_regeneration means an included activity changed or moved periods, or a current in-period activity is not included; present the saved summary as stale and regenerate only when requested. Pass next_cursor unchanged.',
     inputSchema: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 }, cursor: { type: ['object','null'] } }, additionalProperties: false },
     outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
   },

@@ -132,7 +132,7 @@ export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenAct
       {filter === 'all' && !ownerUserId && reports.length > 0 && <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
         <h2 className="font-semibold">저장된 활동 리포트</h2>
         <p className="mt-1 text-sm text-[var(--muted-ink)]">ChatGPT가 기간 원본을 검토해 저장한 일간·주간·월간 회고입니다.</p>
-        <div className="mt-4 grid gap-3">{reports.map((report) => <article className="rounded-2xl bg-[var(--surface-2)] p-4" key={report.id}><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold">{report.title}</h3><span className="text-xs text-[var(--muted-ink)]">{report.period_start} ~ {report.period_end}</span></div><p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">{report.summary}</p>{report.needs_regeneration && <p className="mt-2 text-xs font-semibold text-amber-300">이 기간에 새 기록이 있어 다시 생성해야 합니다.</p>}</article>)}</div>
+        <div className="mt-4 grid gap-3">{reports.map((report) => <article className="rounded-2xl bg-[var(--surface-2)] p-4" key={report.id}><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold">{report.title}</h3><span className="text-xs text-[var(--muted-ink)]">{report.period_start} ~ {report.period_end}</span></div><p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">{report.summary}</p>{report.needs_regeneration && <p className="mt-2 text-xs font-semibold text-amber-300">이 기간의 기록이 추가되거나 수정되어 다시 생성해야 합니다.</p>}</article>)}</div>
       </section>}
     </>}
   </section>

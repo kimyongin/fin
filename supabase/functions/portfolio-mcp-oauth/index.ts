@@ -997,7 +997,7 @@ Deno.serve(
             prompts: { listChanged: false },
             resources: { subscribe: false, listChanged: false },
           },
-          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.6.0' },
+          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.7.0' },
           instructions: serverInstructions,
         })
       }

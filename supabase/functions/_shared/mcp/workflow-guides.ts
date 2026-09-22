@@ -281,6 +281,9 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/20260922062418_action_events_general_tasks.sql',
       'supabase/migrations/20260922083000_retire_todo_bundles.sql',
+      'supabase/migrations/20260922162016_activity_current_content.sql',
+      'supabase/migrations/20260922163825_activity_tags_and_search.sql',
+      'supabase/migrations/20260922165358_activity_semantic_search.sql',
     ],
     steps: [
       { id: 'classify-intent', title: 'Classify intent versus performed fact', instruction: 'Do not write for analysis alone. A future ordinary follow-up is a general task. Work already performed is one activity with optional result and conclusion. A completed Portfolio mutation is already an automatic activity.', tools: [] },
@@ -315,12 +318,13 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/20260922080000_activity_reports.sql',
+      'supabase/migrations/20260922171524_activity_context_freshness.sql',
     ],
     steps: [
       { id: 'choose-period', title: 'Choose the exact period', instruction: 'Confirm daily, weekly, or monthly scope, inclusive start/end dates, and timezone. A request to inspect a period does not itself authorize saving.', tools: [] },
       { id: 'page-all-sources', title: 'Read every source page', instruction: 'Call get_activity_report_context and continue with next_cursor until null. Keep all source event IDs. Do not use a saved daily report as the only source for a weekly or monthly report.', tools: ['get_activity_report_context'] },
       { id: 'separate-facts', title: 'Separate facts and interpretation', instruction: 'Distinguish value edits, completed tasks, actual trades, and verification. Explain a reason only when a saved note or decision states it. Treat current_open_tasks as current-at-request, not historical period-end state.', tools: [] },
-      { id: 'compare-existing', title: 'Check existing reports', instruction: 'Use list_activity_reports to find the same period and its version. If needs_regeneration is true, explain that later in-period actions made it stale.', tools: ['list_activity_reports'] },
+      { id: 'compare-existing', title: 'Check existing reports', instruction: 'Use list_activity_reports to find the same period and its version. If needs_regeneration is true, explain that an included activity changed or moved periods, or a current in-period activity was added. Do not rewrite it automatically.', tools: ['list_activity_reports'] },
       { id: 'save-if-requested', title: 'Save the requested report', instruction: 'Call save_activity_report only after explicit save intent. Include every consulted event ID and referenced task or decision ID; a save never schedules another report.', tools: ['save_activity_report'] },
     ],
     boundaries: [
