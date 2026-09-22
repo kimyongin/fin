@@ -578,6 +578,64 @@ const toolHandlers: Record<string, ToolHandler> = {
     if (!data) throw new PortfolioRpcError({ message: 'Activity not found' })
     return { ok: true, data }
   },
+  async list_activity_tags(supabase, args) {
+    return { ok: true, data: await rpc(supabase, 'app_list_activity_tags', { input_query: optionalString(args.query) ?? null }) }
+  },
+  async save_activity_tag(supabase, args) {
+    requireSchemaVersion(args)
+    const tagId = args.tag_id == null ? null : requireUuid(args.tag_id, 'tag_id')
+    const expectedVersion = args.expected_version == null ? null : requirePositiveInteger(args.expected_version, 'expected_version')
+    if ((tagId == null) !== (expectedVersion == null)) throw new ToolInputError('tag_id and expected_version must both be set for an update')
+    return { ok: true, data: await rpc(supabase, 'app_save_activity_tag', {
+      input_tag_id: tagId, input_expected_version: expectedVersion,
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_name: requireString(args.name, 'name'),
+    }) }
+  },
+  async delete_activity_tag(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_delete_activity_tag', {
+      input_tag_id: requireUuid(args.tag_id, 'tag_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+    }) }
+  },
+  async set_activity_tags(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_set_activity_tags', {
+      input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_tag_ids: requireArray(args.tag_ids, 'tag_ids').map((value,index) => requireUuid(value, `tag_ids[${index}]`)),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+    }) }
+  },
+  async set_general_task_tags(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_set_general_task_tags', {
+      input_task_id: requireUuid(args.task_id, 'task_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_tag_ids: requireArray(args.tag_ids, 'tag_ids').map((value,index) => requireUuid(value, `tag_ids[${index}]`)),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+    }) }
+  },
+  async search_activities(supabase, args) {
+    const data = await rpc(supabase, 'app_search_activities', {
+      input_owner_user_id: null,
+      input_query: optionalString(args.query) ?? null,
+      input_from: optionalString(args.from) ?? null,
+      input_to: optionalString(args.to) ?? null,
+      input_record_state: optionalString(args.record_state) ?? 'all',
+      input_has_conclusion: typeof args.has_conclusion === 'boolean' ? args.has_conclusion : null,
+      input_instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      input_account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
+      input_tag_ids: Array.isArray(args.tag_ids) ? args.tag_ids.map((value,index) => requireUuid(value, `tag_ids[${index}]`)) : [],
+      input_tag_match: optionalString(args.tag_match) ?? 'all',
+      input_limit: args.limit == null ? 30 : requirePositiveInteger(args.limit, 'limit'),
+      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
+      input_timezone: optionalString(args.timezone) ?? 'Asia/Seoul',
+    })
+    return { ok: true, data }
+  },
   async save_general_task(supabase, args) {
     requireSchemaVersion(args)
     const taskId = args.task_id == null ? null : requireUuid(args.task_id, 'task_id')

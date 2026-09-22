@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Updated todo guidance and tool contracts for editable activities and linked follow-up tasks in #80-#81.",
+  "review_reason": "Updated todo guidance and MCP contracts for reusable activity tags and combined task/activity search in #82.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
-      "contract_digest": "ef311103bb0d4d656d89311e4d4091191802d38ecf5aefc7620acfedddccd9b7"
+      "contract_digest": "2c4acaa9df1845dfbe2dc59df85b890861815d67b288f203f7ba85ed174f88ec"
     },
     "holding_thesis": {
       "revision": "fnv1a32:62ae4aff",
-      "contract_digest": "9a3dbc7dbeea617d8313a79bd5e59acfec68b875b8bcca92bbcb97c9e9d054dc"
+      "contract_digest": "b659fa650d5d55d601549febf7e622e666b4fd0926e71b4339c21bce845b257e"
     },
     "daily_review": {
       "revision": "fnv1a32:6d145d21",
-      "contract_digest": "9e75fe6b90babbe6c9efc607788d8adaa98d129376fd32f594fad02c3839e404"
+      "contract_digest": "380f97458a95dcea7ec7951f93608ae072c69492f5d7623296d32c1c2273434c"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "6be7b167359bf32621221f51d8c0e6b20ce429b940fa17c2f4cedc18ed3cf570"
+      "contract_digest": "058505f7d35e49691f40d16438024200aded3109f5e44a453f16e54a4d60f684"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "04f6c8850e31be7e176d09f13d69d0c65380e9f0d4e01f5bee587cf3c15bb1fd"
+      "contract_digest": "d1427e0071ec851f370072ebae2765a3719fd499d5b6a7453e4753325696d3e4"
     },
     "reconciliation": {
       "revision": "fnv1a32:f69d58bf",
-      "contract_digest": "f33a61466606bcb5aa909b45875ddf0b295231b6a757d90a26489b0a8219e108"
+      "contract_digest": "743546f396a4362180e8274870289c5b53a74e15eb7a7cd5e460a02bea4bc6e5"
     },
     "todo": {
-      "revision": "fnv1a32:fc6c1739",
-      "contract_digest": "9ddbca2fb2c0d6ecff067d200270ccaa377ba5a6a81e6052a66f86d46f5253c9"
+      "revision": "fnv1a32:c51d00cf",
+      "contract_digest": "c6d73f4cf0c16420e9be29ba7badd1ce42008295bcf47a0021c9717da4c31544"
     },
     "activity_report": {
       "revision": "fnv1a32:224df9ef",
-      "contract_digest": "c41656284c28b2ab55f03420d76d6e844c7d4e5b2180960ac372d69dc3018646"
+      "contract_digest": "7d1cff24e36818f1c0ab4a4dce6117b7bf5c0a3b2426c33e045ddf50e7eec216"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "0ab3c3c8a16b41c9d522cc00b44a64f3b7b55f7de492b89956a605795c6cebee"
+      "contract_digest": "8804fe21ddd584bda6bd0293b8fb484d6c3799a5810b89e00b7736ac59272a29"
     }
   }
 }

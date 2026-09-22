@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createActivityFollowUp,
   fetchActivity,
+  fetchActivityTags,
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
   fetchActionTimeline,
@@ -12,6 +13,8 @@ import {
   fetchPortfolioTaskPage,
   fetchPortfolioTasks,
   recordManualActivity,
+  searchActivities,
+  setActivityTags,
   updateActivity,
 } from './data'
 
@@ -119,6 +122,22 @@ describe('decision and task data adapters', () => {
         title: '다음 실적 확인', subject: { kind: 'portfolio' }, due_date: '2026-10-23', timezone: 'Asia/Seoul',
         trigger_text: null, recurrence_kind: 'none', recurrence_start_on: null, authored_via: 'app',
       },
+    }])
+  })
+
+  it('keeps activity tags separate and passes combined search filters to the server', async () => {
+    const tagId = crypto.randomUUID()
+    const supabase = { rpc: vi.fn(async (name) => ({ data: name === 'app_list_activity_tags' ? [{ id: tagId, name: '실적' }] : { items: [], next_cursor: null }, error: null })) }
+    await expect(fetchActivityTags(supabase)).resolves.toEqual([{ id: tagId, name: '실적' }])
+    await setActivityTags(supabase, { id: 5, version: 2 }, [tagId])
+    await searchActivities(supabase, { query: '보유 유지', state: 'done', conclusion: 'yes', tagIds: [tagId] })
+
+    expect(supabase.rpc.mock.calls[1][0]).toBe('app_set_activity_tags')
+    expect(supabase.rpc.mock.calls[1][1]).toMatchObject({ input_activity_id: 5, input_expected_version: 2, input_tag_ids: [tagId] })
+    expect(supabase.rpc.mock.calls[2]).toEqual(['app_search_activities', {
+      input_owner_user_id: null, input_query: '보유 유지', input_from: null, input_to: null,
+      input_record_state: 'done', input_has_conclusion: true, input_instrument_id: null, input_account_id: null,
+      input_tag_ids: [tagId], input_tag_match: 'all', input_limit: 30, input_cursor: null, input_timezone: 'Asia/Seoul',
     }])
   })
 })

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import ModalShell from '../../components/ModalShell'
 import { FilterChips } from '../../components/PageControls'
 import ActivityDetailModal from './ActivityDetailModal'
+import ActivityTagPicker from './ActivityTagPicker'
 import ActionTimeline from './ActionTimeline'
 import { createRequestGate } from '../../lib/requestGate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
@@ -11,10 +12,13 @@ import {
   fetchInvestmentDecisionPage,
   fetchGeneralTask,
   fetchActivity,
+  fetchActivityTags,
   fetchPortfolioTask,
   fetchPortfolioTaskPage,
   recordManualActivity,
   saveGeneralTask,
+  setActivityTags,
+  setGeneralTaskTags,
   transitionGeneralTask,
 } from './data'
 
@@ -38,9 +42,9 @@ function taskStatusLabel(task) {
   return taskStatus[task.research_state] ?? task.research_state
 }
 
-function GeneralActionModal({ kind, onClose, onKindChange, onSave, saving }) {
+function GeneralActionModal({ kind, onClose, onKindChange, onSave, onTagsChanged, saving, supabase, tags }) {
   const today = new Date().toLocaleDateString('en-CA')
-  const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none' })
+  const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', tagIds: [] })
   const isTask = kind === 'task'
 
   function setAlreadyDone(checked) {
@@ -66,6 +70,7 @@ function GeneralActionModal({ kind, onClose, onKindChange, onSave, saving }) {
       </fieldset>
       {isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{draft.recurrenceKind === 'daily' ? '반복 시작일' : '예정일'}</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, scheduleDate: event.target.value })} type="date" value={draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : draft.scheduleDate} /></label>}
       {!isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">수행일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" max={today} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
+      <ActivityTagPicker disabled={saving} onChange={(tagIds) => setDraft({ ...draft, tagIds })} onTagsChanged={(nextTags, tagIds) => { onTagsChanged(nextTags); setDraft((current) => ({ ...current, tagIds })) }} selectedIds={draft.tagIds} supabase={supabase} tags={tags} />
       <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!draft.title.trim() || saving} onClick={() => onSave({ ...draft, dueDate: isTask && draft.recurrenceKind !== 'daily' ? draft.scheduleDate : '', recurrenceStartOn: isTask && draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : null })} type="button">{saving ? '저장 중' : '저장'}</button></div>
     </div>
   </ModalShell>
@@ -158,6 +163,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
   const [generalEditor, setGeneralEditor] = useState(null)
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [actionRefreshKey, setActionRefreshKey] = useState(0)
+  const [activityTags, setActivityTagsState] = useState([])
   const [activityDetail, setActivityDetail] = useState(null)
   const [activityDetailLoading, setActivityDetailLoading] = useState(false)
   const scrollPositions = useRef({})
@@ -171,12 +177,14 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
     setError('')
     try {
       if (generalEditor === 'task') {
-        await saveGeneralTask(supabase, { ...draft, idempotencyKey: crypto.randomUUID() })
+        const task = await saveGeneralTask(supabase, { ...draft, idempotencyKey: crypto.randomUUID() })
+        if (draft.tagIds.length > 0) await setGeneralTaskTags(supabase, task, draft.tagIds)
       } else {
         const occurredAt = draft.occurredOn && draft.occurredOn !== new Date().toLocaleDateString('en-CA')
           ? `${draft.occurredOn}T12:00:00+09:00`
           : null
-        await recordManualActivity(supabase, { ...draft, occurredAt, idempotencyKey: crypto.randomUUID() })
+        const activity = await recordManualActivity(supabase, { ...draft, occurredAt, idempotencyKey: crypto.randomUUID() })
+        if (draft.tagIds.length > 0) await setActivityTags(supabase, activity, draft.tagIds)
         onRefreshActivity?.()
       }
       setActionRefreshKey((value) => value + 1)
@@ -185,6 +193,11 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
       setError(nextError.message ?? '기록을 저장하지 못했습니다.')
     } finally { setSavingGeneral(false) }
   }
+
+  useEffect(() => {
+    if (ownerUserId) return
+    fetchActivityTags(supabase).then(setActivityTagsState).catch(() => setActivityTagsState([]))
+  }, [ownerUserId, supabase])
 
   async function completeGeneralTask(task) {
     setError('')
@@ -368,7 +381,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
       </div>
       {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
       {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={() => setActivityDetail(null)} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
-      {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} saving={savingGeneral} />}
+      {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} onTagsChanged={setActivityTagsState} saving={savingGeneral} supabase={supabase} tags={activityTags} />}
     </section>
   )
 }

@@ -125,6 +125,78 @@ export async function fetchActivity(supabase, activityId, ownerUserId = null) {
   return data
 }
 
+export async function fetchActivityTags(supabase, query = null) {
+  const data = await rpc(supabase, 'app_list_activity_tags', { input_query: query })
+  return Array.isArray(data) ? data : []
+}
+
+export async function saveActivityTag(supabase, tag) {
+  return rpc(supabase, 'app_save_activity_tag', {
+    input_tag_id: tag.id ?? null,
+    input_expected_version: tag.version ?? null,
+    input_idempotency_key: tag.idempotencyKey,
+    input_name: tag.name.trim(),
+  })
+}
+
+export async function deleteActivityTag(supabase, tag) {
+  return rpc(supabase, 'app_delete_activity_tag', {
+    input_tag_id: tag.id,
+    input_expected_version: tag.version,
+    input_idempotency_key: tag.idempotencyKey,
+  })
+}
+
+export async function setActivityTags(supabase, activity, tagIds) {
+  return rpc(supabase, 'app_set_activity_tags', {
+    input_activity_id: activity.id,
+    input_expected_version: activity.version,
+    input_tag_ids: tagIds,
+    input_idempotency_key: crypto.randomUUID(),
+  })
+}
+
+export async function setGeneralTaskTags(supabase, task, tagIds) {
+  return rpc(supabase, 'app_set_general_task_tags', {
+    input_task_id: task.id,
+    input_expected_version: task.version,
+    input_tag_ids: tagIds,
+    input_idempotency_key: crypto.randomUUID(),
+  })
+}
+
+export async function searchActivities(supabase, {
+  accountId = null,
+  conclusion = 'all',
+  cursor = null,
+  from = null,
+  instrumentId = null,
+  limit = 30,
+  ownerUserId = null,
+  query = null,
+  state = 'all',
+  tagIds = [],
+  tagMatch = 'all',
+  timezone = 'Asia/Seoul',
+  to = null,
+} = {}) {
+  return normalizePage(await rpc(supabase, 'app_search_activities', {
+    input_owner_user_id: ownerUserId,
+    input_query: query?.trim() || null,
+    input_from: from || null,
+    input_to: to || null,
+    input_record_state: state,
+    input_has_conclusion: conclusion === 'all' ? null : conclusion === 'yes',
+    input_instrument_id: instrumentId,
+    input_account_id: accountId,
+    input_tag_ids: tagIds,
+    input_tag_match: tagMatch,
+    input_limit: limit,
+    input_cursor: cursor,
+    input_timezone: timezone,
+  }))
+}
+
 export async function fetchGeneralTask(supabase, taskId) {
   const data = await rpc(supabase, 'app_get_general_task', { input_task_id: taskId })
   if (!data) throw new Error('일반 할 일을 찾을 수 없거나 접근할 수 없습니다.')

@@ -274,7 +274,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     guide_id: 'portfolio.action-tasks',
     purpose: 'Use one activity experience: tasks describe future intent, performed activities keep their current optional result and conclusion, and domain changes create protected automatic activities.',
     scenario_ids: ['A01', 'A02', 'A03', 'A04', 'A05'],
-    related_tools: ['list_general_tasks', 'get_general_task', 'get_activity', 'save_general_task', 'transition_general_task', 'record_manual_activity', 'update_activity', 'list_tasks', 'get_task'],
+    related_tools: ['list_general_tasks', 'get_general_task', 'get_activity', 'search_activities', 'list_activity_tags', 'save_general_task', 'transition_general_task', 'record_manual_activity', 'update_activity', 'set_activity_tags', 'set_general_task_tags', 'list_tasks', 'get_task'],
     source_paths: [
       'docs/design/tasks-and-events.md',
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
@@ -289,6 +289,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       { id: 'complete-existing', title: 'Complete the matching task', instruction: 'Call transition_general_task after the user reports completing an existing general task. The server creates the linked completion event; do not also create manual activity for the same work.', tools: ['transition_general_task'] },
       { id: 'record-unplanned-work', title: 'Record completed work', instruction: 'Call record_manual_activity for explicit user-reported work already done when there is no matching task to complete. Result and conclusion are optional. It never changes financial truth.', tools: ['record_manual_activity'] },
       { id: 'revise-current-activity', title: 'Revise the same activity', instruction: 'Read get_activity, then call update_activity when the user corrects or adds a result, conclusion, note, or allowed date/context. Do not create another activity for the same performance.', tools: ['get_activity', 'update_activity'] },
+      { id: 'find-and-tag', title: 'Find or classify activities', instruction: 'Use search_activities for combined keyword, date, state, conclusion, account, instrument, and activity-tag filters. Read list_activity_tags before setting known tag IDs. Tags classify records only and never affect allocation.', tools: ['search_activities', 'list_activity_tags', 'set_activity_tags', 'set_general_task_tags'] },
       { id: 'verify-result', title: 'Verify current state', instruction: 'Read the affected task after a task write. Report separate domain writes separately; automatic events require no second save.', tools: ['get_general_task'] },
     ],
     boundaries: [
