@@ -138,6 +138,8 @@ export async function saveGeneralTask(supabase, task) {
       timezone: task.timezone ?? 'Asia/Seoul',
       trigger_text: task.triggerText?.trim() || null,
       change_reason: task.changeReason?.trim() || null,
+      recurrence_kind: task.recurrenceKind ?? 'none',
+      recurrence_start_on: task.recurrenceKind === 'daily' ? (task.recurrenceStartOn || task.dueDate || new Date().toLocaleDateString('en-CA')) : null,
       authored_via: 'app',
     },
   })

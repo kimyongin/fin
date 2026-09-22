@@ -369,9 +369,11 @@ test('creates and completes a general task while keeping manual work as activity
   const taskDialog = page.getByRole('dialog', { name: '할 일 추가' })
   await taskDialog.getByRole('textbox', { name: '할 일', exact: true }).fill(taskTitle)
   await taskDialog.getByLabel('확인할 때').fill('퇴근 전에 확인')
+  await taskDialog.getByLabel('매일 반복').check()
   await taskDialog.getByRole('button', { name: '저장', exact: true }).click()
   const taskRow = page.getByText(taskTitle, { exact: true }).locator('..').locator('..')
   await expect(taskRow).toBeVisible()
+  await expect(taskRow.getByText('매일 반복 · 오늘 회차')).toBeVisible()
   await taskRow.getByRole('button', { name: '완료', exact: true }).click()
   await expect(page.getByText(taskTitle, { exact: true })).toHaveCount(0)
 

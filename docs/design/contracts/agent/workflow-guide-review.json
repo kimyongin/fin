@@ -1,39 +1,39 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "General task and manual activity tools were added. Existing guides remain behaviorally correct; the todo guide transition is handled in ticket #79.",
+  "review_reason": "Daily recurrence fields were added to general tasks; existing workflow steps remain correct and the todo guide transition remains scheduled for #79.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
-      "contract_digest": "8eef5a4e7b61db6584e3c48c38731b2fd11ea0215cb0631df97245fc0163b525"
+      "contract_digest": "2867379f32263a189510ea29911e9b07ac78f7ce6312eb0e6698921c42b430a8"
     },
     "holding_thesis": {
       "revision": "fnv1a32:62ae4aff",
-      "contract_digest": "56f8ac4703e6144e3b0c43a1287ee4b42eed649d11a7ba24d161a39f288df9ac"
+      "contract_digest": "9e0a1e98a97bae6c3cfb4352b8b9695e9f043cf3b64ed1e73f43579aae3aa956"
     },
     "daily_review": {
       "revision": "fnv1a32:a7592e1e",
-      "contract_digest": "555b3a9e9634d674b661294cc74f5d88d8f9e576d6962106d7ad16ad2f8b3b97"
+      "contract_digest": "86707ad2a7ee8a634d9890d6622adf45313be2644c3f9b68341f9302e1a46b66"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "331eb27c601b1c13a902679f3d2488e4f35cc9f30f66df3733b78f87974d38a0"
+      "contract_digest": "65df2b5980cc1987ff78e7f66fd0b6519be3235a386b03e28352bb0c36ee294c"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "fc3870253dd1e3f0e1e89de764f284353bfc41e7025278c6b2fb617f9c0cc910"
+      "contract_digest": "baf068f2e70b62938395c3dff3d91d15b37d057e0aad038551bbfb070222cf94"
     },
     "reconciliation": {
       "revision": "fnv1a32:74b7b215",
-      "contract_digest": "f36340a602db44abebdbb65a75800390372987db1a4462256e2f142e7bb45f1e"
+      "contract_digest": "b073031d3be8794fce2ab856dd94decca5ea31702100b6d802cd775c54c859d3"
     },
     "todo": {
       "revision": "fnv1a32:0d4e9e91",
-      "contract_digest": "82a6bf7b0eacdf6bfffe4ea20f949f9bd9d60027f1e0cfd32e96c56ecbc5995a"
+      "contract_digest": "727a2d178dd2fd9fa55466656bc44363740ec3ce2de02f8359526ada8e08ec60"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "c4df42af84baf0425d5249bd5de77518e0f09adda73bc27bb5191d8ee331fe96"
+      "contract_digest": "cbed62105f72f555df37b56350bd5c25ea90125dcb2771beb319c36940a13e24"
     }
   }
 }

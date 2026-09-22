@@ -43,7 +43,7 @@ function taskStatusLabel(task) {
 }
 
 function GeneralActionModal({ kind, onClose, onSave, saving }) {
-  const [draft, setDraft] = useState({ title: '', result: '', dueDate: '', triggerText: '' })
+  const [draft, setDraft] = useState({ title: '', result: '', dueDate: '', triggerText: '', recurrenceKind: 'none', recurrenceStartOn: new Date().toLocaleDateString('en-CA') })
   const isTask = kind === 'task'
   return <ModalShell onClose={onClose} title={isTask ? '할 일 추가' : '한 일 기록'}>
     <div className="grid gap-4">
@@ -51,6 +51,8 @@ function GeneralActionModal({ kind, onClose, onSave, saving }) {
       <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{isTask ? '할 일' : '한 일'}</span><input autoFocus className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
       <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{isTask ? '확인할 때' : '결과 또는 메모'}</span><textarea className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, [isTask ? 'triggerText' : 'result']: event.target.value })} rows={3} value={isTask ? draft.triggerText : draft.result} /></label>
       {isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">예정일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, dueDate: event.target.value })} type="date" value={draft.dueDate} /></label>}
+      {isTask && <label className="flex min-h-11 items-center gap-2 text-sm"><input checked={draft.recurrenceKind === 'daily'} onChange={(event) => setDraft({ ...draft, recurrenceKind: event.target.checked ? 'daily' : 'none' })} type="checkbox" />매일 반복</label>}
+      {isTask && draft.recurrenceKind === 'daily' && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">반복 시작일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, recurrenceStartOn: event.target.value })} type="date" value={draft.recurrenceStartOn} /></label>}
       <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!draft.title.trim() || saving} onClick={() => onSave(draft)} type="button">{saving ? '저장 중' : '저장'}</button></div>
     </div>
   </ModalShell>
@@ -216,7 +218,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
   async function completeGeneralTask(task) {
     setError('')
     try {
-      await transitionGeneralTask(supabase, task, 'complete')
+      await transitionGeneralTask(supabase, task, 'complete', { occurrenceOn: task.occurrence_on })
       setGeneralTasks((current) => current.filter((item) => item.id !== task.id))
       onRefreshActivity?.()
     } catch (nextError) { setError(nextError.message ?? '할 일을 완료하지 못했습니다.') }
@@ -365,7 +367,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
 
       {mode === 'tasks' && !ownerUserId && <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold">지금 할 일</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">해야 할 일과 실제로 한 일을 구분해 기록합니다.</p></div><div className="flex gap-2"><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => setGeneralEditor('activity')} type="button">한 일 기록</button><button className="rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white" onClick={() => setGeneralEditor('task')} type="button">할 일 추가</button></div></div>
-        {generalTasks.length === 0 ? <p className="mt-4 text-sm text-[var(--muted-ink)]">현재 할 일이 없습니다.</p> : <div className="mt-4 grid gap-2">{generalTasks.map((task) => <div className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] p-3" key={task.id}><button className="min-w-0 flex-1 text-left" onClick={async () => { try { setDetail({ mode: 'tasks', item: await fetchGeneralTask(supabase, task.id) }) } catch (nextError) { setError(nextError.message) } }} type="button"><span className="block truncate text-sm font-semibold">{task.title}</span>{task.due_date && <span className="mt-1 block text-xs text-[var(--muted-ink)]">예정 {formatDate(task.due_date)}</span>}</button><button className="min-h-11 rounded-xl border border-[var(--line)] px-3 text-sm" onClick={() => completeGeneralTask(task)} type="button">완료</button></div>)}</div>}
+        {generalTasks.length === 0 ? <p className="mt-4 text-sm text-[var(--muted-ink)]">현재 할 일이 없습니다.</p> : <div className="mt-4 grid gap-2">{generalTasks.map((task) => <div className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] p-3" key={task.id}><button className="min-w-0 flex-1 text-left" onClick={async () => { try { setDetail({ mode: 'tasks', item: await fetchGeneralTask(supabase, task.id) }) } catch (nextError) { setError(nextError.message) } }} type="button"><span className="block truncate text-sm font-semibold">{task.title}</span>{task.recurrence_kind === 'daily' ? <span className="mt-1 block text-xs text-[var(--muted-ink)]">매일 반복 · 오늘 회차</span> : task.due_date && <span className="mt-1 block text-xs text-[var(--muted-ink)]">예정 {formatDate(task.due_date)}</span>}</button><button className="min-h-11 rounded-xl border border-[var(--line)] px-3 text-sm" onClick={() => completeGeneralTask(task)} type="button">완료</button></div>)}</div>}
       </section>}
 
       {mode === 'tasks' && !ownerUserId && <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
