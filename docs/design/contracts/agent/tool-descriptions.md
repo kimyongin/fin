@@ -47,7 +47,7 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_activity / observed-local | 활동의 현재 제목·메모·결과·결론, 편집 허용 필드, 수행 태스크와 후속 할 일을 조회합니다. | A03 |
 | record_manual_activity / observed-local | 이미 수행한 일을 선택 결과·결론·메모와 함께 한 활동으로 기록합니다. 잔고・체결・검증 같은 금융 원본은 바꾸거나 증명하지 않습니다. | A03 |
 | update_activity / observed-local | 같은 수행의 현재 활동을 수정합니다. 자동 금융 원본은 보호하고 허용된 설명 필드만 바꿉니다. | A03 |
-| search_activities / observed-local | 할 일과 한 일을 기간·상태·결론·종목·계좌·활동 태그·키워드로 함께 검색하고 안정 커서로 조회합니다. | A03,A06 |
+| search_activities / observed-local | 할 일과 한 일을 기간·상태·결론·종목·계좌·활동 태그·키워드로 함께 검색합니다. 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 실행 여부를 알리며, 불가능하면 정상 키워드 결과를 유지합니다. | A03,A06 |
 | list_activity_tags, save_activity_tag, delete_activity_tag / observed-local | 자산 배분과 분리된 사용자 활동 태그 사전을 조회·추가·이름 변경·삭제합니다. | A03 |
 | set_activity_tags, set_general_task_tags / observed-local | 활동 또는 일반 할 일의 태그 집합을 교체합니다. 완료 시 현재 태그만 복사되고 과거 회차는 바뀌지 않습니다. | A03 |
 | get_activity_report_context / observed-local | 지정 기간의 성공 행동 원본을 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |

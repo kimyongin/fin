@@ -10,6 +10,7 @@ import {
 import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
 import { type ToolHandler, validateToolRegistry } from '../_shared/mcp/registry.ts'
 import { getWorkflowGuide, renderWorkflowGuideMarkdown, validateWorkflowGuides } from '../_shared/mcp/workflow-guides.ts'
+import { hybridSearchActivities } from '../_shared/activity-search.ts'
 
 type JsonRpcRequest = {
   jsonrpc?: string
@@ -619,20 +620,20 @@ const toolHandlers: Record<string, ToolHandler> = {
     }) }
   },
   async search_activities(supabase, args) {
-    const data = await rpc(supabase, 'app_search_activities', {
-      input_owner_user_id: null,
-      input_query: optionalString(args.query) ?? null,
-      input_from: optionalString(args.from) ?? null,
-      input_to: optionalString(args.to) ?? null,
-      input_record_state: optionalString(args.record_state) ?? 'all',
-      input_has_conclusion: typeof args.has_conclusion === 'boolean' ? args.has_conclusion : null,
-      input_instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
-      input_account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
-      input_tag_ids: Array.isArray(args.tag_ids) ? args.tag_ids.map((value,index) => requireUuid(value, `tag_ids[${index}]`)) : [],
-      input_tag_match: optionalString(args.tag_match) ?? 'all',
-      input_limit: args.limit == null ? 30 : requirePositiveInteger(args.limit, 'limit'),
-      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
-      input_timezone: optionalString(args.timezone) ?? 'Asia/Seoul',
+    const data = await hybridSearchActivities(supabase, {
+      owner_user_id: null,
+      query: optionalString(args.query) ?? null,
+      from: optionalString(args.from) ?? null,
+      to: optionalString(args.to) ?? null,
+      record_state: (optionalString(args.record_state) ?? 'all') as 'all' | 'todo' | 'done',
+      has_conclusion: typeof args.has_conclusion === 'boolean' ? args.has_conclusion : null,
+      instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
+      tag_ids: Array.isArray(args.tag_ids) ? args.tag_ids.map((value,index) => requireUuid(value, `tag_ids[${index}]`)) : [],
+      tag_match: (optionalString(args.tag_match) ?? 'all') as 'all' | 'any',
+      limit: args.limit == null ? 30 : requirePositiveInteger(args.limit, 'limit'),
+      cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
+      timezone: optionalString(args.timezone) ?? 'Asia/Seoul',
     })
     return { ok: true, data }
   },

@@ -180,7 +180,26 @@ export async function searchActivities(supabase, {
   timezone = 'Asia/Seoul',
   to = null,
 } = {}) {
-  return normalizePage(await rpc(supabase, 'app_search_activities', {
+  const body = {
+    owner_user_id: ownerUserId,
+    query: query?.trim() || null,
+    from: from || null,
+    to: to || null,
+    record_state: state,
+    has_conclusion: conclusion === 'all' ? null : conclusion === 'yes',
+    instrument_id: instrumentId,
+    account_id: accountId,
+    tag_ids: tagIds,
+    tag_match: tagMatch,
+    limit,
+    cursor,
+    timezone,
+  }
+  if (supabase.functions?.invoke) {
+    const { data, error } = await supabase.functions.invoke('activity-search', { body })
+    if (!error && data) return { ...normalizePage(data), semanticStatus: data.semantic_status ?? 'unavailable' }
+  }
+  const data = await rpc(supabase, 'app_search_activities', {
     input_owner_user_id: ownerUserId,
     input_query: query?.trim() || null,
     input_from: from || null,
@@ -194,7 +213,8 @@ export async function searchActivities(supabase, {
     input_limit: limit,
     input_cursor: cursor,
     input_timezone: timezone,
-  }))
+  })
+  return { ...normalizePage(data), semanticStatus: 'unavailable' }
 }
 
 export async function fetchGeneralTask(supabase, taskId) {

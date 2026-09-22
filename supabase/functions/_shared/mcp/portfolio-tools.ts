@@ -791,7 +791,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'search_activities',
     title: 'Search tasks and performed activities',
-    description: 'Search future tasks and performed activities through one owner-scoped query. Combine optional Korean or ticker keywords with date, task-versus-done state, conclusion presence, account, instrument, and reusable activity tags. Filters are applied before stable pagination. Pass next_cursor unchanged and never treat an empty page after an error as no history.',
+    description: 'Search future tasks and performed activities through one owner-scoped query. Combine optional Korean or ticker keywords with date, task-versus-done state, conclusion presence, account, instrument, and reusable activity tags. On the first completed-activity page, semantic similarity may supplement keyword ranking; semantic_status reports whether it ran, and keyword results remain available when it did not. Filters and sharing checks run before ranking. Pass next_cursor unchanged and never treat an unavailable semantic pass or an error as no history.',
     inputSchema: { type: 'object', properties: {
       query: { type: ['string','null'], maxLength: 500 }, from: { type: ['string','null'], format: 'date' }, to: { type: ['string','null'], format: 'date' },
       record_state: { type: 'string', enum: ['all','todo','done'], default: 'all' }, has_conclusion: { type: ['boolean','null'] },
