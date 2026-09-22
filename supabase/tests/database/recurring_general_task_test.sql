@@ -42,14 +42,14 @@ select extensions.is(public.app_transition_general_task((select id from portfoli
 select extensions.is((select count(*) from activity_events where task_id=(select id from portfolio_tasks where title='매일 잔고 확인')
   and occurrence_on=(clock_timestamp() at time zone 'Asia/Seoul')::date and action_type='complete_general_task'),2::bigint,'correction history preserves both completion facts');
 
-select extensions.is(public.app_transition_general_task((select id from portfolio_tasks where title='매일 잔고 확인'),5,'pause',null,null,
-  null,'18888888-8888-4888-8888-888888888888','app') #>> '{status}','paused','recurring task can pause without creating occurrences');
-select extensions.is(public.app_transition_general_task((select id from portfolio_tasks where title='매일 잔고 확인'),6,'resume',null,null,
-  null,'18999999-9999-4999-8999-999999999999','app') #>> '{status}','done','resuming preserves today completion');
+select extensions.throws_ok($$select public.app_transition_general_task((select id from portfolio_tasks where title='매일 잔고 확인'),5,'pause',null,null,
+  null,'18888888-8888-4888-8888-888888888888','app')$$,'P0001','Invalid general task transition','new pause calls are rejected');
+select extensions.throws_ok($$select public.app_transition_general_task((select id from portfolio_tasks where title='매일 잔고 확인'),5,'resume',null,null,
+  null,'18999999-9999-4999-8999-999999999999','app')$$,'P0001','Invalid general task transition','new resume calls are rejected');
 select extensions.is((select count(*) from activity_events where task_id=(select id from portfolio_tasks where title='매일 잔고 확인') and occurrence_on is null
-  and action_type in ('pause_general_task','resume_general_task')),2::bigint,'control transitions are not occurrence completions');
+  and action_type in ('pause_general_task','resume_general_task')),0::bigint,'retired control transitions create no activity');
 select extensions.is(jsonb_array_length(public.app_list_general_task_page('completed',20,null)->'items'),1,'completed filter uses the current local occurrence');
-select extensions.is(public.app_transition_general_task((select id from portfolio_tasks where title='매일 잔고 확인'),7,'cancel',null,'사용자가 반복 종료',
+select extensions.is(public.app_transition_general_task((select id from portfolio_tasks where title='매일 잔고 확인'),5,'cancel',null,'사용자가 반복 종료',
   null,'18aaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','app') #>> '{status}','cancelled','ending recurrence closes future appearances');
 select extensions.is((select count(*) from activity_events where task_id=(select id from portfolio_tasks where title='매일 잔고 확인')
   and action_type='complete_general_task'),3::bigint,'ending recurrence preserves earlier completions without inventing another');

@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Clarify linked completion activity for recurring task transition",
+  "review_reason": "Server now rejects general-task pause and resume; preexisting paused work ends without completion",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d5222800",
-      "contract_digest": "b908d49caf2c45033a1b1d08b5baf6a8b5cb0293a7150fc94a3257c0143164a7"
+      "contract_digest": "4f9de498de12bf535321c51124b6aa1a4a4ba74673d0e52e5e700349d736667b"
     },
     "holding_thesis": {
       "revision": "fnv1a32:e8f68540",
-      "contract_digest": "251c5082df3ff8645fcc67947cd79fca2efb587fb6108e3844ca81e4b31946f4"
+      "contract_digest": "26d7c94bd6612eb024af6c31cea0811cead6e5e78cbbe85d60acaf1df77ad811"
     },
     "daily_review": {
       "revision": "fnv1a32:79601eb6",
-      "contract_digest": "798b41c3a092d583d30810ff0423e12ead6795c466956b796fe16b98a4a11e6f"
+      "contract_digest": "f4896224218fa3e7943888881e85b83a3e20595c3df7a20ec9021f17fb03e3c8"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "710713509f54f153d262a1765392d81ccdac8ac1b22c7b0202e6fd22b3af450e"
+      "contract_digest": "0e9166773979e47711d5da99299095936cff8ea4b34a2abfaab900c8e34404ae"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "bc5b86faacdd4174eb55e524cfb2ce5f8b94c6cade26d682693c93901bf9c58d"
+      "contract_digest": "7042cd67b4c5e5c28587c034f83844b7dc18088eaf328e2eaf2174da8e37ea46"
     },
     "reconciliation": {
       "revision": "fnv1a32:f69d58bf",
-      "contract_digest": "7ed07d2856c0920c20cc31c4264158cac33c1f87db3d6652e18b1490617669d0"
+      "contract_digest": "ef5e3519d2fea2607a7fbdd193fefeaa908ccfbe2f0f861b451f1052c24decd1"
     },
     "todo": {
-      "revision": "fnv1a32:665dd041",
-      "contract_digest": "e10849bc970dad2f6a955e62314bfe8dc2c0e67e6193ef4e87192acfe0bb8866"
+      "revision": "fnv1a32:a0590a97",
+      "contract_digest": "cc11cdfbc385fbde8c8d5ce799d577ce4d31695fcaf9187f2292428edae6d2c5"
     },
     "activity_report": {
       "revision": "fnv1a32:a12e16a6",
-      "contract_digest": "89ea7318d874f782a650088d0b73d84f68c38d348082f0899d0f9882836aab77"
+      "contract_digest": "b4ee7c02b6083420c14f9b21b5005c8ba980c6eac6cc850c7c7d9d8fd9ece0ae"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "e6dba82bd8191a686d4152537c639b1faa63792690400e56968f96c9ee487ff8"
+      "contract_digest": "0c25b5395d6bbee51eeeb5a7e1d1d6b140cdcb675f09e1b63b9ffe0d9677e3e9"
     }
   }
 }

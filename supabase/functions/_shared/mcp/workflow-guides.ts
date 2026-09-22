@@ -284,6 +284,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/migrations/20260922163825_activity_tags_and_search.sql',
       'supabase/migrations/20260922165358_activity_semantic_search.sql',
       'supabase/migrations/20260922174210_activity_decision_navigation.sql',
+      'supabase/migrations/20260922194042_retire_general_task_pause.sql',
       'supabase/migrations/20260922191112_activity_categories_privacy.sql',
       'supabase/migrations/20260922192349_activity_context_edit.sql',
     ],
