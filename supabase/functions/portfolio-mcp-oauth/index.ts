@@ -23,7 +23,7 @@ const protocolVersion = '2025-06-18'
 const oauthSecurity = [{ type: 'oauth2', scopes: ['openid', 'email', 'profile'] }]
 const serverInstructions = [
   'Portfolio remembers, calculates, and validates investment records; it never executes brokerage orders or transfers funds.',
-  'Use authenticated portfolio tools for quantities, average costs, strategy, saved news, and activity instead of guessing.',
+  'Use authenticated portfolio tools for quantities, average costs, strategy, and saved activities instead of guessing. Older saved news remains in daily context during migration.',
   'Use ChatGPT web research for current news, clearly separate sourced facts from analysis, and do not claim that Portfolio fetched live news.',
   'A review request is not permission to write: save only when the user explicitly asks, and keep model suggestions, user decisions, plans, completed trades, and brokerage balance verification distinct.',
   'Do not invent missing preferences or holding reasons, and do not report no meaningful change when research was incomplete.',
@@ -35,8 +35,9 @@ const serverInstructions = [
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
 // Existing clients may finish an in-flight legacy call, but new agent sessions
-// should see only the current principle and private-note paths.
+// should see only the current principle, private-note, and activity paths.
 const hiddenLegacyToolNames = new Set([
+  'get_news_state',
   'get_investment_policy', 'save_investment_policy',
   'get_holding_thesis', 'save_holding_thesis', 'link_task_to_holding_thesis',
 ])
@@ -49,7 +50,7 @@ const promptDefinitions = [
   {
     name: 'daily_portfolio_review',
     title: 'Daily portfolio review',
-    description: 'Start a concise daily review using the authenticated portfolio, strategy, saved news, and recent activity.',
+    description: 'Start a concise daily review using the authenticated portfolio, strategy, and saved activity; older saved news may appear in the migration snapshot.',
     arguments: [],
   },
 ]

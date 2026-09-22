@@ -81,7 +81,7 @@ try {
   for (const currentTool of ['list_principles','save_principle','list_private_holding_notes','save_private_holding_note']) {
     assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
   }
-  for (const legacyTool of ['get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis']) {
+  for (const legacyTool of ['get_news_state','get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis']) {
     assert(!discoveredNames.has(legacyTool), `${legacyTool} remained in new-session discovery`)
   }
   for (const retiredTool of ['preview_trade_reversal','reverse_trade_entry']) {
