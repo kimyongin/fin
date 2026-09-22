@@ -1,15 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ModalShell from "../../components/ModalShell";
 import PrincipleJournal from "./PrincipleJournal";
 import { formatKrw, formatPercent } from "../../lib/format";
 import {
-  archiveOperatingRule,
   createEmptyStrategyState,
-  fetchInvestmentPolicy,
-  fetchOperatingRules,
   fetchStrategyState,
-  saveInvestmentPolicy,
-  saveOperatingRule,
   saveStrategy,
 } from "./data";
 
@@ -458,297 +453,6 @@ function PrinciplesModal({ draft, onClose, onSave, saving }) {
   );
 }
 
-function policyDraft(profile) {
-  return {
-    raw_text: profile?.raw_text ?? "",
-    goal_text: profile?.goal_text ?? "",
-    horizon_text: profile?.horizon_text ?? "",
-    liquidity_need_text: profile?.liquidity_need_text ?? "",
-    risk_tolerance_text: profile?.risk_tolerance_text ?? "",
-    trading_preference_text: profile?.trading_preference_text ?? "",
-    preferences: (profile?.restrictions ?? [])
-      .filter((item) => item.kind === "preference")
-      .map((item) => item.text)
-      .join("\n"),
-    prohibitions: (profile?.restrictions ?? [])
-      .filter((item) => item.kind === "prohibition")
-      .map((item) => item.text)
-      .join("\n"),
-    change_reason: "",
-  };
-}
-
-function policyLines(value, kind) {
-  return value
-    .split("\n")
-    .map((text) => text.trim())
-    .filter(Boolean)
-    .map((text) => ({ kind, text }));
-}
-
-function InvestmentPolicyModal({ onClose, onSave, profile, saving }) {
-  const [draft, setDraft] = useState(() => policyDraft(profile));
-  const textField = (key, label, placeholder) => (
-    <label className="grid gap-1.5">
-      <span className="text-xs text-[var(--muted-ink)]">{label}</span>
-      <textarea
-        className={`${inputClass()} min-h-20 resize-y`}
-        onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
-        placeholder={placeholder}
-        value={draft[key]}
-      />
-    </label>
-  );
-  return (
-    <ModalShell onClose={onClose} title="나의 투자 기준 편집">
-      <div className="grid gap-4">
-        <p className="text-sm leading-6 text-[var(--muted-ink)]">
-          모르는 항목은 비워두세요. 운용 모드나 현재 보유 종목으로 성향을 자동
-          추정하지 않습니다.
-        </p>
-        {textField(
-          "raw_text",
-          "한 줄로 적는 기본 원칙",
-          "예: 장기 투자하고 자주 매매하지 않는다.",
-        )}
-        <div className="grid gap-4 sm:grid-cols-2">
-          {textField(
-            "goal_text",
-            "투자 목적",
-            "예: 은퇴 자산을 장기적으로 늘린다.",
-          )}
-          {textField("horizon_text", "투자 기간", "예: 10년 이상")}
-          {textField(
-            "liquidity_need_text",
-            "자금 필요와 유동성",
-            "예: 3년 안에 쓸 가능성이 있는 돈은 투자하지 않는다.",
-          )}
-          {textField(
-            "risk_tolerance_text",
-            "변동성·손실에 대한 기준",
-            "숫자 손절선이 아니라 감수 가능한 상황을 적습니다.",
-          )}
-          {textField(
-            "trading_preference_text",
-            "매매 선호",
-            "예: 잦은 매매보다 적립식 매수를 선호한다.",
-          )}
-          {textField(
-            "preferences",
-            "선호 조건 · 한 줄에 하나",
-            "예: 저비용 인덱스 상품을 우선 검토한다.",
-          )}
-          {textField(
-            "prohibitions",
-            "하지 않을 것 · 한 줄에 하나",
-            "예: 레버리지 상품은 매수하지 않는다.",
-          )}
-        </div>
-        <label className="grid gap-1.5">
-          <span className="text-xs text-[var(--muted-ink)]">변경 이유</span>
-          <input
-            className={inputClass()}
-            onChange={(event) =>
-              setDraft({ ...draft, change_reason: event.target.value })
-            }
-            placeholder="왜 이 기준을 저장하거나 바꾸는지 짧게 적어주세요."
-            value={draft.change_reason}
-          />
-        </label>
-        <div className="flex justify-end gap-2">
-          <button
-            className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm"
-            onClick={onClose}
-            type="button"
-          >
-            취소
-          </button>
-          <button
-            className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-            disabled={saving || !draft.change_reason.trim()}
-            onClick={() =>
-              onSave({
-                changeReason: draft.change_reason.trim(),
-                patch: {
-                  raw_text: draft.raw_text.trim() || null,
-                  goal_text: draft.goal_text.trim() || null,
-                  horizon_text: draft.horizon_text.trim() || null,
-                  liquidity_need_text: draft.liquidity_need_text.trim() || null,
-                  risk_tolerance_text: draft.risk_tolerance_text.trim() || null,
-                  trading_preference_text:
-                    draft.trading_preference_text.trim() || null,
-                  restrictions: [
-                    ...policyLines(draft.preferences, "preference"),
-                    ...policyLines(draft.prohibitions, "prohibition"),
-                  ],
-                },
-              })
-            }
-            type="button"
-          >
-            {saving ? "저장 중" : "기준 저장"}
-          </button>
-        </div>
-      </div>
-    </ModalShell>
-  );
-}
-
-function InvestmentPolicyCard({ onEdit, profile }) {
-  const rows = [
-    ["투자 목적", profile?.goal_text],
-    ["투자 기간", profile?.horizon_text],
-    ["자금 필요", profile?.liquidity_need_text],
-    ["위험 기준", profile?.risk_tolerance_text],
-    ["매매 선호", profile?.trading_preference_text],
-  ].filter(([, value]) => value);
-  return (
-    <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">나의 투자 기준</h2>
-          <p className="mt-1 text-sm text-[var(--muted-ink)]">
-            ChatGPT의 제안을 해석하는 개인 기준이며 기본적으로 나만 볼 수
-            있습니다.
-          </p>
-        </div>
-        <button
-          className="shrink-0 rounded-xl border border-[var(--line)] px-3 py-2 text-sm"
-          onClick={onEdit}
-          type="button"
-        >
-          {profile ? "기준 편집" : "기준 추가"}
-        </button>
-      </div>
-      {!profile ? (
-        <p className="mt-4 text-sm text-[var(--muted-ink)]">
-          아직 저장된 개인 기준이 없습니다. 비워둔 항목은 추정하지 않습니다.
-        </p>
-      ) : (
-        <div className="mt-4 grid gap-4">
-          {profile.raw_text && (
-            <p className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6">
-              {profile.raw_text}
-            </p>
-          )}
-          {rows.length > 0 && (
-            <dl className="grid gap-3 sm:grid-cols-2">
-              {rows.map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-xs text-[var(--muted-ink)]">{label}</dt>
-                  <dd className="mt-1 text-sm leading-6">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-          {profile.restrictions?.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {profile.restrictions.map((item, index) => (
-                <span
-                  className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs"
-                  key={`${item.kind}-${index}`}
-                >
-                  {item.kind === "prohibition" ? "금지" : "선호"} · {item.text}
-                </span>
-              ))}
-            </div>
-          )}
-          <p className="text-xs text-[var(--muted-ink)]">
-            기준 버전 {profile.version}
-          </p>
-        </div>
-      )}
-    </article>
-  );
-}
-
-function OperatingRuleModal({ onClose, onSave, rule, saving }) {
-  const [draft, setDraft] = useState(() => ({
-    title: rule?.title ?? "",
-    applicability: rule?.applicability ?? "",
-    body: rule?.body ?? "",
-    changeReason: "",
-  }));
-  const field = (key, label, placeholder, rows = 3) => (
-    <label className="grid gap-1.5">
-      <span className="text-xs text-[var(--muted-ink)]">{label}</span>
-      <textarea
-        className={`${inputClass()} resize-y`}
-        onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
-        placeholder={placeholder}
-        rows={rows}
-        value={draft[key]}
-      />
-    </label>
-  );
-  const valid = draft.title.trim() && draft.applicability.trim() && draft.body.trim() && draft.changeReason.trim();
-  return (
-    <ModalShell onClose={onClose} title={rule ? "데이터 관리 규칙 편집" : "데이터 관리 규칙 추가"}>
-      <div className="grid gap-4">
-        <p className="text-sm leading-6 text-[var(--muted-ink)]">
-          현재는 잔고 대조에 적용됩니다. 적용 조건과 처리 방법을 나눠 적으면 ChatGPT가 실제 파일과 대조할 수 있습니다.
-        </p>
-        <label className="grid gap-1.5">
-          <span className="text-xs text-[var(--muted-ink)]">규칙 이름</span>
-          <input className={inputClass()} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} />
-        </label>
-        {field("applicability", "언제 적용하나요?", "예: 미래에셋 HTS에서 내려받은 국내주식 잔고 XLS", 2)}
-        {field("body", "어떻게 해석하나요?", "예: 평균가가 없으면 매입금액을 수량으로 나누되, 수량이 0이면 계산하지 않는다.", 5)}
-        <label className="grid gap-1.5">
-          <span className="text-xs text-[var(--muted-ink)]">변경 이유</span>
-          <input className={inputClass()} onChange={(event) => setDraft({ ...draft, changeReason: event.target.value })} value={draft.changeReason} />
-        </label>
-        <div className="flex justify-end gap-2">
-          <button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button>
-          <button
-            className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-            disabled={!valid || saving}
-            onClick={() => onSave(draft)}
-            type="button"
-          >
-            {saving ? "저장 중" : "규칙 저장"}
-          </button>
-        </div>
-      </div>
-    </ModalShell>
-  );
-}
-
-function OperatingRulesCard({ onAdd, onArchive, onEdit, rules }) {
-  return (
-    <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">데이터 관리 규칙</h2>
-          <p className="mt-1 text-sm text-[var(--muted-ink)]">파일과 앱 데이터를 대조할 때 반복해서 사용할 해석 기준입니다.</p>
-        </div>
-        <button className="shrink-0 rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={onAdd} type="button">규칙 추가</button>
-      </div>
-      {rules.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--muted-ink)]">저장된 규칙이 없습니다. 규칙이 없어도 잔고 대조는 사용할 수 있습니다.</p>
-      ) : (
-        <div className="mt-4 grid gap-3">
-          {rules.map((rule) => (
-            <section className="rounded-2xl bg-[var(--surface-2)] p-4" key={rule.id}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold">{rule.title}</h3>
-                  <p className="mt-1 text-xs text-[var(--muted-ink)]">적용 조건 · {rule.applicability}</p>
-                </div>
-                <span className="text-xs text-[var(--muted-ink)]">v{rule.version}</span>
-              </div>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{rule.body}</p>
-              <div className="mt-3 flex gap-2">
-                <button className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs" onClick={() => onEdit(rule)} type="button">편집</button>
-                <button className="rounded-lg px-3 py-1.5 text-xs text-[var(--muted-ink)] hover:text-red-300" onClick={() => onArchive(rule)} type="button">보관</button>
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-    </article>
-  );
-}
 
 function StrategyDashboard({
   canEdit,
@@ -1053,34 +757,20 @@ export default function StrategyPage({
   const [strategyState, setStrategyState] = useState(
     createEmptyStrategyState(),
   );
-  const [policy, setPolicy] = useState(null);
-  const [operatingRules, setOperatingRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
   const [editingMode, setEditingMode] = useState(false);
   const [editingPrinciples, setEditingPrinciples] = useState(false);
-  const [editingPolicy, setEditingPolicy] = useState(false);
-  const [editingRule, setEditingRule] = useState(undefined);
   const [draft, setDraft] = useState(emptyDraft());
   const [saving, setSaving] = useState(false);
-  const [savingPolicy, setSavingPolicy] = useState(false);
-  const [savingRule, setSavingRule] = useState(false);
-  const policySaveAttempt = useRef(null);
-  const ruleSaveAttempt = useRef(null);
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.all([
-      fetchStrategyState(supabase, ownerUserId),
-      canEdit ? fetchInvestmentPolicy(supabase) : Promise.resolve(null),
-      canEdit ? fetchOperatingRules(supabase, "reconciliation") : Promise.resolve([]),
-    ])
-      .then(([next, nextPolicy, nextRules]) => {
+    fetchStrategyState(supabase, ownerUserId)
+      .then((next) => {
         if (!active) return;
         setStrategyState(next);
-        setPolicy(nextPolicy);
-        setOperatingRules(nextRules);
         setDraft(next.strategy ? createDraft(next) : emptyDraft());
         setEditing(false);
       })
@@ -1093,7 +783,7 @@ export default function StrategyPage({
     return () => {
       active = false;
     };
-  }, [canEdit, ownerUserId, supabase]);
+  }, [ownerUserId, supabase]);
   async function persist(nextDraft, afterSave) {
     setSaving(true);
     setError("");
@@ -1106,66 +796,6 @@ export default function StrategyPage({
       setError(nextError.message ?? "전략을 저장하지 못했습니다.");
     } finally {
       setSaving(false);
-    }
-  }
-  async function persistPolicy({ patch, changeReason }) {
-    setSavingPolicy(true);
-    setError("");
-    const expectedVersion = policy?.version ?? null;
-    const signature = JSON.stringify({ expectedVersion, patch, changeReason });
-    if (policySaveAttempt.current?.signature !== signature)
-      policySaveAttempt.current = { signature, key: crypto.randomUUID() };
-    try {
-      const nextPolicy = await saveInvestmentPolicy(supabase, {
-        expectedVersion,
-        idempotencyKey: policySaveAttempt.current.key,
-        patch,
-        changeReason,
-      });
-      policySaveAttempt.current = null;
-      setPolicy(nextPolicy);
-      setEditingPolicy(false);
-    } catch (nextError) {
-      setError(nextError.message ?? "투자 기준을 저장하지 못했습니다.");
-    } finally {
-      setSavingPolicy(false);
-    }
-  }
-  async function persistRule(ruleDraft) {
-    setSavingRule(true);
-    setError("");
-    const signature = JSON.stringify({ id: editingRule?.id ?? null, version: editingRule?.version ?? null, ...ruleDraft });
-    if (ruleSaveAttempt.current?.signature !== signature) ruleSaveAttempt.current = { signature, key: crypto.randomUUID() };
-    try {
-      const nextRule = await saveOperatingRule(supabase, {
-        id: editingRule?.id ?? null,
-        expectedVersion: editingRule?.version ?? null,
-        idempotencyKey: ruleSaveAttempt.current.key,
-        title: ruleDraft.title,
-        workflowKey: "reconciliation",
-        applicability: ruleDraft.applicability,
-        body: ruleDraft.body,
-        changeReason: ruleDraft.changeReason,
-      });
-      setOperatingRules((current) => [nextRule, ...current.filter((item) => item.id !== nextRule.id)]);
-      ruleSaveAttempt.current = null;
-      setEditingRule(undefined);
-    } catch (nextError) {
-      setError(nextError.message ?? "데이터 관리 규칙을 저장하지 못했습니다.");
-    } finally {
-      setSavingRule(false);
-    }
-  }
-  async function archiveRule(rule) {
-    if (!window.confirm(`“${rule.title}” 규칙을 보관할까요?`)) return;
-    setError("");
-    try {
-      await archiveOperatingRule(supabase, {
-        id: rule.id, expectedVersion: rule.version, idempotencyKey: crypto.randomUUID(), reason: "앱에서 규칙을 보관했습니다.",
-      });
-      setOperatingRules((current) => current.filter((item) => item.id !== rule.id));
-    } catch (nextError) {
-      setError(nextError.message ?? "데이터 관리 규칙을 보관하지 못했습니다.");
     }
   }
   if (loading)
@@ -1269,22 +899,6 @@ export default function StrategyPage({
             persist({ ...draft, principles }, () => setEditingPrinciples(false))
           }
           saving={saving}
-        />
-      )}
-      {editingPolicy && (
-        <InvestmentPolicyModal
-          onClose={() => setEditingPolicy(false)}
-          onSave={persistPolicy}
-          profile={policy}
-          saving={savingPolicy}
-        />
-      )}
-      {editingRule !== undefined && (
-        <OperatingRuleModal
-          onClose={() => setEditingRule(undefined)}
-          onSave={persistRule}
-          rule={editingRule}
-          saving={savingRule}
         />
       )}
     </div>

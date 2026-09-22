@@ -35,12 +35,6 @@ export async function saveStrategy(supabase, draft) {
   return { ...createEmptyStrategyState(), ...(data ?? {}) }
 }
 
-export async function fetchInvestmentPolicy(supabase) {
-  const { data, error } = await supabase.rpc('app_get_investment_policy')
-  if (error) throw error
-  return data?.profile ?? null
-}
-
 export async function fetchPrinciples(supabase, { onDate = null, includeEnded = false } = {}) {
   const { data, error } = await supabase.rpc('app_list_principles', {
     input_on: onDate,
@@ -62,58 +56,4 @@ export async function savePrinciple(supabase, { principleId, expectedRowId = nul
   })
   if (error) throw error
   return data
-}
-
-export async function saveInvestmentPolicy(supabase, {
-  expectedVersion,
-  idempotencyKey,
-  patch,
-  changeReason,
-}) {
-  const { data, error } = await supabase.rpc('app_save_investment_policy', {
-    input_expected_version: expectedVersion,
-    input_idempotency_key: idempotencyKey,
-    input_patch: patch,
-    input_change_reason: changeReason,
-    input_authored_via: 'app',
-  })
-  if (error) throw error
-  return data?.profile ?? null
-}
-
-export async function fetchOperatingRules(supabase, workflowKey = null, includeArchived = false) {
-  const { data, error } = await supabase.rpc('app_list_operating_rules', {
-    input_workflow_key: workflowKey,
-    input_include_archived: includeArchived,
-  })
-  if (error) throw error
-  return data?.rules ?? []
-}
-
-export async function saveOperatingRule(supabase, rule) {
-  const { data, error } = await supabase.rpc('app_save_operating_rule', {
-    input_rule_id: rule.id ?? null,
-    input_expected_version: rule.expectedVersion ?? null,
-    input_idempotency_key: rule.idempotencyKey,
-    input_title: rule.title.trim(),
-    input_workflow_key: rule.workflowKey,
-    input_applicability: rule.applicability.trim(),
-    input_body: rule.body.trim(),
-    input_change_reason: rule.changeReason.trim(),
-    input_authored_via: 'app',
-  })
-  if (error) throw error
-  return data?.rule
-}
-
-export async function archiveOperatingRule(supabase, rule) {
-  const { data, error } = await supabase.rpc('app_archive_operating_rule', {
-    input_rule_id: rule.id,
-    input_expected_version: rule.expectedVersion,
-    input_idempotency_key: rule.idempotencyKey,
-    input_reason: rule.reason.trim(),
-    input_authored_via: 'app',
-  })
-  if (error) throw error
-  return data?.rule
 }
