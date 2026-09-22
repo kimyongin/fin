@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Categorized private activity records and owner-only sharing filter",
+  "review_reason": "Manual activity context and category correction contract",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d5222800",
-      "contract_digest": "aad5e2805d7be24d5f3eadedbbaef1056c1a011fe55b204c762dfac0372d14e6"
+      "contract_digest": "13b9bee254ce156988ccb54a98a8104d25c4acab5828cebce99225dc86ab1bbb"
     },
     "holding_thesis": {
       "revision": "fnv1a32:e8f68540",
-      "contract_digest": "0c229406ccf6db627acb4b8c243a389d9da29af8799e9981c7dc99f90057a545"
+      "contract_digest": "20c2a026e0e6d7d2ac43b5476b2110a069754a8415f9053d572300b8f219e4e1"
     },
     "daily_review": {
       "revision": "fnv1a32:79601eb6",
-      "contract_digest": "b97fcdaf49c46d3694d35de0c62810df7dafc529eb5211c615a98b17bfd578a7"
+      "contract_digest": "9b6d8f9b0b3f0259ee3a3570f14cd2189085e99e29d2966deb0ba98aa9847b10"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "e20121f2372d50595209a1715ed8945a2034b611b89548da53663a491ed335ac"
+      "contract_digest": "cb1be391ca3db68ae0745eb29847f81e2a06df99a7e9c089844183f4e5a840b1"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "2b51d57bbd17a79ba4a062688bec23a1fa13844e56e60e37c6d4a6e483f65c20"
+      "contract_digest": "d991e51a3f05144d413ecb5d7b9abac174f8ecbfa61aabfffc958af3a6e1a34b"
     },
     "reconciliation": {
       "revision": "fnv1a32:f69d58bf",
-      "contract_digest": "a3bbcf498a6f7881f6e4d6850db641220f845fe991c9e25522cdee17c7939f35"
+      "contract_digest": "3b3cf02f7a611fe602e5330dd8dc5d38a01e4039116ecec0c4ef5ec2cde74032"
     },
     "todo": {
-      "revision": "fnv1a32:f31888af",
-      "contract_digest": "ed92569bc05c9d47cbeef84172255edd4d5e606481f78e56656fc5f0aa6d1dff"
+      "revision": "fnv1a32:223cef20",
+      "contract_digest": "3241bf4fc30b3a950fa37c030fdb58aef2f61e77689b9a3e6251cc9543c92080"
     },
     "activity_report": {
       "revision": "fnv1a32:a12e16a6",
-      "contract_digest": "dd8dc7141794b83bd6d319e3d15a9e0f51d9445bc4eb83872119c63ffa07b403"
+      "contract_digest": "c464d5e58b5200d056b1a7159c6873182ed1d5c93420d095a423d8ccefdfbc9a"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "664ade4d6259e875ac9599e7d339c9f1efcc8160907875c528fefb1b40412f86"
+      "contract_digest": "6a9ef7d9af0c005c8782546266ae217f5d93887c27f5eebe0075935b07ebb703"
     }
   }
 }

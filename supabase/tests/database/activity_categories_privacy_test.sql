@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(12);
+select extensions.plan(16);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001971','authenticated','authenticated','category-owner@example.com','',now(),now(),now()),
@@ -28,6 +28,17 @@ select extensions.throws_ok(
   'P0001','Invalid manual activity category','manual work cannot claim a financial category');
 select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'비공개 조사')->'items'),1,'owner searches private research');
 select extensions.is(jsonb_array_length(public.app_list_action_timeline(input_filter=>'done')->'days'),1,'owner timeline includes activities');
+select extensions.is((public.app_update_activity(
+  (select id from public.activity_events where title='비공개 조사'),1,'97444444-4444-4444-8444-444444444444',
+  '{"record_kind":"review","context":{"scope":"변경 후 점검","sources":[{"title":"새 공시","url":"https://example.com/new"}]}}'::jsonb,'agent'
+)#>>'{record_kind}'),'review','manual category can be corrected on the same record');
+select extensions.is((public.app_get_activity((select id from public.activity_events where title='비공개 조사'),null)#>>'{after_data,context,scope}'),'변경 후 점검','corrected source scope is returned');
+select extensions.throws_ok(
+  $$select public.app_update_activity((select id from public.activity_events where title='비공개 조사'),2,'97555555-5555-4555-8555-555555555555','{"record_kind":"trade"}'::jsonb,'agent')$$,
+  'P0001','Manual activity cannot claim a financial or task action','editing cannot spoof a trade classification');
+select extensions.throws_ok(
+  $$select public.app_update_activity((select id from public.activity_events where title='비공개 조사'),2,'97666666-6666-4666-8666-666666666666','{"context":{"sources":[{"title":"bad","url":"file:///secret"}]}}'::jsonb,'agent')$$,
+  'P0001','Invalid activity source','invalid source URLs are rejected on edit');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001972',true);
 select extensions.ok(public.can_view_feature('00000000-0000-0000-0000-000000001971','activity'),'friend has legacy activity grant');

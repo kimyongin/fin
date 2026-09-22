@@ -14,11 +14,13 @@ function formatDateTime(value) {
   return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
+const activityKindLabels = { general: '일반', research: '조사', review: '점검', decision: '판단', retrospective: '회고', trade: '매매', reconciliation: '보정', task: '할 일' }
+
 export default function ActivityDetailModal({ activity, loading, onClose, onOpenDecision, onOpenTask, onSaved, ownerUserId, supabase }) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [draft, setDraft] = useState({ title: '', note: '', result: '', conclusion: '', occurredOn: '' })
+  const [draft, setDraft] = useState({ title: '', note: '', result: '', conclusion: '', occurredOn: '', recordKind: 'general' })
   const [followUp, setFollowUp] = useState({ title: '', dueDate: '' })
   const [availableTags, setAvailableTags] = useState([])
   const [selectedTagIds, setSelectedTagIds] = useState([])
@@ -32,6 +34,7 @@ export default function ActivityDetailModal({ activity, loading, onClose, onOpen
       result: activity.result ?? '',
       conclusion: activity.conclusion ?? '',
       occurredOn: localDate(activity.occurred_at),
+      recordKind: activity.record_kind ?? 'general',
     })
     setEditing(false)
     setError('')
@@ -52,6 +55,7 @@ export default function ActivityDetailModal({ activity, loading, onClose, onOpen
       if (editable.has('note')) patch.note = draft.note || null
       if (editable.has('result')) patch.result = draft.result || null
       if (editable.has('conclusion')) patch.conclusion = draft.conclusion || null
+      if (editable.has('record_kind') && draft.recordKind !== activity.record_kind) patch.record_kind = draft.recordKind
       if (editable.has('occurred_at') && draft.occurredOn !== localDate(activity.occurred_at)) {
         patch.occurred_at = `${draft.occurredOn}T12:00:00+09:00`
         patch.timezone = 'Asia/Seoul'
@@ -94,10 +98,11 @@ export default function ActivityDetailModal({ activity, loading, onClose, onOpen
       {error && <p className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
       <section className="grid gap-3">
         {editing && editable.has('title') ? <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">제목</span><input autoFocus className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" maxLength={500} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label> : <h3 className="break-words text-xl font-semibold leading-8">{activity.title || activity.after_data?.title || activity.action_type}</h3>}
-        <p className="text-xs text-[var(--muted-ink)]">{formatDateTime(activity.occurred_at)} · {activity.source === 'agent' ? 'ChatGPT' : '앱'}</p>
+        <p className="text-xs text-[var(--muted-ink)]">{formatDateTime(activity.occurred_at)} · {activityKindLabels[activity.record_kind] ?? '활동'} · {activity.source === 'agent' ? 'ChatGPT' : '앱'}</p>
       </section>
 
       {editing && editable.has('occurred_at') && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">수행일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" max={new Date().toLocaleDateString('en-CA')} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
+      {editing && editable.has('record_kind') && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">활동 종류</span><select className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, recordKind: event.target.value })} value={draft.recordKind}>{['general','research','review','decision','retrospective'].map((kind) => <option key={kind} value={kind}>{activityKindLabels[kind]}</option>)}</select></label>}
       {['result', 'conclusion', 'note'].map((field) => {
         const labels = { result: '결과', conclusion: '결론', note: '메모' }
         const value = editing ? draft[field] : activity[field]
@@ -105,6 +110,8 @@ export default function ActivityDetailModal({ activity, loading, onClose, onOpen
         if (editing && !editable.has(field)) return value ? <section key={field}><h4 className="text-sm font-semibold">{labels[field]}</h4><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--muted-ink)]">{value}</p></section> : null
         return <label className="grid gap-1.5" key={field}><span className="text-sm font-semibold">{labels[field]}</span>{editing ? <textarea className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" maxLength={4000} onChange={(event) => setDraft({ ...draft, [field]: event.target.value })} rows={3} value={value} /> : <p className="whitespace-pre-wrap text-sm leading-6 text-[var(--muted-ink)]">{value}</p>}</label>
       })}
+
+      {activity.after_data?.context && <section><h4 className="text-sm font-semibold">조사 범위와 출처</h4>{activity.after_data.context.scope && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--muted-ink)]">{typeof activity.after_data.context.scope === 'string' ? activity.after_data.context.scope : JSON.stringify(activity.after_data.context.scope)}</p>}{Array.isArray(activity.after_data.context.sources) && <ul className="mt-2 grid gap-2">{activity.after_data.context.sources.filter((source) => /^https?:\/\//i.test(source?.url ?? '')).map((source, index) => <li key={`${source.url}-${index}`}><a className="break-words text-sm text-[var(--accent)] underline" href={source.url} rel="noreferrer" target="_blank">{String(source.title ?? source.url)}</a></li>)}</ul>}</section>}
 
       {!ownerUserId && editable.size > 0 && <div className="flex justify-end gap-2">{editing ? <><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" disabled={saving} onClick={() => setEditing(false)} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={saving || (editable.has('title') && !draft.title.trim())} onClick={save} type="button">{saving ? '저장 중' : '저장'}</button></> : <button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={() => setEditing(true)} type="button">수정</button>}</div>}
 

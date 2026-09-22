@@ -701,7 +701,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   async update_activity(supabase, args) {
     requireSchemaVersion(args)
     const patch = requireRecord(args.patch, 'patch')
-    const allowed = new Set(['title', 'note', 'result', 'conclusion', 'occurred_at', 'timezone', 'instrument_id', 'account_id'])
+    const allowed = new Set(['title', 'note', 'result', 'conclusion', 'occurred_at', 'timezone', 'instrument_id', 'account_id', 'record_kind', 'context'])
     for (const key of Object.keys(patch)) if (!allowed.has(key)) throw new ToolInputError(`patch.${key} is not editable`)
     const data = await rpc(supabase, 'app_update_activity', {
       input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),

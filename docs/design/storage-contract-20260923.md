@@ -9,7 +9,7 @@
 
 ## 활동
 
-- 정본: 기존 `activity_events`. `category`는 `general | research | review | trade | reconciliation | retrospective` 중 하나다. 사용자 입력의 금융 category만으로 서버 변경 사실을 만들 수 없다. 기존 `action_type`에서 backfill한다.
+- 정본: 기존 `activity_events`. 실제 컬럼 `record_kind`는 `general | research | review | decision | retrospective | trade | reconciliation | task` 중 하나다. 수동 기록은 앞의 비금융 다섯 종류만 선택할 수 있고, 매매·보정·할 일 수행은 서버의 실제 동작으로만 분류한다. 기존 `action_type`에서 backfill한다.
 - `context`는 작은 검증된 JSON 객체다. research에는 `sources` 배열(제목/URL/확인 시각), review에는 조사 범위/미확인과 결과, retrospective에는 기간/참조 ID를 둔다. 동일 내용의 별도 근거/보고서 레코드를 새로 만들지 않는다. 길이·배열 상한과 소유권/공유 응답을 검사한다.
 - 일반 기록은 기존 제목/메모/결과/결론을 같은 행에서 편집한다. 수동 삭제는 성공 목록에서 제외하되 원본 금융 사실이나 완료 회차를 건드리지 않는다. 자동 금융 이벤트는 원본 수량/전후/참조를 수정·삭제할 수 없다.
 - 최신 review는 사용자와 category, `occurred_at,id` 정렬로 조회한다. 미확인과 변화 없음은 별도 context 값이다. 뉴스 검색/의견 생성은 ChatGPT가 한다.

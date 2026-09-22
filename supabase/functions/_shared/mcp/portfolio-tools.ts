@@ -900,7 +900,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'update_activity',
     title: 'Update a performed activity',
-    description: 'Revise the current editable narrative of one activity after reading get_activity. Manual work and task completions may change their title, date, note, result, conclusion, and optional account/instrument context. Automatic financial facts expose note only; protected before/after values, references, quantities, and timestamps cannot be overwritten here. This updates the same activity rather than adding another one.',
+    description: 'Revise one activity in place after reading get_activity. Manual work may also correct its non-financial record_kind and structured source/scope context. Task completions cannot change classification or context; automatic financial facts expose note only. Protected before/after values, references, quantities, and financial timestamps cannot be overwritten.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -913,6 +913,8 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
             result: { type: ['string', 'null'], maxLength: 4000 }, conclusion: { type: ['string', 'null'], maxLength: 4000 },
             occurred_at: { type: 'string', format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
             instrument_id: { type: ['integer', 'null'], minimum: 1 }, account_id: { type: ['integer', 'null'], minimum: 1 },
+            record_kind: { type: 'string', enum: ['general','research','review','decision','retrospective'] },
+            context: { type: ['object','null'], description: 'Replace or clear the optional scope and source context of a manual activity.' },
           }, additionalProperties: false,
         },
       },
