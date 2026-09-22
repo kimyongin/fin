@@ -50,14 +50,14 @@ function AppHeader({
   const primaryTabs = [
     availableIds.has('today') && { id: 'today', label: '오늘' },
     availableIds.has('overview') && { id: 'overview', label: '자산' },
-    (availableIds.has('tasks') || availableIds.has('decisions')) && {
-      id: availableIds.has('tasks') ? 'tasks' : 'decisions',
-      label: '판단·할 일',
-      activeIds: ['tasks', 'decisions'],
+    (availableIds.has('tasks') || availableIds.has('decisions') || availableIds.has('activity')) && {
+      id: availableIds.has('tasks') ? 'tasks' : availableIds.has('decisions') ? 'decisions' : 'activity',
+      label: 'ToDo',
+      activeIds: ['tasks', 'decisions', 'activity'],
     },
     availableIds.has('strategy') && { id: 'strategy', label: '투자 원칙' },
   ].filter(Boolean)
-  const secondaryTabs = tabs.filter((tab) => ['news', 'activity', 'feedback', 'settings', 'guide'].includes(tab.id))
+  const secondaryTabs = tabs.filter((tab) => ['news', 'feedback', 'settings', 'guide'].includes(tab.id))
 
   function PrimaryNavigation() {
     return (

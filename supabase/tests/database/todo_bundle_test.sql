@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select extensions.plan(19);
+select extensions.plan(21);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000721','authenticated','authenticated','todo-owner@example.com','',now(),now(),now()),
@@ -59,6 +59,8 @@ reset role;
 update public.portfolio_tasks set control_state='paused',version=version+1 where id='72000000-0000-0000-0000-000000000010';
 set local role authenticated;
 select extensions.is(public.app_get_todo_bundle('72000000-0000-0000-0000-000000000003') #>> '{status}','paused','task pause is reflected without copying state');
+select extensions.is(jsonb_array_length(public.app_list_todo_bundles('paused',20,null)->'items'),1,'paused bundles have a dedicated filter');
+select extensions.is(public.app_list_todo_linked_task_ids(),'["72000000-0000-0000-0000-000000000010"]'::jsonb,'linked task IDs support a non-duplicated legacy task list');
 reset role;
 update public.portfolio_tasks set control_state='active',research_state='resolved',version=version+1 where id='72000000-0000-0000-0000-000000000010';
 set local role authenticated;

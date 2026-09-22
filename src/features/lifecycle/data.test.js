@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
+  fetchLinkedTodoTaskIds,
   fetchInvestmentDecisions,
   fetchPortfolioTask,
   fetchPortfolioTaskPage,
@@ -92,5 +93,11 @@ describe('ToDo bundle data adapters', () => {
       input_bundle_id: 'bundle', input_expected_version: 1, input_title: '묶음', input_summary: null,
       input_items: expect.any(Array), input_remove_item_ids: [], input_rule_ids: null,
     }))
+  })
+
+  it('reads task membership separately so linked tasks are not duplicated in the legacy list', async () => {
+    const supabase = { rpc: vi.fn().mockResolvedValue({ data: ['task-1'], error: null }) }
+    await expect(fetchLinkedTodoTaskIds(supabase)).resolves.toEqual(['task-1'])
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_todo_linked_task_ids', undefined)
   })
 })

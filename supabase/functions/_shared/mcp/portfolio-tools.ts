@@ -925,7 +925,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     title: 'List ToDo bundles',
     description: 'List owner-only multi-item work bundles. Use active for unfinished or paused bundles and completed for finished outcomes. Bundle status is derived from current general items and linked research or execution tasks, so reopened tasks and reversed fills can make a bundle active again.',
     inputSchema: { type: 'object', properties: {
-      filter: { type: 'string', enum: ['active', 'completed', 'cancelled', 'all'], default: 'active' },
+      filter: { type: 'string', enum: ['active', 'completed', 'paused', 'cancelled', 'all'], default: 'active' },
       limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 }, cursor: { type: ['object', 'null'] },
     }, additionalProperties: false },
     outputSchema: successEnvelopeSchema,

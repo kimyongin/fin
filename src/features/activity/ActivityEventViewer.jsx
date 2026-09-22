@@ -13,6 +13,8 @@ const actionLabels = {
   update_news_fact: '뉴스 팩트 수정',
   delete_news_fact: '뉴스 팩트 삭제', delete_news_annotation: '뉴스 신호 의견 삭제',
   bulk_edit_portfolio: '표로 자산 일괄 수정',
+  update_entity_note: '대상 메모 수정', save_operating_rule: '데이터 관리 규칙 저장',
+  archive_operating_rule: '데이터 관리 규칙 보관', save_todo_bundle: 'ToDo 묶음 저장',
 }
 
 const fieldLabels = {

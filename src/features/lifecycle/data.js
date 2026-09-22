@@ -90,6 +90,11 @@ export async function fetchTodoBundle(supabase, bundleId) {
   return data
 }
 
+export async function fetchLinkedTodoTaskIds(supabase) {
+  const data = await rpc(supabase, 'app_list_todo_linked_task_ids')
+  return Array.isArray(data) ? data : []
+}
+
 export async function saveTodoBundle(supabase, bundle) {
   return rpc(supabase, 'app_save_todo_bundle', {
     input_bundle_id: bundle.id ?? null,

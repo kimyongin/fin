@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AppHeader from './components/AppHeader'
-import ActivityPageView from './features/activity/ActivityPage'
 import AssetsPageView from './features/assets/AssetsPage'
 import GuidePageView from './features/guide/GuidePage'
 import FeedbackPageView from './features/feedback/FeedbackPage'
@@ -473,7 +472,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : activeTab === 'decisions' || activeTab === 'tasks' ? '판단·할 일' : activeTab === 'strategy' ? '투자 원칙' : activeTab === 'news' ? '자료' : activeTab === 'activity' ? '활동' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
+  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? 'ToDo' : activeTab === 'strategy' ? '투자 원칙' : activeTab === 'news' ? '자료' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
     <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6">
@@ -515,11 +514,15 @@ function App() {
           />
         )}
 
-        {(activeTab === 'decisions' || activeTab === 'tasks') && (
+        {(['decisions', 'tasks', 'activity'].includes(activeTab)) && (
           <LifecyclePageView
+            actions={agentActions}
+            activityError={agentActionsError}
+            activityLoading={agentActionsLoading}
             initialSelection={lifecycleSelection}
             mode={activeTab}
             onModeChange={setActiveTab}
+            onRefreshActivity={loadAgentActions}
             onSelectionHandled={() => setLifecycleSelection(null)}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             supabase={supabase}
@@ -635,14 +638,6 @@ function App() {
             canEdit={canEdit}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             supabase={supabase}
-          />
-        )}
-        {activeTab === 'activity' && (
-          <ActivityPageView
-            actions={agentActions}
-            error={agentActionsError}
-            loading={agentActionsLoading}
-            onRefresh={loadAgentActions}
           />
         )}
         {activeTab === 'feedback' && (
