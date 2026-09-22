@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
+  fetchActionTimeline,
   fetchLinkedTodoTaskIds,
   fetchInvestmentDecisions,
   fetchPortfolioTask,
@@ -72,6 +73,16 @@ describe('decision and task data adapters', () => {
       input_filter: 'all',
       input_limit: 20,
       input_owner_user_id: null,
+    })
+  })
+
+  it('reads the unified pending and performed action timeline with an opaque cursor', async () => {
+    const cursor = { occurred_at: '2026-09-22T00:00:00Z', id: 42 }
+    const supabase = { rpc: vi.fn(async () => ({ data: { pending: [{ id: 'task' }], days: [{ date: '2026-09-22', items: [] }], next_cursor: cursor }, error: null })) }
+    await expect(fetchActionTimeline(supabase, { filter: 'done', from: '2026-09-01', ownerUserId: 'owner' })).resolves.toEqual({ pending: [{ id: 'task' }], days: [{ date: '2026-09-22', items: [] }], nextCursor: cursor })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_action_timeline', {
+      input_owner_user_id: 'owner', input_filter: 'done', input_from: '2026-09-01', input_to: null,
+      input_limit: 30, input_cursor: null, input_timezone: 'Asia/Seoul',
     })
   })
 })

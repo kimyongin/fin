@@ -127,7 +127,7 @@ function changedFields(action) {
 function groupByDate(actions) {
   const groups = []
   for (const action of actions) {
-    const label = formatDate(action.created_at)
+    const label = formatDate(action.occurred_at ?? action.created_at)
     const current = groups.at(-1)
     if (!current || current.label !== label) groups.push({ label, actions: [action] })
     else current.actions.push(action)
@@ -156,12 +156,12 @@ function ChangeSummary({ action }) {
   )
 }
 
-function ActivityEvent({ action }) {
+export function ActivityEvent({ action }) {
   const failed = action.status === 'failed'
   return (
     <li className="relative grid gap-3 py-4 pl-5 first:pt-0 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-5 sm:pl-0">
       <span aria-hidden="true" className={`absolute left-0 top-6 h-2.5 w-2.5 rounded-full sm:left-[6.18rem] ${failed ? 'bg-red-400' : action.source === 'agent' ? 'bg-[var(--accent)]' : 'bg-emerald-400'}`} />
-      <time className="text-xs text-[var(--muted-ink)] sm:pt-1">{formatTime(action.created_at)}</time>
+      <time className="text-xs text-[var(--muted-ink)] sm:pt-1">{formatTime(action.occurred_at ?? action.created_at)}</time>
       <article className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-[var(--ink)]">{actionLabels[action.action_type] ?? action.action_type}</h3>
@@ -177,9 +177,12 @@ function ActivityEvent({ action }) {
   )
 }
 
-export default function ActivityEventViewer({ actions, loading }) {
+export default function ActivityEventViewer({ actions, loading, showDateGroups = true }) {
   if (!loading && actions.length === 0) {
     return <p className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3 text-sm text-[var(--muted-ink)]">아직 기록된 작업이 없습니다.</p>
+  }
+  if (!showDateGroups) {
+    return <ol className="relative border-l border-[var(--line)] sm:border-l-0">{actions.map((action) => <ActivityEvent action={action} key={action.id} />)}</ol>
   }
   return (
     <div className="grid gap-5">

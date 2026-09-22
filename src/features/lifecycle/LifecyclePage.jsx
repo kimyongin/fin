@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import ModalShell from '../../components/ModalShell'
 import { FilterChips, PageToolbar, ViewTabs } from '../../components/PageControls'
-import ActivityPage from '../activity/ActivityPage'
+import ActionTimeline from './ActionTimeline'
 import { createRequestGate } from '../../lib/requestGate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import {
@@ -23,7 +23,7 @@ import {
 
 const decisionStatus = { proposed: '제안', adopted: '내가 채택함', dismissed: '채택하지 않음', superseded: '새 판단으로 대체됨' }
 const taskStatus = { open: '확인 필요', waiting: '자료 대기', resolved: '답을 확인함', closed: '종료' }
-const modeOptions = [{ id: 'tasks', label: '할 일' }, { id: 'decisions', label: '판단 모아보기' }, { id: 'activity', label: '활동 내역' }]
+const modeOptions = [{ id: 'tasks', label: '행동' }, { id: 'decisions', label: '판단 모아보기' }]
 const filterOptions = {
   tasks: [{ id: 'active', label: '미완료' }, { id: 'paused', label: '보류' }, { id: 'closed', label: '종료' }, { id: 'all', label: '전체' }],
   decisions: [{ id: 'current', label: '현재 판단' }, { id: 'closed', label: '종료된 판단' }, { id: 'all', label: '전체' }],
@@ -179,10 +179,12 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
   const [generalTasks, setGeneralTasks] = useState([])
   const [generalEditor, setGeneralEditor] = useState(null)
   const [savingGeneral, setSavingGeneral] = useState(false)
+  const [actionRefreshKey, setActionRefreshKey] = useState(0)
   const scrollPositions = useRef({})
   const listRequestGate = useRef(createRequestGate())
   const detailRequestGate = useRef(createRequestGate())
-  const filter = filterByMode[mode]
+  const effectiveMode = mode === 'activity' ? 'tasks' : mode
+  const filter = filterByMode[effectiveMode]
 
   useEffect(() => {
     if (mode !== 'tasks' || ownerUserId) return
@@ -209,6 +211,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
         await recordManualActivity(supabase, { ...draft, idempotencyKey: crypto.randomUUID() })
         onRefreshActivity?.()
       }
+      setActionRefreshKey((value) => value + 1)
       setGeneralEditor(null)
     } catch (nextError) {
       setError(nextError.message ?? '기록을 저장하지 못했습니다.')
@@ -220,6 +223,7 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
     try {
       await transitionGeneralTask(supabase, task, 'complete', { occurrenceOn: task.occurrence_on })
       setGeneralTasks((current) => current.filter((item) => item.id !== task.id))
+      setActionRefreshKey((value) => value + 1)
       onRefreshActivity?.()
     } catch (nextError) { setError(nextError.message ?? '할 일을 완료하지 못했습니다.') }
   }
@@ -343,6 +347,22 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
     }
   }
 
+  async function openActionTask(task) {
+    if (task.kind !== 'general') return openDetail('tasks', task.id)
+    const request = detailRequestGate.current.begin()
+    setDetailLoading(true)
+    setDetail({ mode: 'tasks', item: null })
+    setError('')
+    try {
+      const item = await fetchGeneralTask(supabase, task.id)
+      if (request.isCurrent()) setDetail({ mode: 'tasks', item })
+    } catch (nextError) {
+      if (request.isCurrent()) { setDetail(null); setError(nextError.message ?? '할 일을 불러오지 못했습니다.') }
+    } finally {
+      if (request.isCurrent()) setDetailLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!initialSelection || initialSelection.mode !== mode) return
     openDetail(initialSelection.mode, initialSelection.id)
@@ -358,35 +378,31 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
   return (
     <section className="grid gap-5">
       <header className="grid gap-3">
-        <p className="text-sm leading-6 text-[var(--muted-ink)]">여러 작업의 묶음, 판단 근거, 원본 활동 내역을 한곳에서 이어서 봅니다.</p>
+        <p className="text-sm leading-6 text-[var(--muted-ink)]">해야 할 행동과 실제로 수행한 기록, 그 근거가 된 판단을 한곳에서 이어서 봅니다.</p>
         <PageToolbar>
-          <ViewTabs ariaLabel="ToDo 보기 전환" className="grid-cols-3" idBase="lifecycle-view" onChange={changeMode} options={modeOptions} panelId="lifecycle-panel" value={mode} />
+          <ViewTabs ariaLabel="행동과 판단 보기 전환" className="grid-cols-2" idBase="lifecycle-view" onChange={changeMode} options={modeOptions} panelId="lifecycle-panel" value={effectiveMode} />
         </PageToolbar>
-        {mode !== 'activity' && <FilterChips ariaLabel="목록 필터" onChange={(nextFilter) => setFilterByMode((current) => ({ ...current, [mode]: nextFilter }))} options={filterOptions[mode]} value={filter} />}
+        {effectiveMode === 'decisions' && <FilterChips ariaLabel="목록 필터" onChange={(nextFilter) => setFilterByMode((current) => ({ ...current, decisions: nextFilter }))} options={filterOptions.decisions} value={filter} />}
       </header>
 
-      {mode === 'tasks' && !ownerUserId && <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold">지금 할 일</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">해야 할 일과 실제로 한 일을 구분해 기록합니다.</p></div><div className="flex gap-2"><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => setGeneralEditor('activity')} type="button">한 일 기록</button><button className="rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white" onClick={() => setGeneralEditor('task')} type="button">할 일 추가</button></div></div>
-        {generalTasks.length === 0 ? <p className="mt-4 text-sm text-[var(--muted-ink)]">현재 할 일이 없습니다.</p> : <div className="mt-4 grid gap-2">{generalTasks.map((task) => <div className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--surface-2)] p-3" key={task.id}><button className="min-w-0 flex-1 text-left" onClick={async () => { try { setDetail({ mode: 'tasks', item: await fetchGeneralTask(supabase, task.id) }) } catch (nextError) { setError(nextError.message) } }} type="button"><span className="block truncate text-sm font-semibold">{task.title}</span>{task.recurrence_kind === 'daily' ? <span className="mt-1 block text-xs text-[var(--muted-ink)]">매일 반복 · 오늘 회차</span> : task.due_date && <span className="mt-1 block text-xs text-[var(--muted-ink)]">예정 {formatDate(task.due_date)}</span>}</button><button className="min-h-11 rounded-xl border border-[var(--line)] px-3 text-sm" onClick={() => completeGeneralTask(task)} type="button">완료</button></div>)}</div>}
-      </section>}
-
-      {mode === 'tasks' && !ownerUserId && <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
-        <div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold">ToDo 묶음</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">한 번에 한 일과 이어갈 일을 여러 항목으로 모읍니다.</p></div><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => setTodoEditorOpen(true)} type="button">묶음 추가</button></div>
-        <div className="mt-4"><FilterChips ariaLabel="ToDo 묶음 필터" onChange={setTodoFilter} options={[{ id: 'active', label: '할 일' }, { id: 'completed', label: '완료' }, { id: 'paused', label: '보류' }, { id: 'cancelled', label: '취소' }]} value={todoFilter} /></div>
-        {todoBundles.length === 0 ? <p className="mt-4 text-sm text-[var(--muted-ink)]">조건에 맞는 묶음이 없습니다.</p> : <div className="mt-4 grid gap-2">{todoBundles.map((bundle) => <button className="rounded-2xl bg-[var(--surface-2)] p-3 text-left" key={bundle.id} onClick={() => openTodo(bundle.id)} type="button"><div className="flex justify-between gap-3"><span className="text-sm font-semibold">{bundle.title}</span><span className="text-xs text-[var(--muted-ink)]">{bundle.item_count ?? bundle.items?.length ?? 0}개 · {{ in_progress: '진행 중', paused: '보류', completed: '완료', cancelled: '취소' }[bundle.status] ?? bundle.status}</span></div></button>)}</div>}
-      </section>}
-
-      <div aria-labelledby={`lifecycle-view-${mode}`} className="grid gap-5" id="lifecycle-panel" role="tabpanel" tabIndex={0}>
-      {mode === 'activity' ? <ActivityPage actions={actions} error={activityError} loading={activityLoading} onRefresh={onRefreshActivity} /> : <>
-      {mode === 'tasks' && <h2 className="text-sm font-semibold text-[var(--muted-ink)]">기존 조사·실행 과제</h2>}
+      <div aria-labelledby={`lifecycle-view-${effectiveMode}`} className="grid gap-5" id="lifecycle-panel" role="tabpanel" tabIndex={0}>
+      {effectiveMode === 'tasks' ? <ActionTimeline
+        onAddActivity={() => setGeneralEditor('activity')}
+        onAddTask={() => setGeneralEditor('task')}
+        onCompleteGeneralTask={completeGeneralTask}
+        onOpenTask={openActionTask}
+        ownerUserId={ownerUserId}
+        refreshKey={actionRefreshKey}
+        supabase={supabase}
+      /> : <>
       {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => loadPage()} type="button">다시 시도</button></div>}
-      {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">기록을 불러오는 중입니다.</p> : displayItems.length === 0 ? <EmptyState mode={mode} /> : (
+      {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">기록을 불러오는 중입니다.</p> : displayItems.length === 0 ? <EmptyState mode={effectiveMode} /> : (
         <div className="grid gap-3">
           {displayItems.map((item) => (
-            <button className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-left transition hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] sm:p-5" key={item.id} onClick={() => openDetail(mode, item.id)} type="button">
-              <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-[var(--muted-ink)]">{subjectLabel(item.subject)}</span><span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{mode === 'decisions' ? decisionStatus[item.status] : taskStatusLabel(item)}</span></div>
-              <h3 className="mt-3 break-words font-semibold leading-6">{mode === 'decisions' ? item.question : item.title}</h3>
-              {mode === 'decisions' && item.selected_option && <p className="mt-2 text-sm text-[var(--accent)]">{item.selected_option}</p>}
+            <button className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-left transition hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] sm:p-5" key={item.id} onClick={() => openDetail('decisions', item.id)} type="button">
+              <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-[var(--muted-ink)]">{subjectLabel(item.subject)}</span><span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{decisionStatus[item.status]}</span></div>
+              <h3 className="mt-3 break-words font-semibold leading-6">{item.question}</h3>
+              {item.selected_option && <p className="mt-2 text-sm text-[var(--accent)]">{item.selected_option}</p>}
               <p className="mt-3 text-xs text-[var(--muted-ink)]">{item.due_date ? `예정 ${formatDate(item.due_date)}` : `갱신 ${formatDate(item.updated_at)}`}</p>
             </button>
           ))}
@@ -396,8 +412,6 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
       </>}
       </div>
       {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
-      {todoEditorOpen && <TodoBundleModal availableTasks={displayItems} onClose={() => setTodoEditorOpen(false)} onSave={createTodo} saving={savingTodo} />}
-      {todoDetail && <TodoBundleDetail bundle={todoDetail} onClose={() => setTodoDetail(null)} onOpenTask={(id) => { setTodoDetail(null); openDetail('tasks', id) }} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onSave={saveGeneralAction} saving={savingGeneral} />}
     </section>
   )

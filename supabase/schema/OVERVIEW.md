@@ -34,7 +34,7 @@ Instrument types are constrained to `market` for market-priced investments, `val
 | Prefix | Purpose |
 | --- | --- |
 | `app_save_*`, `app_delete_*`, `app_bulk_save_portfolio_rows` | Create, update, and remove accounts, holdings, instruments, and tags while writing activity events. The bulk editor saves up to 200 portfolio rows atomically as one user action and records whole-portfolio before/after snapshots. Direct market/valuation/cash balance edits advance the holding checkpoint/version; memo-only and unchanged saves do not. |
-| `app_find_holdings`, `app_get_portfolio_state`, `app_get_portfolio_valuation_quality`, `app_list_recent_activity` | Web app read models. Portfolio state includes explicit known, missing, and stale valuation quality; missing prices or FX rates are never treated as zero. |
+| `app_find_holdings`, `app_get_portfolio_state`, `app_get_portfolio_valuation_quality`, `app_list_recent_activity`, `app_list_action_timeline` | Web app read models. Portfolio state includes explicit known, missing, and stale valuation quality; missing prices or FX rates are never treated as zero. The action timeline applies feature permissions, date/filter rules, representative-event suppression, and stable pagination before returning pending work plus date groups. |
 | `app_update_entity_note` | Idempotently update only an existing account, instrument, or holding note after comparing the normalized expected note. A real change writes one activity event; an unchanged retry/success writes none and does not change financial holding state. |
 | `mcp_*` | Agent-token wrappers around portfolio, strategy, and news reads or mutations, plus price upserts and sync-run recording. |
 | `agent_*` | Manage tokens and update holding average price. |

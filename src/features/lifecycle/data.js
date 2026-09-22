@@ -120,6 +120,31 @@ export async function fetchGeneralTaskPage(supabase, { cursor = null, filter = '
   }))
 }
 
+export async function fetchActionTimeline(supabase, {
+  cursor = null,
+  filter = 'all',
+  from = null,
+  to = null,
+  limit = 30,
+  ownerUserId = null,
+  timezone = 'Asia/Seoul',
+} = {}) {
+  const data = await rpc(supabase, 'app_list_action_timeline', {
+    input_owner_user_id: ownerUserId,
+    input_filter: filter,
+    input_from: from,
+    input_to: to,
+    input_limit: limit,
+    input_cursor: cursor,
+    input_timezone: timezone,
+  })
+  return {
+    pending: Array.isArray(data?.pending) ? data.pending : [],
+    days: Array.isArray(data?.days) ? data.days : [],
+    nextCursor: data?.next_cursor ?? null,
+  }
+}
+
 export async function fetchGeneralTask(supabase, taskId) {
   const data = await rpc(supabase, 'app_get_general_task', { input_task_id: taskId })
   if (!data) throw new Error('일반 할 일을 찾을 수 없거나 접근할 수 없습니다.')
