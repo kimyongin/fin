@@ -1,35 +1,35 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-21",
-  "review_reason": "Recorded the successful production deployment of the unchanged reviewed product-feedback workflow and MCP 0.6.0 contract.",
+  "reviewed_at": "2026-09-22",
+  "review_reason": "Reviewed #69 entity-note and verification-note contract. Existing workflow steps remain correct; update_entity_note is a target-specific explicit write and verification now returns previously stored note/source without changing workflow order.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
-      "contract_digest": "10ee9f9c70f67d0cd82ad474fb17bb1f1b6db1f4415eed6d93735ab0abd856a0"
+      "contract_digest": "d5a41e97a3c96582c06d0cbcfd3e0d0ff8c93ea6bd211e4fc35ae0a00bb988b5"
     },
     "holding_thesis": {
       "revision": "fnv1a32:62ae4aff",
-      "contract_digest": "05ef3d1d2ded0f4fa2e03c78c1ee9fe54ec342ebfa4d1ed9be03f27ea58702c0"
+      "contract_digest": "463c42a02d362bcbdc36cce17608d673f4a3b5aadc6cacead2e6c28f897e6bae"
     },
     "daily_review": {
       "revision": "fnv1a32:40650a5d",
-      "contract_digest": "fe112e8bce86f9f9b41f4de34fa01612aa34c898c890c4b7f5e4ca2e8df97a6b"
+      "contract_digest": "46d815ba4069bf2d5c431df36be9df3cbce3ac31a873185cf207cce08cd7d045"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "0d15df66a79df6ee83882629eb3f958b6a2b934fa6bdcf57d9e32b96b35ac698"
+      "contract_digest": "12819c85aa29d68bed6cb016b170c588c9f489318b6da8cd3a2ec7b695a80f6f"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "8a4ad5fecb155043e7e9c2ed4fda02bec6099f5aa8e82f97335ecbd119b6102b"
+      "contract_digest": "f11c6c6c32d6e6ae6a662f0930edcc9b9a477095db9178d6a3ab305da0349e13"
     },
     "reconciliation": {
       "revision": "fnv1a32:8e287fff",
-      "contract_digest": "262034e4f9c6c897f3673ff2dbbfcfc52d6de9495fc6badfae9f8896dbcb266b"
+      "contract_digest": "6ee27d87842cb00ca8301638b596a81081935a264d8d9ad4911b3811175ac847"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "46997ef4018ea7ffe54f6956600b047ed066b6fb21fca9015c91bec575ba63aa"
+      "contract_digest": "c85638d6281b252c0ca5fd08eabf993c8994c768705fa2f394b19e5307afeca2"
     }
   }
 }

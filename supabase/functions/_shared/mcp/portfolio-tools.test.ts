@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   dailyReviewToolNames,
   decisionTaskToolNames,
+  entityNoteToolNames,
   holdingThesisToolNames,
   holdingIntegrityToolNames,
   investmentPolicyToolNames,
@@ -26,6 +27,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(new Set(names).size).toBe(names.length)
     expect(dailyReviewToolNames.every((name) => names.includes(name))).toBe(true)
     expect(decisionTaskToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(entityNoteToolNames.every((name) => names.includes(name))).toBe(true)
     expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingThesisToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
@@ -218,6 +220,14 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('reconcile_holding').annotations.idempotentHint).toBe(true)
     expect(tool('verify_holdings').annotations.idempotentHint).toBe(true)
     expect((tool('verify_holdings').inputSchema as any).properties.fields.minItems).toBe(1)
+  })
+
+  it('updates only an existing entity note with conflict and retry inputs', () => {
+    const definition = tool('update_entity_note')
+    expect(definition.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
+    expect((definition.inputSchema as any).required).toEqual(expect.arrayContaining(['entity_type', 'entity_id', 'expected_note', 'note', 'idempotency_key']))
+    expect((definition.inputSchema as any).properties.entity_type.enum).toEqual(['account', 'instrument', 'holding'])
+    expect(definition.description).toContain('does not change quantities')
   })
 
   it('advertises exact reconciliation value shapes and decimal strings', () => {

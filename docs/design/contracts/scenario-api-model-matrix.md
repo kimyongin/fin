@@ -27,6 +27,8 @@
 | S19 | 증권사 실제값은 25주/평균68,000 | preview_holding_reconciliation → reconcile_holding | checkpoint+투영; 명시한 경우 verification | 과거 원장 재입력 강제, 실행 task 완료 | #38/#42 |
 | S20 | 보정 전 과거 매수를 취소 | preview/reverse_trade_entry | 과거 reversal, 관련 계획 진행도 | 최신 절대 checkpoint 잔고 덮어쓰기 | #38 |
 | S21 | 증권사와 수량만 비교했는데 맞음 | verify_holdings(fields=[quantity]) | verification item+해당 version/value | 평균가까지 확인, 수량/원가 변경 | #42 |
+| T01 | 계좌·종목·보유 메모만 수정 | update_entity_note(expected_note) | 기존 entity.note, receipt, 활동 1건 | 수량·원가·holding state/version·검증 상태 | #69 |
+| T02 | 확인 메모 저장 후 다시 조회 | verify_holdings → get_holding_integrity | verification note/source | 잔고·원가·거래 | #69 |
 | S22 | 표에서 메모만 수정 / 일부 잔고 수정 | 기존 app_bulk_save_portfolio_rows 통합 서비스 | 메모만→metadata, 잔고→checkpoint/stream, 공통audit | 무변경행 checkpoint, 필터 밖 삭제 | #38 |
 | S23 | 친구에게 점검 기록도 공유 / 철회 | 앱 preview/update_sharing_policy → 공유 조회 | feature grants+policy version | 개인 기준/근거 자동 공개, 공유자의 편집 | #43/#39 |
 | S24 | 앱에서 지난 판단/할 일/브리핑 다시 확인 | list/get_*와 앱 읽기 화면 | 무변경 | 생성일을 잔고확인일로 사용 | #36/#35; 열람 marker는 첫 버전 제외 |

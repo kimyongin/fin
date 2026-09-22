@@ -12,6 +12,11 @@ export async function confirmReconciliation(supabase, previewId, idempotencyKey)
   if (error) throw error
   return data
 }
+export async function fetchHoldingIntegrity(supabase, holdingId) {
+  const { data, error } = await supabase.rpc('app_get_holding_integrity', { input_holding_id: Number(holdingId) })
+  if (error) throw error
+  return data
+}
 export async function verifyHolding(supabase, payload, idempotencyKey) {
   const { data, error } = await supabase.rpc('app_verify_holding', {
     input_holding_id: Number(payload.holdingId), input_expected_version: Number(payload.expectedVersion),

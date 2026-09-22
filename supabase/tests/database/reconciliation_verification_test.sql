@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(20);
+select extensions.plan(25);
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000801','authenticated','authenticated','integrity-owner@example.com','',now(),now(),now()),
 ('00000000-0000-0000-0000-000000000802','authenticated','authenticated','integrity-other@example.com','',now(),now(),now());
@@ -31,11 +31,21 @@ select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9
 select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"1","avg_price":"1","extra":"1"}','추가 필드 거부',current_date,'{}')$$,'P0001','Reconciliation contains an unsupported field','unknown reconciliation fields are rejected');
 
 select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_date,'수량만 확인','80000000-0000-0000-0000-000000000002','app')#>>'{verified_fields,0}','quantity','one field can be verified without claiming the average');
+select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_date,'수량만 확인','80000000-0000-0000-0000-000000000002','app')->>'note','수량만 확인','verification save returns its note');
+select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_date,'수량만 확인','80000000-0000-0000-0000-000000000002','app')->>'source','app','verification save returns its source');
+select extensions.is(public.app_get_holding_integrity(9801)#>>'{last_verification,note}','수량만 확인','integrity read returns the latest note');
+select extensions.is(public.app_get_holding_integrity(9801)#>>'{last_verification,source}','app','integrity read returns the latest source');
 select * from public.app_save_holding(9801,9801,'INTM',26,68000,null,'user','change after verification');
 select extensions.is((public.app_get_holding_integrity(9801)#>>'{last_verification,changed_since}')::boolean,true,'later holding change marks verification as changed since');
 select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_date,'수량만 확인','80000000-0000-0000-0000-000000000002','app')->>'holding_state_version','2','lost verification response retry returns the original success after a later holding change');
 select extensions.is((select count(*) from public.holding_verifications where user_id=auth.uid() and holding_id=9801),2::bigint,'lost response retry does not duplicate the verification');
 select extensions.throws_ok($$select public.app_verify_holding(9801,2,array['quantity'],current_date,null,'80000000-0000-0000-0000-000000000003','agent')$$,'P0001','Holding version conflict','stale verification is rejected');
+
+set local role postgres;
+insert into public.holding_integrity_mutation_receipts(user_id,idempotency_key,operation,request_payload,response_payload)
+values(auth.uid(),'80000000-0000-0000-0000-000000000006','verify',jsonb_build_object('holding_id',9801,'expected_version',2,'fields',array['quantity'],'verified_on',current_date,'note','과거 응답','source','app'),jsonb_build_object('holding_id',9801,'holding_state_version',2));
+set local role authenticated;
+select extensions.ok(not (public.app_verify_holding(9801,2,array['quantity'],current_date,'과거 응답','80000000-0000-0000-0000-000000000006','app') ? 'note'),'an old receipt without note remains a valid retry response');
 
 update integrity_data set preview=(public.app_preview_holding_reconciliation(9802,'{"purchase_amount":"1100","valuation_amount":"1300"}','평가액 보정',current_date,'{}')->>'preview_id')::uuid,key='80000000-0000-0000-0000-000000000004';
 select extensions.is(public.app_reconcile_holding((select preview from integrity_data),(select key from integrity_data),'app')#>>'{after,valuation_amount}','1300','valuation holding reconciliation uses amount fields');

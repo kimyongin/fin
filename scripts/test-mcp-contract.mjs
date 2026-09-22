@@ -208,6 +208,12 @@ try {
   const [holding] = await adminWrite('holdings', 'POST', {
     user_id: userId, account_id: account.id, ticker: instrument.ticker, quantity: 1, avg_price: 100,
   })
+  const noteKey = crypto.randomUUID()
+  const noteArgs = { schema_version: 1, entity_type: 'holding', entity_id: holding.id, expected_note: null, note: 'Contract note', idempotency_key: noteKey }
+  const noteSaved = await call(session.access_token, 'tools/call', { name: 'update_entity_note', arguments: noteArgs })
+  assert(noteSaved.body?.result?.structuredContent?.data?.note === 'Contract note', 'Holding note update contract failed')
+  const noteRetry = await call(session.access_token, 'tools/call', { name: 'update_entity_note', arguments: noteArgs })
+  assert(noteRetry.body?.result?.structuredContent?.data?.note === 'Contract note', 'Holding note retry contract failed')
   const correctionPreview = await call(session.access_token, 'tools/call', {
     name: 'preview_holding_reconciliation',
     arguments: { holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10), confirmed_fields: [] },
@@ -223,6 +229,9 @@ try {
   const verified = await call(session.access_token, 'tools/call', { name: 'verify_holdings', arguments: verificationArgs })
   const verificationId = verified.body?.result?.structuredContent?.data?.verification_id
   assert(verificationId, 'Holding verification contract failed')
+  assert(verified.body?.result?.structuredContent?.data?.note === 'Contract test', 'Holding verification did not return its note')
+  const integrity = await call(session.access_token, 'tools/call', { name: 'get_holding_integrity', arguments: { holding_id: holding.id } })
+  assert(integrity.body?.result?.structuredContent?.data?.last_verification?.note === 'Contract test', 'Holding integrity did not return the latest note')
   await adminWrite(`holdings?id=eq.${holding.id}`, 'PATCH', { quantity: 3, avg_price: 100 })
   const verificationRetry = await call(session.access_token, 'tools/call', { name: 'verify_holdings', arguments: verificationArgs })
   assert(verificationRetry.body?.result?.structuredContent?.data?.verification_id === verificationId, 'Lost verification response retry did not return the original success')

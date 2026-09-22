@@ -18,6 +18,7 @@ revision 10 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_profile / observed-local | 인증된 Portfolio 계정 프로필을 읽습니다. 투자 성향이나 투자 원칙 조회가 아닙니다. | W01 |
 | get_portfolio_state / observed-local | 본인의 계좌·보유·종목·태그·저장 시세를 읽습니다. 증권사 실시간 잔고나 확인 완료를 뜻하지 않습니다. | W01,W05 |
 | find_holdings / observed-local | 티커·종목명·계좌명으로 본인의 보유 후보를 찾습니다. 여러 결과가 나오면 변경 전에 대상을 확인하세요. | W05,W06 |
+| update_entity_note / local | 현재 메모를 먼저 읽고 계좌·종목·보유 항목의 기존 메모만 충돌 방지 방식으로 수정합니다. 수량·원가·검증 상태는 바꾸지 않습니다. 여러 세션에 공통 적용할 데이터 관리 규칙 저장에는 사용하지 않습니다. | 대상별 메모 |
 | get_strategy_state / observed-local | 저장된 운용 전략·목표 버킷·태그 연결을 읽습니다. 운용 모드를 개인 성향으로 추정하지 않습니다. | W01,W02 |
 | get_news_state / observed-local | 이미 저장된 뉴스 사실과 의견을 읽습니다. 최신 뉴스를 인터넷에서 검색하는 도구가 아닙니다. | W01,W04 |
 | list_recent_activity / observed-local | 본인의 최근 데이터 변경을 조회합니다. 활동 기록을 투자 결정이나 실제 증권사 체결 증명으로 해석하지 않습니다. | W06,W08 |
@@ -46,7 +47,7 @@ revision 10 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_portfolio_integrity / observed-local | 전체·계좌별로 확인됨, 확인 뒤 변경됨, 미확인 보유 수를 요약합니다. 오래된 상태만으로 오류를 단정하거나 값을 변경하지 않습니다. | W06 |
 | preview_holding_reconciliation / observed-local | 사용자가 제시한 실제 현재값으로 시장형/평가형/현금성 잔고를 바꿀 영향을 미리 계산합니다. 아직 값을 바꾸거나 확인 완료로 기록하지 않습니다. | W06 |
 | reconcile_holding / observed-local | 사용자가 확인한 최신 preview를 절대 기준점으로 저장합니다. 거래를 만들지 않고 명시한 필드만 선택적으로 실제 확인 기록에 포함합니다. | W06 |
-| verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드만 기록합니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
+| verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드와 선택적 확인 메모를 기록합니다. 저장 결과와 최신 integrity 조회에서 메모·작성 경로를 다시 읽습니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
 | preview_trade_reversal / observed-local | 잘못 기록한 체결 취소의 후속 잔고 영향을 계산합니다. 보정 이전 거래이면 현재 잔고 영향이 없을 수 있습니다. 아직 취소하지 않습니다. | W06 |
 | reverse_trade_entry / observed-local | 확인된 preview로 기존 체결 기록을 무효화하고 필요한 잔고를 갱신합니다. 증권사 주문 취소나 반대 방향 실제 매매가 아니며 원본 이력은 보존합니다. | W06 |
 | save_execution_task / observed-local | 사용자가 명시적으로 기억해 달라는 시장형 수량 매수·매도 계획을 저장합니다. 계획만 기록하며 주문·체결·잔고를 만들지 않습니다. | W03,W05 |

@@ -57,6 +57,7 @@ for (const requiredTool of [
   'save_daily_briefing',
   'list_transactions',
   'verify_holdings',
+  'update_entity_note',
   'submit_product_feedback',
   'list_my_product_feedback',
 ]) {

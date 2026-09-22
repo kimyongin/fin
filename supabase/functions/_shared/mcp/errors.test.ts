@@ -7,6 +7,7 @@ describe('portfolio MCP errors', () => {
     ['Trade preview is stale; create a new preview', 'preview_stale', true],
     ['Trade preview was already consumed', 'preview_consumed', false],
     ['Holding version conflict', 'version_conflict', true],
+    ['Entity note conflict', 'version_conflict', true],
     ['Idempotency key was already used with a different request', 'idempotency_conflict', false],
   ])('classifies %s', (message, code, retryable) => {
     expect(classifyPortfolioError(new PortfolioRpcError({ message, code: 'P0001' }))).toMatchObject({ code, retryable, database_code: 'P0001' })

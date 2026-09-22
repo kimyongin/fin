@@ -3,7 +3,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
 import {
-  dailyReviewToolNames, decisionTaskToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
+  dailyReviewToolNames, decisionTaskToolNames, entityNoteToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
   investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames, tradeReversalToolNames,
   productFeedbackToolNames, workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
@@ -417,6 +417,19 @@ const toolHandlers: Record<string, ToolHandler> = {
   async find_holdings(supabase, args) {
     return await rpc(supabase, 'app_find_holdings', { input_query: String(args.query ?? '') })
   },
+  async update_entity_note(supabase, args) {
+    requireSchemaVersion(args)
+    const entityType = requireString(args.entity_type, 'entity_type')
+    if (!['account', 'instrument', 'holding'].includes(entityType)) throw new ToolInputError('entity_type must be account, instrument, or holding')
+    return { ok: true, data: await rpc(supabase, 'app_update_entity_note', {
+      input_entity_type: entityType,
+      input_entity_id: requirePositiveInteger(args.entity_id, 'entity_id'),
+      input_expected_note: args.expected_note == null ? null : requireString(args.expected_note, 'expected_note'),
+      input_note: args.note == null ? null : requireString(args.note, 'note'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_source: 'agent',
+    }) }
+  },
   async get_strategy_state(supabase) {
     return await rpc(supabase, 'app_get_strategy_state', { input_owner_user_id: null })
   },
@@ -720,6 +733,7 @@ const toolHandlers: Record<string, ToolHandler> = {
 validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   workflowGuides: workflowGuideToolNames,
   productFeedback: productFeedbackToolNames,
+  entityNotes: entityNoteToolNames,
   dailyReview: dailyReviewToolNames,
   decisionsAndTasks: decisionTaskToolNames,
   investmentPolicy: investmentPolicyToolNames,

@@ -62,6 +62,16 @@ function successEnvelope(data: Record<string, unknown> = {}) {
 }
 
 const successEnvelopeSchema = successEnvelope()
+const entityNoteOutputSchema = successEnvelope({
+  type: 'object',
+  properties: {
+    entity_type: { type: 'string', enum: ['account', 'instrument', 'holding'] },
+    entity_id: { type: 'integer', minimum: 1 },
+    note: { type: ['string', 'null'] },
+  },
+  required: ['entity_type', 'entity_id', 'note'],
+  additionalProperties: false,
+})
 const workflowGuideOutputSchema = successEnvelope({
   type: 'object',
   properties: {
@@ -486,6 +496,26 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       additionalProperties: false,
     },
     annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'update_entity_note',
+    title: 'Update an existing portfolio entity note',
+    description: 'Update only the note attached to one existing account, instrument, or holding after the user explicitly asks to remember, revise, or clear target-specific information. Read get_portfolio_state or find_holdings first and pass the exact current note as expected_note; use null for an empty note. A conflict means the note changed after it was read, so re-read instead of overwriting it. This does not change quantities, costs, prices, tags, strategy, holding theses, verification status, or activity outside the note audit event. Do not force a portfolio-wide instruction into an arbitrary entity note.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 },
+        entity_type: { type: 'string', enum: ['account', 'instrument', 'holding'] },
+        entity_id: { type: 'integer', minimum: 1 },
+        expected_note: { type: ['string', 'null'], maxLength: 4000 },
+        note: { type: ['string', 'null'], maxLength: 4000 },
+        idempotency_key: { type: 'string', format: 'uuid' },
+      },
+      required: ['schema_version', 'entity_type', 'entity_id', 'expected_note', 'note', 'idempotency_key'],
+      additionalProperties: false,
+    },
+    outputSchema: entityNoteOutputSchema,
+    annotations: idempotentWriteAnnotations,
   },
   {
     name: 'get_strategy_state',
@@ -961,6 +991,8 @@ export const dailyReviewToolNames = [
 export const workflowGuideToolNames = ['get_workflow_guide'] as const
 
 export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_product_feedback'] as const
+
+export const entityNoteToolNames = ['update_entity_note'] as const
 
 export const decisionTaskToolNames = [
   'record_investment_decision',

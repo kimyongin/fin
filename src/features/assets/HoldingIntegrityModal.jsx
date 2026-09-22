@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ModalShell from '../../components/ModalShell'
-import { confirmReconciliation, previewReconciliation, verifyHolding } from './integrityData'
+import { confirmReconciliation, fetchHoldingIntegrity, previewReconciliation, verifyHolding } from './integrityData'
 
 const inputClass = 'min-w-0 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]'
 
@@ -18,8 +18,19 @@ export default function HoldingIntegrityModal({ holding, instrument, onClose, on
   const [committed, setCommitted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [integrity, setIntegrity] = useState(null)
+  const [integrityError, setIntegrityError] = useState('')
   const verificationKey = useRef(null)
   const labels = { quantity: '수량', avg_price: '평균가', purchase_amount: '매입금액', valuation_amount: type === 'cash' ? '현금 잔액' : '평가금액' }
+
+  useEffect(() => {
+    let active = true
+    setIntegrityError('')
+    fetchHoldingIntegrity(supabase, holding.id)
+      .then((value) => { if (active) setIntegrity(value) })
+      .catch((next) => { if (active) setIntegrityError(next.message) })
+    return () => { active = false }
+  }, [holding.id, supabase])
 
   function invalidateAttempt() {
     setAttempt(null)
@@ -67,6 +78,12 @@ export default function HoldingIntegrityModal({ holding, instrument, onClose, on
 
   return <ModalShell closeDisabled={busy && !committed} onClose={onClose} title={`${instrument.display_name} 잔고 맞추기`}><div className="grid gap-4">
     <p className="text-sm leading-6 text-[var(--muted-ink)]">값을 바꾸면 새 기준점으로 보정합니다. 값이 맞는지만 확인했다면 아래 확인 범위만 기록할 수 있습니다.</p>
+    {integrity?.last_verification && <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm" aria-label="최근 잔고 확인">
+      <p className="font-semibold">최근 확인 · {integrity.last_verification.verified_on}</p>
+      <p className="mt-1 text-[var(--muted-ink)]">{integrity.last_verification.verified_fields.map((field) => labels[field] ?? field).join(', ')}{integrity.last_verification.changed_since ? ' · 확인 후 값 변경됨' : ' · 확인 후 값 변경 없음'}</p>
+      {integrity.last_verification.note && <p className="mt-2 whitespace-pre-wrap">{integrity.last_verification.note}</p>}
+    </section>}
+    {integrityError && <p className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">최근 확인 기록을 불러오지 못했습니다. {integrityError}</p>}
     <div className="grid gap-3 sm:grid-cols-2">{allowed.map((field) => <label className="grid gap-1.5" key={field}><span className="text-xs text-[var(--muted-ink)]">{labels[field]}</span><input className={inputClass} inputMode="decimal" onChange={(event) => { setValues({ ...values, [field]: event.target.value }); invalidateAttempt() }} value={values[field]}/></label>)}</div>
     <fieldset><legend className="text-xs text-[var(--muted-ink)]">증권사와 실제로 확인한 항목만 선택</legend><div className="mt-2 flex flex-wrap gap-2">{allowed.map((field) => <label className="flex items-center gap-2 rounded-xl border border-[var(--line)] px-3 py-2 text-sm" key={field}><input checked={fields.includes(field)} onChange={() => toggle(field)} type="checkbox"/>{labels[field]}</label>)}</div></fieldset>
     <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">확인·보정일</span><input className={inputClass} onChange={(event) => { setDate(event.target.value); invalidateAttempt() }} type="date" value={date}/></label>
