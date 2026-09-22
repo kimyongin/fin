@@ -15,6 +15,10 @@ const actionLabels = {
   bulk_edit_portfolio: '표로 자산 일괄 수정',
   update_entity_note: '대상 메모 수정', save_operating_rule: '데이터 관리 규칙 저장',
   archive_operating_rule: '데이터 관리 규칙 보관', save_todo_bundle: 'ToDo 묶음 저장',
+  create_general_task: '할 일 추가', update_general_task: '할 일 수정', complete_general_task: '할 일 완료',
+  reopen_general_task: '할 일 다시 열기', pause_general_task: '할 일 보류', resume_general_task: '할 일 재개',
+  cancel_general_task: '할 일 취소', record_manual_activity: '한 일 기록', verify_holding: '보유 정보 확인',
+  link_trade_to_task: '체결과 실행 계획 연결', transition_execution_task: '실행 계획 상태 변경',
 }
 
 const fieldLabels = {

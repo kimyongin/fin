@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  actionTaskToolNames,
   dailyReviewToolNames,
   decisionTaskToolNames,
   entityNoteToolNames,
@@ -29,6 +30,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(new Set(names).size).toBe(names.length)
     expect(dailyReviewToolNames.every((name) => names.includes(name))).toBe(true)
     expect(decisionTaskToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(actionTaskToolNames.every((name) => names.includes(name))).toBe(true)
     expect(entityNoteToolNames.every((name) => names.includes(name))).toBe(true)
     expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
     expect(operatingRuleToolNames.every((name) => names.includes(name))).toBe(true)
@@ -39,6 +41,14 @@ describe('portfolio MCP tool definitions', () => {
     expect(todoBundleToolNames.every((name) => names.includes(name))).toBe(true)
     expect(productFeedbackToolNames.every((name) => names.includes(name))).toBe(true)
     expect(workflowGuideToolNames.every((name) => names.includes(name))).toBe(true)
+  })
+
+  it('separates planned general tasks from reported completed activity', () => {
+    expect(tool('list_general_tasks').annotations.readOnlyHint).toBe(true)
+    expect(tool('save_general_task').description).toContain('intent only')
+    expect(tool('transition_general_task').description).toContain('linked action event')
+    expect(tool('record_manual_activity').description).toContain('already happened')
+    expect(tool('record_manual_activity').description).toContain('does not create a task')
   })
 
   it('publishes a self-contained read-only policy workflow guide', () => {

@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select extensions.plan(16);
+select extensions.plan(18);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000000801','authenticated','authenticated','execution-owner@example.com','',now(),now(),now());
@@ -18,6 +18,7 @@ select extensions.is((public.app_get_portfolio_task((select id from portfolio_ta
 
 select extensions.lives_ok($$select public.app_log_completed_trade((public.app_preview_trade_entry(9801,9801,'buy',6,100,current_date)->>'preview_id')::uuid,'22222222-2222-4222-8222-222222222222','agent')$$,'records first fill');
 select extensions.lives_ok($$select public.app_link_trade_to_task((select id from trade_entries order by sequence_no desc limit 1),(select id from portfolio_tasks where title='10주 매수'),1,'33333333-3333-4333-8333-333333333333','agent')$$,'links first fill');
+select extensions.is((select count(*) from activity_events where action_type='link_trade_to_task'),1::bigint,'linking a fill records an automatic task event');
 select extensions.is((public.app_execution_plan_summary((select id from portfolio_tasks where title='10주 매수'))->>'progress'),'partial','six of ten is partial');
 select extensions.is((public.app_execution_plan_summary((select id from portfolio_tasks where title='10주 매수'))->>'filled_quantity')::numeric,6::numeric,'reports six filled');
 
@@ -28,6 +29,7 @@ select extensions.throws_ok($$select public.app_link_trade_to_task((select id fr
 select extensions.is((select count(*) from trade_entries),2::bigint,'task operations never create trades');
 select extensions.is((select ledger_quantity from holdings where ticker='PLAN'),10::numeric,'only fills change the holding');
 select extensions.is((public.app_transition_execution_task((select id from portfolio_tasks where title='10주 매수'),1,'pause','사용자 요청으로 잠시 보류','77777777-7777-4777-8777-777777777777','agent')->>'control_state'),'paused','execution plan can be paused');
+select extensions.is((select count(*) from activity_events where action_type='transition_execution_task'),1::bigint,'execution task transition records an automatic event');
 select extensions.is((select ledger_quantity from holdings where ticker='PLAN'),10::numeric,'pausing a plan does not change holdings');
 select extensions.lives_ok($$select public.app_reverse_trade_entry((public.app_preview_trade_reversal((select id from trade_entries order by sequence_no desc limit 1),'잘못 기록한 두 번째 체결')->>'preview_id')::uuid,'88888888-8888-4888-8888-888888888888','agent')$$,'reverses a linked fill');
 select extensions.is((public.app_execution_plan_summary((select id from portfolio_tasks where title='10주 매수'))->>'progress'),'partial','reversing a fill recalculates progress');

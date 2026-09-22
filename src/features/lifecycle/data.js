@@ -111,3 +111,58 @@ export async function saveTodoBundle(supabase, bundle) {
     input_authored_via: 'app',
   })
 }
+
+export async function fetchGeneralTaskPage(supabase, { cursor = null, filter = 'active', limit = 20 } = {}) {
+  return normalizePage(await rpc(supabase, 'app_list_general_task_page', {
+    input_filter: filter,
+    input_limit: limit,
+    input_cursor: cursor,
+  }))
+}
+
+export async function fetchGeneralTask(supabase, taskId) {
+  const data = await rpc(supabase, 'app_get_general_task', { input_task_id: taskId })
+  if (!data) throw new Error('일반 할 일을 찾을 수 없거나 접근할 수 없습니다.')
+  return data
+}
+
+export async function saveGeneralTask(supabase, task) {
+  return rpc(supabase, 'app_save_general_task', {
+    input_task_id: task.id ?? null,
+    input_expected_version: task.expectedVersion ?? null,
+    input_idempotency_key: task.idempotencyKey,
+    input_payload: {
+      title: task.title.trim(),
+      subject: task.subject ?? { kind: 'portfolio' },
+      due_date: task.dueDate || null,
+      timezone: task.timezone ?? 'Asia/Seoul',
+      trigger_text: task.triggerText?.trim() || null,
+      change_reason: task.changeReason?.trim() || null,
+      authored_via: 'app',
+    },
+  })
+}
+
+export async function transitionGeneralTask(supabase, task, action, { result = null, reason = null, occurrenceOn = null } = {}) {
+  return rpc(supabase, 'app_transition_general_task', {
+    input_task_id: task.id,
+    input_expected_version: task.version,
+    input_action: action,
+    input_result: result?.trim() || null,
+    input_reason: reason?.trim() || null,
+    input_occurrence_on: occurrenceOn,
+    input_idempotency_key: crypto.randomUUID(),
+    input_authored_via: 'app',
+  })
+}
+
+export async function recordManualActivity(supabase, activity) {
+  return rpc(supabase, 'app_record_manual_activity', {
+    input_title: activity.title.trim(),
+    input_result: activity.result?.trim() || null,
+    input_occurred_at: activity.occurredAt || null,
+    input_timezone: activity.timezone ?? 'Asia/Seoul',
+    input_idempotency_key: activity.idempotencyKey,
+    input_authored_via: 'app',
+  })
+}

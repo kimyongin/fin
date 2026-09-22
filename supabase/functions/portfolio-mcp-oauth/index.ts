@@ -3,7 +3,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
 import {
-  dailyReviewToolNames, decisionTaskToolNames, entityNoteToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
+  actionTaskToolNames, dailyReviewToolNames, decisionTaskToolNames, entityNoteToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
   investmentPolicyToolNames, operatingRuleToolNames, portfolioToolDefinitions, todoBundleToolNames, tradeEntryToolNames, tradeReversalToolNames,
   productFeedbackToolNames, workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
@@ -557,6 +557,59 @@ const toolHandlers: Record<string, ToolHandler> = {
     if (data == null) throw new Error('Task was not found or is not accessible')
     return { ok: true, data }
   },
+  async list_general_tasks(supabase, args) {
+    const data = await rpc(supabase, 'app_list_general_task_page', {
+      input_filter: optionalString(args.filter) ?? 'active',
+      input_limit: args.limit == null ? 20 : requirePositiveInteger(args.limit, 'limit'),
+      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
+    })
+    return { ok: true, data }
+  },
+  async get_general_task(supabase, args) {
+    const data = await rpc(supabase, 'app_get_general_task', { input_task_id: requireUuid(args.task_id, 'task_id') })
+    if (!data) throw new PortfolioRpcError({ message: 'General task not found' })
+    return { ok: true, data }
+  },
+  async save_general_task(supabase, args) {
+    requireSchemaVersion(args)
+    const taskId = args.task_id == null ? null : requireUuid(args.task_id, 'task_id')
+    const expectedVersion = args.expected_version == null ? null : requirePositiveInteger(args.expected_version, 'expected_version')
+    if ((taskId == null) !== (expectedVersion == null)) throw new ToolInputError('task_id and expected_version must both be set for an update')
+    const data = await rpc(supabase, 'app_save_general_task', {
+      input_task_id: taskId,
+      input_expected_version: expectedVersion,
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_payload: {
+        title: requireString(args.title, 'title'), subject: requireRecord(args.subject, 'subject'),
+        due_date: optionalString(args.due_date) ?? null, timezone: requireString(args.timezone, 'timezone'),
+        trigger_text: optionalString(args.trigger_text) ?? null, change_reason: optionalString(args.change_reason) ?? null,
+        authored_via: 'agent',
+      },
+    })
+    return { ok: true, data }
+  },
+  async transition_general_task(supabase, args) {
+    requireSchemaVersion(args)
+    const action = requireString(args.action, 'action')
+    if (!['complete','reopen','pause','resume','cancel'].includes(action)) throw new ToolInputError('action is invalid')
+    const data = await rpc(supabase, 'app_transition_general_task', {
+      input_task_id: requireUuid(args.task_id, 'task_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_action: action, input_result: optionalString(args.result) ?? null, input_reason: optionalString(args.reason) ?? null,
+      input_occurrence_on: optionalString(args.occurrence_on) ?? null,
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
+    })
+    return { ok: true, data }
+  },
+  async record_manual_activity(supabase, args) {
+    requireSchemaVersion(args)
+    const data = await rpc(supabase, 'app_record_manual_activity', {
+      input_title: requireString(args.title, 'title'), input_result: optionalString(args.result) ?? null,
+      input_occurred_at: optionalString(args.occurred_at) ?? null, input_timezone: requireString(args.timezone, 'timezone'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
+    })
+    return { ok: true, data }
+  },
   async transition_investment_decision(supabase, args) {
     const data = await rpc(supabase, 'app_transition_investment_decision', {
       input_decision_id: requireUuid(args.decision_id, 'decision_id'),
@@ -799,6 +852,7 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   entityNotes: entityNoteToolNames,
   dailyReview: dailyReviewToolNames,
   decisionsAndTasks: decisionTaskToolNames,
+  actionTasks: actionTaskToolNames,
   investmentPolicy: investmentPolicyToolNames,
   operatingRules: operatingRuleToolNames,
   todoBundles: todoBundleToolNames,

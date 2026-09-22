@@ -769,6 +769,90 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: readOnlyAnnotations,
   },
   {
+    name: 'list_general_tasks',
+    title: 'General portfolio tasks',
+    description: 'List owner-only general portfolio follow-ups. These are user intentions, not proof that work happened. Use active for unfinished work and completed only to inspect finished tasks. Pass next_cursor unchanged for the next page.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        filter: { type: 'string', enum: ['active', 'completed', 'paused', 'cancelled', 'all'], default: 'active' },
+        limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+        cursor: { type: ['object', 'null'] },
+      },
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'get_general_task',
+    title: 'General portfolio task detail',
+    description: 'Read one owner-only general task with its current version, history, and linked action events. Reading never completes or changes the task.',
+    inputSchema: {
+      type: 'object',
+      properties: { task_id: { type: 'string', format: 'uuid' } },
+      required: ['task_id'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'save_general_task',
+    title: 'Save a general portfolio task',
+    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. This stores intent only and never claims the work, trade, or verification happened.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 }, task_id: { type: ['string', 'null'], format: 'uuid' },
+        expected_version: { type: ['integer', 'null'], minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
+        title: { type: 'string', minLength: 1, maxLength: 500 },
+        subject: { type: 'object', properties: { kind: { type: 'string', enum: ['portfolio', 'instrument', 'position'] } }, required: ['kind'], additionalProperties: true },
+        due_date: { type: ['string', 'null'], format: 'date' }, timezone: { type: 'string', minLength: 1 },
+        trigger_text: { type: ['string', 'null'], maxLength: 1000 }, change_reason: { type: ['string', 'null'], maxLength: 1000 },
+      },
+      required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','change_reason'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'transition_general_task',
+    title: 'Complete or control a general task',
+    description: 'Complete, reopen, pause, resume, or cancel one general task after reading its current version. Completion records a linked action event; reopening preserves that history. A result describes what actually happened and must not be invented.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 }, task_id: { type: 'string', format: 'uuid' }, expected_version: { type: 'integer', minimum: 1 },
+        idempotency_key: { type: 'string', format: 'uuid' }, action: { type: 'string', enum: ['complete','reopen','pause','resume','cancel'] },
+        result: { type: ['string', 'null'], maxLength: 4000 }, reason: { type: ['string', 'null'], maxLength: 1000 },
+        occurrence_on: { type: ['string', 'null'], format: 'date' },
+      },
+      required: ['schema_version','task_id','expected_version','idempotency_key','action','result','reason','occurrence_on'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'record_manual_activity',
+    title: 'Record work done outside Portfolio',
+    description: 'Record a user-reported action that already happened outside Portfolio and had no prior task. Use only after the user asks to save it; never infer an action from discussion or future intent. This does not create a task or change financial data.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        schema_version: { const: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
+        title: { type: 'string', minLength: 1, maxLength: 500 }, result: { type: ['string', 'null'], maxLength: 4000 },
+        occurred_at: { type: ['string', 'null'], format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
+      },
+      required: ['schema_version','idempotency_key','title','result','occurred_at','timezone'],
+      additionalProperties: false,
+    },
+    outputSchema: successEnvelopeSchema,
+    annotations: idempotentWriteAnnotations,
+  },
+  {
     name: 'transition_investment_decision',
     title: 'Adopt or dismiss proposed decision',
     description: 'Use only after the user explicitly adopts or dismisses an existing proposed decision. Read its current version first. Adoption requires an option already present in the proposal and the user\'s reason. It never records a trade, order, execution plan, or holding change.',
@@ -1113,6 +1197,14 @@ export const decisionTaskToolNames = [
   'save_execution_task',
   'link_trade_to_task',
   'transition_execution_task',
+] as const
+
+export const actionTaskToolNames = [
+  'list_general_tasks',
+  'get_general_task',
+  'save_general_task',
+  'transition_general_task',
+  'record_manual_activity',
 ] as const
 
 export const investmentPolicyToolNames = [

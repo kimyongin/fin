@@ -1,39 +1,39 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-22",
-  "review_reason": "Reviewed #73 daily-context ToDo summaries, explicit bundle-save intent, and partial-failure recovery across daily review, reconciliation, and todo workflows.",
+  "review_reason": "General task and manual activity tools were added. Existing guides remain behaviorally correct; the todo guide transition is handled in ticket #79.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:719312c0",
-      "contract_digest": "f9e772197d97376712ecab26a319287704feaf118c67b240764e42744e9e14ae"
+      "contract_digest": "8eef5a4e7b61db6584e3c48c38731b2fd11ea0215cb0631df97245fc0163b525"
     },
     "holding_thesis": {
       "revision": "fnv1a32:62ae4aff",
-      "contract_digest": "0c3679549011b168ecb4644992d01d18c97c70b807303ce0ad47715ce80ab043"
+      "contract_digest": "56f8ac4703e6144e3b0c43a1287ee4b42eed649d11a7ba24d161a39f288df9ac"
     },
     "daily_review": {
       "revision": "fnv1a32:a7592e1e",
-      "contract_digest": "40f1c9e022348f87f7e96d19157f6e6e144921e7b102a75cc314c784e5a34380"
+      "contract_digest": "555b3a9e9634d674b661294cc74f5d88d8f9e576d6962106d7ad16ad2f8b3b97"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "c4c5d995d58af0a3002a329a7cd38ba062b8ad97636e45fad5031e379f4a1f0b"
+      "contract_digest": "331eb27c601b1c13a902679f3d2488e4f35cc9f30f66df3733b78f87974d38a0"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "c284e72ea52da13e10045836a30c5cf381c26fc3daf2f007a9bb0f3dc54e2aba"
+      "contract_digest": "fc3870253dd1e3f0e1e89de764f284353bfc41e7025278c6b2fb617f9c0cc910"
     },
     "reconciliation": {
       "revision": "fnv1a32:74b7b215",
-      "contract_digest": "abbe30715a2cccf3a01a79c6dfb89a09755b339dd02be50a24f7f49e6f4e0003"
+      "contract_digest": "f36340a602db44abebdbb65a75800390372987db1a4462256e2f142e7bb45f1e"
     },
     "todo": {
       "revision": "fnv1a32:0d4e9e91",
-      "contract_digest": "44c9a350b43fcae5e17b54c69903e0be252fd50c1bb86a3bb4b188c401f9fe81"
+      "contract_digest": "82a6bf7b0eacdf6bfffe4ea20f949f9bd9d60027f1e0cfd32e96c56ecbc5995a"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "79e9bcbe17255284680923ca108f70337f8a3e21a79d0c8bef51bcda0fa7e8f8"
+      "contract_digest": "c4df42af84baf0425d5249bd5de77518e0f09adda73bc27bb5191d8ee331fe96"
     }
   }
 }

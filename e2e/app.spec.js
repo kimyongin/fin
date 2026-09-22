@@ -358,6 +358,36 @@ test('creates one ToDo bundle with several general items and opens its detail', 
   await expect(page.getByRole('button', { name: /월요일 포트폴리오 정리 · 3개/ })).toBeVisible()
 })
 
+test('creates and completes a general task while keeping manual work as activity', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/')
+  await openMenuTab(page, '할 일')
+
+  const taskTitle = `E2E 일반 할 일 ${Date.now()}`
+  await page.getByRole('button', { name: '할 일 추가', exact: true }).click()
+  const taskDialog = page.getByRole('dialog', { name: '할 일 추가' })
+  await taskDialog.getByRole('textbox', { name: '할 일', exact: true }).fill(taskTitle)
+  await taskDialog.getByLabel('확인할 때').fill('퇴근 전에 확인')
+  await taskDialog.getByRole('button', { name: '저장', exact: true }).click()
+  const taskRow = page.getByText(taskTitle, { exact: true }).locator('..').locator('..')
+  await expect(taskRow).toBeVisible()
+  await taskRow.getByRole('button', { name: '완료', exact: true }).click()
+  await expect(page.getByText(taskTitle, { exact: true })).toHaveCount(0)
+
+  const activityTitle = `E2E 앱 밖 행동 ${Date.now()}`
+  await page.getByRole('button', { name: '한 일 기록', exact: true }).click()
+  const activityDialog = page.getByRole('dialog', { name: '한 일 기록' })
+  await activityDialog.getByRole('textbox', { name: '한 일', exact: true }).fill(activityTitle)
+  await activityDialog.getByLabel('결과 또는 메모').fill('증권사 기준을 확인함')
+  await activityDialog.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(activityDialog).toBeHidden()
+  const events = await callRpc(page, 'app_list_recent_activity', { limit_count: 100, input_owner_user_id: null })
+  expect(events.status, JSON.stringify(events.body)).toBe(200)
+  expect(events.body).toContainEqual(expect.objectContaining({ action_type: 'complete_general_task' }))
+  expect(events.body).toContainEqual(expect.objectContaining({ action_type: 'record_manual_activity' }))
+})
+
 test('saves an instrument holding thesis and includes it in daily context', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
@@ -959,15 +989,15 @@ test('keeps four primary destinations usable without horizontal overflow', async
     await expect(primary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: 'ToDo', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '투자 원칙', exact: true })).toBeVisible()
-    await expect.poll(() => primary.evaluate((element) => getComputedStyle(element).position)).toBe('fixed')
-    const navigationBox = await primary.evaluate((element) => {
+    await expect.poll(() => primary.evaluate((element) => {
       const box = element.getBoundingClientRect()
-      return { bottom: box.bottom, left: box.left, position: getComputedStyle(element).position, width: box.width }
-    })
-    expect(navigationBox.position).toBe('fixed')
-    expect(Math.abs(navigationBox.bottom - 900)).toBeLessThanOrEqual(1)
-    expect(navigationBox.left).toBe(0)
-    expect(navigationBox.width).toBe(width)
+      return {
+        bottom: Math.round(box.bottom),
+        left: Math.round(box.left),
+        position: getComputedStyle(element).position,
+        width: Math.round(box.width),
+      }
+    })).toEqual({ bottom: 900, left: 0, position: 'fixed', width })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
 
