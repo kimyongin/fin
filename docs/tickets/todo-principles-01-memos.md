@@ -1,5 +1,7 @@
 # [ToDo·원칙] 기존 메모 OAuth 편집과 확인 메모 재조회
 
+2026-09-23 후속: [ADR-0008](../adr/0008-minimal-portfolio-storage.md)과 저장 단순화 #86~#91이 충돌하는 저장/이력/기능 유지 요구를 대체한다. 기존 구현·검증 증거와 미검증 외부 게이트는 보존하며 새 구현은 docs/START-HERE.md에서 시작한다.
+
 GitHub: https://github.com/kimyongin/fin/issues/69
 
 상태: 로컬 구현·검증 완료, 운영 배포 전 · 2026-09-22

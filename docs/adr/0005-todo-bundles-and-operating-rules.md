@@ -1,4 +1,6 @@
 # ADR-0005 — ToDo 묶음과 원칙 통합
+
+2026-09-23 후속: [ADR-0008](../adr/0008-minimal-portfolio-storage.md)과 저장 단순화 #86~#91이 충돌하는 저장/이력/기능 유지 요구를 대체한다. 기존 구현·검증 증거와 미검증 외부 게이트는 보존하며 새 구현은 docs/START-HERE.md에서 시작한다.
 상태: Partially superseded by [ADR-0006](./0006-tasks-and-action-events.md) · 2026-09-22. 메모/운영 규칙은 유지하며 번들 모델과 활동 분리 경험은 대체한다. 아래는 이전 구현 결정 이력이다.
 
 여러 작업의 완료 행과 반복 설명 부담을 줄인다. [공통 설계](../design/todo-principles-integration.md)를 적용한다.

@@ -1,5 +1,9 @@
 # 설계 문서 지도
 
+## 우선 적용: 저장 구조 단순화
+
+[minimal-portfolio](./minimal-portfolio.md), [ADR-0008](../adr/0008-minimal-portfolio-storage.md), [단순성 원칙](../engineering/SIMPLICITY.md)을 따른다. 아래 세대별 계획은 이력이며 최신 작업은 START-HERE를 확인한다.
+
 ## 현재 개발 기준 — 활동·결과·태그·검색 (2026-09-23)
 
 [새 설계](../design/activity-simplification.md)와 [ADR-0007](../adr/0007-activity-results-and-search.md)을 먼저 읽는다. 사용자에게 활동 하나로 할 일·한 일·결론을 제공한다. 판단 모아보기 탭과 등록 경로별 라벨을 제거하고 다중 활동 태그 및 조건·키워드·유사도 검색을 제공하는 계획이다. 물리적 판단 테이블 통합 여부는 #80에서 결정한다.

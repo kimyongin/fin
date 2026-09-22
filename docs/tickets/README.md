@@ -1,5 +1,20 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## 현재 작업 — 저장 구조 전반 단순화 (#86~#91)
+
+2026-09-23 · 설계/티켓 작성 완료, 구현 전. [단순성 원칙](../engineering/SIMPLICITY.md), [ADR-0008](../adr/0008-minimal-portfolio-storage.md), [재설계](../design/minimal-portfolio.md)를 우선한다. 아래 이전 티켓의 별도 도메인/이력/원장 유지 요구는 충돌 범위에서 대체된다.
+
+| 순서 | GitHub | 로컬 명세 |
+| --- | --- | --- |
+| 1 | [#86 최소 저장 계약과 전체 테이블 처분 확정](https://github.com/kimyongin/fin/issues/86) | [명세](./storage-simplification-01-contract.md) |
+| 2 | [#87 조사·판단·점검·회고를 활동 결과로 통합](https://github.com/kimyongin/fin/issues/87) | [명세](./storage-simplification-02-records.md) |
+| 3 | [#88 할 일과 반복 완료 흐름 단순화](https://github.com/kimyongin/fin/issues/88) | [명세](./storage-simplification-03-tasks.md) |
+| 4 | [#89 보유 메모와 서술형 원칙 통합](https://github.com/kimyongin/fin/issues/89) | [명세](./storage-simplification-04-notes-principles.md) |
+| 5 | [#90 현재 보유값 중심 매매·보정·확인 단순화](https://github.com/kimyongin/fin/issues/90) | [명세](./storage-simplification-05-holdings.md) |
+| 6 | [#91 구 구조 종료·물리 정리·릴리스 검증](https://github.com/kimyongin/fin/issues/91) | [명세](./storage-simplification-06-retirement.md) |
+
+#86은 최소 계약, #87~#90은 사용자 흐름별 수직 구현, #91은 첫 슬라이스부터 이관 검증을 진행하고 최종 물리 정리를 맡는다. #69/#70/#75~#85의 기존 구현 증거와 미검증 외부 게이트는 보존한다. 새 설계로 대체되는 구 기능을 그대로 배포하는 것은 새 목표가 아니다. 이전 티켓은 후속 링크로 연결하며 검증 없이 완료로 닫지 않는다.
+
 ## 현재 개발 기준 — 활동·결과·태그·검색 (2026-09-23)
 
 최신 단순화: 기존 activity_events를 편집 가능한 활동 저장으로 활용한다. 별도 결과 테이블과 일반 편집의 의무 수정 이력·판단 정정 자동 분류는 제외한다. 자동 금융 원본의 보호와 기존 반복 동작은 유지한다. ADR-0007 및 #80~#85의 축소된 인수 조건을 따른다.

@@ -1,4 +1,6 @@
 # [행동 통합] 매일 반복 태스크와 회차별 완료
+
+2026-09-23 후속: [ADR-0008](../adr/0008-minimal-portfolio-storage.md)과 저장 단순화 #86~#91이 충돌하는 저장/이력/기능 유지 요구를 대체한다. 기존 구현·검증 증거와 미검증 외부 게이트는 보존하며 새 구현은 docs/START-HERE.md에서 시작한다.
 상태: 구현 완료・운영 미배포 · 2026-09-22
 GitHub: https://github.com/kimyongin/fin/issues/76
 선행: 01 (action-timeline 시리즈)
