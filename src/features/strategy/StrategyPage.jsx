@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import MarkdownContent from "../../components/MarkdownContent";
 import ModalShell from "../../components/ModalShell";
 import PrincipleJournal from "./PrincipleJournal";
 import { formatKrw, formatPercent } from "../../lib/format";
@@ -412,19 +411,8 @@ function PrinciplesModal({ draft, onClose, onSave, saving }) {
     </label>
   );
   return (
-    <ModalShell onClose={onClose} title="운용 원칙 편집">
+    <ModalShell onClose={onClose} title="배분 계산 한도 편집">
       <div className="grid gap-4">
-        <label className="grid gap-1.5">
-          <span className="text-xs text-[var(--muted-ink)]">상세 원칙</span>
-          <textarea
-            className={`${inputClass()} min-h-32 resize-y`}
-            onChange={(event) =>
-              setPrinciples({ ...principles, notes: event.target.value })
-            }
-            placeholder="Markdown으로 장기 기준 배분, 매도 조건, 판단 규칙 등을 자유롭게 기록하세요."
-            value={principles.notes}
-          />
-        </label>
         <div className="grid gap-4 sm:grid-cols-2">
           {field("max_trade_amount", "단일 거래 최대금액")}
           {field("monthly_trade_limit", "월간 누적 거래 한도")}
@@ -877,7 +865,7 @@ function StrategyDashboard({
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">운용 원칙</h2>
+            <h2 className="text-lg font-semibold">배분 계산 한도</h2>
             <p className="mt-1 text-sm text-[var(--muted-ink)]">
               모드는 목표를 정하고, 원칙은 조정 범위와 실행 조건을 제한합니다.
             </p>
@@ -888,7 +876,7 @@ function StrategyDashboard({
               onClick={onEditPrinciples}
               type="button"
             >
-              원칙 편집
+              한도 편집
             </button>
           )}
         </div>
@@ -913,12 +901,6 @@ function StrategyDashboard({
             </strong>
           </p>
         </div>
-        {principles.notes && (
-          <MarkdownContent
-            className="mt-4 rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--muted-ink)]"
-            content={principles.notes}
-          />
-        )}
       </article>
       {showCalculations && (!calculationAvailable ? (
         <article className="rounded-[28px] border border-amber-400/40 bg-amber-500/10 p-5 text-amber-100">

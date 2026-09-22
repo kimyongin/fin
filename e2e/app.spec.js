@@ -256,69 +256,61 @@ test('retries the combined work queue after a read error', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: '활동' })).toBeVisible()
 })
 
-test('saves a private investment policy and includes its version in daily context', async ({ page }) => {
+test('saves private principles and reads the current revision on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await openMenuTab(page, '원칙')
 
-  await page.getByRole('button', { name: '기준 추가' }).click()
-  await page.getByLabel('한 줄로 적는 기본 원칙').fill('장기 투자하고 자주 매매하지 않는다.')
-  await page.getByLabel('투자 목적').fill('은퇴 자산을 장기적으로 늘린다.')
-  await page.getByLabel('투자 기간').fill('10년 이상')
-  await page.getByLabel('하지 않을 것 · 한 줄에 하나').fill('레버리지 상품은 매수하지 않는다.')
-  await page.getByLabel('변경 이유').fill('처음 개인 투자 기준을 정했습니다.')
-  await page.getByRole('button', { name: '기준 저장' }).click()
+  await page.getByRole('button', { name: '원칙 추가' }).click()
+  const editor = page.getByRole('dialog', { name: '원칙 추가' })
+  await editor.getByLabel('내용').fill('장기 투자하고 자주 매매하지 않는다.')
+  await editor.getByRole('button', { name: '저장' }).click()
 
   await expect(page.getByText('장기 투자하고 자주 매매하지 않는다.')).toBeVisible()
-  await expect(page.getByText('기준 버전 1')).toBeVisible()
-
-  const policy = await callRpc(page, 'app_get_investment_policy')
-  expect(policy.status, JSON.stringify(policy.body)).toBe(200)
-  expect(policy.body.profile).toMatchObject({
-    version: 1,
-    horizon_text: '10년 이상',
+  const principles = await callRpc(page, 'app_list_principles', {
+    input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: false,
   })
-
-  const context = await callRpc(page, 'app_create_daily_context', {
-    input_subject_tickers: null,
-    input_timezone: 'Asia/Seoul',
-  })
-  expect(context.status, JSON.stringify(context.body)).toBe(200)
-  expect(context.body.snapshot.investment_policy).toMatchObject({ version: 1 })
+  expect(principles.status, JSON.stringify(principles.body)).toBe(200)
+  expect(principles.body.items).toEqual(expect.arrayContaining([expect.objectContaining({
+    kind: 'investment', body: '장기 투자하고 자주 매매하지 않는다.',
+  })]))
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('creates, revises, and archives a reconciliation operating rule', async ({ page }) => {
+test('revises and ends one operating principle without a second history table', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await openMenuTab(page, '원칙')
 
-  await page.getByRole('button', { name: '규칙 추가' }).click()
-  await page.getByLabel('규칙 이름').fill('미래에셋 XLS 잔고')
-  await page.getByLabel('언제 적용하나요?').fill('미래에셋 국내주식 잔고 XLS')
-  await page.getByLabel('어떻게 해석하나요?').fill('평균가는 매입금액을 수량으로 나눈다.')
-  await page.getByLabel('변경 이유').fill('반복할 데이터 해석 기준을 저장합니다.')
-  await page.getByRole('button', { name: '규칙 저장' }).click()
+  await page.getByRole('button', { name: '원칙 추가' }).click()
+  let editor = page.getByRole('dialog', { name: '원칙 추가' })
+  await editor.getByLabel('분류').selectOption('operation')
+  await editor.getByLabel('적용 범위 (선택)').fill('미래에셋 XLS 잔고')
+  await editor.getByLabel('내용').fill('평균가는 매입금액을 수량으로 나눈다.')
+  await editor.getByRole('button', { name: '저장' }).click()
 
-  const ruleCard = page.locator('section').filter({ hasText: '미래에셋 XLS 잔고' }).first()
+  const ruleCard = page.locator('article').filter({ hasText: '미래에셋 XLS 잔고' }).first()
   await expect(ruleCard.getByText('평균가는 매입금액을 수량으로 나눈다.')).toBeVisible()
-  await ruleCard.getByRole('button', { name: '편집' }).click()
-  await page.getByLabel('어떻게 해석하나요?').fill('매입금액과 평가금액을 구분하고 수량 0은 계산하지 않는다.')
-  await page.getByLabel('변경 이유').fill('0수량과 금액 열의 의미를 명확히 합니다.')
-  await page.getByRole('button', { name: '규칙 저장' }).click()
+  await ruleCard.getByRole('button', { name: '수정' }).click()
+  editor = page.getByRole('dialog', { name: '원칙 수정' })
+  await editor.getByLabel('내용').fill('매입금액과 평가금액을 구분하고 수량 0은 계산하지 않는다.')
+  await editor.getByRole('button', { name: '저장' }).click()
   await expect(ruleCard.getByText('매입금액과 평가금액을 구분하고 수량 0은 계산하지 않는다.')).toBeVisible()
-  await expect(ruleCard.getByText('v2')).toBeVisible()
 
-  page.once('dialog', (dialog) => dialog.accept())
-  await ruleCard.getByRole('button', { name: '보관' }).click()
-  await expect(page.getByText('미래에셋 XLS 잔고')).toHaveCount(0)
-  const archived = await callRpc(page, 'app_list_operating_rules', {
-    input_workflow_key: 'reconciliation', input_include_archived: true,
+  const beforeEnd = await callRpc(page, 'app_list_principles', {
+    input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: false,
   })
-  expect(archived.status, JSON.stringify(archived.body)).toBe(200)
-  expect(archived.body.rules[0]).toMatchObject({ status: 'archived', version: 3 })
+  const saved = beforeEnd.body.items.find((item) => item.scope === '미래에셋 XLS 잔고')
+  expect(saved?.kind).toBe('operation')
+  await ruleCard.getByRole('button', { name: '수정' }).click()
+  await page.getByRole('dialog', { name: '원칙 수정' }).getByRole('button', { name: '적용 종료' }).click()
+  await expect(page.getByText('미래에셋 XLS 잔고')).toHaveCount(0)
+  const afterEnd = await callRpc(page, 'app_list_principles', {
+    input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: true,
+  })
+  expect(afterEnd.body.items.find((item) => item.principle_id === saved.principle_id)?.ended).toBe(true)
 })
 
 test('shows one unified action surface without legacy bundle controls', async ({ page }) => {

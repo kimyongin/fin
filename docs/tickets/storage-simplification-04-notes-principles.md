@@ -9,6 +9,7 @@ GitHub: https://github.com/kimyongin/fin/issues/89
 - `app_list_principles`/`app_save_principle`의 소유자 격리·현재/날짜 조회·종료·동일 재시도·수정 행을 pgTAP 14건으로 검증했다. 현재 조회에 트랜잭션 시작 시각을 쓰면 방금 저장한 행이 보이지 않는 문제를 후속 migration에서 수정했다.
 - 앱의 원칙 목록/편집과 MCP `list_principles`/`save_principle`, policy workflow guide를 연결했다. `npm test` 109건, build, 가이드 검사 통과. Deno가 현재 PATH에 없어서 edge typecheck 미실행. 전체 DB 테스트에는 기존 `price_sync_contract_test`의 `sync_runs` 누락, `todo_bundle_test`의 UUID fixture 오류가 남는다.
 - 구 개인 정책·운영 규칙 도구/API와 전략 notes는 전환 기간 동안 살아 있다. 후속 작업은 보유 이유 비공개 메모 이관, 구 도구/화면 정리, 공유/실제 MCP 호출 검증, 운영 데이터 대조다. 이 기록은 #89 전체 완료를 의미하지 않는다.
+- 격리 E2E baseline은 현재 앱 스키마보다 오래돼 전략 JSON 컬럼만 E2E 전용 증분 migration으로 보정했다. 격리 DB 530건, MCP 계약 검사, 새 원칙의 모바일 저장/수정/종료 2개 브라우저 테스트 통과. 이전 원칙/운영 규칙 UI를 가정한 두 테스트는 새 흐름으로 교체했다. 새 화면의 360/768/1024/1440px 수동 검토와 실제 ChatGPT 웹·모바일 호출은 미검증이다.
 선행: 01
 시나리오: S1/S8/S9/S10
 기준: docs/engineering/SIMPLICITY.md, docs/adr/0008-minimal-portfolio-storage.md, docs/design/minimal-portfolio.md
