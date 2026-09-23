@@ -375,9 +375,6 @@ allow_dynamic_registration = true
 [functions.portfolio-mcp]
 verify_jwt = false
 
-[functions.chatgpt-mcp-probe]
-verify_jwt = false
-
 [functions.portfolio-mcp-oauth]
 verify_jwt = false
 

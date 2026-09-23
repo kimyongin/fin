@@ -18,7 +18,6 @@
 | supabase/functions/portfolio-mcp-oauth | OAuth MCP 진입점. 미커밋 실험 존재 여부 확인 후 작업 |
 | supabase/functions/portfolio-mcp | 기존 토큰 MCP. OAuth와 호환/권한 차이 확인 |
 | supabase/functions/sync-prices, lookup-ticker | 외부 시세·종목 조회 |
-| supabase/functions/chatgpt-mcp-probe | 실험용. 운영 계약의 원본으로 사용하지 않음 |
 | supabase/migrations | 적용 DB 이력. 과거 파일을 바꾸는 대신 incremental migration |
 | supabase/schema/OVERVIEW.md | DB 탐색 시작점. 실제 DDL의 대체물이 아님 |
 
