@@ -30,6 +30,8 @@ Before code changes, read `docs/engineering/architecture.md` for placement and r
 
 # UI Design
 
+- Before adding or modifying any modal, read `docs/design/modal-guidelines.md`. Follow its shared form, spacing, actions, responsive layout, and accessibility rules; record intentional exceptions and actual verification in the relevant ticket.
+
 - Before introducing shared UI or backend helpers, read `docs/design/component-system.md` or `docs/engineering/backend-modules.md` respectively. Reuse existing components, keep transactional rules in the server, and do not introduce a generic framework ahead of concrete feature needs.
 
 - Before changing UI code, screen specifications, or prototypes, read `docs/design/PRINCIPLES.md` and follow its mobile-first rules and acceptance checklist.

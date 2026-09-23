@@ -30,7 +30,11 @@ export default function GeneralTaskDetail({ entry, loading, onBack, onClose, onE
     finally { setEnding(false) }
   }
   return (
-    <ModalShell closeDisabled={ending} onBack={onBack} onClose={onClose} title="할 일 상세">
+    <ModalShell closeDisabled={ending} footer={item?.kind === 'general' && item.recurrence_kind === 'daily' && item.control_state === 'active' && onEndGeneralTask ? <div className="grid gap-3">
+      {endError && <p className="text-sm text-red-200" role="alert">{endError}</p>}
+      {confirmEnding && <p className="text-sm text-[var(--muted-ink)]">앞으로 표시되는 반복만 종료합니다. 이미 완료한 날짜의 기록은 남습니다.</p>}
+      <div className="flex flex-wrap justify-end gap-2">{confirmEnding && <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" disabled={ending} onClick={() => setConfirmEnding(false)} type="button">취소</button>}<button className="min-h-11 rounded-2xl border border-red-400/40 px-4 text-sm font-semibold text-red-200 disabled:opacity-50" disabled={ending} onClick={confirmEnding ? endRepeat : () => setConfirmEnding(true)} type="button">{ending ? '종료 중' : confirmEnding ? '반복 종료 확인' : '반복 종료'}</button></div>
+    </div> : undefined} onBack={onBack} onClose={onClose} title="할 일 상세">
       {loading || !item ? <p className="py-8 text-sm text-[var(--muted-ink)]">불러오는 중입니다.</p> : (
         <div className="grid gap-6">
           <section>
@@ -40,8 +44,7 @@ export default function GeneralTaskDetail({ entry, loading, onBack, onClose, onE
           </section>
           {item.trigger_text && <section><h4 className="text-sm font-semibold">확인할 때</h4><p className="mt-2 text-sm leading-6">{item.trigger_text}</p></section>}
           {item.due_date && <section><h4 className="text-sm font-semibold">예정일</h4><p className="mt-2 text-sm">{formatDate(item.due_date)}</p></section>}
-          {item.kind === 'general' && item.recurrence_kind === 'daily' && item.control_state === 'active' && onEndGeneralTask && <section className="rounded-2xl border border-[var(--line)] p-4"><h4 className="text-sm font-semibold">매일 반복</h4><p className="mt-1 text-sm text-[var(--muted-ink)]">앞으로 표시되는 반복만 종료합니다. 이미 완료한 날짜의 활동은 그대로 남습니다.</p>{endError && <p className="mt-2 text-sm text-red-300">{endError}</p>}<div className="mt-3 flex flex-wrap gap-2">{confirmEnding ? <><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" disabled={ending} onClick={() => setConfirmEnding(false)} type="button">취소</button><button className="rounded-xl border border-red-400/40 px-3 py-2 text-sm text-red-300 disabled:opacity-50" disabled={ending} onClick={endRepeat} type="button">{ending ? '종료 중' : '반복 종료 확인'}</button></> : <button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => setConfirmEnding(true)} type="button">반복 종료</button>}</div></section>}
-          <p className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--muted-ink)]">이 항목은 앞으로 할 일입니다. 완료하면 실제로 수행한 활동 기록이 연결됩니다.</p>
+          {item.recurrence_kind === 'daily' && <section><h4 className="text-xs font-semibold text-[var(--muted-ink)]">반복</h4><p className="mt-2 text-sm">매일 반복{item.recurrence_start_on ? ` · ${formatDate(item.recurrence_start_on)}부터` : ''}</p></section>}
         </div>
       )}
     </ModalShell>

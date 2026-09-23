@@ -91,15 +91,14 @@ test('keeps the three primary page controls readable across viewport widths', as
       if (hash === 'overview') await expect(page.getByRole('region', { name: '보유 종목' })).toBeVisible()
       if (hash === 'tasks') {
         await expect(page.getByRole('textbox', { name: '활동 검색' })).toBeVisible()
-        await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
-        await expect(page.getByRole('heading', { name: '날짜별 한 일' })).toBeVisible()
+        await expect(page.getByRole('heading', { name: '할 일' })).toBeVisible()
+        await expect(page.getByRole('heading', { name: '기록' })).toBeVisible()
       }
-      if (hash === 'strategy') await expect(page.getByText('지난 원칙 보기')).toBeVisible()
+      if (hash === 'strategy') await expect(page.getByRole('heading', { name: '변경 이력' })).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     }
   }
 })
-
 test('keeps the saved strategy visible when opening allocation', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
@@ -108,7 +107,7 @@ test('keeps the saved strategy visible when opening allocation', async ({ page }
     input_drift_threshold: 1, input_monthly_contribution: 100000, input_name: 'E2E Display Strategy', input_review_day: 1,
   })
   await openMenuTab(page, '원칙')
-  await expect(page.getByText('지난 원칙 보기')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '변경 이력' })).toBeVisible()
   await expect(page.getByText('E2E Display Strategy')).toHaveCount(0)
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toHaveCount(0)
   await openMenuTab(page, '자산')

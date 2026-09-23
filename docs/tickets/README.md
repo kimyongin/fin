@@ -1,5 +1,21 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## 로컬 구현·자동 검증 — 공통 모달 디자인 적용 (#117)
+
+[#117 공통 모달 디자인 적용과 활동 모달 정돈](https://github.com/kimyongin/fin/issues/117) · [로컬 명세](./ui-10-activity-modal-design.md). [모달 가이드](../design/modal-guidelines.md)에 따라 활동·금융·원칙 편집을 정돈하고 도달 가능한 모달과 의도적 예외를 점검했다. 로컬 자동 검증과 운영·실기기 잔여 범위는 명세에 기록한다.
+
+## 로컬 구현·자동 검증 — 할 일·기록 용어 통일 (#116)
+
+[#116 활동 화면 용어를 할 일·기록으로 통일](https://github.com/kimyongin/fin/issues/116) · [로컬 명세](./ui-09-activity-terminology.md). 목록·상세·입력·검색 배지를 로컬 구현에 반영했다. 미완료 항목·검색 조건과 저장 의미는 유지한다.
+
+## 로컬 구현·자동 검증 — 활동 상세 간소화 (#115)
+
+[#115 활동 상세에서 할 일·기록을 함께 표시하고 후속 연결 제거](https://github.com/kimyongin/fin/issues/115) · [로컬 명세](./ui-08-activity-detail-simplification.md). 기록 상세에서 관련 할 일과 결과를 함께 읽는다. 후속 전용 UI/RPC/MCP 입력을 제거하고 기존 할 일·완료 연결은 보존했다. 운영 적용·배포는 별개다.
+
+## 로컬 구현·자동 검증 — 원칙 변경 타임라인 (#114)
+
+[#114 원칙 날짜 선택을 변경 타임라인으로 전환](https://github.com/kimyongin/fin/issues/114) · [로컬 명세](./ui-07-principle-timeline.md). 현재 원칙과 변경 이력을 함께 보여주고 이전 내용·과거 페이지를 탐색한다. 기존 원칙 쓰기 계약을 유지하고 소유자 전용 조회 RPC 하나를 추가했다. 운영 적용·배포는 별개다.
+
 ## 로컬 구현 — 보유 확인 중심의 자산 UX (#113)
 
 [#113 자산을 보유 확인·잔고 수정 중심으로 단순화](https://github.com/kimyongin/fin/issues/113) · [로컬 명세](./ui-06-assets-holdings-first.md)

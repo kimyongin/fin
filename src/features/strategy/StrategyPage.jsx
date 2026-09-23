@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ModalShell from "../../components/ModalShell";
+import ModalActions from "../../components/ModalActions";
 import AssetViewToolbar from "../assets/AssetViewToolbar";
 import PrincipleJournal from "./PrincipleJournal";
 import { calculateStrategyDashboard } from "./calculations";
@@ -73,7 +74,7 @@ function emptyDraft() {
   };
 }
 function inputClass() {
-  return "min-w-0 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]";
+  return "min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base outline-none focus:border-[var(--accent)]";
 }
 
 function BucketEditor({ bucket, onChange, onRemove, selectedTagIds, tags }) {
@@ -334,10 +335,10 @@ function ModeModal({ draft, onClose, onSave, saving }) {
     mode_reason: draft.mode_reason,
   });
   return (
-    <ModalShell onClose={onClose} title="운용 모드 변경">
+    <ModalShell closeDisabled={saving} dirty={next.mode !== draft.mode || next.mode_reason !== draft.mode_reason} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={() => onSave(next)} saveLabel={saving ? "저장 중" : "모드 적용"} />} onClose={onClose} title="운용 모드 변경">
       <div className="grid gap-4">
-        <label className="grid gap-1.5">
-          <span className="text-xs text-[var(--muted-ink)]">모드</span>
+        <label className="grid gap-2">
+          <span className="text-xs font-semibold text-[var(--muted-ink)]">모드</span>
           <select
             className={inputClass()}
             onChange={(event) => setNext({ ...next, mode: event.target.value })}
@@ -350,8 +351,8 @@ function ModeModal({ draft, onClose, onSave, saving }) {
             ))}
           </select>
         </label>
-        <label className="grid gap-1.5">
-          <span className="text-xs text-[var(--muted-ink)]">변경 사유</span>
+        <label className="grid gap-2">
+          <span className="text-xs font-semibold text-[var(--muted-ink)]">변경 사유</span>
           <textarea
             className={`${inputClass()} min-h-28 resize-y`}
             onChange={(event) =>
@@ -365,23 +366,6 @@ function ModeModal({ draft, onClose, onSave, saving }) {
           모드는 목표 비중 프리셋만 바꿉니다. 실제 매매는 원칙과 본인의 최종
           판단에 따라 직접 결정합니다.
         </p>
-        <div className="flex justify-end gap-2">
-          <button
-            className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm"
-            onClick={onClose}
-            type="button"
-          >
-            취소
-          </button>
-          <button
-            className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
-            disabled={saving}
-            onClick={() => onSave(next)}
-            type="button"
-          >
-            {saving ? "저장 중" : "모드 적용"}
-          </button>
-        </div>
       </div>
     </ModalShell>
   );
@@ -389,9 +373,18 @@ function ModeModal({ draft, onClose, onSave, saving }) {
 
 function PrinciplesModal({ draft, onClose, onSave, saving }) {
   const [principles, setPrinciples] = useState(draft.principles);
+  const save = () => {
+    const { min_trade_amount: _legacy, ...nextPrinciples } = principles;
+    onSave({
+      ...nextPrinciples,
+      max_trade_amount: Number(principles.max_trade_amount) || 0,
+      monthly_trade_limit: Number(principles.monthly_trade_limit) || 0,
+      contribution_repair_months: Number(principles.contribution_repair_months) || 0,
+    });
+  };
   const field = (key, label, suffix = "원") => (
-    <label className="grid gap-1.5">
-      <span className="text-xs text-[var(--muted-ink)]">{label}</span>
+    <label className="grid gap-2">
+      <span className="text-xs font-semibold text-[var(--muted-ink)]">{label}</span>
       <div className="flex items-center gap-2">
         <input
           className={inputClass()}
@@ -407,40 +400,12 @@ function PrinciplesModal({ draft, onClose, onSave, saving }) {
     </label>
   );
   return (
-    <ModalShell onClose={onClose} title="배분 계산 한도 편집">
+    <ModalShell closeDisabled={saving} dirty={JSON.stringify(principles) !== JSON.stringify(draft.principles)} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={save} saveLabel={saving ? "저장 중" : "한도 저장"} />} onClose={onClose} title="배분 계산 한도 편집">
       <div className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           {field("max_trade_amount", "단일 거래 최대금액")}
           {field("monthly_trade_limit", "월간 누적 거래 한도")}
           {field("contribution_repair_months", "적립금 우선 보정 기간", "개월")}
-        </div>
-        <div className="flex justify-end gap-2">
-          <button
-            className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm"
-            onClick={onClose}
-            type="button"
-          >
-            취소
-          </button>
-          <button
-            className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
-            disabled={saving}
-            onClick={() => {
-              const { min_trade_amount: _legacy, ...nextPrinciples } =
-                principles;
-              onSave({
-                ...nextPrinciples,
-                max_trade_amount: Number(principles.max_trade_amount) || 0,
-                monthly_trade_limit:
-                  Number(principles.monthly_trade_limit) || 0,
-                contribution_repair_months:
-                  Number(principles.contribution_repair_months) || 0,
-              });
-            }}
-            type="button"
-          >
-            {saving ? "저장 중" : "한도 저장"}
-          </button>
         </div>
       </div>
     </ModalShell>

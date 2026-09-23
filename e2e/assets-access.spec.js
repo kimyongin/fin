@@ -356,7 +356,7 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   await timelineReached
   await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
   releaseTimeline()
-  await expect(friendPage.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
+  await expect(friendPage.getByRole('heading', { name: '할 일' })).toBeVisible()
   await expect(friendPage.getByText('stale shared error')).toHaveCount(0)
   await friendPage.unroute('**/rest/v1/rpc/app_list_action_timeline')
 

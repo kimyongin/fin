@@ -1,5 +1,7 @@
 # React 공통 컴포넌트 설계
 
+모달 구현·수정의 필수 기준은 [모달 디자인 가이드](./modal-guidelines.md)다. ModalShell/ModalActions를 재사용하고, 아래 초기 DetailSurface 제안과 충돌하면 가이드의 용도별 레이아웃을 따른다.
+
 2026-09-21 · 공통 구조 로컬 구현 완료. 현재 React 19 + Vite + Tailwind를 사용한다(package.json 선언 기준). 구조/배치 계약과 남은 실기기 검증은 [화면 구조 규칙](./screen-structure.md)을 따른다. 별도 Web Components/custom elements 프레임워크를 도입한다는 뜻이 아니다. 기존 어두운 테마와 CSS 변수를 유지한다.
 
 ## 현재 기반과 보완
