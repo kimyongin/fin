@@ -8,7 +8,6 @@ import DecisionActivitiesPage from './DecisionActivitiesPage'
 import { createRequestGate } from '../../lib/requestGate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import {
-  fetchGeneralTask,
   fetchActivity,
   fetchActivityTags,
   fetchPortfolioTask,
@@ -19,20 +18,8 @@ import {
   transitionGeneralTask,
 } from './data'
 
-const decisionStatus = { proposed: '제안', adopted: '내가 채택함', dismissed: '채택하지 않음', superseded: '새 판단으로 대체됨' }
-const taskStatus = { open: '확인 필요', waiting: '자료 대기', resolved: '답을 확인함', closed: '종료' }
-
 function taskStatusLabel(task) {
-  if (task.kind === 'general') return { open: '할 일', done: '완료', paused: '보류', cancelled: '취소' }[task.status] ?? task.status
-  if (task.kind === 'execution') {
-    if (task.control_state === 'paused') return '보류'
-    if (task.control_state === 'cancelled') return '취소'
-    return { planned: '실행 예정', partial: '일부 체결', completed: '체결 완료' }[task.execution_plan?.progress] ?? '실행 예정'
-  }
-  if (task.research_state === 'closed') return taskStatus.closed
-  if (task.control_state === 'paused') return '보류'
-  if (task.control_state === 'cancelled') return '취소'
-  return taskStatus[task.research_state] ?? task.research_state
+  return { open: '할 일', done: '완료', cancelled: '취소' }[task.status] ?? task.status
 }
 
 function GeneralActionModal({ kind, onClose, onKindChange, onSave, onTagsChanged, saving, supabase, tags }) {
@@ -100,9 +87,8 @@ function subjectLabel(subject) {
   return subject.label || subject.instrument_id || '대상 종목'
 }
 
-function Detail({ entry, loading, onBack, onClose, onEndGeneralTask, onOpenTask }) {
-  const { item, mode } = entry ?? {}
-  const latestTaskHistory = mode === 'tasks' && item?.history?.length ? item.history[item.history.length - 1] : null
+function Detail({ entry, loading, onBack, onClose, onEndGeneralTask }) {
+  const { item } = entry ?? {}
   const [confirmEnding, setConfirmEnding] = useState(false)
   const [ending, setEnding] = useState(false)
   const [endError, setEndError] = useState('')
@@ -115,26 +101,8 @@ function Detail({ entry, loading, onBack, onClose, onEndGeneralTask, onOpenTask 
     finally { setEnding(false) }
   }
   return (
-    <ModalShell onBack={onBack} onClose={onClose} title={mode === 'decisions' ? '판단 상세' : '할 일 상세'} variant="detail">
-      {loading || !item ? <p className="py-8 text-sm text-[var(--muted-ink)]">불러오는 중입니다.</p> : mode === 'decisions' ? (
-        <div className="grid gap-6">
-          <section>
-            <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{decisionStatus[item.status] ?? item.status}</span>
-            <h3 className="mt-4 break-words text-xl font-semibold leading-8">{item.question}</h3>
-            <p className="mt-2 text-xs text-[var(--muted-ink)]">{subjectLabel(item.subject)} · {formatDate(item.created_at)}</p>
-          </section>
-          {item.selected_option && <section><h4 className="text-sm font-semibold">선택</h4><p className="mt-2 text-sm leading-6">{item.selected_option}</p></section>}
-          {item.reason && <section><h4 className="text-sm font-semibold">선택한 이유</h4><p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">{item.reason}</p></section>}
-          {item.uncertainty && <section><h4 className="text-sm font-semibold">아직 불확실한 점</h4><p className="mt-2 text-sm leading-6 text-[var(--muted-ink)]">{item.uncertainty}</p></section>}
-          {item.review_condition && <section><h4 className="text-sm font-semibold">다시 볼 조건</h4><p className="mt-2 text-sm leading-6">{item.review_condition}</p></section>}
-          {item.tasks?.length > 0 && (
-            <section>
-              <h4 className="text-sm font-semibold">연결된 할 일</h4>
-              <ul className="mt-2 grid gap-2">{item.tasks.map((task) => <li key={task.id}><button className="w-full rounded-2xl bg-[var(--surface-2)] p-3 text-left text-sm hover:bg-[var(--surface-3)]" onClick={() => onOpenTask(task.id)} type="button">{task.title}</button></li>)}</ul>
-            </section>
-          )}
-        </div>
-      ) : (
+    <ModalShell onBack={onBack} onClose={onClose} title="할 일 상세" variant="detail">
+      {loading || !item ? <p className="py-8 text-sm text-[var(--muted-ink)]">불러오는 중입니다.</p> : (
         <div className="grid gap-6">
           <section>
             <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{taskStatusLabel(item)}</span>
@@ -143,16 +111,8 @@ function Detail({ entry, loading, onBack, onClose, onEndGeneralTask, onOpenTask 
           </section>
           {item.trigger_text && <section><h4 className="text-sm font-semibold">확인할 때</h4><p className="mt-2 text-sm leading-6">{item.trigger_text}</p></section>}
           {item.due_date && <section><h4 className="text-sm font-semibold">예정일</h4><p className="mt-2 text-sm">{formatDate(item.due_date)}</p></section>}
-          {item.execution_plan && <section><h4 className="text-sm font-semibold">체결 진행</h4><p className="mt-2 text-sm leading-6">{item.execution_plan.side === 'buy' ? '매수' : '매도'} {Number(item.execution_plan.filled_quantity).toLocaleString()} / {Number(item.execution_plan.target_quantity).toLocaleString()}주</p>{Number(item.execution_plan.overfilled_quantity) > 0 && <p className="mt-1 text-xs text-[var(--muted-ink)]">계획보다 {Number(item.execution_plan.overfilled_quantity).toLocaleString()}주 더 체결됨</p>}</section>}
-          {latestTaskHistory?.answer && <section><h4 className="text-sm font-semibold">확인한 답</h4><p className="mt-2 text-sm leading-6">{latestTaskHistory.answer}</p></section>}
-          {latestTaskHistory?.evidence?.length > 0 && (
-            <section>
-              <h4 className="text-sm font-semibold">확인 근거</h4>
-              <ul className="mt-2 grid gap-2">{latestTaskHistory.evidence.map((evidence) => <li className="rounded-2xl bg-[var(--surface-2)] p-3" key={evidence.id}><a className="break-words text-sm font-semibold text-[var(--accent)] underline" href={evidence.source_url} rel="noreferrer" target="_blank">{evidence.title}</a><p className="mt-1 break-words text-sm leading-6 text-[var(--muted-ink)]">{evidence.summary}</p></li>)}</ul>
-            </section>
-          )}
           {item.kind === 'general' && item.recurrence_kind === 'daily' && item.control_state === 'active' && onEndGeneralTask && <section className="rounded-2xl border border-[var(--line)] p-4"><h4 className="text-sm font-semibold">매일 반복</h4><p className="mt-1 text-sm text-[var(--muted-ink)]">앞으로 표시되는 반복만 종료합니다. 이미 완료한 날짜의 활동은 그대로 남습니다.</p>{endError && <p className="mt-2 text-sm text-red-300">{endError}</p>}<div className="mt-3 flex flex-wrap gap-2">{confirmEnding ? <><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" disabled={ending} onClick={() => setConfirmEnding(false)} type="button">취소</button><button className="rounded-xl border border-red-400/40 px-3 py-2 text-sm text-red-300 disabled:opacity-50" disabled={ending} onClick={endRepeat} type="button">{ending ? '종료 중' : '반복 종료 확인'}</button></> : <button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => setConfirmEnding(true)} type="button">반복 종료</button>}</div></section>}
-          <p className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--muted-ink)]">{item.kind === 'execution' ? '이 항목은 실행 계획입니다. 연결된 실제 체결만 진행도에 반영되며 계획 자체는 주문이나 체결이 아닙니다.' : item.kind === 'general' ? '이 항목은 앞으로 할 일입니다. 완료하면 실제로 수행한 활동 기록이 별도로 연결됩니다.' : '이 항목은 조사·점검할 질문입니다. 매매 주문이나 체결 기록이 아닙니다.'}</p>
+          <p className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm leading-6 text-[var(--muted-ink)]">이 항목은 앞으로 할 일입니다. 완료하면 실제로 수행한 활동 기록이 연결됩니다.</p>
         </div>
       )}
     </ModalShell>
@@ -266,19 +226,7 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
   }
 
   async function openActionTask(task) {
-    if (task.kind !== 'general') return openDetail('tasks', task.id)
-    const request = detailRequestGate.current.begin()
-    setDetailLoading(true)
-    setDetail({ mode: 'tasks', item: null })
-    setError('')
-    try {
-      const item = await fetchGeneralTask(supabase, task.id)
-      if (request.isCurrent()) setDetail({ mode: 'tasks', item })
-    } catch (nextError) {
-      if (request.isCurrent()) { setDetail(null); setError(nextError.message ?? '할 일을 불러오지 못했습니다.') }
-    } finally {
-      if (request.isCurrent()) setDetailLoading(false)
-    }
+    return openDetail('tasks', task.id)
   }
 
   useEffect(() => {
@@ -306,7 +254,7 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
           supabase={supabase}
         />
       </div>
-      {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} onOpenTask={(id) => openDetail('tasks', id)} />}
+      {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} />}
       {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={() => setActivityDetail(null)} onDeleted={() => { setActivityDetail(null); setActionRefreshKey((value) => value + 1) }} onOpenTask={(id) => { setActivityDetail(null); openDetail('tasks', id) }} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} onTagsChanged={setActivityTagsState} saving={savingGeneral} supabase={supabase} tags={activityTags} />}
     </section>

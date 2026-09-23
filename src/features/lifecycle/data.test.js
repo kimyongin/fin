@@ -7,7 +7,6 @@ import {
   fetchDecisionActivities,
   fetchActionTimeline,
   fetchPortfolioTask,
-  fetchPortfolioTasks,
   recordManualActivity,
   searchActivities,
   setActivityTags,
@@ -24,21 +23,10 @@ describe('decision and task data adapters', () => {
       input_kind: 'decision', input_owner_user_id: 'owner-1', input_limit: 5, input_cursor: null,
     })
   })
-  it('lists tasks with explicit filters', async () => {
-    const supabase = { rpc: vi.fn(async () => ({ data: [], error: null })) }
-
-    await fetchPortfolioTasks(supabase, { state: 'open', limit: 5 })
-
-    expect(supabase.rpc).toHaveBeenCalledWith('app_list_portfolio_tasks', {
-      input_state: 'open',
-      input_limit: 5,
-      input_before: null,
-    })
-  })
-
   it('loads details and rejects inaccessible records', async () => {
     const found = { rpc: vi.fn(async () => ({ data: { id: 'record-1' }, error: null })) }
     await expect(fetchPortfolioTask(found, 'record-1')).resolves.toEqual({ id: 'record-1' })
+    expect(found.rpc.mock.calls[0][0]).toBe('app_get_general_task')
 
     const missing = { rpc: vi.fn(async () => ({ data: null, error: null })) }
     await expect(fetchPortfolioTask(missing, 'missing')).rejects.toThrow('접근할 수 없습니다')
@@ -46,8 +34,8 @@ describe('decision and task data adapters', () => {
 
   it('uses feature-gated DTOs for a selected friend', async () => {
     const supabase = { rpc: vi.fn(async () => ({ data: [], error: null })) }
-    await fetchPortfolioTasks(supabase, { ownerUserId: 'owner-1' })
-    expect(supabase.rpc.mock.calls[0][0]).toBe('app_list_portfolio_tasks_for_owner')
+    await fetchPortfolioTask(supabase, 'record-1', 'owner-1')
+    expect(supabase.rpc.mock.calls[0][0]).toBe('app_get_general_task_for_owner')
   })
 
   it('reads the unified pending and performed action timeline with an opaque cursor', async () => {
