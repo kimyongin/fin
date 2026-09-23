@@ -7,6 +7,7 @@ import { createRequestGate } from '../../lib/requestGate'
 import { fetchActionTimeline } from '../lifecycle/data'
 import PortfolioIntegritySummary from './PortfolioIntegritySummary'
 import { fetchReviewActivities } from './data'
+import { businessDate } from '../../lib/businessDate'
 
 const statusLabels = { no_action: '추가 조치 없음', attention: '확인 필요', insufficient_data: '판단 자료 부족' }
 const coverageLabels = { complete: '조사 완료', partial: '일부 조사', failed: '자료 부족' }
@@ -17,8 +18,7 @@ function formatMoment(value) {
 
 function isToday(value) {
   if (!value) return false
-  const date = (v) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(v))
-  return date(value) === date(Date.now())
+  return businessDate(value) === businessDate()
 }
 
 function ReviewStatus({ review }) {

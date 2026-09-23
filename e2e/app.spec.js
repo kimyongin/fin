@@ -372,6 +372,69 @@ test('deletes a manual activity without offering deletion for automatic events',
   expect(deleted.body).toBeNull()
 })
 
+test('does not reopen a closed activity when its detail response arrives late', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const title = `E2E 늦은 상세 ${Date.now()}`
+  const created = await callRpc(page, 'app_create_activity', {
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: { title, authored_via: 'app', timezone: 'Asia/Seoul' },
+  })
+  expect(created.status).toBe(200)
+  await page.reload()
+
+  let release
+  const held = new Promise((resolve) => { release = resolve })
+  let requested
+  const reached = new Promise((resolve) => { requested = resolve })
+  await page.route('**/rest/v1/rpc/app_get_activity', async (route) => {
+    requested()
+    await held
+    await route.continue()
+  })
+  await page.getByRole('button', { name: title, exact: true }).click()
+  await reached
+  const detail = page.getByRole('dialog', { name: '활동 상세' })
+  await expect(detail).toBeVisible()
+  await detail.getByRole('button', { name: '닫기' }).click()
+  await expect(detail).toBeHidden()
+  const response = page.waitForResponse((item) => item.url().includes('/rest/v1/rpc/app_get_activity'))
+  release()
+  await response
+  await expect(detail).toBeHidden()
+})
+
+test('keeps the newest search when an older search responds later', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  let releaseOlder
+  const olderHeld = new Promise((resolve) => { releaseOlder = resolve })
+  let olderRequested
+  const olderReached = new Promise((resolve) => { olderRequested = resolve })
+  await page.route('**/functions/v1/activity-search', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue()
+    const query = route.request().postDataJSON()?.query
+    if (query === '오래된 검색') {
+      olderRequested()
+      await olderHeld
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      items: [{ record_type: 'activity', record_id: query === '오래된 검색' ? 9201 : 9202,
+        activity_id: query === '오래된 검색' ? 9201 : 9202, record_state: 'done', title: query }],
+      next_cursor: null, semantic_status: 'unavailable',
+    }) })
+  })
+  const search = page.getByRole('textbox', { name: '활동 검색' })
+  await search.fill('오래된 검색')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await olderReached
+  await search.fill('최신 검색')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.getByRole('button', { name: /최신 검색/ })).toBeVisible()
+  releaseOlder()
+  await expect(page.getByRole('button', { name: /오래된 검색/ })).toHaveCount(0)
+})
+
 test('saves a private holding reason without exposing it in the shared portfolio DTO', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')

@@ -1,3 +1,5 @@
+import { businessDate } from '../../lib/businessDate'
+
 async function rpc(supabase, name, params) {
   const { data, error } = await supabase.rpc(name, params)
   if (error) throw error
@@ -180,7 +182,7 @@ export async function saveGeneralTask(supabase, task) {
       timezone: task.timezone ?? 'Asia/Seoul',
       trigger_text: task.triggerText?.trim() || null,
       recurrence_kind: task.recurrenceKind ?? 'none',
-      recurrence_start_on: task.recurrenceKind === 'daily' ? (task.recurrenceStartOn || task.dueDate || new Date().toLocaleDateString('en-CA')) : null,
+      recurrence_start_on: task.recurrenceKind === 'daily' ? (task.recurrenceStartOn || task.dueDate || businessDate(undefined, task.timezone ?? 'Asia/Seoul')) : null,
       authored_via: 'app',
     },
   })

@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 
 import ModalShell from '../../components/ModalShell'
 import ActivityTagPicker from './ActivityTagPicker'
+import { activityNoon, businessDate } from '../../lib/businessDate'
 import { createActivityFollowUp, deleteManualActivity, fetchActivityTags, setActivityTags, updateActivity } from './data'
 
 function localDate(value) {
   if (!value) return ''
-  return new Date(value).toLocaleDateString('en-CA')
+  return businessDate(value)
 }
 
 function formatDateTime(value) {
@@ -59,7 +60,7 @@ export default function ActivityDetailModal({ activity, loading, onClose, onDele
       if (editable.has('conclusion')) patch.conclusion = draft.conclusion || null
       if (editable.has('record_kind') && draft.recordKind !== activity.record_kind) patch.record_kind = draft.recordKind
       if (editable.has('occurred_at') && draft.occurredOn !== localDate(activity.occurred_at)) {
-        patch.occurred_at = `${draft.occurredOn}T12:00:00+09:00`
+        patch.occurred_at = activityNoon(draft.occurredOn)
         patch.timezone = 'Asia/Seoul'
       }
       const saved = await updateActivity(supabase, activity, patch)
@@ -113,7 +114,7 @@ export default function ActivityDetailModal({ activity, loading, onClose, onDele
         <p className="text-xs text-[var(--muted-ink)]">{formatDateTime(activity.occurred_at)} · {activityKindLabels[activity.record_kind] ?? '활동'} · {activity.source === 'agent' ? 'ChatGPT' : '앱'}</p>
       </section>
 
-      {editing && editable.has('occurred_at') && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">수행일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" max={new Date().toLocaleDateString('en-CA')} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
+      {editing && editable.has('occurred_at') && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">수행일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" max={businessDate()} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
       {editing && editable.has('record_kind') && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">활동 종류</span><select className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, recordKind: event.target.value })} value={draft.recordKind}>{['general','research','review','decision','retrospective'].map((kind) => <option key={kind} value={kind}>{activityKindLabels[kind]}</option>)}</select></label>}
       {['result', 'conclusion', 'note'].map((field) => {
         const labels = { result: '결과', conclusion: '결론', note: '메모' }

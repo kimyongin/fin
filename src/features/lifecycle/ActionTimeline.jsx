@@ -52,16 +52,12 @@ export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenAct
   }
 
   useEffect(() => {
-    load()
-    return () => requestGate.current.invalidate()
-  }, [filter, ownerUserId, refreshKey, supabase])
-
-  useEffect(() => {
     if (ownerUserId) return
     fetchActivityTags(supabase).then(setAvailableTags).catch(() => setAvailableTags([]))
   }, [ownerUserId, supabase])
 
   async function runSearch({ append = false, cursor = null, values = searchDraft } = {}) {
+    const request = requestGate.current.begin()
     setError('')
     append ? setLoadingMore(true) : setLoading(true)
     try {
@@ -71,17 +67,25 @@ export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenAct
         ownerUserId,
         state: filter === 'pending' ? 'todo' : filter === 'done' ? 'done' : 'all',
       })
-      setSearchApplied(values)
+      if (!request.isCurrent()) return
       setSearchPage((current) => append ? { items: [...current.items, ...next.items], nextCursor: next.nextCursor, semanticStatus: current.semanticStatus } : next)
-    } catch (nextError) { setError(nextError.message ?? '활동을 검색하지 못했습니다.') }
-    finally { setLoading(false); setLoadingMore(false) }
+    } catch (nextError) {
+      if (request.isCurrent()) setError(nextError.message ?? '활동을 검색하지 못했습니다.')
+    } finally {
+      if (request.isCurrent()) { setLoading(false); setLoadingMore(false) }
+    }
   }
 
   useEffect(() => {
     if (searchApplied) runSearch({ values: searchApplied })
-  }, [filter, refreshKey])
+    else load()
+    return () => requestGate.current.invalidate()
+  }, [filter, ownerUserId, refreshKey, searchApplied, supabase])
 
   function clearSearch() {
+    requestGate.current.invalidate()
+    setLoading(true)
+    setLoadingMore(false)
     setSearchDraft({ query: '', from: '', to: '', conclusion: 'all', tagIds: [] })
     setSearchApplied(null)
     setSearchPage({ items: [], nextCursor: null, semanticStatus: 'not_requested' })
@@ -101,14 +105,14 @@ export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenAct
         <p className="max-w-2xl text-sm leading-6 text-[var(--muted-ink)]">앞으로 할 일은 위에서 놓치지 않고, 실제로 한 일은 날짜별 기록으로 이어서 봅니다.</p>
         {!ownerUserId && <button className="rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white" onClick={onAdd} type="button">활동 추가</button>}
       </div>
-      <FilterChips ariaLabel="활동 목록 필터" onChange={setFilter} options={filters} value={filter} />
-      <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); runSearch({ values: searchDraft }) }}>
+      <FilterChips ariaLabel="활동 목록 필터" onChange={(next) => { requestGate.current.invalidate(); setLoading(true); setFilter(next) }} options={filters} value={filter} />
+      <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); requestGate.current.invalidate(); setLoading(true); setSearchApplied({ ...searchDraft }) }}>
         <div className="flex gap-2"><input aria-label="활동 검색" className="min-w-0 flex-1 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setSearchDraft({ ...searchDraft, query: event.target.value })} placeholder="제목·메모·결과·결론 검색" value={searchDraft.query} /><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm font-semibold" type="submit">검색</button>{searchApplied && <button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={clearSearch} type="button">해제</button>}</div>
         <details className="rounded-xl border border-[var(--line)] px-3 py-2"><summary className="cursor-pointer text-sm text-[var(--muted-ink)]">상세 필터</summary><div className="mt-3 grid gap-3 sm:grid-cols-3"><label className="grid gap-1 text-xs text-[var(--muted-ink)]">시작일<input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm text-[var(--ink)]" onChange={(event) => setSearchDraft({ ...searchDraft, from: event.target.value })} type="date" value={searchDraft.from} /></label><label className="grid gap-1 text-xs text-[var(--muted-ink)]">종료일<input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm text-[var(--ink)]" onChange={(event) => setSearchDraft({ ...searchDraft, to: event.target.value })} type="date" value={searchDraft.to} /></label><label className="grid gap-1 text-xs text-[var(--muted-ink)]">결론<select className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm text-[var(--ink)]" onChange={(event) => setSearchDraft({ ...searchDraft, conclusion: event.target.value })} value={searchDraft.conclusion}><option value="all">전체</option><option value="yes">결론 있음</option><option value="no">결론 없음</option></select></label></div>{availableTags.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{availableTags.map((tag) => <label className={`flex min-h-9 items-center gap-2 rounded-full border px-3 text-xs ${searchDraft.tagIds.includes(tag.id) ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--line)]'}`} key={tag.id}><input checked={searchDraft.tagIds.includes(tag.id)} onChange={() => setSearchDraft({ ...searchDraft, tagIds: searchDraft.tagIds.includes(tag.id) ? searchDraft.tagIds.filter((id) => id !== tag.id) : [...searchDraft.tagIds, tag.id] })} type="checkbox" />{tag.name}</label>)}</div>}</details>
       </form>
     </header>
 
-    {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => load()} type="button">다시 시도</button></div>}
+    {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => searchApplied ? runSearch({ values: searchApplied }) : load()} type="button">다시 시도</button></div>}
     {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">활동 목록을 불러오는 중입니다.</p> : searchApplied ? <section className="grid gap-3"><div><h2 className="font-semibold">검색 결과</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">할 일과 한 일을 같은 조건으로 찾았습니다. {searchPage.semanticStatus === 'active' ? '비슷한 표현도 함께 반영했습니다.' : searchApplied.query ? '현재는 조건·키워드 결과입니다.' : ''}</p></div>{searchPage.items.length === 0 ? <p className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted-ink)]">조건에 맞는 활동이 없습니다.</p> : searchPage.items.map((item) => <button className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-left" key={`${item.record_type}-${item.record_id}`} onClick={() => item.record_type === 'activity' ? onOpenActivity({ id: item.activity_id }) : onOpenTask({ id: item.task_id, kind: item.task_kind })} type="button"><span className="text-xs text-[var(--muted-ink)]">{item.record_state === 'todo' ? '할 일' : '한 일'}{item.due_date ? ` · ${item.due_date}` : ''}</span><h3 className="mt-2 font-semibold">{item.title}</h3>{item.result && <p className="mt-2 text-sm text-[var(--muted-ink)]">{item.result}</p>}{item.conclusion && <p className="mt-1 text-sm text-[var(--accent)]">{item.conclusion}</p>}{item.tags?.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--muted-ink)]" key={tag.id}>{tag.name}</span>)}</div>}</button>)}{searchPage.nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold" disabled={loadingMore} onClick={() => runSearch({ append: true, cursor: searchPage.nextCursor, values: searchApplied })} type="button">{loadingMore ? '불러오는 중' : '더 보기'}</button>}</section> : <>
       {filter !== 'done' && <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
         <div className="flex items-end justify-between gap-3"><div><h2 className="font-semibold">지금 할 일</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">미완료 과제 {page.pending.length}개</p></div></div>

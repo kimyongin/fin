@@ -6,6 +6,7 @@ import ActivityTagPicker from './ActivityTagPicker'
 import ActionTimeline from './ActionTimeline'
 import DecisionActivitiesPage from './DecisionActivitiesPage'
 import { createRequestGate } from '../../lib/requestGate'
+import { activityNoon, businessDate } from '../../lib/businessDate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import {
   fetchActivity,
@@ -21,7 +22,7 @@ function taskStatusLabel(task) {
 }
 
 function GeneralActionModal({ kind, onClose, onKindChange, onSave, onTagsChanged, saving, supabase, tags }) {
-  const today = new Date().toLocaleDateString('en-CA')
+  const today = businessDate()
   const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', category: 'general', decisionState: 'proposed', selectedOption: '', reason: '', scope: '', sourceTitle: '', sourceUrl: '', tagIds: [] })
   const isTask = kind === 'task'
   const sourceComplete = (!draft.sourceTitle.trim() && !draft.sourceUrl.trim()) || Boolean(draft.sourceTitle.trim() && /^https?:\/\/\S+$/i.test(draft.sourceUrl.trim()))
@@ -129,6 +130,8 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
   const [activityDetail, setActivityDetail] = useState(null)
   const [activityDetailLoading, setActivityDetailLoading] = useState(false)
   const detailRequestGate = useRef(createRequestGate())
+  const activityRequestGate = useRef(createRequestGate())
+  const activeActivityId = useRef(null)
   const createAttempt = useRef(null)
   const createInFlight = useRef(false)
 
@@ -146,8 +149,8 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
       if (generalEditor === 'task') {
         await saveGeneralTask(supabase, { ...draft, idempotencyKey })
       } else {
-        const occurredAt = draft.occurredOn && draft.occurredOn !== new Date().toLocaleDateString('en-CA')
-          ? `${draft.occurredOn}T12:00:00+09:00`
+        const occurredAt = draft.occurredOn && draft.occurredOn !== businessDate()
+          ? activityNoon(draft.occurredOn)
           : null
         await recordManualActivity(supabase, { ...draft, occurredAt, idempotencyKey })
         onRefreshActivity?.()
@@ -182,25 +185,54 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
   }
 
   async function openActivity(action) {
+    const request = activityRequestGate.current.begin()
+    activeActivityId.current = action.id
     setActivityDetailLoading(true)
     setError('')
     setActivityDetail(action)
     try {
-      setActivityDetail(await fetchActivity(supabase, action.id, ownerUserId))
+      const loaded = await fetchActivity(supabase, action.id, ownerUserId)
+      if (request.isCurrent()) setActivityDetail(loaded)
     } catch (nextError) {
-      setActivityDetail(null)
-      setError(nextError.message ?? '활동을 불러오지 못했습니다.')
-    } finally { setActivityDetailLoading(false) }
+      if (request.isCurrent()) {
+        setActivityDetail(null)
+        setError(nextError.message ?? '활동을 불러오지 못했습니다.')
+      }
+    } finally { if (request.isCurrent()) setActivityDetailLoading(false) }
   }
 
   async function refreshActivityDetail(saved, options = {}) {
-    setActivityDetail(saved)
     setActionRefreshKey((value) => value + 1)
     onRefreshActivity?.()
+    if (activeActivityId.current !== saved?.id) return
+    const request = activityRequestGate.current.begin()
+    setActivityDetail(saved)
     if (options.reload || !saved?.follow_up_tasks) {
-      try { setActivityDetail(await fetchActivity(supabase, saved.id, ownerUserId)) } catch { /* 목록 새로고침으로 복구 */ }
+      try {
+        const loaded = await fetchActivity(supabase, saved.id, ownerUserId)
+        if (request.isCurrent()) setActivityDetail(loaded)
+      } catch { /* 목록 새로고침으로 복구 */ }
     }
   }
+
+  function dismissActivityDetail() {
+    activeActivityId.current = null
+    activityRequestGate.current.invalidate()
+    setActivityDetailLoading(false)
+    setActivityDetail(null)
+  }
+
+  useEffect(() => {
+    activityRequestGate.current.invalidate()
+    activeActivityId.current = null
+    detailRequestGate.current.invalidate()
+    setActivityDetail(null)
+    setDetail(null)
+    return () => {
+      activityRequestGate.current.invalidate()
+      detailRequestGate.current.invalidate()
+    }
+  }, [ownerUserId, supabase])
 
   function dismissDetail() {
     detailRequestGate.current.invalidate()
@@ -261,7 +293,7 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
         />
       </div>
       {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} />}
-      {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={() => setActivityDetail(null)} onDeleted={() => { setActivityDetail(null); setActionRefreshKey((value) => value + 1) }} onOpenTask={(id) => { setActivityDetail(null); openDetail('tasks', id) }} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
+      {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={dismissActivityDetail} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onOpenTask={(id) => { dismissActivityDetail(); openDetail('tasks', id) }} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} onTagsChanged={setActivityTagsState} saving={savingGeneral} supabase={supabase} tags={activityTags} />}
     </section>
   )

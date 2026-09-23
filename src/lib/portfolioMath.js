@@ -1,4 +1,5 @@
 import { comparablePriceMetricTickers } from '../constants/portfolio'
+import { businessDate } from './businessDate'
 
 export function hasComparablePriceMetrics(item) {
   if (!item) return true
@@ -11,7 +12,7 @@ export function hasComparablePriceMetrics(item) {
 }
 
 export function today() {
-  return new Date().toISOString().slice(0, 10)
+  return businessDate()
 }
 
 export function normalizeTickerInput(value) {

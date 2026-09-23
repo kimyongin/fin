@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import ModalShell from '../../components/ModalShell'
 import { formatNumber, formatUnitPrice } from '../../lib/format'
 import { confirmTrade, listTransactions, previewTrade } from './tradeData'
+import { businessDate } from '../../lib/businessDate'
 
 const inputClass = 'min-w-0 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]'
 
 export default function TradeEntryModal({ accounts, instrument, onClose, onSaved, supabase }) {
-  const [draft, setDraft] = useState({ accountId: String(accounts[0]?.id ?? ''), side: 'buy', quantity: '', unitPrice: '', executedOn: new Date().toISOString().slice(0, 10) })
+  const [draft, setDraft] = useState({ accountId: String(accounts[0]?.id ?? ''), side: 'buy', quantity: '', unitPrice: '', executedOn: businessDate() })
   const [attempt, setAttempt] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')

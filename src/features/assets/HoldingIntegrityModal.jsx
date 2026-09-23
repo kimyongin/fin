@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import ModalShell from '../../components/ModalShell'
 import { confirmReconciliation, fetchHoldingIntegrity, previewReconciliation, verifyHolding } from './integrityData'
+import { businessDate } from '../../lib/businessDate'
 
 const inputClass = 'min-w-0 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]'
 
 export default function HoldingIntegrityModal({ holding, instrument, onClose, onSaved, supabase }) {
   const type = instrument.instrument_type
-  const today = new Date().toISOString().slice(0, 10)
+  const today = businessDate()
   const initial = type === 'market' ? { quantity: String(holding.quantity ?? ''), avg_price: String(holding.avg_price ?? '') } : type === 'valuation' ? { purchase_amount: String(holding.purchase_amount ?? ''), valuation_amount: String(holding.valuation_amount ?? '') } : { valuation_amount: String(holding.valuation_amount ?? '') }
   const allowed = Object.keys(initial)
   const [values, setValues] = useState(initial)
