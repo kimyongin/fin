@@ -127,7 +127,7 @@ test('shows a saved decision activity as a choice rather than a trade', async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('shows an adopted decision and its research follow-up without implying a trade', async ({ page }) => {
+test('links a decision activity to an ordinary follow-up without implying a trade', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
@@ -135,56 +135,38 @@ test('shows an adopted decision and its research follow-up without implying a tr
   const suffix = Date.now()
   const question = `E2E 보유 판단 ${suffix}`
   const taskTitle = `E2E 다음 실적 확인 ${suffix} ${'긴이름'.repeat(30)}`
-  const recorded = await callRpc(page, 'app_record_investment_decision', {
+  const recorded = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
     input_payload: {
-      status: 'proposed',
-      subject: { kind: 'instrument', instrument_id: 'E2EAPL', label: 'E2E Apple' },
-      question,
-      options: ['유지', '축소 검토'],
-      review_condition: '다음 분기 실적 발표',
-      timezone: 'Asia/Seoul',
+      title: question, category: 'decision', result: '공식 실적에서 확인할 지표를 정했다.',
+      conclusion: '현재는 유지',
+      context: { decision_state: 'adopted', selected_option: '유지', reason: '다음 실적에서 핵심 가설을 다시 확인합니다.' },
       authored_via: 'app',
-      follow_up_tasks: [{
-        title: taskTitle,
-        subject: { kind: 'instrument', instrument_id: 'E2EAPL', label: 'E2E Apple' },
-        trigger_text: '다음 분기 실적 발표',
-      }],
     },
   })
   expect(recorded.status, JSON.stringify(recorded.body)).toBe(200)
-  expect(recorded.body.tasks).toHaveLength(1)
-
-  const adopted = await callRpc(page, 'app_transition_investment_decision', {
-    input_decision_id: recorded.body.id,
-    input_expected_version: 1,
+  const followUp = await callRpc(page, 'app_create_activity_follow_up', {
+    input_origin_event_id: recorded.body.id,
     input_idempotency_key: crypto.randomUUID(),
     input_payload: {
-      action: 'adopt',
-      selected_option: '유지',
-      reason: '다음 실적에서 핵심 가설을 다시 확인합니다.',
+      title: taskTitle,
+      subject: { kind: 'portfolio' },
+      trigger_text: '다음 분기 실적 발표',
       authored_via: 'app',
     },
   })
-  expect(adopted.status, JSON.stringify(adopted.body)).toBe(200)
+  expect(followUp.status, JSON.stringify(followUp.body)).toBe(200)
 
   const resolvedAnswer = '공식 실적에서 확인할 지표가 기준을 충족했습니다.'
-  const resolved = await callRpc(page, 'app_transition_portfolio_task', {
-    input_task_id: recorded.body.tasks[0].id,
-    input_expected_version: 1,
+  const resolved = await callRpc(page, 'app_transition_general_task', {
+    input_task_id: followUp.body.id,
+    input_expected_version: followUp.body.version,
+    input_action: 'complete',
+    input_result: resolvedAnswer,
+    input_reason: null,
+    input_occurrence_on: null,
     input_idempotency_key: crypto.randomUUID(),
-    input_payload: {
-      action: 'resolve',
-      answer: resolvedAnswer,
-      reason: '공식 실적 발표 확인',
-      authored_via: 'app',
-      evidence: [{
-        title: 'E2E official earnings release',
-        source_url: 'https://example.com/e2e-earnings',
-        summary: 'E2E 상태 전이 검증용 공식 자료입니다.',
-        checked_at: new Date().toISOString(),
-      }],
-    },
+    input_authored_via: 'app',
   })
   expect(resolved.status, JSON.stringify(resolved.body)).toBe(200)
 
@@ -192,18 +174,12 @@ test('shows an adopted decision and its research follow-up without implying a tr
   await page.getByLabel('활동 목록 필터').getByRole('button', { name: '한 일', exact: true }).click()
   await expect(page.getByRole('button', { name: question, exact: true }).first()).toBeVisible()
   await page.getByRole('button', { name: question, exact: true }).first().click()
-  await page.getByRole('button', { name: '판단 상세 보기' }).click()
-  await expect(page.getByText('내가 채택함').first()).toBeVisible()
-  await expect(page.getByText(taskTitle)).toBeVisible()
-  await page.getByText(taskTitle).click()
+  await expect(page.getByRole('heading', { name: '활동 상세' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: '활동 상세' }).getByRole('button', { name: new RegExp(taskTitle) })).toBeVisible()
+  await page.getByRole('dialog', { name: '활동 상세' }).getByRole('button', { name: new RegExp(taskTitle) }).click()
   await expect(page.getByRole('heading', { name: '할 일 상세' })).toBeVisible()
-  await expect(page.getByText(resolvedAnswer)).toBeVisible()
-  await page.getByRole('button', { name: '이전 기록으로' }).click()
-  await expect(page.getByRole('heading', { name: '판단 상세' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: question, exact: true }).last()).toBeVisible()
   await page.getByRole('button', { name: '닫기' }).click()
   await expect(page).toHaveURL(/#tasks$/)
-  await expect(page.getByText('조사 과제 상태 변경', { exact: true }).first()).toBeVisible()
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await expect(page.getByRole('heading', { level: 1, name: '활동' })).toBeVisible()

@@ -12,24 +12,6 @@ export async function fetchDecisionActivities(supabase, { cursor = null, limit =
   return normalizePage(data)
 }
 
-export async function fetchInvestmentDecisions(supabase, { limit = 20, before = null, ownerUserId = null } = {}) {
-  const data = await rpc(supabase, ownerUserId ? 'app_list_investment_decisions_for_owner' : 'app_list_investment_decisions', {
-    ...(ownerUserId ? { input_owner_user_id: ownerUserId } : {}),
-    input_limit: limit,
-    input_before: before,
-  })
-  return Array.isArray(data) ? data : []
-}
-
-export async function fetchInvestmentDecision(supabase, decisionId, ownerUserId = null) {
-  const data = await rpc(supabase, ownerUserId ? 'app_get_investment_decision_for_owner' : 'app_get_investment_decision', {
-    ...(ownerUserId ? { input_owner_user_id: ownerUserId } : {}),
-    input_decision_id: decisionId,
-  })
-  if (!data) throw new Error('판단 기록을 찾을 수 없거나 접근할 수 없습니다.')
-  return data
-}
-
 export async function fetchPortfolioTasks(supabase, { state = null, limit = 20, before = null, ownerUserId = null } = {}) {
   const data = await rpc(supabase, ownerUserId ? 'app_list_portfolio_tasks_for_owner' : 'app_list_portfolio_tasks', {
     ...(ownerUserId ? { input_owner_user_id: ownerUserId } : {}),
@@ -54,20 +36,6 @@ function normalizePage(data) {
     items: Array.isArray(data?.items) ? data.items : [],
     nextCursor: data?.next_cursor ?? null,
   }
-}
-
-export async function fetchInvestmentDecisionPage(supabase, {
-  cursor = null,
-  filter = 'current',
-  limit = 20,
-  ownerUserId = null,
-} = {}) {
-  return normalizePage(await rpc(supabase, 'app_list_investment_decision_page', {
-    input_cursor: cursor,
-    input_filter: filter,
-    input_limit: limit,
-    input_owner_user_id: ownerUserId,
-  }))
 }
 
 export async function fetchPortfolioTaskPage(supabase, {

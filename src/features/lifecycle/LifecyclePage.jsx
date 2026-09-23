@@ -9,8 +9,6 @@ import DecisionActivitiesPage from './DecisionActivitiesPage'
 import { createRequestGate } from '../../lib/requestGate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import {
-  fetchInvestmentDecision,
-  fetchInvestmentDecisionPage,
   fetchGeneralTask,
   fetchActivity,
   fetchActivityTags,
@@ -119,7 +117,7 @@ function EmptyState({ mode }) {
   )
 }
 
-function Detail({ entry, loading, onBack, onClose, onEndGeneralTask, onOpenDecision, onOpenTask }) {
+function Detail({ entry, loading, onBack, onClose, onEndGeneralTask, onOpenTask }) {
   const { item, mode } = entry ?? {}
   const latestTaskHistory = mode === 'tasks' && item?.history?.length ? item.history[item.history.length - 1] : null
   const [confirmEnding, setConfirmEnding] = useState(false)
@@ -168,12 +166,6 @@ function Detail({ entry, loading, onBack, onClose, onEndGeneralTask, onOpenDecis
             <section>
               <h4 className="text-sm font-semibold">확인 근거</h4>
               <ul className="mt-2 grid gap-2">{latestTaskHistory.evidence.map((evidence) => <li className="rounded-2xl bg-[var(--surface-2)] p-3" key={evidence.id}><a className="break-words text-sm font-semibold text-[var(--accent)] underline" href={evidence.source_url} rel="noreferrer" target="_blank">{evidence.title}</a><p className="mt-1 break-words text-sm leading-6 text-[var(--muted-ink)]">{evidence.summary}</p></li>)}</ul>
-            </section>
-          )}
-          {item.decision_ids?.length > 0 && (
-            <section>
-              <h4 className="text-sm font-semibold">연결된 판단</h4>
-              <div className="mt-2 flex flex-wrap gap-2">{item.decision_ids.map((decisionId, index) => <button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" key={decisionId} onClick={() => onOpenDecision(decisionId)} type="button">판단 {index + 1} 보기</button>)}</div>
             </section>
           )}
           {item.kind === 'general' && item.recurrence_kind === 'daily' && item.control_state === 'active' && onEndGeneralTask && <section className="rounded-2xl border border-[var(--line)] p-4"><h4 className="text-sm font-semibold">매일 반복</h4><p className="mt-1 text-sm text-[var(--muted-ink)]">앞으로 표시되는 반복만 종료합니다. 이미 완료한 날짜의 활동은 그대로 남습니다.</p>{endError && <p className="mt-2 text-sm text-red-300">{endError}</p>}<div className="mt-3 flex flex-wrap gap-2">{confirmEnding ? <><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" disabled={ending} onClick={() => setConfirmEnding(false)} type="button">취소</button><button className="rounded-xl border border-red-400/40 px-3 py-2 text-sm text-red-300 disabled:opacity-50" disabled={ending} onClick={endRepeat} type="button">{ending ? '종료 중' : '반복 종료 확인'}</button></> : <button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={() => setConfirmEnding(true)} type="button">반복 종료</button>}</div></section>}
@@ -284,9 +276,7 @@ function LifecycleWorkbench({ actions = [], activityError = '', activityLoading 
     append ? setLoadingMore(true) : setLoading(true)
     setError('')
     try {
-      const page = mode === 'decisions'
-        ? await fetchInvestmentDecisionPage(supabase, { cursor, filter, ownerUserId })
-        : await fetchPortfolioTaskPage(supabase, { cursor, filter, ownerUserId })
+      const page = await fetchPortfolioTaskPage(supabase, { cursor, filter, ownerUserId })
       if (!request.isCurrent()) return
       setItems((current) => append ? [...new Map([...current, ...page.items].map((item) => [item.id, item])).values()] : page.items)
       setNextCursor(page.nextCursor)
@@ -317,9 +307,7 @@ function LifecycleWorkbench({ actions = [], activityError = '', activityLoading 
     setError('')
     setItems([])
     setNextCursor(null)
-    const pageRequest = mode === 'decisions'
-      ? fetchInvestmentDecisionPage(supabase, { filter, ownerUserId })
-      : fetchPortfolioTaskPage(supabase, { filter, ownerUserId })
+    const pageRequest = fetchPortfolioTaskPage(supabase, { filter, ownerUserId })
     pageRequest.then((page) => {
       if (!requestToken.isCurrent()) return
       setItems(page.items)
@@ -345,9 +333,7 @@ function LifecycleWorkbench({ actions = [], activityError = '', activityLoading 
     setDetail({ mode: targetMode, item: null })
     setError('')
     try {
-      const item = targetMode === 'decisions'
-        ? await fetchInvestmentDecision(supabase, id, ownerUserId)
-        : await fetchPortfolioTask(supabase, id, ownerUserId)
+      const item = await fetchPortfolioTask(supabase, id, ownerUserId)
       if (!request.isCurrent()) return
       if (previous) setDetailHistory((history) => [...history, previous])
       setDetail({ mode: targetMode, item })
@@ -421,8 +407,8 @@ function LifecycleWorkbench({ actions = [], activityError = '', activityLoading 
       )}
       </>}
       </div>
-      {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} onOpenDecision={(id) => openDetail('decisions', id)} onOpenTask={(id) => openDetail('tasks', id)} />}
-      {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={() => setActivityDetail(null)} onDeleted={() => { setActivityDetail(null); setActionRefreshKey((value) => value + 1) }} onOpenDecision={(id) => { setActivityDetail(null); openDetail('decisions', id) }} onOpenTask={(id) => { setActivityDetail(null); openDetail('tasks', id) }} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
+      {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} onOpenTask={(id) => openDetail('tasks', id)} />}
+      {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={() => setActivityDetail(null)} onDeleted={() => { setActivityDetail(null); setActionRefreshKey((value) => value + 1) }} onOpenTask={(id) => { setActivityDetail(null); openDetail('tasks', id) }} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} onTagsChanged={setActivityTagsState} saving={savingGeneral} supabase={supabase} tags={activityTags} />}
     </section>
   )
