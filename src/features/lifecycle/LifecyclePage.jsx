@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
 import ModalShell from '../../components/ModalShell'
-import { FilterChips } from '../../components/PageControls'
 import ActivityDetailModal from './ActivityDetailModal'
 import ActivityTagPicker from './ActivityTagPicker'
 import ActionTimeline from './ActionTimeline'
@@ -13,7 +12,6 @@ import {
   fetchActivity,
   fetchActivityTags,
   fetchPortfolioTask,
-  fetchPortfolioTaskPage,
   recordManualActivity,
   saveGeneralTask,
   setActivityTags,
@@ -23,10 +21,6 @@ import {
 
 const decisionStatus = { proposed: '제안', adopted: '내가 채택함', dismissed: '채택하지 않음', superseded: '새 판단으로 대체됨' }
 const taskStatus = { open: '확인 필요', waiting: '자료 대기', resolved: '답을 확인함', closed: '종료' }
-const filterOptions = {
-  tasks: [{ id: 'active', label: '미완료' }, { id: 'paused', label: '보류' }, { id: 'closed', label: '종료' }, { id: 'all', label: '전체' }],
-  decisions: [{ id: 'current', label: '현재 판단' }, { id: 'closed', label: '종료된 판단' }, { id: 'all', label: '전체' }],
-}
 
 function taskStatusLabel(task) {
   if (task.kind === 'general') return { open: '할 일', done: '완료', paused: '보류', cancelled: '취소' }[task.status] ?? task.status
@@ -106,17 +100,6 @@ function subjectLabel(subject) {
   return subject.label || subject.instrument_id || '대상 종목'
 }
 
-function EmptyState({ mode }) {
-  return (
-    <article className="rounded-[28px] border border-dashed border-[var(--line)] bg-[var(--panel)] p-7 text-center">
-      <h2 className="text-lg font-semibold">조건에 맞는 {mode === 'decisions' ? '판단' : '할 일'}이 없습니다.</h2>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[var(--muted-ink)]">
-        {mode === 'decisions' ? 'ChatGPT에게 “이 판단을 기록해줘”라고 명시하면 제안과 내가 채택한 결정을 구분해 저장합니다.' : '판단과 함께 다음에 확인할 질문을 기록하면 이곳에서 이어서 볼 수 있습니다.'}
-      </p>
-    </article>
-  )
-}
-
 function Detail({ entry, loading, onBack, onClose, onEndGeneralTask, onOpenTask }) {
   const { item, mode } = entry ?? {}
   const latestTaskHistory = mode === 'tasks' && item?.history?.length ? item.history[item.history.length - 1] : null
@@ -176,12 +159,7 @@ function Detail({ entry, loading, onBack, onClose, onEndGeneralTask, onOpenTask 
   )
 }
 
-function LifecycleWorkbench({ actions = [], activityError = '', activityLoading = false, initialSelection = null, mode, onModeChange, onRefreshActivity, onSelectionHandled, ownerUserId = null, supabase }) {
-  const [filterByMode, setFilterByMode] = useState({ decisions: 'current', tasks: 'active' })
-  const [items, setItems] = useState([])
-  const [nextCursor, setNextCursor] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
+function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, onSelectionHandled, ownerUserId = null, supabase }) {
   const [error, setError] = useState('')
   const [detail, setDetail] = useState(null)
   const [detailHistory, setDetailHistory] = useState([])
@@ -192,11 +170,7 @@ function LifecycleWorkbench({ actions = [], activityError = '', activityLoading 
   const [activityTags, setActivityTagsState] = useState([])
   const [activityDetail, setActivityDetail] = useState(null)
   const [activityDetailLoading, setActivityDetailLoading] = useState(false)
-  const scrollPositions = useRef({})
-  const listRequestGate = useRef(createRequestGate())
   const detailRequestGate = useRef(createRequestGate())
-  const effectiveMode = 'tasks'
-  const filter = filterByMode[effectiveMode]
 
   async function saveGeneralAction(draft) {
     setSavingGeneral(true)
@@ -271,61 +245,6 @@ function LifecycleWorkbench({ actions = [], activityError = '', activityLoading 
 
   const requestDetailClose = useDetailHistoryEntry(Boolean(detail), dismissDetail)
 
-  async function loadPage({ append = false, cursor = null } = {}) {
-    const request = listRequestGate.current.begin()
-    append ? setLoadingMore(true) : setLoading(true)
-    setError('')
-    try {
-      const page = await fetchPortfolioTaskPage(supabase, { cursor, filter, ownerUserId })
-      if (!request.isCurrent()) return
-      setItems((current) => append ? [...new Map([...current, ...page.items].map((item) => [item.id, item])).values()] : page.items)
-      setNextCursor(page.nextCursor)
-      if (!append) requestAnimationFrame(() => window.scrollTo(0, scrollPositions.current[mode] ?? 0))
-    } catch (nextError) {
-      if (!request.isCurrent()) return
-      setError(nextError.message ?? '기록을 불러오지 못했습니다.')
-    } finally {
-      if (request.isCurrent()) {
-        setLoading(false)
-        setLoadingMore(false)
-      }
-    }
-  }
-
-  useEffect(() => {
-    if (mode === 'activity') {
-      setLoading(false)
-      setItems([])
-      setNextCursor(null)
-      setDetail(null)
-      return undefined
-    }
-    const requestToken = listRequestGate.current.begin()
-    detailRequestGate.current.invalidate()
-    setLoading(true)
-    setLoadingMore(false)
-    setError('')
-    setItems([])
-    setNextCursor(null)
-    const pageRequest = fetchPortfolioTaskPage(supabase, { filter, ownerUserId })
-    pageRequest.then((page) => {
-      if (!requestToken.isCurrent()) return
-      setItems(page.items)
-      setNextCursor(page.nextCursor)
-      requestAnimationFrame(() => window.scrollTo(0, scrollPositions.current[mode] ?? 0))
-    }).catch((nextError) => {
-      if (requestToken.isCurrent()) setError(nextError.message ?? '기록을 불러오지 못했습니다.')
-    }).finally(() => {
-      if (requestToken.isCurrent()) setLoading(false)
-    })
-    setDetail(null)
-    setDetailHistory([])
-    return () => {
-      listRequestGate.current.invalidate()
-      detailRequestGate.current.invalidate()
-    }
-  }, [filter, mode, ownerUserId, supabase])
-
   async function openDetail(targetMode, id) {
     const request = detailRequestGate.current.begin()
     const previous = detail?.item ? detail : null
@@ -368,12 +287,6 @@ function LifecycleWorkbench({ actions = [], activityError = '', activityLoading 
     onSelectionHandled?.()
   }, [initialSelection, mode, onSelectionHandled])
 
-  function changeMode(nextMode) {
-    scrollPositions.current[mode] = window.scrollY
-    onModeChange(nextMode)
-  }
-  const displayItems = items
-
   return (
     <section className="grid gap-5">
       <header className="grid gap-3">
@@ -381,31 +294,17 @@ function LifecycleWorkbench({ actions = [], activityError = '', activityLoading 
         {!ownerUserId && <a className="w-fit text-xs text-[var(--muted-ink)] underline hover:text-[var(--ink)]" href="#tasks">활동에서 조사 보기</a>}
       </header>
 
-      <div aria-labelledby={`lifecycle-view-${effectiveMode}`} className="grid gap-5" id="lifecycle-panel" role="tabpanel" tabIndex={0}>
-      {effectiveMode === 'tasks' ? <ActionTimeline
-        onAdd={() => setGeneralEditor('task')}
-        onCompleteGeneralTask={completeGeneralTask}
-        onOpenActivity={openActivity}
-        onOpenTask={openActionTask}
-        ownerUserId={ownerUserId}
-        refreshKey={actionRefreshKey}
-        supabase={supabase}
-      /> : <>
-      {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => loadPage()} type="button">다시 시도</button></div>}
-      {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">기록을 불러오는 중입니다.</p> : displayItems.length === 0 ? <EmptyState mode={effectiveMode} /> : (
-        <div className="grid gap-3">
-          {displayItems.map((item) => (
-            <button className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-left transition hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] sm:p-5" key={item.id} onClick={() => openDetail('decisions', item.id)} type="button">
-              <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-[var(--muted-ink)]">{subjectLabel(item.subject)}</span><span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{decisionStatus[item.status]}</span></div>
-              <h3 className="mt-3 break-words font-semibold leading-6">{item.question}</h3>
-              {item.selected_option && <p className="mt-2 text-sm text-[var(--accent)]">{item.selected_option}</p>}
-              <p className="mt-3 text-xs text-[var(--muted-ink)]">{item.due_date ? `예정 ${formatDate(item.due_date)}` : `갱신 ${formatDate(item.updated_at)}`}</p>
-            </button>
-          ))}
-          {nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold disabled:opacity-50" disabled={loadingMore} onClick={() => loadPage({ append: true, cursor: nextCursor })} type="button">{loadingMore ? '불러오는 중' : '더 보기'}</button>}
-        </div>
-      )}
-      </>}
+      <div className="grid gap-5" id="lifecycle-panel">
+        {error && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}</p>}
+        <ActionTimeline
+          onAdd={() => setGeneralEditor('task')}
+          onCompleteGeneralTask={completeGeneralTask}
+          onOpenActivity={openActivity}
+          onOpenTask={openActionTask}
+          ownerUserId={ownerUserId}
+          refreshKey={actionRefreshKey}
+          supabase={supabase}
+        />
       </div>
       {detail && <Detail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} onOpenTask={(id) => openDetail('tasks', id)} />}
       {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={() => setActivityDetail(null)} onDeleted={() => { setActivityDetail(null); setActionRefreshKey((value) => value + 1) }} onOpenTask={(id) => { setActivityDetail(null); openDetail('tasks', id) }} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}

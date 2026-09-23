@@ -272,6 +272,8 @@ test('revises and ends one operating principle without a second history table', 
 test('shows one unified action surface without legacy bundle controls', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
+  let legacyPageCalls = 0
+  await page.route('**/rest/v1/rpc/app_list_portfolio_task_page', (route) => { legacyPageCalls += 1; return route.abort() })
   await page.goto('/')
   await openMenuTab(page, '할 일')
 
@@ -282,6 +284,7 @@ test('shows one unified action surface without legacy bundle controls', async ({
   await expect(page.getByRole('button', { name: '한 일 기록', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '묶음 추가' })).toHaveCount(0)
   await expect(page.getByLabel('활동 목록 필터').getByRole('button', { name: '전체' })).toBeVisible()
+  expect(legacyPageCalls).toBe(0)
 })
 
 test('creates and completes a general task while keeping manual work as activity', async ({ page }) => {
