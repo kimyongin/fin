@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(12);
+select extensions.plan(13);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001801','authenticated','authenticated','timeline-owner@example.com','',now(),now(),now()),
@@ -20,6 +20,7 @@ select public.app_record_manual_activity('앱 밖 행동','결과',clock_timesta
 
 select extensions.is(jsonb_array_length(public.app_list_action_timeline(null,'all',null,null,30,null,'Asia/Seoul')->'pending'),1,'all view keeps only unfinished general work in pending');
 select extensions.is((public.app_list_action_timeline(null,'all',null,null,30,null,'Asia/Seoul') #>> '{pending,0,title}'),'미완료 일반 과제','pending work is ordered and named');
+select extensions.is((public.app_list_action_timeline(null,'all',null,null,30,null,'Asia/Seoul') #>> '{pending,0,kind}'),'general','pending work has one general-task kind');
 select extensions.is((select count(*)::integer from jsonb_array_elements(public.app_list_action_timeline(null,'all',null,null,30,null,'Asia/Seoul')->'days') day, jsonb_array_elements(day->'items') item where item->>'action_type'='complete_general_task'),1,'task completion has one representative event');
 select extensions.is((select count(*)::integer from jsonb_array_elements(public.app_list_action_timeline(null,'all',null,null,30,null,'Asia/Seoul')->'days') day, jsonb_array_elements(day->'items') item where item->>'action_type' in ('create_general_task','update_general_task')),0,'task setup events do not duplicate the top-level feed');
 select extensions.is(jsonb_array_length(public.app_list_action_timeline(null,'pending',null,null,30,null,'Asia/Seoul')->'days'),0,'pending filter omits performed events');

@@ -114,8 +114,8 @@ select extensions.is(
 
 select extensions.is(
     jsonb_array_length(public.app_get_daily_context('Asia/Seoul', null) -> 'open_tasks'),
-    1,
-    'current context reads the open research task without persisting a snapshot'
+    0,
+    'current context excludes the retired research-task state from pending work'
 );
 
 select extensions.is(
