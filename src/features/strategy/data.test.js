@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { fetchPrincipleChanges, fetchPrinciples, savePrinciple } from './data'
+import { fetchPrincipleChanges, fetchPrinciples, saveAllocationTargets, savePrinciple } from './data'
 
 describe('principle revision data adapter', () => {
   it('pages real changes using the server cursor', async () => {
@@ -26,5 +26,14 @@ describe('principle revision data adapter', () => {
       input_principle_id: 'stable-id', input_expected_row_id: 2,
       input_body: ' 손실 제한 ', input_change_note: '변경', input_end: false,
     })
+  })
+})
+
+describe('allocation target data adapter', () => {
+  it('sends the complete target set and expected current set to one RPC', async () => {
+    const supabase = { rpc: vi.fn().mockResolvedValue({ data: { configured: true, targets: [{ tag_id: 1, target_percentage: 100 }] }, error: null }) }
+    const targets = [{ tag_id: 1, target_percentage: 100 }]
+    await expect(saveAllocationTargets(supabase, { targets, expectedTargets: [] })).resolves.toEqual({ configured: true, targets })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_save_allocation_targets', { input_targets: targets, input_expected_targets: [] })
   })
 })

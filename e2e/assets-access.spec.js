@@ -384,22 +384,21 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   expect(blockedState.body.accounts).toEqual([])
 })
 
-test('saves a strategy, manages an agent token, and revokes friend access', async ({ browser }) => {
+test('saves allocation targets, manages an agent token, and revokes friend access', async ({ browser }) => {
   const ownerPage = await browser.newPage()
   await signInAs(ownerPage, 'e2e-owner@example.com')
   await ownerPage.goto('/')
 
-  const strategy = await callRpc(ownerPage, 'app_save_strategy', {
-    input_buckets: [{ name: 'E2E Bucket', sort_order: 0, tag_ids: [1], target_percentage: 100 }],
-    input_drift_threshold: 5,
-    input_monthly_contribution: 100000,
-    input_name: 'E2E Strategy',
-    input_review_day: 1,
+  const portfolioState = await callRpc(ownerPage, 'app_get_portfolio_state', { input_owner_user_id: null })
+  const currentTargets = await callRpc(ownerPage, 'app_get_strategy_state', { input_owner_user_id: null })
+  const strategy = await callRpc(ownerPage, 'app_save_allocation_targets', {
+    input_targets: [{ tag_id: portfolioState.body.tags[0].id, target_percentage: 100 }],
+    input_expected_targets: currentTargets.body.targets.map(({ tag_id, target_percentage }) => ({ tag_id, target_percentage })),
   })
   expect(strategy.status).toBe(200)
-  expect(strategy.body.strategy).toMatchObject({ name: 'E2E Strategy' })
+  expect(strategy.body.configured).toBe(true)
   const strategyState = await callRpc(ownerPage, 'app_get_strategy_state', { input_owner_user_id: null })
-  expect(strategyState.body.strategy).toMatchObject({ name: 'E2E Strategy', review_day: 1 })
+  expect(strategyState.body.targets[0]).toMatchObject({ target_percentage: 100 })
 
   const tokenHash = Date.now().toString(16).padStart(64, '0')
   const token = await callRpc(ownerPage, 'agent_create_token', {
@@ -407,6 +406,13 @@ test('saves a strategy, manages an agent token, and revokes friend access', asyn
   })
   expect(token.status).toBe(200)
   expect((await callRpc(ownerPage, 'mcp_get_portfolio_state', { input_token_hash: tokenHash })).status).toBe(200)
+  const tokenTargets = await callRpc(ownerPage, 'mcp_get_strategy_state', { input_token_hash: tokenHash })
+  expect(tokenTargets.body.targets[0]).toMatchObject({ tag_id: portfolioState.body.tags[0].id, target_percentage: 100 })
+  expect((await callRpc(ownerPage, 'mcp_save_strategy', {
+    input_token_hash: tokenHash,
+    input_targets: [{ tag_id: portfolioState.body.tags[0].id, target_percentage: 100 }],
+    input_expected_targets: [{ tag_id: portfolioState.body.tags[0].id, target_percentage: 100 }],
+  })).status).toBe(200)
   expect((await callRpc(ownerPage, 'agent_revoke_token', { input_token_id: token.body[0].id })).body[0].revoked_at).toBeTruthy()
   expect((await callRpc(ownerPage, 'mcp_get_portfolio_state', { input_token_hash: tokenHash })).status).toBe(400)
 

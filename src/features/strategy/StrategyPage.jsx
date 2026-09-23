@@ -1,805 +1,140 @@
-import { useEffect, useState } from "react";
-import ModalShell from "../../components/ModalShell";
-import ModalActions from "../../components/ModalActions";
-import AssetViewToolbar from "../assets/AssetViewToolbar";
-import PrincipleJournal from "./PrincipleJournal";
-import { calculateStrategyDashboard } from "./calculations";
-import { formatKrw, formatPercent } from "../../lib/format";
-import {
-  createEmptyStrategyState,
-  fetchStrategyState,
-  saveStrategy,
-} from "./data";
+import { useEffect, useMemo, useState } from 'react'
 
-const modes = [
-  ["growth", "성장"],
-  ["neutral", "중립"],
-  ["defensive", "방어"],
-];
-const modeLabel = Object.fromEntries(modes);
-const emptyPrinciples = {
-  notes: "",
-  max_trade_amount: 1000000,
-  monthly_trade_limit: 2000000,
-  contribution_repair_months: 3,
-};
+import AssetViewToolbar from '../assets/AssetViewToolbar'
+import PrincipleJournal from './PrincipleJournal'
+import { createEmptyStrategyState, fetchStrategyState, saveAllocationTargets } from './data'
+import { formatKrw, formatPercent } from '../../lib/format'
 
-function createDraft(strategyState) {
-  const strategy = strategyState.strategy;
-  const { min_trade_amount: _legacyMinTradeAmount, ...storedPrinciples } =
-    strategy?.principles ?? {};
-  return {
-    name: strategy?.name ?? "나의 전략",
-    monthly_contribution: strategy?.monthly_contribution ?? 3000000,
-    review_day: strategy?.review_day ?? 1,
-    drift_threshold: strategy?.drift_threshold ?? 5,
-    mode: strategy?.mode ?? "neutral",
-    mode_reason: strategy?.mode_reason ?? "",
-    principles: { ...emptyPrinciples, ...storedPrinciples },
-    buckets: strategyState.buckets.map((bucket) => ({
-      id: bucket.id,
-      name: bucket.name,
-      tag_ids: bucket.tag_ids.map(String),
-      mode_targets: {
-        growth: Number(bucket.mode_targets?.growth ?? bucket.target_percentage),
-        neutral: Number(
-          bucket.mode_targets?.neutral ?? bucket.target_percentage,
-        ),
-        defensive: Number(
-          bucket.mode_targets?.defensive ?? bucket.target_percentage,
-        ),
-      },
-    })),
-  };
+function cents(value) {
+  const text = String(value ?? '').trim()
+  if (!text) return 0
+  if (!/^\d{1,3}(?:\.\d{1,2})?$/.test(text)) return null
+  const [whole, fraction = ''] = text.split('.')
+  const amount = Number(whole) * 100 + Number(fraction.padEnd(2, '0'))
+  return amount <= 10000 ? amount : null
 }
 
-function newBucket() {
-  return {
-    id: crypto.randomUUID(),
-    name: "",
-    tag_ids: [],
-    mode_targets: { growth: 0, neutral: 0, defensive: 0 },
-  };
-}
-function emptyDraft() {
-  return {
-    name: "나의 전략",
-    monthly_contribution: 3000000,
-    review_day: 1,
-    drift_threshold: 5,
-    mode: "neutral",
-    mode_reason: "",
-    principles: emptyPrinciples,
-    buckets: [newBucket()],
-  };
-}
-function inputClass() {
-  return "min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base outline-none focus:border-[var(--accent)]";
+function draftFromState(state, tags) {
+  const saved = new Map(state.targets.map((target) => [String(target.tag_id), String(target.target_percentage)]))
+  return Object.fromEntries(tags.map((tag) => [String(tag.id), saved.get(String(tag.id)) ?? (state.configured ? '0' : '')]))
 }
 
-function BucketEditor({ bucket, onChange, onRemove, selectedTagIds, tags }) {
-  return (
-    <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-4">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_repeat(3,6rem)_auto] lg:items-end">
-        <label className="grid gap-1.5">
-          <span className="text-xs font-medium text-[var(--muted-ink)]">
-            버킷 이름
-          </span>
-          <input
-            className={inputClass()}
-            onChange={(event) =>
-              onChange({ ...bucket, name: event.target.value })
-            }
-            value={bucket.name}
-          />
-        </label>
-        {modes.map(([mode, label]) => (
-          <label className="grid gap-1.5" key={mode}>
-            <span className="text-xs font-medium text-[var(--muted-ink)]">
-              {label} 목표
-            </span>
-            <input
-              className={inputClass()}
-              min="0"
-              max="100"
-              onChange={(event) =>
-                onChange({
-                  ...bucket,
-                  mode_targets: {
-                    ...bucket.mode_targets,
-                    [mode]: event.target.value,
-                  },
-                })
-              }
-              step="0.1"
-              type="number"
-              value={bucket.mode_targets[mode]}
-            />
-          </label>
-        ))}
-        <button
-          className="rounded-xl px-3 py-2 text-sm text-[var(--muted-ink)] hover:bg-[var(--surface-3)] hover:text-red-300"
-          onClick={onRemove}
-          type="button"
-        >
-          삭제
-        </button>
-      </div>
-      <fieldset className="mt-4">
-        <legend className="text-xs font-medium text-[var(--muted-ink)]">
-          연결 태그
-        </legend>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {tags.map((tag) => {
-            const tagId = String(tag.id);
-            const selected = bucket.tag_ids.includes(tagId);
-            const unavailable = !selected && selectedTagIds.has(tagId);
-            return (
-              <label
-                className={`inline-flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm ${selected ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--line)] text-[var(--muted-ink)]"} ${unavailable ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
-                key={tag.id}
-              >
-                <input
-                  checked={selected}
-                  disabled={unavailable}
-                  onChange={() =>
-                    onChange({
-                      ...bucket,
-                      tag_ids: selected
-                        ? bucket.tag_ids.filter((id) => id !== tagId)
-                        : [...bucket.tag_ids, tagId],
-                    })
-                  }
-                  type="checkbox"
-                />
-                {tag.name}
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
-    </article>
-  );
+function expectedTargets(state) {
+  return state.targets.map((target) => ({ tag_id: Number(target.tag_id), target_percentage: Number(target.target_percentage) }))
+    .sort((left, right) => left.tag_id - right.tag_id)
 }
 
-function StrategyEditor({
-  draft,
-  error,
-  onCancel,
-  onChange,
-  onSave,
-  saving,
-  tags,
-}) {
-  const totals = Object.fromEntries(
-    modes.map(([mode]) => [
-      mode,
-      draft.buckets.reduce(
-        (sum, bucket) => sum + (Number(bucket.mode_targets[mode]) || 0),
-        0,
-      ),
-    ]),
-  );
-  const canSave =
-    draft.name.trim() &&
-    draft.buckets.length > 0 &&
-    modes.every(([mode]) => Math.abs(totals[mode] - 100) < 0.01) &&
-    !saving;
-  return (
-    <section className="grid gap-5">
-      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">배분 설정 편집</h2>
-            <p className="mt-1 text-sm text-[var(--muted-ink)]">
-              장기 버킷과 모드별 목표 비중을 정합니다.
-            </p>
-          </div>
-          <button
-            className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm"
-            onClick={onCancel}
-            type="button"
-          >
-            취소
-          </button>
-        </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-1.5">
-            <span className="text-xs text-[var(--muted-ink)]">전략 이름</span>
-            <input
-              className={inputClass()}
-              onChange={(event) =>
-                onChange({ ...draft, name: event.target.value })
-              }
-              value={draft.name}
-            />
-          </label>
-          <label className="grid gap-1.5">
-            <span className="text-xs text-[var(--muted-ink)]">월 적립금</span>
-            <input
-              className={inputClass()}
-              min="0"
-              onChange={(event) =>
-                onChange({ ...draft, monthly_contribution: event.target.value })
-              }
-              type="number"
-              value={draft.monthly_contribution}
-            />
-          </label>
-          <label className="grid gap-1.5">
-            <span className="text-xs text-[var(--muted-ink)]">매월 점검일</span>
-            <input
-              className={inputClass()}
-              min="1"
-              max="28"
-              onChange={(event) =>
-                onChange({ ...draft, review_day: event.target.value })
-              }
-              type="number"
-              value={draft.review_day}
-            />
-          </label>
-          <label className="grid gap-1.5">
-            <span className="text-xs text-[var(--muted-ink)]">
-              허용 이탈 폭 (%p)
-            </span>
-            <input
-              className={inputClass()}
-              min="0.1"
-              max="100"
-              onChange={(event) =>
-                onChange({ ...draft, drift_threshold: event.target.value })
-              }
-              step="0.1"
-              type="number"
-              value={draft.drift_threshold}
-            />
-          </label>
-        </div>
-      </article>
-      <section className="grid gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">모드 프리셋</h2>
-            <p className="mt-1 text-sm text-[var(--muted-ink)]">
-              {modes
-                .map(
-                  ([mode, label]) => `${label} ${formatPercent(totals[mode])}%`,
-                )
-                .join(" · ")}
-            </p>
-          </div>
-          <button
-            className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm"
-            onClick={() =>
-              onChange({ ...draft, buckets: [...draft.buckets, newBucket()] })
-            }
-            type="button"
-          >
-            버킷 추가
-          </button>
-        </div>
-        {draft.buckets.map((bucket, index) => (
-          <BucketEditor
-            bucket={bucket}
-            key={bucket.id ?? index}
-            onChange={(next) =>
-              onChange({
-                ...draft,
-                buckets: draft.buckets.map((item, itemIndex) =>
-                  itemIndex === index ? next : item,
-                ),
-              })
-            }
-            onRemove={() =>
-              onChange({
-                ...draft,
-                buckets: draft.buckets.filter(
-                  (_, itemIndex) => itemIndex !== index,
-                ),
-              })
-            }
-            selectedTagIds={
-              new Set(
-                draft.buckets
-                  .filter((_, itemIndex) => itemIndex !== index)
-                  .flatMap((item) => item.tag_ids),
-              )
-            }
-            tags={tags}
-          />
-        ))}
-      </section>
-      {error && (
-        <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-          {error}
-        </p>
-      )}
-      <div className="flex justify-end">
-        <button
-          className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-          disabled={!canSave}
-          onClick={onSave}
-          type="button"
-        >
-          {saving ? "저장 중" : "배분 설정 저장"}
-        </button>
-      </div>
-    </section>
-  );
+function differenceLabel(current, target) {
+  if (current == null || target == null) return '계산 불가'
+  const difference = current - target
+  if (Math.abs(difference) < 0.005) return '일치'
+  return `${formatPercent(Math.abs(difference))}p ${difference > 0 ? '초과' : '부족'}`
 }
 
-function ModeModal({ draft, onClose, onSave, saving }) {
-  const [next, setNext] = useState({
-    mode: draft.mode,
-    mode_reason: draft.mode_reason,
-  });
-  return (
-    <ModalShell closeDisabled={saving} dirty={next.mode !== draft.mode || next.mode_reason !== draft.mode_reason} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={() => onSave(next)} saveLabel={saving ? "저장 중" : "모드 적용"} />} onClose={onClose} title="운용 모드 변경">
-      <div className="grid gap-4">
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold text-[var(--muted-ink)]">모드</span>
-          <select
-            className={inputClass()}
-            onChange={(event) => setNext({ ...next, mode: event.target.value })}
-            value={next.mode}
-          >
-            {modes.map(([mode, label]) => (
-              <option key={mode} value={mode}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold text-[var(--muted-ink)]">변경 사유</span>
-          <textarea
-            className={`${inputClass()} min-h-28 resize-y`}
-            onChange={(event) =>
-              setNext({ ...next, mode_reason: event.target.value })
-            }
-            placeholder="뉴스 기록이나 시장 판단을 간단히 남기세요."
-            value={next.mode_reason}
-          />
-        </label>
-        <p className="text-sm leading-6 text-[var(--muted-ink)]">
-          모드는 목표 비중 프리셋만 바꿉니다. 실제 매매는 원칙과 본인의 최종
-          판단에 따라 직접 결정합니다.
-        </p>
-      </div>
-    </ModalShell>
-  );
-}
+function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], tags = [], totalValue = 0, valuationQuality, showStrategy = true, showAssets = true, onCreateTag, onEditTag }) {
+  const [state, setState] = useState(createEmptyStrategyState)
+  const [draft, setDraft] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [loaded, setLoaded] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const tagRows = useMemo(() => {
+    const byId = new Map(tags.map((tag) => [String(tag.id), tag]))
+    for (const target of state.targets) if (!byId.has(String(target.tag_id))) byId.set(String(target.tag_id), { id: target.tag_id, name: target.tag_name })
+    return [...byId.values()].sort((left, right) => (left.sort_order ?? 0) - (right.sort_order ?? 0) || Number(left.id) - Number(right.id))
+  }, [state.targets, tags])
+  const savedDraft = useMemo(() => draftFromState(state, tagRows), [state, tagRows])
+  const dirty = tagRows.some((tag) => (draft[String(tag.id)] ?? savedDraft[String(tag.id)]) !== savedDraft[String(tag.id)])
+  const amounts = tagRows.map((tag) => cents(draft[String(tag.id)] ?? savedDraft[String(tag.id)]))
+  const invalid = amounts.some((amount) => amount === null)
+  const totalCents = invalid ? null : amounts.reduce((sum, amount) => sum + amount, 0)
+  const valueByTag = new Map(tagCards.map((card) => [String(card.id), Number(card.value) || 0]))
+  const unclassified = tagCards.find((card) => card.name === 'Untagged')
+  const currentAvailable = showAssets && valuationQuality?.isComplete !== false && totalValue > 0
 
-function PrinciplesModal({ draft, onClose, onSave, saving }) {
-  const [principles, setPrinciples] = useState(draft.principles);
-  const save = () => {
-    const { min_trade_amount: _legacy, ...nextPrinciples } = principles;
-    onSave({
-      ...nextPrinciples,
-      max_trade_amount: Number(principles.max_trade_amount) || 0,
-      monthly_trade_limit: Number(principles.monthly_trade_limit) || 0,
-      contribution_repair_months: Number(principles.contribution_repair_months) || 0,
-    });
-  };
-  const field = (key, label, suffix = "원") => (
-    <label className="grid gap-2">
-      <span className="text-xs font-semibold text-[var(--muted-ink)]">{label}</span>
-      <div className="flex items-center gap-2">
-        <input
-          className={inputClass()}
-          min="0"
-          onChange={(event) =>
-            setPrinciples({ ...principles, [key]: event.target.value })
-          }
-          type="number"
-          value={principles[key]}
-        />
-        <span className="text-xs text-[var(--muted-ink)]">{suffix}</span>
-      </div>
-    </label>
-  );
-  return (
-    <ModalShell closeDisabled={saving} dirty={JSON.stringify(principles) !== JSON.stringify(draft.principles)} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={save} saveLabel={saving ? "저장 중" : "한도 저장"} />} onClose={onClose} title="배분 계산 한도 편집">
-      <div className="grid gap-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {field("max_trade_amount", "단일 거래 최대금액")}
-          {field("monthly_trade_limit", "월간 누적 거래 한도")}
-          {field("contribution_repair_months", "적립금 우선 보정 기간", "개월")}
-        </div>
-      </div>
-    </ModalShell>
-  );
-}
-
-
-function StrategyDashboard({
-  canEdit,
-  onEdit,
-  onEditMode,
-  onEditPrinciples,
-  strategyState,
-  tagCards,
-  totalValue,
-  valuationQuality,
-  showCalculations = true,
-}) {
-  const { strategy, buckets } = strategyState;
-  const principles = { ...emptyPrinciples, ...(strategy.principles ?? {}) };
-  const { calculationAvailable, contribution, deficits, mode, rebalance, repairMonths, rows, threshold, totalDeficit, tradeCap } = calculateStrategyDashboard({ strategy, buckets, tagCards, totalValue, valuationQuality });
-  return (
-    <section className="grid gap-5">
-      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold">{strategy.name}</h2>
-              <span className="rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold">
-                운용 모드 · {modeLabel[mode]}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-[var(--muted-ink)]">
-              매월 {strategy.review_day}일 점검 · 허용 이탈 폭 ±
-              {formatPercent(threshold)}p · 월 적립금 {formatKrw(contribution)}
-            </p>
-            {strategy.mode_reason && (
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted-ink)]">
-                <span className="font-semibold text-[var(--ink)]">
-                  모드 사유:
-                </span>{" "}
-                {strategy.mode_reason}
-              </p>
-            )}
-          </div>
-          {canEdit && (
-            <div className="flex gap-2">
-              <button
-                className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm"
-                onClick={onEditMode}
-                type="button"
-              >
-                모드 변경
-              </button>
-              <button
-                className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm"
-                onClick={onEdit}
-                type="button"
-              >
-                배분 설정
-              </button>
-            </div>
-          )}
-        </div>
-      </article>
-      <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">배분 계산 한도</h2>
-            <p className="mt-1 text-sm text-[var(--muted-ink)]">
-              목표 배분을 계산할 때 적용할 조정 범위와 실행 조건입니다.
-            </p>
-          </div>
-          {canEdit && (
-            <button
-              className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm"
-              onClick={onEditPrinciples}
-              type="button"
-            >
-              한도 편집
-            </button>
-          )}
-        </div>
-        <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <p>
-            단일 거래 한도{" "}
-            <strong>{formatKrw(Number(principles.max_trade_amount))}</strong>
-          </p>
-          <p>
-            월간 거래 한도{" "}
-            <strong>{formatKrw(Number(principles.monthly_trade_limit))}</strong>
-          </p>
-          <p>
-            적립금 우선 보정{" "}
-            <strong>{principles.contribution_repair_months}개월</strong>
-          </p>
-        </div>
-      </article>
-      {showCalculations && (!calculationAvailable ? (
-        <article className="rounded-[28px] border border-amber-400/40 bg-amber-500/10 p-5 text-amber-100">
-          <h2 className="text-lg font-semibold">비중 계산을 잠시 멈췄습니다.</h2>
-          <p className="mt-2 text-sm leading-6">
-            평가할 수 없는 보유 항목이 {valuationQuality.unknownPositionCount}개 있어
-            목표 비중·적립금 배분·리밸런싱 금액을 계산하지 않습니다. 자산 화면에서
-            누락된 시세나 환율을 확인해 주세요.
-          </p>
-        </article>
-      ) : (
-        <>
-      <article className="overflow-hidden rounded-[28px] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-soft)]">
-        <div className="border-b border-[var(--line)] px-5 py-4">
-          <h2 className="text-lg font-semibold">
-            {modeLabel[mode]} 모드 목표 대비 현재 비중
-          </h2>
-        </div>
-        <div className="divide-y divide-[var(--line)] px-5">
-          {rows.map((row) => (
-            <div
-              className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] gap-3 py-3 text-sm"
-              key={row.id}
-            >
-              <span className="truncate font-semibold">{row.name}</span>
-              <span className="text-right text-[var(--muted-ink)]">
-                {formatPercent(row.targetPercentage)}
-              </span>
-              <span className="text-right">
-                {formatPercent(row.currentPercentage)}
-              </span>
-              <span className="col-span-3 text-xs text-[var(--muted-ink)]">
-                {formatKrw(row.value)} ·{" "}
-                {row.differencePercentage > 0
-                  ? "목표 대비 부족"
-                  : row.differencePercentage < 0
-                    ? "목표 대비 초과"
-                    : "목표 일치"}{" "}
-                {formatPercent(Math.abs(row.differencePercentage))}p
-              </span>
-            </div>
-          ))}
-        </div>
-      </article>
-      <div className="grid gap-5 lg:grid-cols-2">
-        <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
-          <h2 className="text-lg font-semibold">이번 달 적립금 배분</h2>
-          <p className="mt-1 text-sm text-[var(--muted-ink)]">
-            {modeLabel[mode]} 모드에서 부족한 버킷을 적립금으로 먼저 보정합니다.
-          </p>
-          <div className="mt-4 grid gap-3">
-            {deficits.length === 0 ? (
-              <p className="text-sm text-[var(--muted-ink)]">
-                부족한 버킷이 없습니다.
-              </p>
-            ) : (
-              deficits.map((row) => {
-                const amount =
-                  (contribution * row.differenceValue) / totalDeficit;
-                return (
-                  <div
-                    className="border-t border-[var(--line)] pt-3"
-                    key={row.id}
-                  >
-                    <div className="flex justify-between gap-3 text-sm">
-                      <strong>{row.name}</strong>
-                      <strong>{formatKrw(amount)}</strong>
-                    </div>
-                    <p className="mt-1 text-xs leading-5 text-[var(--muted-ink)]">
-                      근거: {modeLabel[mode]} 목표 대비{" "}
-                      {formatPercent(row.differencePercentage)}p 부족 · 적립금
-                      우선 보정
-                    </p>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </article>
-        <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
-          <h2 className="text-lg font-semibold">리밸런싱 제안</h2>
-          <p className="mt-1 text-sm text-[var(--muted-ink)]">
-            허용 이탈 폭을 넘은 항목만 검토합니다. 실제 매매는 직접 결정하세요.
-          </p>
-          <div className="mt-4 grid gap-3">
-            {rebalance.length === 0 ? (
-              <p className="text-sm text-[var(--muted-ink)]">
-                모든 버킷이 허용 이탈 폭 안에 있습니다.
-              </p>
-            ) : (
-              rebalance.map((row) => {
-                const repairable =
-                  row.differenceValue > 0 &&
-                  contribution *
-                    repairMonths *
-                    (totalDeficit ? row.differenceValue / totalDeficit : 0) >=
-                    row.differenceValue;
-                const action = repairable
-                  ? "적립금으로 우선 보정"
-                  : row.differenceValue > 0
-                    ? "매수 검토"
-                    : "매도 검토";
-                const amount = Math.min(
-                  Math.abs(row.differenceValue),
-                  tradeCap,
-                );
-                return (
-                  <div
-                    className="border-t border-[var(--line)] pt-3"
-                    key={row.id}
-                  >
-                    <div className="flex justify-between gap-3 text-sm">
-                      <strong>
-                        {row.name} · {action}
-                      </strong>
-                      {!repairable && <strong>최대 {formatKrw(amount)}</strong>}
-                    </div>
-                    <p className="mt-1 text-xs leading-5 text-[var(--muted-ink)]">
-                      근거: 목표 대비{" "}
-                      {formatPercent(Math.abs(row.differencePercentage))}p 이탈
-                      · 허용 폭 {formatPercent(threshold)}p ·{" "}
-                      {repairable
-                        ? `${repairMonths}개월 적립금 보정 가능`
-                        : `거래 한도 ${formatKrw(tradeCap)} 적용`}
-                    </p>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </article>
-      </div>
-        </>
-      ))}
-    </section>
-  );
-}
-
-function AllocationPage({
-  canEdit,
-  ownerUserId = null,
-  supabase,
-  tagCards,
-  tags,
-  totalValue,
-  valuationQuality,
-  section = "all",
-  showStrategy = true,
-  onCreateTag,
-  onEditTag,
-}) {
-  const [strategyState, setStrategyState] = useState(
-    createEmptyStrategyState(),
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [editing, setEditing] = useState(false);
-  const [editingMode, setEditingMode] = useState(false);
-  const [editingPrinciples, setEditingPrinciples] = useState(false);
-  const [draft, setDraft] = useState(emptyDraft());
-  const [saving, setSaving] = useState(false);
   useEffect(() => {
-    let active = true;
-    if (!showStrategy) { setLoading(false); return () => { active = false; }; }
-    setLoading(true);
-    fetchStrategyState(supabase, ownerUserId)
-      .then((next) => {
-        if (!active) return;
-        setStrategyState(next);
-        setDraft(next.strategy ? createDraft(next) : emptyDraft());
-        setEditing(false);
-      })
-      .catch(
-        (nextError) =>
-          active &&
-          setError(nextError.message ?? "원칙을 불러오지 못했습니다."),
-      )
-      .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
-  }, [ownerUserId, showStrategy, supabase]);
-  async function persist(nextDraft, afterSave) {
-    setSaving(true);
-    setError("");
-    try {
-      const next = await saveStrategy(supabase, nextDraft);
-      setStrategyState(next);
-      setDraft(createDraft(next));
-      afterSave?.();
-    } catch (nextError) {
-      setError(nextError.message ?? "전략을 저장하지 못했습니다.");
-    } finally {
-      setSaving(false);
+    let active = true
+    if (!showStrategy) { setLoading(false); return () => { active = false } }
+    setLoading(true)
+    setError('')
+    fetchStrategyState(supabase, ownerUserId).then((next) => {
+      if (!active) return
+      setState(next)
+      setDraft(draftFromState(next, tags))
+      setLoaded(true)
+    }).catch((cause) => { if (active) setError(cause.message ?? '배분 목표를 불러오지 못했습니다.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [ownerUserId, refreshKey, showStrategy, supabase])
+
+  useEffect(() => {
+    if (!dirty) return undefined
+    const warn = (event) => { event.preventDefault(); event.returnValue = '' }
+    const guardTab = () => {
+      if (window.location.hash === '#allocation') return
+      if (!window.confirm('저장하지 않은 목표 비중을 버리고 이동할까요?')) window.location.hash = '#allocation'
     }
+    window.addEventListener('beforeunload', warn)
+    window.addEventListener('hashchange', guardTab)
+    return () => { window.removeEventListener('beforeunload', warn); window.removeEventListener('hashchange', guardTab) }
+  }, [dirty])
+
+  async function save() {
+    if (invalid || totalCents !== 10000) { setError('목표 비중을 0~100%, 소수점 둘째 자리까지 입력하고 합계를 100%로 맞춰 주세요.'); return }
+    setSaving(true)
+    setError('')
+    try {
+      const targets = tagRows.map((tag) => ({ tag_id: Number(tag.id), target_percentage: cents(draft[String(tag.id)] ?? savedDraft[String(tag.id)]) / 100 }))
+      const next = await saveAllocationTargets(supabase, { targets, expectedTargets: expectedTargets(state) })
+      setState(next)
+      setDraft(draftFromState(next, tagRows))
+    } catch (cause) { setError(cause.message ?? '배분 목표를 저장하지 못했습니다.') }
+    finally { setSaving(false) }
   }
-  const assetToolbar = section === "allocation" && <AssetViewToolbar canEdit={canEdit} onCreateTag={onCreateTag} onEditTag={onEditTag} tags={tags} />;
-  const currentComposition = section === "allocation" && <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4" aria-label="전체 계좌의 태그별 현재 비중">
-    <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-lg font-semibold">전체 계좌 · 태그별 현재 비중</h2><span className="text-sm text-[var(--muted-ink)]">확인 가능한 평가액 {formatKrw(totalValue)}</span></div>
-    {!tagCards.length ? <p className="mt-3 text-sm text-[var(--muted-ink)]">보유 종목이 없어 현재 구성을 표시할 수 없습니다.</p> : <div className="mt-3 divide-y divide-[var(--line)]">{tagCards.map((card) => <div className="flex items-center justify-between gap-3 py-2 text-sm" key={card.id}><span>{card.name === 'Untagged' ? '미분류' : card.name}</span><span>{formatKrw(card.value)} · {formatPercent(totalValue > 0 ? card.value / totalValue * 100 : NaN)}</span></div>)}</div>}
-    <p className="mt-3 text-xs text-[var(--muted-ink)]">아래 목표 버킷은 여러 태그를 묶을 수 있어 이 목록과 항목이 일치하지 않을 수 있습니다.</p>
-  </section>;
-  if (!showStrategy) return <div className="grid gap-5">{assetToolbar}{currentComposition}<p className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)]">목표 배분은 공유되지 않았습니다. 현재 태그별 구성만 볼 수 있습니다.</p></div>;
-  if (loading)
-    return (
-      <div className="grid gap-5">{assetToolbar}{currentComposition}<p className="text-sm text-[var(--muted-ink)]">배분 설정을 불러오는 중입니다.</p></div>
-    );
-  if (!strategyState.strategy && !canEdit)
-    return (
-      <div className="grid gap-5">{assetToolbar}{currentComposition}<p className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)]">공유된 전략이 아직 없습니다.</p></div>
-    );
-  if (editing)
-    return (
-      <div className="mt-8">
-        <StrategyEditor
-          draft={draft}
-          error={error}
-          onCancel={() => {
-            setDraft(
-              strategyState.strategy
-                ? createDraft(strategyState)
-                : emptyDraft(),
-            );
-            setEditing(false);
-            setError("");
-          }}
-          onChange={setDraft}
-          onSave={() => persist(draft, () => setEditing(false))}
-          saving={saving}
-          tags={tags}
-        />
-      </div>
-    );
-  return (
-    <div className="grid gap-5">
-      {assetToolbar}
-      {currentComposition}
-      {error && (
-        <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-          {error}
-        </p>
-      )}
-      {strategyState.strategy ? (
-        <StrategyDashboard
-          canEdit={canEdit}
-          onEdit={() => {
-            setDraft(createDraft(strategyState));
-            setEditing(true);
-          }}
-          onEditMode={() => setEditingMode(true)}
-          onEditPrinciples={() => setEditingPrinciples(true)}
-          strategyState={strategyState}
-          tagCards={tagCards}
-          totalValue={totalValue}
-          valuationQuality={valuationQuality}
-          showCalculations={section !== "principles"}
-        />
-      ) : (
-        <article className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
-          <h2 className="text-lg font-semibold">아직 배분 설정이 없습니다.</h2>
-          <p className="mt-2 text-sm text-[var(--muted-ink)]">
-            개인 기준과 별도로 목표 비중·적립금·운용 모드를 설정할 수 있습니다.
-          </p>
-          {canEdit && <button
-            className="mt-4 min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold"
-            onClick={() => setEditing(true)}
-            type="button"
-          >
-            배분 설정 만들기
-          </button>}
-        </article>
-      )}
-      {editingMode && (
-        <ModeModal
-          draft={draft}
-          onClose={() => setEditingMode(false)}
-          onSave={(next) =>
-            persist({ ...draft, ...next }, () => setEditingMode(false))
-          }
-          saving={saving}
-        />
-      )}
-      {editingPrinciples && (
-        <PrinciplesModal
-          draft={draft}
-          onClose={() => setEditingPrinciples(false)}
-          onSave={(principles) =>
-            persist({ ...draft, principles }, () => setEditingPrinciples(false))
-          }
-          saving={saving}
-        />
-      )}
-    </div>
-  );
+
+  const assetToolbar = <AssetViewToolbar canEdit={canEdit} onCreateTag={onCreateTag} onEditTag={onEditTag} tags={tags} />
+  if (loading) return <section className="grid gap-4">{assetToolbar}<p className="text-sm text-[var(--muted-ink)]">배분 목표를 불러오는 중입니다.</p></section>
+  if (error && !loaded && showStrategy) return <section className="grid gap-4">{assetToolbar}<div className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}<button className="ml-3 min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => setRefreshKey((value) => value + 1)} type="button">다시 시도</button></div></section>
+
+  return <section className="grid gap-4">
+    {assetToolbar}
+    <header className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
+      <h2 className="text-lg font-semibold">전체 계좌 · 태그별 배분</h2>
+      <p className="mt-1 text-sm text-[var(--muted-ink)]">{showAssets ? `확인 가능한 평가액 ${formatKrw(totalValue)}` : '현재 자산은 공유되지 않았습니다.'}</p>
+      {showAssets && valuationQuality?.isComplete === false && <p className="mt-2 text-sm text-amber-200">시세 또는 환율이 빠져 현재 비중과 차이를 정확히 계산할 수 없습니다.</p>}
+      {showAssets && valuationQuality?.hasStaleValues && <p className="mt-2 text-sm text-amber-200">오래된 시세·환율이 포함되어 있습니다. 현재 비중을 참고용으로 확인해 주세요.</p>}
+      {showAssets && totalValue === 0 && <p className="mt-2 text-sm text-[var(--muted-ink)]">평가액이 없어 현재 비중을 계산할 수 없습니다. 목표는 설정할 수 있습니다.</p>}
+      {!showStrategy && <p className="mt-2 text-sm text-[var(--muted-ink)]">목표 비중은 공유되지 않았습니다.</p>}
+    </header>
+    {error && <div className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}</div>}
+    <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6" aria-label="태그별 현재 및 목표 비중">
+      <div className="hidden border-b border-[var(--line)] pb-3 text-xs font-semibold text-[var(--muted-ink)] sm:grid sm:grid-cols-[minmax(0,1fr)_7rem_8rem_7rem] sm:gap-3"><span>태그</span><span>현재</span><span>목표</span><span>차이</span></div>
+      {tagRows.length === 0 && <p className="py-4 text-sm text-[var(--muted-ink)]">등록된 종목 태그가 없습니다. 자산에서 태그를 먼저 추가해 주세요.</p>}
+      {tagRows.map((tag) => {
+        const value = valueByTag.get(String(tag.id)) ?? 0
+        const current = currentAvailable ? value / totalValue * 100 : null
+        const targetText = draft[String(tag.id)] ?? savedDraft[String(tag.id)]
+        const targetCents = cents(targetText)
+        const target = ((showStrategy && state.configured) || canEdit) && targetCents != null ? targetCents / 100 : null
+        const hasTarget = state.configured || (canEdit && Boolean(String(targetText ?? '').trim()))
+        return <div className="grid min-w-0 gap-2 border-b border-[var(--line)] py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_7rem_8rem_7rem] sm:items-center sm:gap-3" key={tag.id}>
+          <div className="min-w-0"><strong className="break-words text-sm">{tag.name}</strong>{showAssets && <span className="mt-1 block text-xs text-[var(--muted-ink)]">{formatKrw(value)}</span>}</div>
+          <div className="flex items-center justify-between text-sm sm:block"><span className="text-xs text-[var(--muted-ink)] sm:hidden">현재</span><span>{current == null ? '—' : formatPercent(current)}</span></div>
+          <div className="flex items-center justify-between gap-2 text-sm sm:block"><span className="text-xs text-[var(--muted-ink)] sm:hidden">목표</span>{canEdit && showStrategy ? <label className="flex items-center gap-1"><span className="sr-only">{tag.name} 목표 비중</span><input aria-label={`${tag.name} 목표 비중`} className="min-h-11 w-24 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 text-right" inputMode="decimal" onChange={(event) => setDraft((currentDraft) => ({ ...currentDraft, [String(tag.id)]: event.target.value }))} value={targetText ?? ''} /><span>%</span></label> : <span>{showStrategy && state.configured ? formatPercent(target) : '미설정'}</span>}</div>
+          <div className="flex items-center justify-between text-sm sm:block"><span className="text-xs text-[var(--muted-ink)] sm:hidden">차이</span><span>{hasTarget ? `${differenceLabel(current, target)}${dirty ? ' · 미리보기' : ''}` : '미설정'}</span></div>
+        </div>
+      })}
+      {unclassified && showAssets && <div className="grid gap-2 py-4 text-sm sm:grid-cols-[minmax(0,1fr)_7rem_8rem_7rem] sm:gap-3"><div><strong>미분류</strong><span className="mt-1 block text-xs text-[var(--muted-ink)]">{formatKrw(unclassified.value)} · 종목에 태그를 지정해 주세요.</span></div><span>{currentAvailable ? formatPercent(unclassified.value / totalValue * 100) : '—'}</span><span>목표 없음</span><span>—</span></div>}
+    </section>
+    {canEdit && showStrategy && <footer className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
+      <p className={`text-sm font-semibold ${totalCents === 10000 ? 'text-[var(--ink)]' : 'text-amber-200'}`}>목표 합계 {totalCents === null ? '입력 확인 필요' : `${(totalCents / 100).toFixed(2)}%`} / 100%</p>
+      <div className="flex gap-2"><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={!dirty || saving} onClick={() => { setDraft(savedDraft); setError('') }} type="button">취소</button><button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={saving || tagRows.length === 0 || invalid || totalCents !== 10000 || (state.configured && !dirty)} onClick={save} type="button">{saving ? '저장 중…' : '저장'}</button></div>
+    </footer>}
+  </section>
 }
 
 export default function StrategyPage(props) {
-  if (props.section === 'principles' && props.canEdit) return <PrincipleJournal supabase={props.supabase} />
+  if (props.section === 'principles') return props.canEdit ? <PrincipleJournal supabase={props.supabase} /> : <p className="text-sm text-[var(--muted-ink)]">개인 원칙은 공유되지 않습니다.</p>
   return <AllocationPage {...props} />
 }

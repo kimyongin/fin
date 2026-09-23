@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Reviewed Markdown principle contract and reconciliation guide; other topics only share the tool catalog hash",
+  "review_reason": "Align allocation workflow with per-tag targets and retired strategy modes",
   "topics": {
     "policy": {
-      "revision": "fnv1a32:585225ff",
-      "contract_digest": "31bb6d73a0694bc2ed665e1ddd02d8bfe576ad961b1b05638afd4a7e186fce42"
+      "revision": "fnv1a32:bf7fa033",
+      "contract_digest": "a5c96b4c47947f7cbdb9925f6009cd40b5ddcd1cebc27a56d77ea1f1dac7d4e4"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "0b088a2ccb42ae5d7a9841e3732a5a0fa79f00d072136dd13bc13042c6e2f297"
+      "contract_digest": "a37a0b8ca5ec1bd25952b6dce15998026e4572e640df1068a5ff3632e35dbb0b"
     },
     "daily_review": {
       "revision": "fnv1a32:1743d26a",
-      "contract_digest": "e4a0afb852e7579d5f2a43a522cd2916613a7f74e26daaf3c2dbd57d8e4c2295"
+      "contract_digest": "4c55ed397acc4e4ee72bd682c29e88ac5201734fb41b845d3ff53b3d0d6df7df"
     },
     "decision_followup": {
       "revision": "fnv1a32:15dd89f5",
-      "contract_digest": "1de5fadd9e21353c676a3133a0dec970be1770e45dbde9b18f672c5500a19b5e"
+      "contract_digest": "c722ff29c5fb449f7d8147f168160f9966e109a6665f39694a8c4dfc17712ad1"
     },
     "trade_entry": {
       "revision": "fnv1a32:497bf056",
-      "contract_digest": "383a2f436b9e0628091d5d3aa0a5ef7c00ec7fb6d4082fce40003f085613aa0a"
+      "contract_digest": "990060f4aa5322e375c40e28b5711988562b967105e759322b4c042a01fef7ee"
     },
     "reconciliation": {
       "revision": "fnv1a32:29ac55b9",
-      "contract_digest": "2db37db3c74668ead9f1b8818ed3cedad25928ab573357933a967796c6b1277a"
+      "contract_digest": "fa8e1cc98b8687a9cd6a8062a52f596fcd80795403c0871665c2e1b6b0d65581"
     },
     "todo": {
       "revision": "fnv1a32:cb88cb0b",
-      "contract_digest": "07de6e4a90a3e30f3d8a433de2105832550400e0a52ab5dd2e0a660e1739e3d0"
+      "contract_digest": "d3a30ed29ea181a37957f25bb7005d30f22dce465862246e2a9eb62946b6da96"
     },
     "activity_report": {
       "revision": "fnv1a32:f0d9274f",
-      "contract_digest": "3385b73ac4b53c335d26c43acf1d7e5495129fef7363e031fa4cf029328d73d0"
+      "contract_digest": "2929856b701ba4c8a390c02886cc5c425272b249d43f1d54c72463b2a1bbac75"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "83a3d451b7e85a21c9c478ae5cb6e48d111bcb81de076329811de75b94a398b6"
+      "contract_digest": "567a6c8aedd8fb94cdc045dc9ed905bbda20106f57cb7c53ded23b4f9748b117"
     }
   }
 }

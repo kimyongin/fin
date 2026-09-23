@@ -142,24 +142,12 @@ const accountIds = Object.fromEntries(portfolio.accounts.map((item) => [item.nam
 if (!instrumentIds['005930.KS'] || !accountIds['데모 · 장기 투자']) throw new Error('Demo portfolio is incomplete')
 
 const strategy = await rpc('app_get_strategy_state', { input_owner_user_id: null })
-if (!strategy.strategy) {
-  const buckets = [
-    ['국내 핵심', '데모 국내 주식', 35],
-    ['해외 지수', '데모 해외 주식', 30],
-    ['안정 채권', '데모 채권', 15],
-    ['위성 투자', '데모 배당', 5],
-    ['현금·대체', '데모 현금·대체', 15],
-  ].map(([name, tag, target_percentage], sort_order) => ({
-    name, sort_order, target_percentage,
-    mode_targets: { growth: target_percentage, neutral: target_percentage, defensive: target_percentage },
-    tag_ids: [allocationTags[tag]],
-  }))
-  await rpc('app_save_strategy', {
-    input_name: '데모 · 균형 배분', input_monthly_contribution: 1500000,
-    input_review_day: 15, input_drift_threshold: 5, input_buckets: buckets,
-    input_mode: 'neutral', input_mode_reason: '데모: 현재는 중립 배분 예시',
-    input_principles: { notes: '데모 값입니다. 실제 투자 원칙이 아닙니다.', max_trade_amount: 500000, monthly_trade_limit: 1500000, contribution_repair_months: 3 },
-  })
+if (!strategy.configured) {
+  const targets = [
+    ['데모 국내 주식', 35], ['데모 해외 주식', 30], ['데모 채권', 15],
+    ['데모 배당', 5], ['데모 현금·대체', 15],
+  ].map(([tag, target_percentage]) => ({ tag_id: allocationTags[tag], target_percentage }))
+  await rpc('app_save_allocation_targets', { input_targets: targets, input_expected_targets: [] })
 }
 
 const principleFixtures = [

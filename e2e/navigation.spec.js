@@ -4,6 +4,7 @@ import { callRpc, openMenuTab, signInAs } from './helpers'
 test('navigates the authenticated browser through strategy, activity, and settings pages', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: '자산' })).toBeVisible()
 
   const policy = await callRpc(page, 'app_get_sharing_policy')
   await callRpc(page, 'app_update_sharing_policy', {
@@ -90,7 +91,7 @@ test('keeps the four primary page controls readable across viewport widths', asy
       await page.goto(`/#${hash}`)
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
       if (hash === 'overview') await expect(page.getByRole('region', { name: '보유 종목' })).toBeVisible()
-      if (hash === 'allocation') await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
+      if (hash === 'allocation') await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 배분/ })).toBeVisible()
       if (hash === 'tasks') {
         await expect(page.getByRole('textbox', { name: '활동 검색' })).toBeVisible()
         await expect(page.getByRole('heading', { name: '할 일' })).toBeVisible()
@@ -101,30 +102,27 @@ test('keeps the four primary page controls readable across viewport widths', asy
     }
   }
 })
-test('keeps the saved strategy visible when opening allocation', async ({ page }) => {
+test('keeps tag allocation visible and editable in the bottom allocation tab', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
-  await callRpc(page, 'app_save_strategy', {
-    input_buckets: [{ name: 'E2E Allocation Bucket', sort_order: 0, tag_ids: [1], target_percentage: 100 }],
-    input_drift_threshold: 1, input_monthly_contribution: 100000, input_name: 'E2E Display Strategy', input_review_day: 1,
+  const portfolio = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
+  const before = await callRpc(page, 'app_get_strategy_state', { input_owner_user_id: null })
+  const tag = portfolio.body.tags[0]
+  await callRpc(page, 'app_save_allocation_targets', {
+    input_targets: [{ tag_id: tag.id, target_percentage: 100 }],
+    input_expected_targets: before.body.targets.map(({ tag_id, target_percentage }) => ({ tag_id, target_percentage })),
   })
   await openMenuTab(page, '원칙')
   await expect(page.getByRole('heading', { name: '변경 이력' })).toBeVisible()
-  await expect(page.getByText('E2E Display Strategy')).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: `${tag.name} 목표 비중` })).toHaveCount(0)
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toHaveCount(0)
   await openMenuTab(page, '배분')
-  await expect(page.getByText('E2E Display Strategy')).toBeVisible()
+  await expect(page.getByRole('textbox', { name: `${tag.name} 목표 비중` })).toHaveValue('100')
   await expect(page.locator('nav[aria-label="주요 메뉴"]').getByRole('button', { name: '배분', exact: true })).toHaveAttribute('aria-current', 'page')
   await expect(page.getByRole('button', { name: '자산으로 돌아가기' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: '배분 설정', exact: true })).toBeVisible()
+  await expect(page.getByText('목표 합계 100.00% / 100%')).toBeVisible()
   await expect(page).toHaveURL(/#allocation$/)
-  await page.getByRole('button', { name: '배분 설정', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '배분 설정 편집' })).toBeVisible()
-  await page.getByRole('button', { name: '취소' }).click()
-  await page.getByRole('button', { name: '모드 변경' }).click()
-  await page.getByRole('dialog', { name: '운용 모드 변경' }).getByRole('combobox', { name: '모드' }).selectOption('defensive')
-  await page.getByRole('button', { name: '모드 적용' }).click()
-  await expect(page.getByText('운용 모드 · 방어')).toBeVisible()
+  await expect(page.getByRole('button', { name: '모드 변경' })).toHaveCount(0)
   await openMenuTab(page, '자산')
   await expect(page).toHaveURL(/#overview$/)
   await expect(page.getByRole('button', { name: '전체 배분 보기' })).toHaveCount(0)
@@ -170,9 +168,10 @@ test('shows incomplete valuation explicitly and suppresses allocation amounts', 
     input_note: null, input_quantity: 1, input_request: null, input_source: 'user',
     input_ticker: missingTicker,
   })).status).toBe(200)
-  expect((await callRpc(page, 'app_save_strategy', {
-    input_buckets: [{ name: 'E2E Quality Bucket', sort_order: 0, tag_ids: [initialState.body.tags[0].id], target_percentage: 100 }],
-    input_drift_threshold: 1, input_monthly_contribution: 100000, input_name: 'E2E Quality Strategy', input_review_day: 1,
+  const beforeTargets = await callRpc(page, 'app_get_strategy_state', { input_owner_user_id: null })
+  expect((await callRpc(page, 'app_save_allocation_targets', {
+    input_targets: [{ tag_id: initialState.body.tags[0].id, target_percentage: 100 }],
+    input_expected_targets: beforeTargets.body.targets.map(({ tag_id, target_percentage }) => ({ tag_id, target_percentage })),
   })).status).toBe(200)
 
   const state = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
@@ -189,7 +188,7 @@ test('shows incomplete valuation explicitly and suppresses allocation amounts', 
   }
 
   await openMenuTab(page, '배분')
-  await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toBeVisible()
+  await expect(page.getByText('시세 또는 환율이 빠져 현재 비중과 차이를 정확히 계산할 수 없습니다.')).toBeVisible()
   await expect(page.getByRole('heading', { name: '이번 달 적립금 배분' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '리밸런싱 제안' })).toHaveCount(0)
 })
@@ -301,7 +300,7 @@ test('keeps legacy asset links pointed at their new purpose', async ({ page }) =
   await expect(page.getByRole('region', { name: '보유 종목' })).toBeVisible()
   await expect(page).toHaveURL(/#overview$/)
   await page.goto('/#allocation')
-  await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 배분/ })).toBeVisible()
 })
 
 test('keeps holdings, instrument detail, allocation and spreadsheet within supported widths', async ({ page }) => {
@@ -316,7 +315,7 @@ test('keeps holdings, instrument detail, allocation and spreadsheet within suppo
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button', { name: '닫기' }).click()
     await openMenuTab(page, '배분')
-    await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 배분/ })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await openMenuTab(page, '자산')
     await page.getByRole('button', { name: '표 편집' }).click()

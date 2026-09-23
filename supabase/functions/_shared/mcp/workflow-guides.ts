@@ -90,8 +90,8 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     ],
     boundaries: [
       'Do not store the full interview transcript or unnecessary sensitive information.',
-      'Do not infer missing goals, risk tolerance, restrictions, or holding reasons from the portfolio or active strategy mode.',
-      'Saving a personal policy never changes allocation targets, operating mode, holdings, decisions, tasks, or trades.',
+      'Do not infer missing goals, risk tolerance, restrictions, or holding reasons from the portfolio or allocation targets.',
+      'Saving a personal policy never changes allocation targets, holdings, decisions, tasks, or trades.',
       'One principle row may contain several related approved rules; do not split by headings or save model speculation as user policy.',
     ],
     recovery: [

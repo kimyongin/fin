@@ -444,8 +444,8 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'get_strategy_state',
-    title: 'Investment strategy',
-    description: 'Read allocation modes, target buckets, and tag mappings when the task is specifically about allocation or rebalancing. Use list_principles for saved personal goals, risk preferences, liquidity needs, or operating rules. Do not treat old strategy notes as the new principle source.',
+    title: 'Allocation targets by asset tag',
+    description: 'Read the owner\'s current numeric target percentage for each asset tag. configured=false means no target set was saved; a missing tag in a configured set means 0%. Compare against get_portfolio_state only when its valuation quality is complete. This is separate from Markdown principles and contains no modes, buckets, automatic trade recommendations, or brokerage orders.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: readOnlyAnnotations,
   },

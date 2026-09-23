@@ -537,6 +537,7 @@ function App() {
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             section="allocation"
             showStrategy={canEdit || Boolean(sharedFeatureAccess?.features?.strategy)}
+            showAssets={canEdit || Boolean(sharedFeatureAccess?.features?.assets)}
             supabase={supabase}
             tagCards={tagCards}
             tags={state.tags}
