@@ -1,5 +1,17 @@
 import { expect, test } from '@playwright/test'
 import { callRpc, signInAs } from './helpers'
+import { assertMutationRpcSignatures } from '../scripts/deployment-rpc-contract.mjs'
+
+test('read-only deployment check sees every required mutation RPC signature', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const token = await page.evaluate(() => JSON.parse(localStorage.getItem('sb-127-auth-token')).access_token)
+  const response = await page.request.get(`${process.env.VITE_SUPABASE_URL}/rest/v1/`, {
+    headers: { apikey: process.env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${token}`, Accept: 'application/openapi+json' },
+  })
+  expect(response.status()).toBe(200)
+  expect(assertMutationRpcSignatures(await response.json())).toBeGreaterThan(0)
+})
 
 async function openMenuTab(page, label) {
   const primaryLabel = ['판단', '할 일', '활동'].includes(label) ? '활동' : label
@@ -274,6 +286,52 @@ test('revises and ends one operating principle without a second history table', 
   expect(afterEnd.body.items.find((item) => item.principle_id === saved.principle_id)?.ended).toBe(true)
 })
 
+test('retries a principle after a lost save response without creating a second row', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#strategy')
+  await page.getByRole('button', { name: '원칙 추가' }).click()
+  const editor = page.getByRole('dialog', { name: '원칙 추가' })
+  const body = `E2E 재시도 원칙 ${Date.now()}`
+  await editor.getByLabel('내용').fill(body)
+  let loseResponse = true
+  await page.route('**/rest/v1/rpc/app_save_principle', async (route) => {
+    if (!loseResponse) return route.continue()
+    loseResponse = false
+    await route.fetch()
+    await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: '응답 유실' }) })
+  })
+  await editor.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByRole('alert').getByText('응답 유실')).toBeVisible()
+  await editor.getByRole('button', { name: '저장' }).click()
+  await expect(editor).toBeHidden()
+  const current = await callRpc(page, 'app_list_principles', { input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: true })
+  expect(current.status).toBe(200)
+  expect(current.body.items.filter((item) => item.body === body)).toHaveLength(1)
+})
+
+test('retries only the principle list after a successful save and failed refresh', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#strategy')
+  await page.getByRole('button', { name: '원칙 추가' }).click()
+  const editor = page.getByRole('dialog', { name: '원칙 추가' })
+  const body = `E2E 저장 후 목록 실패 ${Date.now()}`
+  await editor.getByLabel('내용').fill(body)
+  let failList = true
+  let saveCalls = 0
+  await page.route('**/rest/v1/rpc/app_save_principle', async (route) => { saveCalls += 1; await route.continue() })
+  await page.route('**/rest/v1/rpc/app_list_principles', async (route) => {
+    if (!failList) return route.continue()
+    failList = false
+    await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: '목록 실패' }) })
+  })
+  await editor.getByRole('button', { name: '저장' }).click()
+  await expect(editor).toBeHidden()
+  await expect(page.getByText('원칙은 저장됐지만 목록을 불러오지 못했습니다.')).toBeVisible()
+  await page.getByRole('button', { name: '목록 다시 불러오기' }).click()
+  await expect(page.getByText(body)).toBeVisible()
+  expect(saveCalls).toBe(1)
+})
+
 test('shows one unified action surface without legacy bundle controls', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
@@ -385,6 +443,147 @@ test('deletes a manual activity without offering deletion for automatic events',
   expect(deleted.body).toBeNull()
 })
 
+test('guards activity drafts and detail edits on close, Escape, and browser back', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  await page.getByRole('button', { name: '활동 추가', exact: true }).click()
+  const editor = page.getByRole('dialog', { name: '활동 추가' })
+  await editor.getByRole('textbox', { name: '할 일', exact: true }).fill('버리면 안 되는 초안')
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(editor).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await editor.getByRole('button', { name: '취소' }).click()
+  await expect(editor.getByText('저장하지 않은 변경이 있습니다. 변경을 버리고 닫을까요?')).toBeVisible()
+  await editor.getByRole('button', { name: '계속 편집' }).click()
+  await page.keyboard.press('Escape')
+  await expect(editor.getByText('저장하지 않은 변경이 있습니다. 변경을 버리고 닫을까요?')).toBeVisible()
+  await editor.getByRole('button', { name: '변경 버리기' }).click()
+  await expect(editor).toBeHidden()
+
+  const title = `E2E 미저장 상세 ${Date.now()}`
+  const created = await callRpc(page, 'app_create_activity', { input_idempotency_key: crypto.randomUUID(), input_payload: { title, authored_via: 'app' } })
+  expect(created.status).toBe(200)
+  await page.reload()
+  await page.getByRole('button', { name: title, exact: true }).click()
+  const detail = page.getByRole('dialog', { name: '활동 상세' })
+  await detail.getByRole('button', { name: '수정', exact: true }).click()
+  await detail.getByRole('textbox', { name: '제목' }).fill(`${title} 수정`)
+  await detail.getByRole('button', { name: '취소', exact: true }).click()
+  await expect(detail.getByText('수정한 내용을 버릴까요?')).toBeVisible()
+  await detail.getByRole('button', { name: '계속 편집' }).click()
+  await page.goBack()
+  await expect(detail.getByText('저장하지 않은 변경이 있습니다. 변경을 버리고 닫을까요?')).toBeVisible()
+  await expect(detail).toBeVisible()
+  await detail.getByRole('button', { name: '변경 버리기' }).click()
+  await expect(detail).toBeHidden()
+})
+
+test('keeps the activity editor locked while its save is in flight', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  await page.getByRole('button', { name: '활동 추가', exact: true }).click()
+  const editor = page.getByRole('dialog', { name: '활동 추가' })
+  await editor.getByRole('textbox', { name: '할 일', exact: true }).fill(`E2E 저장 중 ${Date.now()}`)
+  let release
+  const held = new Promise((resolve) => { release = resolve })
+  let requested
+  const reached = new Promise((resolve) => { requested = resolve })
+  await page.route('**/rest/v1/rpc/app_create_general_task_with_tags', async (route) => {
+    requested()
+    await held
+    await route.continue()
+  })
+  await editor.getByRole('button', { name: '저장', exact: true }).click()
+  await reached
+  await expect(editor.getByRole('button', { name: '닫기' })).toBeDisabled()
+  await expect(editor.getByRole('textbox', { name: '할 일', exact: true })).toBeDisabled()
+  await page.keyboard.press('Escape')
+  await expect(editor).toBeVisible()
+  release()
+  await expect(editor).toBeHidden()
+})
+
+test('retries a follow-up after a lost response without making a duplicate task', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const title = `E2E 후속 원본 ${Date.now()}`
+  const followUpTitle = `E2E 응답 유실 후속 ${Date.now()}`
+  const created = await callRpc(page, 'app_create_activity', { input_idempotency_key: crypto.randomUUID(), input_payload: { title, authored_via: 'app' } })
+  expect(created.status).toBe(200)
+  await page.reload()
+  await page.getByRole('button', { name: title, exact: true }).click()
+  const detail = page.getByRole('dialog', { name: '활동 상세' })
+  const followUpForm = detail.locator('section').filter({ hasText: '이 활동을 계기로 다음에 할 일을 남깁니다.' })
+  await detail.getByPlaceholder('예: 다음 실적 발표 확인').fill(followUpTitle)
+  let calls = 0
+  await page.route('**/rest/v1/rpc/app_create_activity_follow_up', async (route) => {
+    calls += 1
+    if (calls === 1) {
+      await route.fetch()
+      await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'response lost' }) })
+    } else await route.continue()
+  })
+  await followUpForm.getByRole('button', { name: '추가' }).click()
+  await expect(detail.getByText('response lost')).toBeVisible()
+  await followUpForm.getByRole('button', { name: '추가' }).click()
+  await expect(detail.getByRole('button', { name: new RegExp(followUpTitle) })).toBeVisible()
+  const loaded = await callRpc(page, 'app_get_activity', { input_activity_id: created.body.id, input_owner_user_id: null })
+  expect(loaded.status).toBe(200)
+  expect(loaded.body.follow_up_tasks.filter((task) => task.title === followUpTitle)).toHaveLength(1)
+  expect(calls).toBe(2)
+})
+
+test('shares newly created and renamed activity tags with search filters immediately', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const title = `E2E 태그 상태 ${Date.now()}`
+  const tagName = `공유태그${Date.now()}`
+  const renamed = `${tagName}수정`
+  const created = await callRpc(page, 'app_create_activity', { input_idempotency_key: crypto.randomUUID(), input_payload: { title, authored_via: 'app' } })
+  expect(created.status).toBe(200)
+  await page.reload()
+  await page.getByRole('button', { name: title, exact: true }).click()
+  const detail = page.getByRole('dialog', { name: '활동 상세' })
+  await detail.getByPlaceholder('새 태그').fill(tagName)
+  await detail.locator('fieldset').last().getByRole('button', { name: '추가' }).click()
+  await expect(detail.getByLabel(tagName)).toBeChecked()
+  await detail.getByRole('button', { name: '태그 저장' }).click()
+  await detail.getByText('태그 이름·삭제 관리').click()
+  await detail.locator('details input').last().fill(renamed)
+  await detail.locator('details').getByRole('button', { name: '변경' }).click()
+  await expect(detail.getByLabel(renamed)).toBeChecked()
+  await detail.getByRole('button', { name: '닫기' }).click()
+  const filters = page.locator('details').filter({ hasText: '상세 필터' })
+  await filters.locator('summary').click()
+  await expect(filters.getByLabel(renamed)).toBeVisible()
+  await expect(filters.getByLabel(tagName, { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: title, exact: true }).click()
+  await detail.getByText('태그 이름·삭제 관리').click()
+  await detail.locator('details').getByRole('button', { name: '삭제' }).click()
+  await expect(detail.getByLabel(renamed)).toHaveCount(0)
+  await detail.getByRole('button', { name: '닫기' }).click()
+  await expect(filters.getByLabel(renamed)).toHaveCount(0)
+})
+
+test('distinguishes a failed activity-tag read from an empty list and retries it', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  let calls = 0
+  let failReads = true
+  await page.route('**/rest/v1/rpc/app_list_activity_tags', async (route) => {
+    calls += 1
+    if (failReads) await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'tag read failed' }) })
+    else await route.continue()
+  })
+  await page.goto('/#tasks')
+  await expect(page.getByRole('alert').filter({ hasText: '태그 목록을 불러오지 못했습니다.' })).toBeVisible()
+  failReads = false
+  await page.getByRole('alert').getByRole('button', { name: '다시 시도' }).click()
+  await expect(page.getByRole('alert').filter({ hasText: '태그 목록을 불러오지 못했습니다.' })).toHaveCount(0)
+  expect(calls).toBeGreaterThanOrEqual(2)
+})
+
 test('does not reopen a closed activity when its detail response arrives late', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#tasks')
@@ -446,6 +645,92 @@ test('keeps the newest search when an older search responds later', async ({ pag
   await expect(page.getByRole('button', { name: /최신 검색/ })).toBeVisible()
   releaseOlder()
   await expect(page.getByRole('button', { name: /오래된 검색/ })).toHaveCount(0)
+})
+
+test('reselects the active activity filter without leaving the list loading', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const filters = page.getByRole('group', { name: '활동 목록 필터' })
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
+    await filters.getByRole('button', { name: '전체' }).click()
+    await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
+    await expect(page.getByText('활동 목록을 불러오는 중입니다.')).toHaveCount(0)
+    await filters.getByRole('button', { name: '한 일' }).click()
+    await expect(page.getByRole('heading', { name: '날짜별 한 일' })).toBeVisible()
+    await filters.getByRole('button', { name: '한 일' }).click()
+    await expect(page.getByRole('heading', { name: '날짜별 한 일' })).toBeVisible()
+    await expect(page.getByText('활동 목록을 불러오는 중입니다.')).toHaveCount(0)
+    await filters.getByRole('button', { name: '전체' }).click()
+  }
+  let release
+  const held = new Promise((resolve) => { release = resolve })
+  let requested
+  const reached = new Promise((resolve) => { requested = resolve })
+  await page.route('**/rest/v1/rpc/app_list_action_timeline', async (route) => {
+    if (route.request().postDataJSON()?.input_filter !== 'done') return route.continue()
+    requested()
+    await held
+    await route.continue()
+  })
+  await filters.getByRole('button', { name: '한 일' }).click()
+  await reached
+  await filters.getByRole('button', { name: '한 일' }).click()
+  release()
+  await expect(page.getByRole('heading', { name: '날짜별 한 일' })).toBeVisible()
+})
+
+test('clears a pending search without accepting its late result', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  let release
+  const held = new Promise((resolve) => { release = resolve })
+  let requested
+  const reached = new Promise((resolve) => { requested = resolve })
+  await page.route('**/functions/v1/activity-search', async (route) => {
+    if (route.request().postDataJSON()?.query !== '해제할 검색') return route.continue()
+    requested()
+    await held
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      items: [{ record_type: 'activity', record_id: 9901, activity_id: 9901, record_state: 'done', title: '늦은 결과' }],
+      next_cursor: null, semantic_status: 'unavailable',
+    }) })
+  })
+  await page.getByRole('textbox', { name: '활동 검색' }).fill('해제할 검색')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await reached
+  await page.getByRole('button', { name: '해제' }).click()
+  await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
+  release()
+  await expect(page.getByText('늦은 결과')).toHaveCount(0)
+})
+
+test('discards an older search page after the search is cleared', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  let releasePage
+  const heldPage = new Promise((resolve) => { releasePage = resolve })
+  let pageRequested
+  const pageReached = new Promise((resolve) => { pageRequested = resolve })
+  await page.route('**/functions/v1/activity-search', async (route) => {
+    const cursor = route.request().postDataJSON()?.cursor
+    if (cursor) { pageRequested(); await heldPage }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      items: [{ record_type: 'activity', record_id: cursor ? 9912 : 9911, activity_id: cursor ? 9912 : 9911,
+        record_state: 'done', title: cursor ? '버린 이전 페이지' : '첫 페이지' }],
+      next_cursor: cursor ? null : 'next-page', semantic_status: 'unavailable',
+    }) })
+  })
+  await page.getByRole('textbox', { name: '활동 검색' }).fill('페이지 검색')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.getByRole('button', { name: /첫 페이지/ })).toBeVisible()
+  await page.getByRole('button', { name: '더 보기', exact: true }).click()
+  await pageReached
+  await page.getByRole('button', { name: '해제' }).click()
+  releasePage()
+  await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
+  await expect(page.getByText('버린 이전 페이지')).toHaveCount(0)
 })
 
 test('saves a private holding reason without exposing it in the shared portfolio DTO', async ({ page }) => {
@@ -781,6 +1066,26 @@ test('adds a friend and grants only that user shared portfolio access', async ({
     input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
     input_from: null, input_to: null, input_timezone: 'Asia/Seoul',
   })).body.pending).toBeInstanceOf(Array)
+
+  await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
+  let releaseTimeline
+  const heldTimeline = new Promise((resolve) => { releaseTimeline = resolve })
+  let sawTimeline
+  const timelineReached = new Promise((resolve) => { sawTimeline = resolve })
+  await friendPage.route('**/rest/v1/rpc/app_list_action_timeline', async (route) => {
+    if (route.request().postDataJSON()?.input_owner_user_id !== '00000000-0000-0000-0000-00000000e201') return route.continue()
+    sawTimeline()
+    await heldTimeline
+    await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'stale shared error' }) })
+  })
+  await friendPage.getByLabel('포트폴리오 전환').selectOption('00000000-0000-0000-0000-00000000e201')
+  await sharedPrimary.getByRole('button', { name: '활동', exact: true }).click()
+  await timelineReached
+  await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
+  releaseTimeline()
+  await expect(friendPage.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
+  await expect(friendPage.getByText('stale shared error')).toHaveCount(0)
+  await friendPage.unroute('**/rest/v1/rpc/app_list_action_timeline')
 
   expect((await callRpc(ownerPage, 'app_update_sharing_policy', {
     input_expected_version: enabledPolicy.body.version,

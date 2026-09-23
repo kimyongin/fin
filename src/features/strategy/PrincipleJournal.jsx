@@ -13,9 +13,10 @@ export default function PrincipleJournal({ supabase }) {
   const [items, setItems] = useState([])
   const [onDate, setOnDate] = useState('')
   const [editing, setEditing] = useState(undefined)
-  const [draft, setDraft] = useState({ kind: 'investment', body: '', scope: '' })
+  const [draft, setDraft] = useState({ principleId: null, kind: 'investment', body: '', scope: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [refreshFailed, setRefreshFailed] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -28,11 +29,13 @@ export default function PrincipleJournal({ supabase }) {
 
   async function reload() {
     setItems(await fetchPrinciples(supabase, { onDate: onDate || null }))
+    setRefreshFailed(false)
+    setError('')
   }
 
   function open(row = null) {
     setError('')
-    setDraft({ kind: row?.kind ?? 'investment', body: row?.body ?? '', scope: row?.scope ?? '' })
+    setDraft({ principleId: row?.principle_id ?? crypto.randomUUID(), kind: row?.kind ?? 'investment', body: row?.body ?? '', scope: row?.scope ?? '' })
     setEditing(row)
   }
 
@@ -42,15 +45,22 @@ export default function PrincipleJournal({ supabase }) {
     setError('')
     try {
       await savePrinciple(supabase, {
-        principleId: editing?.principle_id ?? crypto.randomUUID(),
+        principleId: draft.principleId,
         expectedRowId: editing?.id ?? null,
         ...draft,
         end,
       })
-      await reload()
       setEditing(undefined)
     } catch (cause) {
       setError(cause.message ?? '원칙을 저장하지 못했습니다.')
+      setBusy(false)
+      return
+    }
+    try {
+      await reload()
+    } catch (cause) {
+      setRefreshFailed(true)
+      setError(`원칙은 저장됐지만 목록을 불러오지 못했습니다. ${cause.message ?? ''}`.trim())
     } finally {
       setBusy(false)
     }
@@ -68,7 +78,7 @@ export default function PrincipleJournal({ supabase }) {
       <input className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3" type="date" value={onDate} onChange={(event) => setOnDate(event.target.value)} />
       {onDate && <button className="min-h-11 rounded-xl border border-[var(--line)] px-3" onClick={() => setOnDate('')} type="button">현재로</button>}
     </label>
-    {error && <p role="alert" className="mt-3 text-sm text-red-300">{error}</p>}
+    {error && <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-red-300" role="alert"><span>{error}</span>{refreshFailed && <button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => reload().catch((cause) => setError(cause.message ?? '원칙을 다시 불러오지 못했습니다.'))} type="button">목록 다시 불러오기</button>}</div>}
     <div className="mt-4 grid gap-3">
       {items.length === 0 && !error && <p className="text-sm text-[var(--muted-ink)]">해당 날짜에 적용 중인 원칙이 없습니다.</p>}
       {items.map((row) => <article key={row.principle_id} className="rounded-2xl border border-[var(--line)] p-4">

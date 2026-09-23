@@ -25,7 +25,7 @@ function makeBackgroundInert(overlay) {
   }
 }
 
-export default function ModalShell({ children, closeDisabled = false, description, dirty = false, footer, fullScreen = false, initialFocusRef, onBack, onClose, title, variant = 'modal' }) {
+export default function ModalShell({ children, closeDisabled = false, description, dirty = false, footer, fullScreen = false, historyGuardRef, initialFocusRef, onBack, onClose, title, variant = 'modal' }) {
   const titleId = useId()
   const descriptionId = useId()
   const overlayRef = useRef(null)
@@ -38,6 +38,11 @@ export default function ModalShell({ children, closeDisabled = false, descriptio
   onCloseRef.current = onClose
   closeDisabledRef.current = closeDisabled
   dirtyRef.current = dirty
+  if (historyGuardRef) historyGuardRef.current = () => {
+    if (closeDisabledRef.current) return false
+    if (dirtyRef.current) { setConfirmingClose(true); return false }
+    return true
+  }
 
   function requestClose(reason) {
     if (closeDisabledRef.current) return
@@ -90,6 +95,7 @@ export default function ModalShell({ children, closeDisabled = false, descriptio
 
     document.addEventListener('keydown', handleKeydown, true)
     return () => {
+      if (historyGuardRef) historyGuardRef.current = null
       document.removeEventListener('keydown', handleKeydown, true)
       const index = modalStack.lastIndexOf(token)
       if (index >= 0) modalStack.splice(index, 1)

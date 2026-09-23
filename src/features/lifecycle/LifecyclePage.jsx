@@ -26,13 +26,40 @@ function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled,
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [actionRefreshKey, setActionRefreshKey] = useState(0)
   const [activityTags, setActivityTagsState] = useState([])
+  const [activityTagsLoading, setActivityTagsLoading] = useState(false)
+  const [activityTagsError, setActivityTagsError] = useState('')
   const [activityDetail, setActivityDetail] = useState(null)
   const [activityDetailLoading, setActivityDetailLoading] = useState(false)
   const detailRequestGate = useRef(createRequestGate())
   const activityRequestGate = useRef(createRequestGate())
+  const tagsRequestGate = useRef(createRequestGate())
+  const activityHistoryGuard = useRef(null)
   const activeActivityId = useRef(null)
   const createAttempt = useRef(null)
   const createInFlight = useRef(false)
+
+  function updateActivityTags(tags) {
+    tagsRequestGate.current.invalidate()
+    setActivityTagsLoading(false)
+    setActivityTagsError('')
+    setActivityTagsState(tags)
+    setActionRefreshKey((value) => value + 1)
+  }
+
+  async function reloadActivityTags() {
+    if (ownerUserId) return
+    const request = tagsRequestGate.current.begin()
+    setActivityTagsLoading(true)
+    setActivityTagsError('')
+    try {
+      const tags = await fetchActivityTags(supabase)
+      if (request.isCurrent()) setActivityTagsState(tags)
+    } catch {
+      if (request.isCurrent()) setActivityTagsError('태그 목록을 불러오지 못했습니다.')
+    } finally {
+      if (request.isCurrent()) setActivityTagsLoading(false)
+    }
+  }
 
   async function saveGeneralAction(draft) {
     if (createInFlight.current) return
@@ -62,8 +89,12 @@ function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled,
   }
 
   useEffect(() => {
-    if (ownerUserId) return
-    fetchActivityTags(supabase).then(setActivityTagsState).catch(() => setActivityTagsState([]))
+    tagsRequestGate.current.invalidate()
+    setActivityTagsState([])
+    setActivityTagsError('')
+    setActivityTagsLoading(false)
+    if (!ownerUserId) reloadActivityTags()
+    return () => tagsRequestGate.current.invalidate()
   }, [ownerUserId, supabase])
 
   async function completeGeneralTask(task) {
@@ -136,7 +167,11 @@ function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled,
     setDetailHistory([])
   }
 
-  const requestDetailClose = useDetailHistoryEntry(Boolean(detail), dismissDetail)
+  const requestDetailClose = useDetailHistoryEntry(Boolean(detail || activityDetail), (confirmed) => {
+    if (!confirmed && activityDetail && activityHistoryGuard.current?.() === false) return false
+    if (detail) dismissDetail()
+    else dismissActivityDetail()
+  })
 
   async function openDetail(targetMode, id) {
     const request = detailRequestGate.current.begin()
@@ -177,7 +212,10 @@ function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled,
 
       <div className="grid gap-5" id="lifecycle-panel">
         {error && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}</p>}
+        {activityTagsError && <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert"><span>{activityTagsError}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={reloadActivityTags} type="button">다시 시도</button></div>}
         <ActionTimeline
+          availableTags={activityTags}
+          key={ownerUserId ?? 'self'}
           onAdd={() => setGeneralEditor('task')}
           onCompleteGeneralTask={completeGeneralTask}
           onOpenActivity={openActivity}
@@ -188,8 +226,8 @@ function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled,
         />
       </div>
       {detail && <GeneralTaskDetail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} />}
-      {activityDetail && <ActivityDetailModal activity={activityDetail} loading={activityDetailLoading} onClose={dismissActivityDetail} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onOpenTask={(id) => { dismissActivityDetail(); openDetail('tasks', id) }} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} />}
-      {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} onTagsChanged={setActivityTagsState} saving={savingGeneral} supabase={supabase} tags={activityTags} />}
+      {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onOpenTask={(id) => { dismissActivityDetail(); openDetail('tasks', id) }} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} onTagsChanged={updateActivityTags} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
+      {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onRetryTags={reloadActivityTags} onSave={saveGeneralAction} onTagsChanged={updateActivityTags} saving={savingGeneral} supabase={supabase} tags={activityTags} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
     </section>
   )
 }

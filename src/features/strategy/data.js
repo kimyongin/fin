@@ -1,3 +1,5 @@
+import { DEFAULT_BUSINESS_TIMEZONE } from '../../lib/businessDate'
+
 export function createEmptyStrategyState() {
   return { strategy: null, buckets: [] }
 }
@@ -38,7 +40,7 @@ export async function saveStrategy(supabase, draft) {
 export async function fetchPrinciples(supabase, { onDate = null, includeEnded = false } = {}) {
   const { data, error } = await supabase.rpc('app_list_principles', {
     input_on: onDate,
-    input_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Seoul',
+    input_timezone: DEFAULT_BUSINESS_TIMEZONE,
     input_include_ended: includeEnded,
   })
   if (error) throw error

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import ActivityEventViewer from '../activity/ActivityEventViewer'
 import { FilterChips } from '../../components/PageControls'
 import { createRequestGate } from '../../lib/requestGate'
-import { fetchActionTimeline, fetchActivityTags, searchActivities } from './data'
+import { fetchActionTimeline, searchActivities } from './data'
 
 const filters = [
   { id: 'all', label: '전체' },
@@ -19,18 +19,27 @@ function statusLabel(task) {
   return task.recurrence_kind === 'daily' ? '매일 반복' : '할 일'
 }
 
-export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenActivity, onOpenTask, ownerUserId, refreshKey = 0, supabase }) {
+export default function ActionTimeline({ availableTags = [], onAdd, onCompleteGeneralTask, onOpenActivity, onOpenTask, ownerUserId, refreshKey = 0, supabase }) {
   const [filter, setFilter] = useState('all')
   const [page, setPage] = useState({ pending: [], days: [], nextCursor: null })
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [collapsedDays, setCollapsedDays] = useState(new Set())
-  const [availableTags, setAvailableTags] = useState([])
   const [searchDraft, setSearchDraft] = useState({ query: '', from: '', to: '', conclusion: 'all', tagIds: [] })
   const [searchApplied, setSearchApplied] = useState(null)
   const [searchPage, setSearchPage] = useState({ items: [], nextCursor: null, semanticStatus: 'not_requested' })
   const requestGate = useRef(createRequestGate())
+  const previousTagIds = useRef(new Set())
+
+  useEffect(() => {
+    const nextIds = new Set(availableTags.map((tag) => tag.id))
+    const removed = new Set([...previousTagIds.current].filter((id) => !nextIds.has(id)))
+    previousTagIds.current = nextIds
+    if (removed.size === 0) return
+    setSearchDraft((current) => ({ ...current, tagIds: current.tagIds.filter((id) => !removed.has(id)) }))
+    setSearchApplied((current) => current ? { ...current, tagIds: current.tagIds.filter((id) => !removed.has(id)) } : null)
+  }, [availableTags])
 
   async function load({ append = false, cursor = null } = {}) {
     const request = requestGate.current.begin()
@@ -48,11 +57,6 @@ export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenAct
       if (request.isCurrent()) { setLoading(false); setLoadingMore(false) }
     }
   }
-
-  useEffect(() => {
-    if (ownerUserId) return
-    fetchActivityTags(supabase).then(setAvailableTags).catch(() => setAvailableTags([]))
-  }, [ownerUserId, supabase])
 
   async function runSearch({ append = false, cursor = null, values = searchDraft } = {}) {
     const request = requestGate.current.begin()
@@ -103,7 +107,7 @@ export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenAct
         <p className="max-w-2xl text-sm leading-6 text-[var(--muted-ink)]">앞으로 할 일은 위에서 놓치지 않고, 실제로 한 일은 날짜별 기록으로 이어서 봅니다.</p>
         {!ownerUserId && <button className="rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white" onClick={onAdd} type="button">활동 추가</button>}
       </div>
-      <FilterChips ariaLabel="활동 목록 필터" onChange={(next) => { requestGate.current.invalidate(); setLoading(true); setFilter(next) }} options={filters} value={filter} />
+      <FilterChips ariaLabel="활동 목록 필터" onChange={(next) => { if (next === filter) return; requestGate.current.invalidate(); setLoading(true); setFilter(next) }} options={filters} value={filter} />
       <form className="grid gap-2" onSubmit={(event) => { event.preventDefault(); requestGate.current.invalidate(); setLoading(true); setSearchApplied({ ...searchDraft }) }}>
         <div className="flex gap-2"><input aria-label="활동 검색" className="min-w-0 flex-1 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setSearchDraft({ ...searchDraft, query: event.target.value })} placeholder="제목·메모·결과·결론 검색" value={searchDraft.query} /><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm font-semibold" type="submit">검색</button>{searchApplied && <button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm" onClick={clearSearch} type="button">해제</button>}</div>
         <details className="rounded-xl border border-[var(--line)] px-3 py-2"><summary className="cursor-pointer text-sm text-[var(--muted-ink)]">상세 필터</summary><div className="mt-3 grid gap-3 sm:grid-cols-3"><label className="grid gap-1 text-xs text-[var(--muted-ink)]">시작일<input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm text-[var(--ink)]" onChange={(event) => setSearchDraft({ ...searchDraft, from: event.target.value })} type="date" value={searchDraft.from} /></label><label className="grid gap-1 text-xs text-[var(--muted-ink)]">종료일<input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm text-[var(--ink)]" onChange={(event) => setSearchDraft({ ...searchDraft, to: event.target.value })} type="date" value={searchDraft.to} /></label><label className="grid gap-1 text-xs text-[var(--muted-ink)]">결론<select className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm text-[var(--ink)]" onChange={(event) => setSearchDraft({ ...searchDraft, conclusion: event.target.value })} value={searchDraft.conclusion}><option value="all">전체</option><option value="yes">결론 있음</option><option value="no">결론 없음</option></select></label></div>{availableTags.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{availableTags.map((tag) => <label className={`flex min-h-9 items-center gap-2 rounded-full border px-3 text-xs ${searchDraft.tagIds.includes(tag.id) ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--line)]'}`} key={tag.id}><input checked={searchDraft.tagIds.includes(tag.id)} onChange={() => setSearchDraft({ ...searchDraft, tagIds: searchDraft.tagIds.includes(tag.id) ? searchDraft.tagIds.filter((id) => id !== tag.id) : [...searchDraft.tagIds, tag.id] })} type="checkbox" />{tag.name}</label>)}</div>}</details>

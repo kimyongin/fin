@@ -5,14 +5,20 @@ const stateKey = 'portfolioDetailSurface'
 export function useDetailHistoryEntry(isOpen, onDismiss) {
   const marker = useRef(crypto.randomUUID())
   const openRef = useRef(false)
+  const skipGuard = useRef(false)
   const dismissRef = useRef(onDismiss)
   dismissRef.current = onDismiss
 
   useEffect(() => {
     function handlePopState(event) {
       if (!openRef.current || event.state?.[stateKey] === marker.current) return
+      if (!skipGuard.current && dismissRef.current(false) === false) {
+        window.history.pushState({ ...(window.history.state ?? {}), [stateKey]: marker.current }, '', window.location.href)
+        return
+      }
+      if (skipGuard.current) dismissRef.current(true)
+      skipGuard.current = false
       openRef.current = false
-      dismissRef.current()
     }
 
     window.addEventListener('popstate', handlePopState)
@@ -39,6 +45,7 @@ export function useDetailHistoryEntry(isOpen, onDismiss) {
 
   return function requestClose() {
     if (window.history.state?.[stateKey] === marker.current) {
+      skipGuard.current = true
       window.history.back()
       return
     }

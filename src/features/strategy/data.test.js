@@ -7,7 +7,7 @@ describe('principle revision data adapter', () => {
     const supabase = { rpc: vi.fn().mockResolvedValue({ data: { items: [{ body: '현금 유지' }] }, error: null }) }
     await expect(fetchPrinciples(supabase, { onDate: '2026-09-20' })).resolves.toEqual([{ body: '현금 유지' }])
     expect(supabase.rpc).toHaveBeenCalledWith('app_list_principles', expect.objectContaining({
-      input_on: '2026-09-20', input_include_ended: false,
+      input_on: '2026-09-20', input_include_ended: false, input_timezone: 'Asia/Seoul',
     }))
     supabase.rpc.mockResolvedValueOnce({ data: null, error: new Error('read failed') })
     await expect(fetchPrinciples(supabase)).rejects.toThrow('read failed')

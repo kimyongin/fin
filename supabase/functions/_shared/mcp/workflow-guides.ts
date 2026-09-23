@@ -77,7 +77,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       {
         id: 'save-patch',
         title: 'Save the approved fields',
-        instruction: 'Call save_principle once per approved principle. For an edit, reuse its stable principle_id and latest row id. For a new principle, generate a UUID and use a null expected_row_id. To stop one, set end=true; do not delete history. Retry a lost response only after reading current state.',
+        instruction: 'Call save_principle once per approved principle. For an edit, reuse its stable principle_id and latest row id. For a new principle, generate one UUID and keep it for any retry; use a null expected_row_id. To stop one, set end=true; do not delete history. Retry a lost response only after reading current state.',
         tools: ['save_principle'],
       },
       {
@@ -94,7 +94,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'Save one approved idea per principle row; never duplicate model speculation as user policy.',
     ],
     recovery: [
-      'For a lost save response, read list_principles first. If the requested text is current, report success; otherwise retry the identical save.',
+      'For a lost save response, read list_principles first. If the requested text is current, report success; otherwise retry the identical save with the same principle_id and expected_row_id. Never generate a second principle ID for that attempt.',
       'For a row conflict, read current principles again, explain the conflicting change, and prepare a merged draft for the user.',
       'For validation errors, correct only the rejected fields and preserve the approved meaning.',
     ],
