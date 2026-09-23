@@ -20,6 +20,8 @@ GitHub: https://github.com/kimyongin/fin/issues/91
 - 운영 규칙 정리: 구 규칙/history/receipt 3개 테이블과 전용 DB/MCP CRUD를 제거하고, 사용자가 승인한 워크플로 규칙은 `kind=operation`·scope가 있는 원칙 한 행의 revision으로 읽고 쓴다. 기존 구 규칙은 선행 원칙 migration에서 복사된다. 격리 DB 35개 파일/525개 assertion, MCP 계약, Chromium 34개 시나리오 통과. 일반 로컬/운영 미적용.
 - 개인 정책 정리: 구 profile/history/receipt 3개 테이블과 전용 DB/MCP CRUD를 제거한다. 기존 서술형 필드는 선행 원칙 migration에서 복사했고, 현재 `restrictions` 배열의 각 승인 문구는 삭제 migration에서 `preference`/`prohibition` 원칙 행으로 복사한다. 구 snapshot에 개별 제한 항목의 안정 ID가 없어 항목별 과거 이력은 추정하지 않는다. 점검 문맥의 구 `investment_policy` 복사본도 제거하고 `principles.items`를 정본으로 유지한다. 격리/운영 적용 상태는 검증 기록과 구분한다.
 - 사용되지 않는 구 출력 정리: 2026-09-23 조사에서 운영 0건·로컬 부재였고 현재 코드 소비자가 없는 `transactions`, `portfolio_snapshots`, `daily_reports`, `rebalance_suggestions` 4개 테이블을 조건부 제거한다. 적용 당시 행이 하나라도 생겼으면 migration 전체를 실패시켜 별도 대조한다. `sync_runs` 등 실제 소비자가 있는 운영 기록은 유지한다. 격리 DB 36개 파일/519개 assertion, MCP 계약, Chromium 34개 시나리오 통과. 일반 로컬/운영 미적용.
+- 남은 게이트: 구 뉴스 2건은 기존 친구 공유 조회가 가능한 반면 새 `research` 활동은 소유자 전용이다. 테이블 삭제 전에 본문·출처·의견 이관과 기존 공유 범위의 동등한 읽기 경로를 마련해야 한다. 단순히 Excel 재입력이 가능하다는 이유로 공유 경계를 바꾸거나 기존 `#news` 조회를 깨지 않는다. 금융 원장/검증 110건은 현재 잔고를 지키는 것과 별도로 실제 수행·확인 사실을 대조해야 한다.
+- 개발 환경 게이트: `npm run check:edge`는 이 PC에 `deno` 실행 파일이 없어 시작하지 못했다. 독립 E2E의 실제 Edge 호출과 웹 테스트는 별도로 통과했지만 타입 검증을 통과했다고 표시하지 않는다.
 
 - 앱의 구 개인 정책/운영 규칙/보유 이유 UI 데이터 어댑터와 새 자료 등록 경로를 제거했다. 새 OAuth MCP 목록에서는 구 정책·보유 이유·뉴스 조회 및 매매 취소 도구를 숨겼다. 기존 핸들러와 DB RPC는 이전 세션/데이터 이관 전 호환을 위해 남아 있다.
 - 기존 `news_facts`는 친구 공유 가능하지만 새 조사 활동은 소유자 전용이다. 이 둘을 물리 통합할 때 과거 공개 범위를 좁히거나 새 비공개 내용을 노출하지 않는 매핑을 먼저 검증해야 한다. 본문 길이·주석·원본 출처와 당시 날짜도 누락 없이 대조한다.
