@@ -1,5 +1,21 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## 다음 구현 — 안정화 재검토 (#98~#103)
+
+2026-09-23 · 기준 코드 `b7ee31d`. 정적 재검토에서 확인한 후속 문제를 티켓으로 정리했다. 구현과 브라우저 재현은 아직 시작하지 않았다.
+
+| 티켓 | 목적 | 로컬 명세 |
+| --- | --- | --- |
+| #98 | [활동 필터 재선택과 조회 상태 회귀 수정](https://github.com/kimyongin/fin/issues/98) | [명세](./stability-review-01-filters.md) |
+| #99 | [원칙·후속 할 일 저장 재시도와 날짜 기준 정리](https://github.com/kimyongin/fin/issues/99) | [명세](./stability-review-02-saves.md) |
+| #100 | [활동 모달의 미저장·저장 중 닫기·뒤로가기 일관화](https://github.com/kimyongin/fin/issues/100) | [명세](./stability-review-03-modals.md) |
+| #101 | [활동 태그 목록 상태와 갱신 경로 통합](https://github.com/kimyongin/fin/issues/101) | [명세](./stability-review-04-tags.md) |
+| #102 | [필수 저장 RPC 누락을 잡는 배포 호환성 검사](https://github.com/kimyongin/fin/issues/102) | [명세](./stability-review-05-readiness.md) |
+| #103 | [현재 개발 기준과 과거 설계 문서 분리](https://github.com/kimyongin/fin/issues/103) | [명세](./stability-review-06-docs.md) |
+
+순서: #98 조회 회귀 → #99 저장 재시도 → #100 모달 → #101 태그 갱신. #102 배포 검사는 운영 전환 전에, #103 문서 정리는 각 변경 기록과 최종 인계에 적용한다. 새 테이블/범용 엔진은 기본 해법으로 삼지 않는다. #92~#97의 기존 구현·검증 증거와 미검증 항목은 유지하며, 새 티켓은 해당 문제의 후속 구현을 담당한다. 기존 티켓은 자동 종료하지 않는다.
+
+
 ## 로컬 구현 완료 — 저장 단순화 후속 안정화 (#92~#97)
 
 2026-09-23 로컬 구현과 자동 검증을 마쳤다. 기준 코드 `8cb943f`에서 재시도 중복·늦은 응답·날짜 불일치를 먼저 고친 뒤 미사용 코드와 실제 중복만 정리했다. 새 제품 개념이나 범용 저장 테이블을 추가하지 않았다. 운영 배포·실제 ChatGPT 평가·원격 PR CI 관찰은 별도 게이트로 남는다. 각 티켓의 미검증 범위를 확인한다.

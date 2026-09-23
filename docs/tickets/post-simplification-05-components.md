@@ -31,6 +31,8 @@ DailyReviewPage의 ReviewDetail, DecisionActivitiesPage의 DecisionDetail, Activ
 
 ## 진행 규칙
 
+후속 재검토(2026-09-23): #100이 실제 소비 모달의 dirty/저장 중 닫기/뒤로가기를 연결하고, #101이 중복된 태그 목록 상태를 통합한다.
+
 - docs/START-HERE.md, ADR-0008, SIMPLICITY.md와 해당 기능의 최신 구현을 먼저 확인한다.
 - 최소 변경으로 수직 구현·검증한다. 새 테이블/이력/범용 프레임워크를 기본 해법으로 삼지 않는다.
 - 관련 코드·계약·MCP 설명/가이드 영향과 실제 검사 결과를 함께 기록한다. DB 변경 시 schema/OVERVIEW.md를 갱신한다.
