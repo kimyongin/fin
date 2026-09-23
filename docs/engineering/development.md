@@ -44,6 +44,8 @@
 | Vite 프런트엔드 | npm ci, npm run dev; CI Node22 기준 | VITE_SUPABASE_URL이 실제 데이터 대상을 결정. 로컬 화면도 원격에 쓸 수 있음 |
 | 일반 로컬 Supabase | Docker + Supabase CLI, supabase start | db reset은 일상 실행 아님. 사용 데이터가 있으면 보존·복구 방법과 명시적 초기화 의도 확인 |
 | 독립 E2E | npm run test:e2e:install 후 npm run test:e2e | 실행기가 .e2e DB를 시작/reset/종료한다. 해당 환경의 기존 데이터는 지워짐 |
+
+E2E는 `e2e/app.spec.js`, `activity.spec.js`, `assets-access.spec.js`, `navigation.spec.js`, `integrations.spec.js`의 사용자 흐름별 파일로 나뉜다. 같은 격리 DB의 쓰기 테스트를 사용하므로 Playwright worker는 1개다. 특정 흐름은 `npm run test:e2e -- e2e/activity.spec.js`처럼 선택한다. 선택 실행도 독립 `.e2e` 인스턴스의 초기화·DB/MCP 검사를 수행하며 일반 로컬 및 원격 DB를 대상으로 하지 않는다.
 | 연결 원격 | 명시적인 `supabase db push`/함수 배포/인증 smoke만 사용 | 로컬 test 명령은 원격을 대상으로 하지 않음. 대상과 쓰기·복구 영향을 확인하고 별도 승인 범위에서 실행 |
 
 설정 이름은 `src/lib/config.js` 기준 VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY다. `.env.local`에 개발용 값을 두고 비밀값을 출력/커밋하지 않는다. VITE 변수에 service role/개인 토큰을 넣지 않는다. 로컬 Supabase 로그인/redirect 설정은 대상 환경에 맞춰 확인한다. E2E용 가상 인증은 실제 Google/OAuth end-to-end 성공을 증명하지 않는다.

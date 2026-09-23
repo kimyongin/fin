@@ -29,3 +29,14 @@ export async function callRpc(page, name, args = {}) {
     return { body: await response.json(), status: response.status }
   }, { anonKey: process.env.VITE_SUPABASE_ANON_KEY, args, name, url: process.env.VITE_SUPABASE_URL })
 }
+
+export async function openMenuTab(page, label) {
+  const primaryLabel = ['판단', '할 일', '활동'].includes(label) ? '활동' : label
+  const primary = page.locator('nav[aria-label="주요 메뉴"]:visible').getByRole('button', { name: primaryLabel, exact: true })
+  if (await primary.count()) {
+    await primary.click()
+    return
+  }
+  await page.getByRole('button', { name: 'Open menu' }).click()
+  await page.locator('nav[aria-label="보조 메뉴"]').getByRole('button', { name: label, exact: true }).click()
+}

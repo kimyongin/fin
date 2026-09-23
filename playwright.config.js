@@ -6,6 +6,8 @@ const e2eBaseUrl = `http://127.0.0.1:${e2ePort}`
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
+  // Every spec writes to the same seeded isolated owner; files must not race.
+  workers: 1,
   reporter: 'list',
   use: {
     baseURL: e2eBaseUrl,
