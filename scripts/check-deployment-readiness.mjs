@@ -14,8 +14,9 @@ const session = await authResponse.json()
 if (!session.access_token) throw new Error('Authenticated readiness login returned no access token')
 
 const rpcChecks = [
-  ['app_list_daily_briefing_page', { input_cursor: null, input_limit: 1, input_owner_user_id: null }],
-  ['app_list_investment_decision_page', { input_cursor: null, input_filter: 'current', input_limit: 1, input_owner_user_id: null }],
+  ['app_get_daily_context', { input_subject_tickers: null, input_timezone: 'Asia/Seoul' }],
+  ['app_list_narrative_activities', { input_cursor: null, input_kind: 'review', input_limit: 1, input_owner_user_id: null }],
+  ['app_list_narrative_activities', { input_cursor: null, input_kind: 'decision', input_limit: 1, input_owner_user_id: null }],
   ['app_list_portfolio_task_page', { input_cursor: null, input_filter: 'active', input_limit: 1, input_owner_user_id: null }],
   ['app_list_transaction_page', { input_account_id: null, input_cursor: null, input_instrument_id: null, input_limit: 1 }],
   ['app_list_my_product_feedback', { input_cursor: null, input_limit: 1 }],
@@ -54,12 +55,12 @@ const listed = await mcp('tools/list')
 const toolNames = new Set((listed?.tools ?? []).map((tool) => tool.name))
 for (const requiredTool of [
   'get_daily_context',
-  'save_daily_briefing',
+  'list_review_activities',
+  'list_decision_activities',
   'list_transactions',
   'verify_holdings',
-  'list_operating_rules',
-  'save_operating_rule',
-  'archive_operating_rule',
+  'list_principles',
+  'save_principle',
   'list_general_tasks',
   'save_general_task',
   'get_activity_report_context',
