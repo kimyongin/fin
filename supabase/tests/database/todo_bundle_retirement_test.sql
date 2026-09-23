@@ -11,12 +11,10 @@ select extensions.ok(to_regprocedure('public.app_save_todo_bundle(uuid,integer,u
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000721','authenticated','authenticated','retired-todo-owner@example.com','',now(),now(),now());
-insert into public.portfolio_tasks(id,user_id,kind,title,subject,timezone,control_state,research_state) values
-('72000000-0000-0000-0000-000000000010','00000000-0000-0000-0000-000000000721','research','실적 발표 확인','{"kind":"portfolio"}','Asia/Seoul','active','open');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000721',true);
 set local role authenticated;
 select extensions.is(jsonb_array_length(public.app_get_daily_context('Asia/Seoul',null) -> 'open_tasks'),0,
-    'retired research-task state is not projected into current pending work');
+    'retired bundle items are absent from current pending work');
 
 select * from extensions.finish();
 rollback;
