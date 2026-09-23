@@ -23,7 +23,7 @@
 
 ## 검증 및 미검증
 
-- 증분 migration은 기존 파일을 수정하지 않고 분리 `.e2e` 인스턴스에 적용한다. 일반 로컬 DB와 운영 DB는 변경하지 않았다.
+- 증분 migration은 기존 파일을 수정하지 않고 분리 `.e2e` 인스턴스에 적용했다. 일반 로컬 DB의 후속 적용은 아래 2026-09-23 기록을 따른다. 운영 DB는 변경하지 않았다.
 - 최신 `20260923082415` migration까지 분리 DB 36파일/497검증, OAuth·토큰 MCP 계약, Chromium 35개 시나리오를 묶은 전체 `npm run test:e2e`가 통과했다. 대표 모바일 매매·보정, 자산 뷰/표 편집, 반복 할 일, 태그/검색, 친구 공유, 피드백 등을 포함한다.
 - `npm test` 19파일/94건, `npm run build`, `npm run check:encoding`, `npm run check:workflow-guides`를 확인했다. 시스템 PATH에는 Deno가 없지만 임시 npm Deno 2.9.6으로 5개 Edge 진입점에 동일 `deno check --no-lock --node-modules-dir=none` 인자를 실행해 통과했다. 처음에는 빈 구 도구 필터의 TypeScript 추론 오류를 발견해 제거하고 재검증했다. 이후 OAuth 서버 안내 변경까지 포함해 격리 DB 497건, MCP 계약, 신규 사용자 브라우저 시나리오 1건을 재실행해 통과했다. CI의 독립 실행은 배포 시 다시 확인한다.
 - E2E의 가상 인증은 실제 Google 로그인, 운영 OAuth, ChatGPT 웹·모바일 동작을 증명하지 않는다. 실사용 검증은 운영 배포 뒤 별도 기록한다.
@@ -39,3 +39,10 @@
 5. 공개 후 소유자·친구 계정과 실제 ChatGPT 웹·모바일에서 새 세션으로 점검/활동/보정/공유를 확인한다. 부분 실패 시 적용된 migration을 되돌려 편집하지 말고 전진 migration 또는 이전 정상 프런트로 복구한다.
 
 현재 운영 적용·푸시·실제 ChatGPT 평가는 수행하지 않았다. 외부 토큰 사용자 확인과 운영 전환에는 별도 사용자 지시가 필요하다.
+
+## 2026-09-23 일반 로컬 사용 준비
+
+- 기존 일반 로컬 DB의 복구용 전체 덤프를 `%LOCALAPPDATA%\Temp\fin-local-before-20260923.dump`에 보관한 뒤, `supabase migration up --local`로 미적용 29개를 증분 적용했다. `db reset`과 운영 DB 변경은 하지 않았다. 적용 후 pending migration은 0개이고 최신 버전은 `20260923090453`이다.
+- 일반 로컬 DB에 `sync_runs`만 없어서 첫 DB 테스트가 시세 동기화 계약에서 실패했다. 분리 E2E baseline의 테이블·시퀀스·FK·RLS·grant를 대조해 **일반 로컬 DB에만** 복구했다. 이 로컬 이탈 복구는 신규 repo migration 또는 운영 적용을 뜻하지 않는다.
+- 복구 후 `npm run test:db`가 37파일·510건 모두 통과했다. Vite `http://127.0.0.1:4173/`는 HTTP 200, 로컬 Auth 설정은 Google 활성, OAuth 시작은 Google로 HTTP 302를 반환한다. 실제 Google 로그인 완료와 로그인 후 사용자 데이터 흐름은 사용자가 브라우저에서 확인해야 한다.
+- 로컬 Vite 서버는 이 점검 세션에서 실행했다. 운영 DB·Edge·Pages와 실제 ChatGPT 연결은 여전히 별도 게이트다. 위 덤프는 인증·투자 정보가 담길 수 있는 개인 복구 파일이므로 공유/커밋하지 않는다.
