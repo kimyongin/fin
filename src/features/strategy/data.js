@@ -47,6 +47,15 @@ export async function fetchPrinciples(supabase, { onDate = null, includeEnded = 
   return data?.items ?? []
 }
 
+export async function fetchPrincipleChanges(supabase, { cursor = null, limit = 20 } = {}) {
+  const { data, error } = await supabase.rpc('app_list_principle_changes', {
+    input_limit: limit,
+    input_cursor: cursor,
+  })
+  if (error) throw error
+  return { items: data?.items ?? [], nextCursor: data?.next_cursor ?? null }
+}
+
 export async function savePrinciple(supabase, { principleId, expectedRowId = null, kind, body, scope = null, end = false }) {
   const { data, error } = await supabase.rpc('app_save_principle', {
     input_principle_id: principleId,

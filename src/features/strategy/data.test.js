@@ -1,8 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { fetchPrinciples, savePrinciple } from './data'
+import { fetchPrincipleChanges, fetchPrinciples, savePrinciple } from './data'
 
 describe('principle revision data adapter', () => {
+  it('pages real changes using the server cursor', async () => {
+    const cursor = { effective_at: '2026-09-23T00:00:00Z', id: 7 }
+    const supabase = { rpc: vi.fn().mockResolvedValue({ data: { items: [{ id: 9, change_type: 'updated' }], next_cursor: cursor }, error: null }) }
+    await expect(fetchPrincipleChanges(supabase)).resolves.toEqual({ items: [{ id: 9, change_type: 'updated' }], nextCursor: cursor })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_principle_changes', { input_limit: 20, input_cursor: null })
+  })
   it('reads the current or a dated view without treating an error as empty', async () => {
     const supabase = { rpc: vi.fn().mockResolvedValue({ data: { items: [{ body: '현금 유지' }] }, error: null }) }
     await expect(fetchPrinciples(supabase, { onDate: '2026-09-20' })).resolves.toEqual([{ body: '현금 유지' }])
