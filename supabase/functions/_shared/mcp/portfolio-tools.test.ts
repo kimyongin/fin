@@ -235,7 +235,7 @@ describe('portfolio MCP tool definitions', () => {
     const guide = getWorkflowGuide('todo')!
     expect(guide.related_tools).toContain('save_general_task')
     expect(guide.related_tools).toContain('record_manual_activity')
-    expect(guide.boundaries.join(' ')).toContain('Legacy ToDo bundle tools are no longer advertised')
+    expect(guide.boundaries.join(' ')).toContain('Legacy ToDo bundle tools and storage are retired')
   })
 
   it('keeps holding theses explicit, scoped, and separate from holdings', () => {

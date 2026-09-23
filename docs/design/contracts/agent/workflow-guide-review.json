@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-22",
-  "review_reason": "Hide legacy news-state discovery; current research uses activities while the daily snapshot still reads old news",
+  "reviewed_at": "2026-09-23",
+  "review_reason": "Legacy ToDo bundle storage and RPCs removed after consumer audit; unified task and activity workflows unchanged.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d5222800",
-      "contract_digest": "6983be5dd52606f67ca26752439e285cae8e05e930d5f97de77b3dd09f4dfe9a"
+      "contract_digest": "2ceb38a8875d1b128fc3f80de9b001c6c80657d19bedb73f87826394331941a5"
     },
     "holding_thesis": {
       "revision": "fnv1a32:e8f68540",
-      "contract_digest": "85e2343267d10b4731a640dd3117d59b2c49f745de530ae35965917382ed22ec"
+      "contract_digest": "ddbb460493e2440167a8320389c0bc646728f7ff3b8c60dbb61fd4a13ec2295a"
     },
     "daily_review": {
       "revision": "fnv1a32:79601eb6",
-      "contract_digest": "77115d232c73448bf8e3746671afad5a837c416e22536821788e0049de0934ba"
+      "contract_digest": "743773fde35471168c1c901c6721a66963db78872f540b865e7aeb66939c36b0"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "7b3143afdeaad8a818792793ab5b9574991caffacc9b6e5a99ad7c314361eda1"
+      "contract_digest": "e3c9971dc1a44020af216aa1ad4d02ebc4140b6f9cbdf932940ed8cafbed5985"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "1dde5567f4e97046f9fdcd351140a9134977e09232d7f6e6455d298302751106"
+      "contract_digest": "05624573c6e8ad53ed44eaf3ee4cc1b55d46178af2b85b322e82ca79b691408b"
     },
     "reconciliation": {
       "revision": "fnv1a32:5bc16763",
-      "contract_digest": "4c729891de1904cc93d145fc34cf0300632bd809974aa53d2fcf8c72f264b4fd"
+      "contract_digest": "3184997fcd4352b19c43cccf86f1f463c89ba6a488880fe8a498a24659220e4b"
     },
     "todo": {
-      "revision": "fnv1a32:6421b5ce",
-      "contract_digest": "9e267d68ad7792270be2134dc15596953ab08f66d9e1dcfb90cad5d3f958b01e"
+      "revision": "fnv1a32:8dbed512",
+      "contract_digest": "c805489bf9b07f4eb541f5ef5998de6be4b569e8be174f5d936a073a58ce7333"
     },
     "activity_report": {
       "revision": "fnv1a32:a12e16a6",
-      "contract_digest": "aed5a1ed0197960413055ef9ee60bc1e15029f686d256e3a93fe42b972977341"
+      "contract_digest": "2839c8361fd7aa356128377bade3bf5517976c0ce2068e2fe80c53f62dc2e9ea"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "ba09d7d324c43e29e181ff67b440e57cb529fee292af464483826df5d3ab6c9e"
+      "contract_digest": "91bb8b361d7c49156ffd58369aa275a4ce12f8d186481e60930f56282971908e"
     }
   }
 }
