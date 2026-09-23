@@ -891,7 +891,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'verify_holdings', title: 'Record explicit brokerage comparison',
-    description: 'Record only the named fields the user explicitly says they compared with the brokerage at the current holding version. This never changes quantities, costs, valuation, trades, prices, or briefing dates.',
+    description: 'Store the latest explicit brokerage comparison on the current holding and record the check as a private automatic activity. Record only the named fields the user says they compared at the current holding version; a later check replaces the current verification checkpoint, while activities retain performed facts. This never changes quantities, costs, valuation, trades, prices, or briefing dates.',
     inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, holding_id: { type: 'integer', minimum: 1 }, expected_version: { type: 'integer', minimum: 1 }, fields: { type: 'array', minItems: 1, uniqueItems: true, items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] } }, verified_on: { type: 'string', format: 'date' }, note: { type: ['string','null'], maxLength: 1000 }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','holding_id','expected_version','fields','verified_on','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
 ]

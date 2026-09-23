@@ -54,7 +54,7 @@ revision 12 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_portfolio_integrity / observed-local | 전체·계좌별로 확인됨, 확인 뒤 변경됨, 미확인 보유 수를 요약합니다. 오래된 상태만으로 오류를 단정하거나 값을 변경하지 않습니다. | W06 |
 | preview_holding_reconciliation / observed-local | 사용자가 제시한 실제 현재값으로 시장형/평가형/현금성 잔고를 바꿀 영향을 저장 없이 계산하고 보유 버전을 돌려줍니다. 아직 값을 바꾸거나 확인 완료로 기록하지 않습니다. | W06 |
 | reconcile_holding / observed-local | 사용자가 확인한 예상 결과의 동일 값·사유·일자·확인 필드·보유 버전을 전달하면 서버가 잠금 후 다시 검증하고 절대 현재값과 자동 활동을 멱등 저장합니다. 거래를 만들지 않고 명시한 필드만 선택적으로 실제 확인 기록에 포함합니다. | W06 |
-| verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드와 선택적 확인 메모를 기록합니다. 저장 결과와 최신 integrity 조회에서 메모·작성 경로를 다시 읽습니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
+| verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드와 선택적 확인 메모를 보유의 최신 비공개 확인값에 저장하고 확인 활동을 남깁니다. 저장 결과와 integrity 조회에서 메모·작성 경로를 다시 읽습니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
 | preview_trade_reversal / removed | 과거 취소 미리보기 도구와 DB RPC를 제거했다. | W06 |
 | reverse_trade_entry / removed | 과거 체결 취소 도구와 DB RPC를 제거했다. 오류는 증권사 현재값 확인 후 보정한다. | W06 |
 | list_tasks, get_task, transition_task / removed | 조사 전용 상태를 새 OAuth 도구에서 종료했습니다. 미래 행동은 일반 할 일, 조사 결과는 활동으로 기록합니다. | W04,W08 |

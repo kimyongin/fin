@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(13);
+select extensions.plan(15);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000008901','authenticated','authenticated','private-note-owner@example.com','',now(),now(),now()),
@@ -38,19 +38,24 @@ select extensions.is(public.app_get_portfolio_state(null)#>>'{holdings,0,note}',
     '공개 보유 메모','the existing public note is preserved');
 
 set local role postgres;
+update public.holdings set last_verification='{"note":"증권사 비공개 확인","holding_state_version":1}'::jsonb where id=8901;
 insert into public.activity_events(user_id,source,action_type,target_table,before_data,after_data,status)
 values('00000000-0000-0000-0000-000000008901','user','test_note_redaction','holdings',
-    '{"private_note":"secret"}'::jsonb,'{"holding":{"private_note":"secret","quantity":2}}'::jsonb,'succeeded');
+    '{"private_note":"secret"}'::jsonb,'{"holding":{"private_note":"secret","last_verification":{"note":"secret"},"quantity":2}}'::jsonb,'succeeded');
 set local role authenticated;
 select extensions.ok(not exists(select 1 from public.activity_events
     where user_id=auth.uid() and (before_data::text like '%secret%' or after_data::text like '%secret%')),
     'automatic activity payloads remove private fields recursively');
+select extensions.ok(not (public.app_get_portfolio_state(null)::text like '%증권사 비공개 확인%'),
+    'owner general portfolio DTO also excludes the private brokerage comparison');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000008902',true);
 select extensions.is(public.app_list_private_holding_notes()->'items','[]'::jsonb,
     'friend cannot list owner private notes');
 select extensions.ok(not (public.app_get_portfolio_state('00000000-0000-0000-0000-000000008901')::text like '%비공개 투자 이유%'),
     'friend portfolio response excludes private reasons');
+select extensions.ok(not (public.app_get_portfolio_state('00000000-0000-0000-0000-000000008901')::text like '%증권사 비공개 확인%'),
+    'friend portfolio response excludes private verification details');
 select extensions.is(public.app_get_portfolio_state('00000000-0000-0000-0000-000000008901')#>>'{holdings,0,note}',
     '공개 보유 메모','friend still sees previously shared public note');
 select extensions.throws_ok(
