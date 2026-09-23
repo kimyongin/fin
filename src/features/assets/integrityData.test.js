@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { confirmReconciliation, fetchHoldingIntegrity, previewReconciliation, verifyHolding } from './integrityData'
 describe('holding integrity data', () => {
   it('keeps absolute values and confirmed fields distinct', async () => {
-    const supabase={rpc:vi.fn(async()=>({data:{preview_id:'p'},error:null}))}
+    const supabase={rpc:vi.fn(async()=>({data:{holding_state_version:2},error:null}))}
     await previewReconciliation(supabase,{holdingId:'2',values:{quantity:'25',avg_price:'68000'},reason:' 맞춤 ',effectiveOn:'2026-09-21',confirmedFields:['quantity']})
     expect(supabase.rpc).toHaveBeenCalledWith('app_preview_holding_reconciliation',expect.objectContaining({input_values:{quantity:'25',avg_price:'68000'},input_confirmed_fields:['quantity']}))
   })
@@ -13,9 +13,9 @@ describe('holding integrity data', () => {
     expect(supabase.rpc.mock.calls[0][1].input_idempotency_key).toBe('stable-key')
   })
   it('uses the caller-owned reconciliation idempotency key', async () => {
-    const supabase={rpc:vi.fn(async()=>({data:{reconciliation_id:'r'},error:null}))}
-    await confirmReconciliation(supabase,'preview','stable-key')
-    expect(supabase.rpc.mock.calls[0][1].input_idempotency_key).toBe('stable-key')
+    const supabase={rpc:vi.fn(async()=>({data:{activity_id:1},error:null}))}
+    await confirmReconciliation(supabase,{holdingId:2,values:{quantity:'25',avg_price:'68000'},reason:' 맞춤 ',effectiveOn:'2026-09-21',confirmedFields:['quantity']},{holding_state_version:3},'stable-key')
+    expect(supabase.rpc).toHaveBeenCalledWith('app_apply_holding_correction',expect.objectContaining({input_expected_version:3,input_idempotency_key:'stable-key',input_reason:'맞춤'}))
   })
   it('reads the latest verification detail for the selected holding', async () => {
     const supabase={rpc:vi.fn(async()=>({data:{last_verification:{note:'수량 확인'}},error:null}))}

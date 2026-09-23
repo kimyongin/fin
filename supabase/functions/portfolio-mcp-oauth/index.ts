@@ -522,7 +522,17 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async reconcile_holding(supabase, args) {
     requireSchemaVersion(args)
-    return { ok: true, data: await rpc(supabase, 'app_reconcile_holding', { input_preview_id: requireUuid(args.preview_id, 'preview_id'), input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent' }) }
+    const values = requireRecord(args.values, 'values')
+    const normalizedValues: Record<string,string> = {}
+    for (const [key, value] of Object.entries(values)) normalizedValues[key] = value === '0' ? '0' : requirePositiveDecimalString(value, `values.${key}`)
+    return { ok: true, data: await rpc(supabase, 'app_apply_holding_correction', {
+      input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id'),
+      input_values: normalizedValues, input_reason: requireString(args.reason, 'reason'),
+      input_effective_on: requireString(args.effective_on, 'effective_on'),
+      input_confirmed_fields: requireArray(args.confirmed_fields, 'confirmed_fields'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
+    }) }
   },
   async verify_holdings(supabase, args) {
     requireSchemaVersion(args)

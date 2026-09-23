@@ -344,13 +344,17 @@ const holdingValueSchema = {
   },
   additionalProperties: false,
 }
+const holdingCorrectionValuesSchema = { oneOf: [
+  { type: 'object', properties: { quantity: nonNegativeDecimalStringSchema, avg_price: nonNegativeDecimalStringSchema }, required: ['quantity','avg_price'], additionalProperties: false },
+  { type: 'object', properties: { purchase_amount: nonNegativeDecimalStringSchema, valuation_amount: nonNegativeDecimalStringSchema }, required: ['purchase_amount','valuation_amount'], additionalProperties: false },
+  { type: 'object', properties: { valuation_amount: nonNegativeDecimalStringSchema }, required: ['valuation_amount'], additionalProperties: false },
+] }
 
 const reconciliationPreviewOutputSchema = successEnvelope({
   type: 'object',
   properties: {
-    preview_id: idSchema,
-    expires_at: timestampSchema,
     holding_id: { type: 'integer' },
+    holding_state_version: { type: 'integer', minimum: 1 },
     instrument_id: { type: 'integer' },
     instrument_type: { type: 'string', enum: ['market', 'valuation', 'cash'] },
     before: holdingValueSchema,
@@ -359,21 +363,21 @@ const reconciliationPreviewOutputSchema = successEnvelope({
     reason: { type: 'string' },
     effective_on: { type: 'string', format: 'date' },
   },
-  required: ['preview_id', 'expires_at', 'holding_id', 'instrument_id', 'instrument_type', 'before', 'after', 'confirmed_fields', 'reason', 'effective_on'],
+  required: ['holding_id', 'holding_state_version', 'instrument_id', 'instrument_type', 'before', 'after', 'confirmed_fields', 'reason', 'effective_on'],
   additionalProperties: false,
 })
 
 const reconciliationOutputSchema = successEnvelope({
   type: 'object',
   properties: {
-    reconciliation_id: idSchema,
+    activity_id: { type: 'integer', minimum: 1 },
     holding_id: { type: 'integer' },
     holding_state_version: { type: 'integer' },
     before: holdingValueSchema,
     after: holdingValueSchema,
     verification_id: { type: ['string', 'null'], format: 'uuid' },
   },
-  required: ['reconciliation_id', 'holding_id', 'holding_state_version', 'before', 'after', 'verification_id'],
+  required: ['activity_id', 'holding_id', 'holding_state_version', 'before', 'after', 'verification_id'],
   additionalProperties: false,
 })
 
@@ -870,19 +874,20 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'preview_holding_reconciliation', title: 'Preview an absolute holding correction',
-    description: 'Preview replacing one holding with user-supplied actual values. Send non-negative decimals as strings, not JSON numbers. Market requires exactly quantity and avg_price; valuation requires purchase_amount and valuation_amount; cash requires valuation_amount. Zero market quantity still requires avg_price, which is discarded in the resulting zero balance. This does not modify the holding or imply brokerage verification unless confirmed_fields are explicit.',
+    description: 'Calculate an unsaved estimate for replacing one holding with user-supplied actual values. Return the holding version for direct confirmation; the server rechecks it under a lock. Send non-negative decimals as strings, not JSON numbers. Market requires quantity and avg_price; valuation requires purchase_amount and valuation_amount; cash requires valuation_amount. Zero market quantity still requires avg_price, which is discarded in the resulting zero balance. This does not modify the holding or imply brokerage verification unless confirmed_fields are explicit.',
     inputSchema: { type: 'object', properties: {
-      holding_id: { type: 'integer', minimum: 1 }, values: { oneOf: [
-        { type: 'object', properties: { quantity: nonNegativeDecimalStringSchema, avg_price: nonNegativeDecimalStringSchema }, required: ['quantity','avg_price'], additionalProperties: false },
-        { type: 'object', properties: { purchase_amount: nonNegativeDecimalStringSchema, valuation_amount: nonNegativeDecimalStringSchema }, required: ['purchase_amount','valuation_amount'], additionalProperties: false },
-        { type: 'object', properties: { valuation_amount: nonNegativeDecimalStringSchema }, required: ['valuation_amount'], additionalProperties: false },
-      ] }, reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' }, confirmed_fields: { type: 'array', items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] }, uniqueItems: true },
+      holding_id: { type: 'integer', minimum: 1 }, values: holdingCorrectionValuesSchema, reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' }, confirmed_fields: { type: 'array', items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] }, uniqueItems: true },
     }, required: ['holding_id','values','reason','effective_on','confirmed_fields'], additionalProperties: false }, outputSchema: reconciliationPreviewOutputSchema, annotations: contextAnnotations,
   },
   {
     name: 'reconcile_holding', title: 'Apply an absolute holding correction',
-    description: 'Use only after the user explicitly confirms a fresh correction preview. It establishes a new absolute local balance checkpoint and optionally records only the fields explicitly compared with the brokerage. It does not create a trade or place an order.',
-    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, preview_id: { type: 'string', format: 'uuid' }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','preview_id','idempotency_key'], additionalProperties: false }, outputSchema: reconciliationOutputSchema, annotations: idempotentWriteAnnotations,
+    description: 'Use only after the user explicitly confirms a fresh unsaved correction estimate. Pass the exact values, reason, date, confirmed fields, and expected holding version with an idempotency key. The server locks and recalculates the current row; stale versions require a new estimate. It establishes a new absolute local balance checkpoint and optionally records only fields explicitly compared with the brokerage. It does not create a trade or place an order.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, holding_id: { type: 'integer', minimum: 1 }, values: holdingCorrectionValuesSchema,
+      reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' },
+      confirmed_fields: { type: 'array', items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] }, uniqueItems: true },
+      expected_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
+    }, required: ['schema_version','holding_id','values','reason','effective_on','confirmed_fields','expected_version','idempotency_key'], additionalProperties: false }, outputSchema: reconciliationOutputSchema, annotations: idempotentWriteAnnotations,
   },
   {
     name: 'verify_holdings', title: 'Record explicit brokerage comparison',

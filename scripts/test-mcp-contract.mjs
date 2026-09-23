@@ -256,8 +256,8 @@ try {
     name: 'preview_holding_reconciliation',
     arguments: { holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10), confirmed_fields: [] },
   })
-  const previewId = correctionPreview.body?.result?.structuredContent?.data?.preview_id
-  assert(previewId, 'Holding correction preview contract failed')
+  const correctionVersion = correctionPreview.body?.result?.structuredContent?.data?.holding_state_version
+  assert(correctionVersion === holding.state_version, 'Holding correction estimate contract failed')
 
   const verificationKey = crypto.randomUUID()
   const verificationArgs = {
@@ -275,9 +275,9 @@ try {
   assert(verificationRetry.body?.result?.structuredContent?.data?.verification_id === verificationId, 'Lost verification response retry did not return the original success')
 
   const stale = await call(session.access_token, 'tools/call', {
-    name: 'reconcile_holding', arguments: { schema_version: 1, preview_id: previewId, idempotency_key: crypto.randomUUID() },
+    name: 'reconcile_holding', arguments: { schema_version: 1, holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10), confirmed_fields: [], expected_version: correctionVersion, idempotency_key: crypto.randomUUID() },
   })
-  assert(stale.body?.result?.structuredContent?.error?.code === 'preview_stale', 'Stale correction preview returned the wrong recovery contract')
+  assert(stale.body?.result?.structuredContent?.error?.code === 'version_conflict', 'Stale correction estimate returned the wrong recovery contract')
   const keyConflict = await call(session.access_token, 'tools/call', {
     name: 'verify_holdings', arguments: { ...verificationArgs, expected_version: holding.state_version + 1, fields: ['avg_price'] },
   })

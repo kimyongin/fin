@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(25);
+select extensions.plan(30);
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000801','authenticated','authenticated','integrity-owner@example.com','',now(),now(),now()),
 ('00000000-0000-0000-0000-000000000802','authenticated','authenticated','integrity-other@example.com','',now(),now(),now());
@@ -16,19 +16,22 @@ insert into public.holdings(id,user_id,account_id,ticker,quantity,avg_price,purc
 (9802,'00000000-0000-0000-0000-000000000801',9801,'INTV',null,null,1000,1200),
 (9803,'00000000-0000-0000-0000-000000000801',9801,'KRW',null,null,null,500);
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000801',true); set local role authenticated;
-create temp table integrity_data(preview uuid,key uuid) on commit drop; grant select,update,insert on integrity_data to authenticated; insert into integrity_data values(null,'80000000-0000-0000-0000-000000000001');
-update integrity_data set preview=(public.app_preview_holding_reconciliation(9801,'{"quantity":"25","avg_price":"68000"}','증권사 실제값으로 맞춤',current_date,array['quantity','avg_price'])->>'preview_id')::uuid;
-select extensions.is((select after_snapshot->>'quantity' from public.holding_reconciliation_previews where id=(select preview from integrity_data)),'25','market reconciliation previews an absolute quantity');
-select extensions.is(public.app_reconcile_holding((select preview from integrity_data),(select key from integrity_data),'app')->>'holding_state_version','2','reconciliation advances the holding version');
+select extensions.is(public.app_preview_holding_reconciliation(9801,'{"quantity":"25","avg_price":"68000"}','증권사 실제값으로 맞춤',current_date,array['quantity','avg_price'])#>>'{after,quantity}','25','market correction estimates an absolute quantity');
+select extensions.is((select count(*) from public.holding_reconciliation_previews),0::bigint,'estimate does not persist a preview row');
+select extensions.is(public.app_apply_holding_correction(9801,'{"quantity":"25","avg_price":"68000"}','증권사 실제값으로 맞춤',current_date,array['quantity','avg_price'],1,'80000000-0000-0000-0000-000000000001','app')->>'holding_state_version','2','correction advances the holding version');
 select extensions.is((select ledger_quantity from public.holdings where id=9801),25::numeric,'reconciliation replaces current quantity');
 select extensions.is(round((select ledger_cost_pool/ledger_quantity from public.holdings where id=9801)),68000::numeric,'reconciliation replaces current average cost');
 select extensions.is((public.app_get_holding_integrity(9801)#>>'{last_verification,changed_since}')::boolean,false,'confirmed reconciliation records a current verification');
-select extensions.is(public.app_reconcile_holding((select preview from integrity_data),(select key from integrity_data),'app')->>'holding_state_version','2','identical reconciliation retry is idempotent');
-select extensions.is((select count(*) from public.holding_reconciliations where user_id=auth.uid()),1::bigint,'retry does not duplicate reconciliation');
+select extensions.is(public.app_apply_holding_correction(9801,'{"quantity":"25","avg_price":"68000"}','증권사 실제값으로 맞춤',current_date,array['quantity','avg_price'],1,'80000000-0000-0000-0000-000000000001','app')->>'holding_state_version','2','identical correction retry is idempotent');
+select extensions.is((select count(*) from public.activity_events where user_id=auth.uid() and action_type='reconcile_holding'),1::bigint,'retry does not duplicate correction activity');
+select extensions.throws_ok($$select public.app_apply_holding_correction(9801,'{"quantity":"26","avg_price":"68000"}','오래된 보정',current_date,'{}',1,'80000000-0000-0000-0000-000000000007','app')$$,'P0001','Holding version conflict','stale estimate cannot overwrite the current holding');
+select extensions.throws_ok($$select public.app_apply_holding_correction(9801,'{"quantity":"26","avg_price":"68000"}','다른 입력',current_date,'{}',1,'80000000-0000-0000-0000-000000000001','app')$$,'P0001','Idempotency key was already used with a different request','same key cannot change the correction payload');
 select extensions.is(public.app_preview_holding_reconciliation(9801,'{"quantity":"0","avg_price":"0"}','전량 매도 후 실제값',current_date,'{}')#>>'{after,quantity}','0','market reconciliation accepts an explicit zero balance');
-select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"-1","avg_price":"1"}','음수 거부',current_date,'{}')$$,'P0001','Reconciliation values cannot be negative','negative reconciliation values are rejected');
+select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"-1","avg_price":"1"}','음수 거부',current_date,'{}')$$,'P0001','Reconciliation values must be nonnegative decimal strings with at most 16 decimal places','negative reconciliation values are rejected');
 select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"1"}','누락 거부',current_date,'{}')$$,'P0001','Market reconciliation requires quantity and avg_price','missing market average price is rejected');
 select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"1","avg_price":"1","extra":"1"}','추가 필드 거부',current_date,'{}')$$,'P0001','Reconciliation contains an unsupported field','unknown reconciliation fields are rejected');
+select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":1,"avg_price":"1"}','형식 거부',current_date,'{}')$$,'P0001','Reconciliation values must be nonnegative decimal strings with at most 16 decimal places','JSON numbers are not accepted as precision-safe corrections');
+select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"1.12345678901234567","avg_price":"1"}','정밀도 거부',current_date,'{}')$$,'P0001','Reconciliation values must be nonnegative decimal strings with at most 16 decimal places','correction decimals do not silently round');
 
 select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_date,'수량만 확인','80000000-0000-0000-0000-000000000002','app')#>>'{verified_fields,0}','quantity','one field can be verified without claiming the average');
 select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_date,'수량만 확인','80000000-0000-0000-0000-000000000002','app')->>'note','수량만 확인','verification save returns its note');
@@ -47,10 +50,8 @@ values(auth.uid(),'80000000-0000-0000-0000-000000000006','verify',jsonb_build_ob
 set local role authenticated;
 select extensions.ok(not (public.app_verify_holding(9801,2,array['quantity'],current_date,'과거 응답','80000000-0000-0000-0000-000000000006','app') ? 'note'),'an old receipt without note remains a valid retry response');
 
-update integrity_data set preview=(public.app_preview_holding_reconciliation(9802,'{"purchase_amount":"1100","valuation_amount":"1300"}','평가액 보정',current_date,'{}')->>'preview_id')::uuid,key='80000000-0000-0000-0000-000000000004';
-select extensions.is(public.app_reconcile_holding((select preview from integrity_data),(select key from integrity_data),'app')#>>'{after,valuation_amount}','1300','valuation holding reconciliation uses amount fields');
-update integrity_data set preview=(public.app_preview_holding_reconciliation(9803,'{"valuation_amount":"700"}','현금 잔액 보정',current_date,'{}')->>'preview_id')::uuid,key='80000000-0000-0000-0000-000000000005';
-select extensions.is(public.app_reconcile_holding((select preview from integrity_data),(select key from integrity_data),'app')#>>'{after,valuation_amount}','700','cash reconciliation uses balance amount');
+select extensions.is(public.app_apply_holding_correction(9802,'{"purchase_amount":"1100","valuation_amount":"1300"}','평가액 보정',current_date,'{}',1,'80000000-0000-0000-0000-000000000004','app')#>>'{after,valuation_amount}','1300','valuation holding correction uses amount fields');
+select extensions.is(public.app_apply_holding_correction(9803,'{"valuation_amount":"700"}','현금 잔액 보정',current_date,'{}',1,'80000000-0000-0000-0000-000000000005','app')#>>'{after,valuation_amount}','700','cash correction uses balance amount');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000802',true);
 select extensions.throws_ok($$select public.app_preview_holding_reconciliation(9801,'{"quantity":"1","avg_price":"1"}','타인 보정',current_date,'{}')$$,'P0001','Holding was not found or is not accessible','another user cannot reconcile owner holding');

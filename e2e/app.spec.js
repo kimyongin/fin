@@ -480,7 +480,7 @@ test('reconciles and verifies one holding without broadening the checked fields'
   await page.getByRole('checkbox',{name:'수량'}).check()
   await page.getByLabel('보정 이유').fill('증권사 수량과 평균가로 현재값을 맞춥니다.')
   await page.getByRole('button',{name:'보정 미리보기'}).click()
-  await expect(page.getByText(/3\.0000000000000000 → 4/)).toBeVisible()
+  await expect(page.getByText(/수량: .* → 4/)).toBeVisible()
   await page.getByRole('button',{name:'보정 확정'}).click()
   await expect(page.getByRole('heading',{name:'E2E Apple 잔고 맞추기'})).toBeHidden()
   const state=await callRpc(page,'app_get_portfolio_state',{input_owner_user_id:null})

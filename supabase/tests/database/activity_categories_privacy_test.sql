@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(21);
+select extensions.plan(25);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001971','authenticated','authenticated','category-owner@example.com','',now(),now(),now()),
@@ -44,6 +44,9 @@ set local role postgres;
 insert into public.activity_events(user_id,source,action_type,title,before_data,after_data,status)
 values('00000000-0000-0000-0000-000000001971','user','log_completed_trade','비공개 매매',
   '{"quantity":"1"}'::jsonb,'{"side":"buy","trade_quantity":"1","unit_price":"100"}'::jsonb,'succeeded');
+insert into public.activity_events(user_id,source,action_type,title,before_data,after_data,status)
+values('00000000-0000-0000-0000-000000001971','user','reconcile_holding','비공개 보정',
+  '{"quantity":"1"}'::jsonb,'{"quantity":"2","reason":"증권사 확인"}'::jsonb,'succeeded');
 set local role authenticated;
 select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'비공개 매매')->'items'),1,
   'owner can search own automatic trade activity');
@@ -63,6 +66,14 @@ select extensions.is((select count(*) from public.app_list_recent_activity(20,'0
   'friend recent activity omits private trade details');
 select extensions.is((select count(*) from jsonb_array_elements(public.app_list_action_timeline(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_filter=>'done')->'days') day, jsonb_array_elements(day->'items') item where item->'after_data' ? 'trade_quantity'),0::bigint,
   'friend timeline omits private trade details before pagination');
+select extensions.is(public.app_get_activity((select id from public.activity_events where title='비공개 보정'),'00000000-0000-0000-0000-000000001971'::uuid),null::jsonb,
+  'friend cannot read correction reason and values');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_query=>'비공개 보정')->'items'),0,
+  'friend cannot search correction activity');
+select extensions.is((select count(*) from public.app_list_recent_activity(20,'00000000-0000-0000-0000-000000001971') where action_type='reconcile_holding'),0::bigint,
+  'friend recent activity omits correction details');
+select extensions.is((select count(*) from jsonb_array_elements(public.app_list_action_timeline(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_filter=>'done')->'days') day, jsonb_array_elements(day->'items') item where item->'after_data' ? 'reason'),0::bigint,
+  'friend timeline omits correction reasons');
 
 select * from extensions.finish();
 rollback;

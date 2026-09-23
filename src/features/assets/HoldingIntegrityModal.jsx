@@ -46,7 +46,12 @@ export default function HoldingIntegrityModal({ holding, instrument, onClose, on
   async function run(action) {
     setBusy(true)
     setError('')
-    try { await action() } catch (next) { setError(next.message) } finally { setBusy(false) }
+    try { await action() } catch (next) {
+      if (next.message?.includes('Holding version conflict')) {
+        invalidateAttempt()
+        setError('그 사이 잔고가 바뀌었습니다. 현재값을 다시 불러온 뒤 미리보기를 확인해 주세요.')
+      } else setError(next.message)
+    } finally { setBusy(false) }
   }
 
   async function finishSaved(message) {
@@ -71,7 +76,7 @@ export default function HoldingIntegrityModal({ holding, instrument, onClose, on
 
   async function handleReconcile() {
     await run(async () => {
-      if (!committed) await confirmReconciliation(supabase, attempt.preview.preview_id, attempt.idempotencyKey)
+      if (!committed) await confirmReconciliation(supabase, attempt.draft, attempt.preview, attempt.idempotencyKey)
       await finishSaved('보정은 저장됐지만')
     })
   }
@@ -92,6 +97,6 @@ export default function HoldingIntegrityModal({ holding, instrument, onClose, on
     {attempt?.preview && <div className="rounded-2xl bg-[var(--surface-2)] p-4 text-sm"><p className="font-semibold">보정 미리보기</p>{allowed.map((field) => <p className="mt-2" key={field}>{labels[field]}: {attempt.preview.before[field] ?? '-'} → {attempt.preview.after[field] ?? '-'}</p>)}</div>}
     {committed && <p className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">기록은 저장되었습니다.</p>}
     {error && <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">{error}</p>}
-    <div className="flex flex-wrap justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm disabled:opacity-50" disabled={busy && !committed} onClick={onClose} type="button">취소</button>{fields.length > 0 && !attempt && <button className="rounded-xl border border-[var(--accent)] px-4 py-2 text-sm disabled:opacity-50" disabled={busy} onClick={handleVerify} type="button">{committed ? '새로고침 다시 시도' : '값 변경 없이 확인 기록'}</button>}{attempt ? <button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} onClick={handleReconcile} type="button">{committed ? '새로고침 다시 시도' : '보정 확정'}</button> : <button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !reason.trim() || allowed.some((field) => values[field] === '')} onClick={() => run(async () => { const preview = await previewReconciliation(supabase, { holdingId: holding.id, values, reason, effectiveOn: date, confirmedFields: fields }); setAttempt({ preview, idempotencyKey: crypto.randomUUID() }); setCommitted(false) })} type="button">보정 미리보기</button>}</div>
+    <div className="flex flex-wrap justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm disabled:opacity-50" disabled={busy && !committed} onClick={onClose} type="button">취소</button>{fields.length > 0 && !attempt && <button className="rounded-xl border border-[var(--accent)] px-4 py-2 text-sm disabled:opacity-50" disabled={busy} onClick={handleVerify} type="button">{committed ? '새로고침 다시 시도' : '값 변경 없이 확인 기록'}</button>}{attempt ? <button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} onClick={handleReconcile} type="button">{committed ? '새로고침 다시 시도' : '보정 확정'}</button> : <button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={busy || !reason.trim() || allowed.some((field) => values[field] === '')} onClick={() => run(async () => { const draft = { holdingId: holding.id, values: { ...values }, reason, effectiveOn: date, confirmedFields: [...fields] }; const preview = await previewReconciliation(supabase, draft); setAttempt({ preview, draft, idempotencyKey: crypto.randomUUID() }); setCommitted(false) })} type="button">보정 미리보기</button>}</div>
   </div></ModalShell>
 }

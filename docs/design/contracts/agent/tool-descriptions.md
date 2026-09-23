@@ -52,8 +52,8 @@ revision 12 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | list_transactions / observed-local | Portfolio가 자동 활동으로 기록한 완료 체결을 읽습니다. 증권사 전체 거래내역이나 삭제된 구 기록·미입력 거래까지 완전하다고 설명하지 않습니다. | W05,W06 |
 | get_holding_integrity / observed-local | 한 보유의 마지막 절대 보정과 명시적 증권사 확인 범위, 확인 뒤 값 변경 여부를 읽습니다. 미확인을 불일치로 해석하지 않습니다. | W06 |
 | get_portfolio_integrity / observed-local | 전체·계좌별로 확인됨, 확인 뒤 변경됨, 미확인 보유 수를 요약합니다. 오래된 상태만으로 오류를 단정하거나 값을 변경하지 않습니다. | W06 |
-| preview_holding_reconciliation / observed-local | 사용자가 제시한 실제 현재값으로 시장형/평가형/현금성 잔고를 바꿀 영향을 미리 계산합니다. 아직 값을 바꾸거나 확인 완료로 기록하지 않습니다. | W06 |
-| reconcile_holding / observed-local | 사용자가 확인한 최신 preview를 절대 기준점으로 저장합니다. 거래를 만들지 않고 명시한 필드만 선택적으로 실제 확인 기록에 포함합니다. | W06 |
+| preview_holding_reconciliation / observed-local | 사용자가 제시한 실제 현재값으로 시장형/평가형/현금성 잔고를 바꿀 영향을 저장 없이 계산하고 보유 버전을 돌려줍니다. 아직 값을 바꾸거나 확인 완료로 기록하지 않습니다. | W06 |
+| reconcile_holding / observed-local | 사용자가 확인한 예상 결과의 동일 값·사유·일자·확인 필드·보유 버전을 전달하면 서버가 잠금 후 다시 검증하고 절대 현재값과 자동 활동을 멱등 저장합니다. 거래를 만들지 않고 명시한 필드만 선택적으로 실제 확인 기록에 포함합니다. | W06 |
 | verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드와 선택적 확인 메모를 기록합니다. 저장 결과와 최신 integrity 조회에서 메모·작성 경로를 다시 읽습니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
 | preview_trade_reversal / removed | 과거 취소 미리보기 도구와 DB RPC를 제거했다. | W06 |
 | reverse_trade_entry / removed | 과거 체결 취소 도구와 DB RPC를 제거했다. 오류는 증권사 현재값 확인 후 보정한다. | W06 |

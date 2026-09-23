@@ -228,7 +228,7 @@ describe('portfolio MCP tool definitions', () => {
     ])
     expect(variants.every((variant: any) => variant.additionalProperties === false)).toBe(true)
     expect(variants[0].properties.quantity.type).toBe('string')
-    expect((preview.outputSchema as any).properties.data.required).toContain('preview_id')
+    expect((preview.outputSchema as any).properties.data.required).toContain('holding_state_version')
     expect((tool('reconcile_holding').outputSchema as any).properties.data.required).toContain('holding_state_version')
   })
   it('does not offer local trade reversal as a new agent action',()=>{
