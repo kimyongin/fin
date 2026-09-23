@@ -95,7 +95,7 @@ function App() {
   const [feedbackSourcePage, setFeedbackSourcePage] = useState('')
 
   const handleTabChange = useCallback((nextTab) => {
-    if (activeTab === 'overview' && assetView === 'sheet' && nextTab !== 'overview' && sheetDirty && !window.confirm('저장하지 않은 표 변경을 버리고 이동할까요?')) return
+    if (sheetDirty && nextTab !== activeTab && !window.confirm('저장하지 않은 표 변경을 버리고 이동할까요?')) return
     if (nextTab === 'feedback' && activeTab !== 'feedback') {
       setFeedbackSourcePage(activeTab === 'overview' && assetView !== 'holdings' ? assetView : activeTab)
     }
@@ -504,7 +504,6 @@ function App() {
           <AssetsPageView
             accountById={accountById}
             accounts={state.accounts}
-            assetView={assetView}
             selectedAccountId={assetAccountId}
             onSelectedAccountIdChange={setAssetAccountId}
             query={assetQuery}

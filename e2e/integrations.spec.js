@@ -59,7 +59,7 @@ test('copies saved portfolio CSV only from the spreadsheet', async ({ context, p
   await expect(page.getByRole('status').getByText('CSV를 복사했어요')).toBeVisible()
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('티커')
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('E2EAPL')
-  await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+  await page.getByRole('dialog', { name: '표 편집' }).getByRole('button', { name: '닫기' }).click()
   await expect(page.getByRole('button', { name: '저장된 자산 CSV 복사' })).toHaveCount(0)
 })
 

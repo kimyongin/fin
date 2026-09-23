@@ -70,13 +70,14 @@ function InstrumentDetail({ accounts, canEdit, instrument, linkedHoldings, notes
 }
 
 export default function AssetsPage({
-  accountById, accounts, assetView, canEdit, computedPositions, csvCopied, holdingsByTicker,
+  accountById, accounts, canEdit, computedPositions, csvCopied, holdingsByTicker,
   instruments, latestPriceByTicker, onAssetViewChange, onCopyCsv, onCreateAccount, onCreateHolding, onCreateHoldingForAccount, onEditAccount,
   onEditHolding, onEditInstrument, onSpreadsheetSave, onSyncPrices, syncingPrices, syncMessage,
   spreadsheetSaving, sheetAccounts, sheetInstruments, holdings, instrumentTags, tagMapByTicker,
   tags, selectedAccountId, onSelectedAccountIdChange, query, onQueryChange, supabase, onTradeSaved, onSheetDirtyChange,
 }) {
   const [selectedTicker, setSelectedTicker] = useState(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [reasonEditor, setReasonEditor] = useState(null)
   const [reasonError, setReasonError] = useState('')
   const [reasonSaving, setReasonSaving] = useState(false)
@@ -124,12 +125,6 @@ export default function AssetsPage({
   const linkedHoldings = (holdingsByTicker.get(selectedTicker) ?? []).filter((row) => accountId === 'all' || String(row.account_id) === String(accountId))
   function linkedAccounts(items) { return items.map((row) => accountById.get(row.account_id)).filter(Boolean) }
   return <section className="grid gap-4">
-    {assetView === 'sheet' && canEdit ? <>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2"><button className={control} onClick={onCopyCsv} type="button">저장된 자산 CSV 복사</button><span aria-live="polite" className="text-xs text-[var(--muted-ink)]" role="status">{csvCopied ? 'CSV를 복사했어요' : ''}</span></div>
-      </div>
-      <SpreadsheetEditor accounts={sheetAccounts} canSave={canEdit} holdings={holdings} instrumentTags={instrumentTags} instruments={sheetInstruments} onBack={() => onAssetViewChange('holdings')} onDirtyChange={onSheetDirtyChange} onSave={onSpreadsheetSave} saving={spreadsheetSaving} tags={tags} />
-    </> : <>
       <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><p className="text-xs text-[var(--muted-ink)]">{selectedAccount ? selectedAccount.name : '전체 계좌'} · 확인 가능한 평가액</p><strong className="mt-1 block text-2xl">{formatKrw(totalValue)}</strong></div>
@@ -148,7 +143,7 @@ export default function AssetsPage({
         <input aria-label="종목 검색" className={`${control} w-full`} onChange={(event) => onQueryChange(event.target.value)} placeholder="종목명 또는 티커 검색" type="search" value={query} />
         <div className="flex gap-2">
           {canEdit && <details className="relative"><summary className={`${control} flex cursor-pointer list-none items-center font-semibold [&::-webkit-details-marker]:hidden`}>추가 ▾</summary><div className="absolute right-0 z-20 mt-1 min-w-36 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1 shadow-[var(--shadow-soft)]"><button className="min-h-11 w-full rounded-lg px-3 text-left text-sm hover:bg-[var(--surface-2)]" onClick={(event) => { event.currentTarget.closest('details').open = false; if (accountId === 'all') onCreateHolding(); else onCreateHoldingForAccount(accountId) }} type="button">보유 추가</button><button className="min-h-11 w-full rounded-lg px-3 text-left text-sm hover:bg-[var(--surface-2)]" onClick={(event) => { event.currentTarget.closest('details').open = false; onCreateAccount() }} type="button">계좌 추가</button></div></details>}
-          {canEdit && <button className={control} onClick={() => onAssetViewChange('sheet')} type="button">표 편집</button>}
+          {canEdit && <button className={control} onClick={() => setSheetOpen(true)} type="button">표 편집</button>}
         </div>
       </div>
       {selectedAccount && canEdit && <div className="flex items-center justify-between gap-2 text-sm"><span>{selectedAccount.name} · {scopedPositions.length}개 보유</span><button className={control} onClick={() => onEditAccount(selectedAccount)} type="button">계좌 수정</button></div>}
@@ -164,7 +159,7 @@ export default function AssetsPage({
             {row.instrument_type === 'market' && <span className="col-span-2 text-xs text-[var(--muted-ink)] sm:hidden">수량 {formatNumber(row.quantity)} · 평균가 {row.avgCost == null ? '-' : formatUnitPrice(row.avgCost, row.currency)}</span>}
           </button>)}</div>}
       </section>
-    </>}
+    {sheetOpen && canEdit && <SpreadsheetEditor accounts={sheetAccounts} canSave={canEdit} csvCopied={csvCopied} holdings={holdings} instrumentTags={instrumentTags} instruments={sheetInstruments} onClose={() => setSheetOpen(false)} onCopyCsv={onCopyCsv} onDirtyChange={onSheetDirtyChange} onSave={onSpreadsheetSave} saving={spreadsheetSaving} tags={tags} />}
     {selectedInstrument && <InstrumentDetail accounts={accounts} canEdit={canEdit} instrument={selectedInstrument} linkedHoldings={linkedHoldings} notes={privateNotes} onClose={() => setSelectedTicker(null)} onEditHolding={onEditHolding} onEditInstrument={onEditInstrument} onCreateHolding={onCreateHolding} onEditReason={(instrument, items) => setReasonEditor({ instrument, accounts: linkedAccounts(items) })} onRecordTrade={(instrument, items) => setTradeEditor({ instrument, accounts: linkedAccounts(items) })} onReconcileHolding={(instrument, holding) => setIntegrityEditor({ instrument, holding })} />}
     {reasonError && <p className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{reasonError}</p>}
     {reasonEditor && <HoldingReasonModal accounts={reasonEditor.accounts} instrument={reasonEditor.instrument} notes={privateNotes} onClose={() => setReasonEditor(null)} onSave={saveReason} saving={reasonSaving} />}

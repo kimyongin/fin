@@ -228,11 +228,11 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
   await page.goto('/#overview')
 
   await page.getByRole('button', { name: '표 편집' }).click()
-  await expect(page).toHaveURL(/#sheet$/)
-
-  await page.getByRole('button', { name: '전체 화면으로 표 편집' }).click()
+  await expect(page).toHaveURL(/#overview$/)
   const spreadsheet = page.getByRole('dialog', { name: '표 편집' })
   await expect(spreadsheet).toBeVisible()
+  await expect(page.getByRole('region', { name: '보유 종목' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '전체 화면으로 표 편집' })).toHaveCount(0)
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await expect(spreadsheet).toBeVisible()
@@ -242,10 +242,13 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
   const initialAccountName = await accountName.inputValue()
   await accountName.fill(`${initialAccountName} 임시`)
   await spreadsheet.getByRole('button', { name: '닫기', exact: true }).click()
-  await expect(page.getByLabel('계좌명').first()).toHaveValue(`${initialAccountName} 임시`)
-
-  page.once('dialog', (dialog) => dialog.accept())
-  await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+  await expect(spreadsheet.getByText('저장하지 않은 변경이 있습니다.')).toBeVisible()
+  await spreadsheet.getByRole('button', { name: '계속 편집' }).click()
+  await expect(accountName).toHaveValue(`${initialAccountName} 임시`)
+  await spreadsheet.getByRole('button', { name: '닫기', exact: true }).click()
+  await spreadsheet.getByRole('button', { name: '변경 버리기' }).click()
+  await expect(spreadsheet).toHaveCount(0)
+  await expect(page).toHaveURL(/#overview$/)
   await page.getByText('추가 ▾').click()
   await page.getByRole('button', { name: '계좌 추가' }).click()
   const accountEditor = page.getByRole('dialog', { name: '계좌 추가' })
@@ -287,7 +290,8 @@ test('keeps legacy asset links pointed at their new purpose', async ({ page }) =
     await expect(page).toHaveURL(/#overview$/)
   }
   await page.goto('/#sheet')
-  await expect(page.getByRole('heading', { name: '표 편집' })).toBeVisible()
+  await expect(page.getByRole('region', { name: '보유 종목' })).toBeVisible()
+  await expect(page).toHaveURL(/#overview$/)
   await page.goto('/#allocation')
   await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
 })
@@ -308,8 +312,8 @@ test('keeps holdings, instrument detail, allocation and spreadsheet within suppo
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
     await page.getByRole('button', { name: '표 편집' }).click()
-    await expect(page.getByRole('heading', { name: '표 편집' })).toBeVisible()
+    await expect(page.getByRole('dialog', { name: '표 편집' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-    await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+    await page.getByRole('dialog', { name: '표 편집' }).getByRole('button', { name: '닫기' }).click()
   }
 })

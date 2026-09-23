@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MaximizeIcon, UndoIcon } from '../../components/icons'
+import { UndoIcon } from '../../components/icons'
 import ModalShell from '../../components/ModalShell'
 import { editableInstrumentTypeOptions } from '../../constants/portfolio'
 import {
@@ -28,11 +28,10 @@ function Cell({ changed, column, error, hasUndo, onChange, originalValue, row, t
   return <div className={showOriginal ? 'py-1' : ''}>{control}{showOriginal && <p className="truncate px-2.5 text-[11px] leading-4 text-[var(--muted-ink)]" title={spreadsheetOriginalValueLabel({ field, originalValue, tags })}>{spreadsheetOriginalValueLabel({ field, originalValue, tags })}</p>}</div>
 }
 
-function SpreadsheetTable({ errorsById, onChange, onExpand, onPaste, onResetRow, rows, tags }) {
+function SpreadsheetTable({ errorsById, onChange, onPaste, onResetRow, rows, tags }) {
   const originalRowById = useMemo(() => new Map(rows.original.map((row) => [row.id, row])), [rows.original])
   return (
     <div className="relative overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--panel)]">
-      {onExpand && <button aria-label="전체 화면으로 표 편집" className="absolute right-1.5 top-1.5 z-10 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--accent)] text-white shadow-sm transition hover:brightness-95 [&>svg]:h-4 [&>svg]:w-4" onClick={onExpand} title="전체 화면으로 표 편집" type="button"><MaximizeIcon /></button>}
       <div className="spreadsheet-scroll overflow-auto" onPaste={onPaste}>
         <table className="w-full min-w-[1080px] border-collapse text-left">
           <thead className="bg-[var(--surface-2)] text-xs font-medium text-[var(--muted-ink)]"><tr>{spreadsheetColumns.map(([, label]) => <th className="border-b border-[var(--line)] px-2.5 py-3" key={label}>{label}</th>)}</tr></thead>
@@ -43,7 +42,7 @@ function SpreadsheetTable({ errorsById, onChange, onExpand, onPaste, onResetRow,
   )
 }
 
-export default function SpreadsheetEditor({ accounts, canSave = true, holdings, instrumentTags, instruments, onBack, onDirtyChange, onSave, saving, tags }) {
+export default function SpreadsheetEditor({ accounts, canSave = true, csvCopied, holdings, instrumentTags, instruments, onClose, onCopyCsv, onDirtyChange, onSave, saving, tags }) {
   const source = { accounts, holdings, instrumentTags, instruments }
   const [rows, setRows] = useState(() => createSpreadsheetRows(source))
   const [originalRows, setOriginalRows] = useState(() => createSpreadsheetRows(source))
@@ -52,7 +51,6 @@ export default function SpreadsheetEditor({ accounts, canSave = true, holdings, 
   const [query, setQuery] = useState('')
   const [message, setMessage] = useState('')
   const [savingError, setSavingError] = useState('')
-  const [expanded, setExpanded] = useState(false)
   const errorsById = useMemo(() => new Map(rows.map((row) => [row.id, validateSpreadsheetRow(row)])), [rows])
   const invalidRows = rows.filter((row) => Object.keys(errorsById.get(row.id)).length > 0)
   const hasChanges = useMemo(() => rows.length !== originalRows.length || rows.some((row, index) => {
@@ -118,17 +116,18 @@ export default function SpreadsheetEditor({ accounts, canSave = true, holdings, 
   const filters = <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto"><select aria-label="계좌 필터" className="min-h-11 min-w-28 rounded-lg border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm outline-none focus:border-[var(--accent)]" onChange={(event) => setAccountFilter(event.target.value)} value={accountFilter}><option value="all">전체 계좌</option>{accountNames.map((name) => <option key={name} value={name}>{name}</option>)}</select><select aria-label="태그 필터" className="min-h-11 min-w-28 rounded-lg border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm outline-none focus:border-[var(--accent)]" onChange={(event) => setTagFilter(event.target.value)} value={tagFilter}><option value="all">전체 태그</option>{tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}</select><input aria-label="종목 검색" className="min-h-11 min-w-36 flex-1 rounded-lg border border-[var(--line)] bg-[var(--surface-3)] px-3 text-sm outline-none focus:border-[var(--accent)] lg:w-44 lg:flex-none" onChange={(event) => setQuery(event.target.value)} placeholder="티커 또는 종목명" value={query} /><button className="min-h-11 shrink-0 rounded-lg border border-[var(--line)] px-3 text-sm font-medium text-[var(--muted-ink)] hover:bg-[var(--surface-2)]" onClick={addRow} type="button">행 추가</button></div>
   const status = <div className="text-sm text-[var(--muted-ink)]">{visibleRows.length} / {rows.length}개 행{invalidRows.length > 0 ? ` · 확인 필요 ${invalidRows.length}개` : ' · 저장 가능'}</div>
   const actions = <div className="grid grid-cols-2 gap-2 sm:flex"><button className="min-h-11 rounded-lg border border-[var(--line)] px-3 text-sm font-medium text-[var(--muted-ink)] hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50" disabled={saving || !hasChanges} onClick={resetAllRows} type="button">전체 롤백</button><button className="min-h-11 rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60" disabled={saving || !canSave} onClick={handleSave} type="button">{saving ? '저장 중' : '표 저장'}</button></div>
-  const table = <SpreadsheetTable errorsById={errorsById} onChange={updateRow} onExpand={expanded ? null : () => setExpanded(true)} onPaste={handlePaste} onResetRow={resetRow} rows={{ original: originalRows, visible: visibleRows }} tags={tags} />
+  const table = <SpreadsheetTable errorsById={errorsById} onChange={updateRow} onPaste={handlePaste} onResetRow={resetRow} rows={{ original: originalRows, visible: visibleRows }} tags={tags} />
 
   return (
-    <section className="grid gap-4">
-      {onBack && <button className="min-h-11 justify-self-start rounded-xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => { if (!hasChanges || window.confirm('저장하지 않은 표 변경을 버리고 자산으로 돌아갈까요?')) onBack() }} type="button">← 자산으로 돌아가기</button>}
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3"><div><h2 className="text-base font-semibold">표 편집</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">엑셀에서 복사한 행을 표 안에 붙여넣고 한 번에 저장할 수 있습니다.</p></div>{filters}</div>
-      {table}
-      <div className="flex flex-wrap items-center justify-between gap-3">{status}{actions}</div>
-      {message && <p className="text-sm text-emerald-300">{message}</p>}
-      {savingError && <p className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">{savingError}</p>}
-      {expanded && <ModalShell closeDisabled={saving} footer={<div className="grid gap-3 sm:flex sm:items-center sm:justify-between">{status}{actions}</div>} fullScreen onClose={() => setExpanded(false)} title="표 편집"><div className="grid gap-4"><p className="text-sm leading-6 text-[var(--muted-ink)]">필터와 붙여넣기, 행별 변경 취소를 사용한 뒤 아래에서 저장합니다.</p>{filters}{table}{message && <p className="text-sm text-emerald-300">{message}</p>}{savingError && <p className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">{savingError}</p>}</div></ModalShell>}
-    </section>
+    <ModalShell closeDisabled={saving} dirty={hasChanges} footer={<div className="grid gap-3 sm:flex sm:items-center sm:justify-between">{status}{actions}</div>} fullScreen onClose={onClose} title="표 편집">
+      <div className="grid gap-4">
+        <p className="text-sm leading-6 text-[var(--muted-ink)]">엑셀에서 복사한 행을 표 안에 붙여넣고 한 번에 저장할 수 있습니다.</p>
+        <div className="flex flex-wrap items-center gap-2"><button className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 text-sm" onClick={onCopyCsv} type="button">저장된 자산 CSV 복사</button><span aria-live="polite" className="text-xs text-[var(--muted-ink)]" role="status">{csvCopied ? 'CSV를 복사했어요' : ''}</span></div>
+        {filters}
+        {table}
+        {message && <p className="text-sm text-emerald-300">{message}</p>}
+        {savingError && <p className="rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">{savingError}</p>}
+      </div>
+    </ModalShell>
   )
 }

@@ -61,7 +61,7 @@
 | 활동 / 자산 | 자산 기본 보유 목록·계좌 선택·상세, 활동 검색과 통합 목록 | 자산 상세 왕복·계좌 범위·활동 검색·공유 E2E |
 | 읽기 상세 | 판단·할 일·브리핑에 모바일 전체 높이/PC 오른쪽 drawer와 내부 상세 뒤로가기 | focus/inert/Escape/연결 상세 E2E |
 | 편집 surface | 계좌·종목·보유·태그·뉴스에 고정 footer, pending 차단, dirty 확인, dark 오류 | 닫기/계속 편집/버리기와 draft 유지 E2E |
-| 표 편집 | 필터·표·상태·오류·롤백·저장을 전체 화면 shell에 통합하고 inline draft 공유 | 확대/수정/축소 draft와 5개 viewport E2E |
+| 표 편집 | 자산의 표 편집 버튼에서 곧바로 전체 화면 모달을 열어 필터·표·상태·오류·롤백·CSV·저장을 통합 | 한 번에 열기, 초안 닫기 확인, 저장, 5개 viewport E2E |
 | 나머지 페이지 | feature 중복 상단 여백 제거, 주요 action 44px, dark 오류 표현 | 9개 목적지의 360/390/768/1024/1440px 가로 넘침 검사 |
 
 자동 검증은 Vitest 80개, DB 278개, OAuth MCP 계약, Chromium E2E 28개, production build, encoding과 diff 검사를 사용한다. 실제 모바일 가상 키보드·iOS safe-area·실기기 스크린리더는 아직 확인하지 않았다.
