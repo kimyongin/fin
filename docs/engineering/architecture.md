@@ -10,8 +10,8 @@
 | --- | --- |
 | src/main.jsx, App.jsx | 앱 진입과 인증/화면/기능 조립. 신규 업무 규칙을 계속 App.jsx에 집중시키지 않음 |
 | src/features/assets | 자산 보기와 표 편집. 기존 입력 흐름 유지 |
-| src/features/portfolio | 공통 포트폴리오 data/actions/hooks와 파생 계산. 여러 화면이 소비하는 기존 기반 |
-| src/features/strategy, activity, review, lifecycle | 원칙/전략, 통합 활동·할 일, 요청형 점검 화면과 기능별 데이터 처리. 별도 자료 화면은 퇴역 |
+| src/features/portfolio | 자산 CRUD·시세 동기화 actions/hooks와 파생 계산. 공유·게스트 접근 액션은 auth 기능에 둔다. |
+| src/features/strategy, activity, review, lifecycle | 원칙/전략, 통합 활동·할 일, 요청형 점검 화면과 기능별 데이터 처리. 전략 표시 계산은 strategy/calculations.js에서 독립 테스트한다. 별도 자료 화면은 퇴역 |
 | src/features/auth, agent, settings | 로그인/동의, 앱의 에이전트 토큰 관리, 설정. agent 폴더는 MCP 서버 구현 위치가 아님 |
 | src/components | 여러 기능이 재사용하는 표현 컴포넌트 |
 | src/lib, constants | Supabase 연결/설정, 포맷, 계산 등 공통 유틸리티와 상수 |
