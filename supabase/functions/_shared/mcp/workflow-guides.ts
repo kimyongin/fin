@@ -211,6 +211,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/202609210010_trade_entry_foundation.sql',
       'supabase/migrations/20260923071245_direct_trade_confirmation.sql',
+      'supabase/migrations/20260923072656_trade_activity_as_history.sql',
     ],
     steps: [
       { id: 'confirm-completed', title: 'Confirm that the trade completed', instruction: 'Treat “what if I buy” as analysis or a plan. Continue only when the user reports an actual completed buy or sell.', tools: [] },
@@ -218,7 +219,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       { id: 'preview-effect', title: 'Preview the local effect', instruction: 'Call preview_trade_entry and explain the before/after quantity and average cost. The estimate is not stored or reserved. Keep its holding id/version and the exact input fields.', tools: ['preview_trade_entry'] },
       { id: 'record-trade', title: 'Record the confirmed trade', instruction: 'Within the user\'s explicit completed-trade request, call log_completed_trade with the exact previewed input fields, expected holding id/version, and a stable idempotency key. A stale version requires a fresh estimate. This changes only local records, not a brokerage order.', tools: ['log_completed_trade'] },
       { id: 'optional-follow-up', title: 'Optionally remember a future action', instruction: 'Only on request, save a future trade-related intention as a general task. It is not a quantity-progress ledger and never changes the completed trade.', tools: ['save_general_task'] },
-      { id: 'verify-ledger', title: 'Verify the ledger entry', instruction: 'Use list_transactions with the account or instrument filter when a read-back is needed.', tools: ['list_transactions'] },
+      { id: 'verify-record', title: 'Read back the trade activity', instruction: 'Use list_transactions with the account or instrument filter when a read-back is needed. The activity is a local record, not a brokerage statement or a balance verification.', tools: ['list_transactions'] },
     ],
     boundaries: [
       'Portfolio never places or cancels brokerage orders and does not move cash.',

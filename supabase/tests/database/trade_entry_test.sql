@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(22);
+select extensions.plan(26);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000701','authenticated','authenticated','trade-owner@example.com','',now(),now(),now()),
@@ -37,8 +37,8 @@ select extensions.is(public.app_record_completed_trade(9701,9701,'buy',10,200,cu
   (select id from public.holdings where ticker='TRADE'),1,
   '70000000-0000-0000-0000-000000000001','app')#>>'{holding,quantity}',
   '20.0000000000000000','lost response retry returns the original success');
-select extensions.is((select count(*) from public.trade_entries where user_id=auth.uid()),1::bigint,
-  'retry does not duplicate a trade');
+select extensions.is((select count(*) from public.activity_events where user_id=auth.uid() and action_type='log_completed_trade'),1::bigint,
+  'retry does not duplicate a trade activity');
 select extensions.is((select count(*) from public.activity_events where user_id=auth.uid() and action_type='log_completed_trade'),1::bigint,
   'retry does not duplicate the automatic activity');
 
@@ -73,6 +73,15 @@ select extensions.is((select record_kind from public.activity_events where actio
   'trade','automatic activity is classified as a trade');
 select extensions.is(jsonb_array_length(public.app_list_transaction_page(9703,9701,10,null)->'items'),1,
   'transaction page applies account and instrument filters');
+select extensions.hasnt_table('public','trade_entries','parallel trade ledger is retired');
+select extensions.is((select target_table from public.activity_events where action_type='log_completed_trade' and instrument_id=9703),
+  'holdings','new trade activity refers to the current holding');
+select extensions.ok(public.app_list_transaction_page(null,9701,1,null)->'next_cursor' is not null,
+  'activity-backed transaction page offers a stable cursor');
+select extensions.isnt(
+  public.app_list_transaction_page(null,9701,1,null)#>>'{items,0,id}',
+  public.app_list_transaction_page(null,9701,1,public.app_list_transaction_page(null,9701,1,null)->'next_cursor')#>>'{items,0,id}',
+  'second cursor page does not repeat the first trade');
 
 select * from extensions.finish();
 rollback;

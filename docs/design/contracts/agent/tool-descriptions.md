@@ -49,7 +49,7 @@ revision 12 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | link_task_to_holding_thesis / removed | 구 보유 이유-할 일 연결 도구와 DB RPC를 제거했다. 필요한 후속 할 일은 직접 등록합니다. | W02,W04 |
 | preview_trade_entry / observed-local | 이미 체결된 시장형 매매 입력이 현재 수량·평균가를 어떻게 바꾸는지 서버에서 저장 없이 계산하고 보유 ID/버전을 돌려줍니다. 주문·현금 이동·잔고 확인은 하지 않습니다. | W05 |
 | log_completed_trade / observed-local | 사용자가 요청한 완료 매매의 동일 입력과 미리 본 보유 ID/버전을 전달하면 서버가 잠금 후 재계산·검증하고 멱등 저장합니다. 현재값과 자동 활동을 갱신하지만 증권사 주문이나 잔고 확인은 하지 않습니다. | W05 |
-| list_transactions / observed-local | Portfolio 새 원장에 기록한 완료 체결을 읽습니다. 증권사 전체 거래내역이나 legacy/미입력 거래까지 완전하다고 설명하지 않습니다. | W05,W06 |
+| list_transactions / observed-local | Portfolio가 자동 활동으로 기록한 완료 체결을 읽습니다. 증권사 전체 거래내역이나 삭제된 구 기록·미입력 거래까지 완전하다고 설명하지 않습니다. | W05,W06 |
 | get_holding_integrity / observed-local | 한 보유의 마지막 절대 보정과 명시적 증권사 확인 범위, 확인 뒤 값 변경 여부를 읽습니다. 미확인을 불일치로 해석하지 않습니다. | W06 |
 | get_portfolio_integrity / observed-local | 전체·계좌별로 확인됨, 확인 뒤 변경됨, 미확인 보유 수를 요약합니다. 오래된 상태만으로 오류를 단정하거나 값을 변경하지 않습니다. | W06 |
 | preview_holding_reconciliation / observed-local | 사용자가 제시한 실제 현재값으로 시장형/평가형/현금성 잔고를 바꿀 영향을 미리 계산합니다. 아직 값을 바꾸거나 확인 완료로 기록하지 않습니다. | W06 |

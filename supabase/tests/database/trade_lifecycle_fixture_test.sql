@@ -9,6 +9,6 @@ select extensions.is(public.app_record_completed_trade(9931,9931,'sell',2.5,110,
 select extensions.is((select avg_price from holdings where ticker='ROUND'),null::real,'full sale clears average price');
 select extensions.is(public.app_record_completed_trade(9931,9931,'buy',1.25,120.40,current_date,(select id from holdings where ticker='ROUND'),2,'22222222-2222-4222-8222-222222222222','app')#>>'{holding,avg_price}','120.4000000000000000','repurchase starts a new exact cost basis');
 select extensions.is((select ledger_cost_pool from holdings where ticker='ROUND'),150.5::numeric,'repurchase cost pool preserves decimal arithmetic');
-select extensions.ok((select min(sequence_no)<max(sequence_no) from trade_entries),'same-day entries retain deterministic sequence order');
-select extensions.is((select count(*) from trade_entries),2::bigint,'full sale and repurchase remain separate ordered entries');
+select extensions.ok((select min(id)<max(id) from activity_events where action_type='log_completed_trade'),'same-day activities retain deterministic id order');
+select extensions.is((select count(*) from activity_events where action_type='log_completed_trade'),2::bigint,'full sale and repurchase remain separate activities');
 select * from extensions.finish(); rollback;

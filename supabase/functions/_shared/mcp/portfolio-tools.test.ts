@@ -130,6 +130,7 @@ describe('portfolio MCP tool definitions', () => {
     const schema = tool('list_transactions').inputSchema as any
     expect(schema.properties).toHaveProperty('before')
     expect(schema.properties.cursor.type).toEqual(['object', 'null'])
+    expect(schema.properties.cursor.properties.id.pattern).toBe('^[0-9]+$')
     expect((tool('list_transactions').outputSchema as any).oneOf).toHaveLength(2)
     expect((tool('list_transactions').inputSchema as any).properties).toHaveProperty('account_id')
     expect((tool('list_transactions').inputSchema as any).properties).toHaveProperty('instrument_id')

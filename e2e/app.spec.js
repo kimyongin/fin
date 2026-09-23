@@ -457,7 +457,7 @@ test('previews and records a completed trade on mobile', async ({ page }) => {
 
   const transactions = await callRpc(page, 'app_list_transactions', { input_limit: 10, input_before: null })
   expect(transactions.status, JSON.stringify(transactions.body)).toBe(200)
-  expect(transactions.body.filter((item) => item.ticker === 'E2EAPL' && item.side === 'buy' && item.quantity === '1.0000000000000000')).toHaveLength(1)
+  expect(transactions.body.filter((item) => item.ticker === 'E2EAPL' && item.side === 'buy' && Number(item.quantity) === 1)).toHaveLength(1)
   const state = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(state.body.holdings.find((item) => item.ticker === 'E2EAPL')).toMatchObject({ quantity: 3 })
 

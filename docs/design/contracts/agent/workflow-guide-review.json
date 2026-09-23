@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "The completed-trade guide now uses an unsaved estimate and passes exact inputs plus expected holding id/version to an atomic direct confirmation. Other guide topics retain their prior behavior after registry review.",
+  "review_reason": "Trade history now comes from owner-only automatic trade activities, not a separate trade ledger; read-back and cursor contract were reviewed. Other guides keep their previous behavior.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:8a78544b",
-      "contract_digest": "4d5efab55f74ea061e650276dd54b7ae0f0fa889566d78f07e43f98191038777"
+      "contract_digest": "52ec2ccc825463e8c28afac4058327a7e52b9d0084579b049d40e2dd551a0cc5"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "906d38653bec783ebfb8152b8663aecaa0c766339d2b8e99832741c826a0a781"
+      "contract_digest": "d87b9052638173d5c5d7d2713fe65a152d83de1345e0b514cfc9930aee2c850e"
     },
     "daily_review": {
       "revision": "fnv1a32:1743d26a",
-      "contract_digest": "70d5de7d516ed6981ab702379021c02593443506c94ca2c5ce3efcbbff888817"
+      "contract_digest": "b6dd17dd3cde5923ec7b9648913989b60f33f75ee6c030e581ad905539ad7699"
     },
     "decision_followup": {
       "revision": "fnv1a32:55c68510",
-      "contract_digest": "212c980700e872d74081fbe3f23407a18fcab7d3473cc4311cfd7dc94cf413aa"
+      "contract_digest": "7cdb9c5598ac36d12c1008c841147a4a5a1734ab06467d4557621b471ff4b8c2"
     },
     "trade_entry": {
-      "revision": "fnv1a32:49a85ecb",
-      "contract_digest": "928b6ced9bd443a025c90f1f70e85fb21b1119233a4918c27c2e30f23eec21f9"
+      "revision": "fnv1a32:497bf056",
+      "contract_digest": "e469247252f80d5abc79d102185e89336d652505934ef229994f34e8d546d382"
     },
     "reconciliation": {
       "revision": "fnv1a32:7706100c",
-      "contract_digest": "f76b23b209c5277ed52c5179b40f7b56bb3f755e31caef1c998e2daa4ff088dc"
+      "contract_digest": "ef7627b558f5a9d0df4a80744696c00553908432abe5df17c0c6e1ad9b699a40"
     },
     "todo": {
       "revision": "fnv1a32:2803dfd7",
-      "contract_digest": "5c1b3ab008d861ecc0fd2a745ead80ba6f32e98b52dc452cad655750620bb416"
+      "contract_digest": "ee5049b27449436528cd872f83cf126580379f54d8416578cec46c74d9a05376"
     },
     "activity_report": {
       "revision": "fnv1a32:f0d9274f",
-      "contract_digest": "758b28c46883fb9e514c091a7e287481730f2c2240fe91ef2761d51e1e9e7adb"
+      "contract_digest": "24bd8db12b5be7a53e42e35716c75c0d452fdfa68561b8ac4311dea81fb2de38"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "3f7456b6089865186b667b50f10bf2d100275264e74b5fa05b5f123bcbc66aa9"
+      "contract_digest": "856b76378fc5ba5331ad0430b49a50906c4f00700fa196a4248713b0c824adc7"
     }
   }
 }

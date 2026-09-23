@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(16);
+select extensions.plan(21);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001971','authenticated','authenticated','category-owner@example.com','',now(),now(),now()),
@@ -40,6 +40,14 @@ select extensions.throws_ok(
   $$select public.app_update_activity((select id from public.activity_events where title='비공개 조사'),2,'97666666-6666-4666-8666-666666666666','{"context":{"sources":[{"title":"bad","url":"file:///secret"}]}}'::jsonb,'agent')$$,
   'P0001','Invalid activity source','invalid source URLs are rejected on edit');
 
+set local role postgres;
+insert into public.activity_events(user_id,source,action_type,title,before_data,after_data,status)
+values('00000000-0000-0000-0000-000000001971','user','log_completed_trade','비공개 매매',
+  '{"quantity":"1"}'::jsonb,'{"side":"buy","trade_quantity":"1","unit_price":"100"}'::jsonb,'succeeded');
+set local role authenticated;
+select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'비공개 매매')->'items'),1,
+  'owner can search own automatic trade activity');
+
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001972',true);
 select extensions.ok(public.can_view_feature('00000000-0000-0000-0000-000000001971','activity'),'friend has legacy activity grant');
 select extensions.is(public.app_get_activity((select id from public.activity_events where title='비공개 조사'),'00000000-0000-0000-0000-000000001971'::uuid),null::jsonb,'friend cannot read private research detail');
@@ -47,6 +55,14 @@ select extensions.is(jsonb_array_length(public.app_search_activities(input_owner
 select extensions.is(jsonb_array_length(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_query=>'공개 일반 활동')->'items'),1,'friend still searches general activity');
 select extensions.is((select count(*) from public.app_list_recent_activity(20,'00000000-0000-0000-0000-000000001971') where action_type='record_manual_activity'),1::bigint,'recent activity excludes private research before limiting');
 select extensions.is((select count(*) from jsonb_array_elements(public.app_list_action_timeline(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_filter=>'done')->'days') day, jsonb_array_elements(day->'items') item where item->>'title'='비공개 조사'),0::bigint,'friend timeline excludes private research');
+select extensions.is(public.app_get_activity((select id from public.activity_events where title='비공개 매매'),'00000000-0000-0000-0000-000000001971'::uuid),null::jsonb,
+  'friend cannot read trade execution details');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_query=>'비공개 매매')->'items'),0,
+  'friend cannot search trade execution details');
+select extensions.is((select count(*) from public.app_list_recent_activity(20,'00000000-0000-0000-0000-000000001971') where action_type='log_completed_trade'),0::bigint,
+  'friend recent activity omits private trade details');
+select extensions.is((select count(*) from jsonb_array_elements(public.app_list_action_timeline(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_filter=>'done')->'days') day, jsonb_array_elements(day->'items') item where item->'after_data' ? 'trade_quantity'),0::bigint,
+  'friend timeline omits private trade details before pagination');
 
 select * from extensions.finish();
 rollback;

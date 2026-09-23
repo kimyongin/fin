@@ -314,6 +314,13 @@ const createdAtCursorSchema = {
   additionalProperties: false,
   description: 'Use null for the first cursor page, then pass next_cursor unchanged.',
 }
+const tradeCursorSchema = {
+  type: ['object', 'null'],
+  properties: { created_at: timestampSchema, id: { type: 'string', pattern: '^[0-9]+$' } },
+  required: ['created_at', 'id'],
+  additionalProperties: false,
+  description: 'Use null for the first page, then pass next_cursor unchanged.',
+}
 const pageOutputSchema = successEnvelope({
   type: 'object',
   properties: {
@@ -835,13 +842,13 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'list_transactions',
     title: 'Recorded completed trades',
-    description: 'List completed trades recorded in Portfolio, optionally for one account or instrument. For stable pagination, pass cursor:null first and then next_cursor unchanged; omit cursor only for legacy before-based behavior. This is not a complete brokerage statement and excludes legacy or unrecorded trades, balance corrections, orders, and cash movements.',
+    description: 'List completed trades recorded as automatic Portfolio activities, optionally for one account or instrument. For stable pagination, pass cursor:null first and then next_cursor unchanged; omit cursor only for before-based behavior. This is not a complete brokerage statement and excludes deleted legacy or unrecorded trades, balance corrections, orders, and cash movements.',
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'integer', minimum: 1, maximum: 100 },
         before: { type: 'string', format: 'date-time' },
-        cursor: createdAtCursorSchema,
+        cursor: tradeCursorSchema,
         account_id: { type: 'integer', minimum: 1 },
         instrument_id: { type: 'integer', minimum: 1 },
       },
