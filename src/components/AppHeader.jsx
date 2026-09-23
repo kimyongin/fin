@@ -1,16 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { CopyIcon } from './icons'
-
 function AppHeader({
   activeTab,
   pageTitle,
   portfolioLabel = 'Portfolio',
-  copyLabel,
-  copySuccessLabel = '복사했어요',
-  copied,
   friends = [],
-  onCopy,
   onPortfolioChange,
   sharedPortfolioViewLabel,
   sharedViewLabel,
@@ -112,32 +106,6 @@ function AppHeader({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {onCopy && (
-            <div className="relative">
-              <button
-                aria-label={copyLabel}
-                className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition ${
-                  copied
-                    ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                    : 'border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted-ink)] hover:text-[var(--ink)]'
-                }`}
-                onClick={onCopy}
-                title={copyLabel}
-                type="button"
-              >
-                <CopyIcon />
-              </button>
-              <div
-                aria-live="polite"
-                className={`pointer-events-none absolute right-0 top-[calc(100%+0.5rem)] whitespace-nowrap rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-xs font-medium text-[var(--ink)] shadow-lg transition ${
-                  copied ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
-                }`}
-                role="status"
-              >
-                {copySuccessLabel}
-              </div>
-            </div>
-          )}
           <button
             aria-expanded={menuOpen}
             aria-label="Open menu"

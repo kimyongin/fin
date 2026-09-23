@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ModalShell from "../../components/ModalShell";
+import AssetViewToolbar from "../assets/AssetViewToolbar";
 import PrincipleJournal from "./PrincipleJournal";
 import { calculateStrategyDashboard } from "./calculations";
 import { formatKrw, formatPercent } from "../../lib/format";
@@ -691,7 +692,9 @@ function StrategyDashboard({
 }
 
 export default function StrategyPage({
+  assetView,
   canEdit,
+  csvCopied,
   ownerUserId = null,
   supabase,
   tagCards,
@@ -699,7 +702,8 @@ export default function StrategyPage({
   totalValue,
   valuationQuality,
   section = "all",
-  onBack,
+  onAssetViewChange,
+  onCopyCsv,
 }) {
   const [strategyState, setStrategyState] = useState(
     createEmptyStrategyState(),
@@ -745,17 +749,14 @@ export default function StrategyPage({
       setSaving(false);
     }
   }
+  const assetToolbar = section === "allocation" && <AssetViewToolbar copied={csvCopied} onCopyCsv={onCopyCsv} onViewChange={onAssetViewChange} value={assetView} />;
   if (loading)
     return (
-      <p className="mt-8 text-sm text-[var(--muted-ink)]">
-        원칙을 불러오는 중입니다.
-      </p>
+      <div className="grid gap-5">{assetToolbar}<p className="text-sm text-[var(--muted-ink)]">원칙을 불러오는 중입니다.</p></div>
     );
   if (!strategyState.strategy && !canEdit)
     return (
-      <p className="mt-8 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)]">
-        공유된 전략이 아직 없습니다.
-      </p>
+      <div className="grid gap-5">{assetToolbar}<p className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)]">공유된 전략이 아직 없습니다.</p></div>
     );
   if (editing)
     return (
@@ -781,15 +782,7 @@ export default function StrategyPage({
     );
   return (
     <div className="grid gap-5">
-      {onBack && (
-        <button
-          className="min-h-11 w-fit rounded-xl border border-[var(--line)] px-4 text-sm font-semibold"
-          onClick={onBack}
-          type="button"
-        >
-          자산으로 돌아가기
-        </button>
-      )}
+      {assetToolbar}
       {canEdit && section !== "allocation" && (
         <PrincipleJournal supabase={supabase} />
       )}
@@ -814,13 +807,13 @@ export default function StrategyPage({
           showCalculations={section !== "principles"}
         />
       ) : (
-        <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
+        <article className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
           <h2 className="text-lg font-semibold">아직 운용 전략이 없습니다.</h2>
           <p className="mt-2 text-sm text-[var(--muted-ink)]">
             개인 기준과 별도로 목표 비중·적립금·운용 모드를 설정할 수 있습니다.
           </p>
           <button
-            className="mt-4 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white"
+            className="mt-4 min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold"
             onClick={() => setEditing(true)}
             type="button"
           >

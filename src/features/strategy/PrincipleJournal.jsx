@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import ModalShell from '../../components/ModalShell'
+import { PageToolbar } from '../../components/PageControls'
 import { createRequestGate } from '../../lib/requestGate'
 import { fetchPrinciples, savePrinciple } from './data'
 
@@ -83,21 +84,18 @@ export default function PrincipleJournal({ supabase }) {
     }
   }
 
-  return <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h2 className="text-lg font-semibold">나의 원칙</h2>
-        <p className="mt-1 text-sm text-[var(--muted-ink)]">저장한 기준을 하나씩 관리합니다. 변경 전 내용은 날짜를 골라 볼 수 있습니다.</p>
+  return <section className="grid gap-5">
+    <PageToolbar secondary={!onDate && <button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" onClick={() => open()} type="button">원칙 추가</button>}>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex min-h-11 flex-wrap items-center gap-2 text-sm">지난 원칙 보기
+          <input className="min-h-11 max-w-full rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3" type="date" value={onDate} onChange={(event) => changeDate(event.target.value)} />
+        </label>
+        {onDate && <button className="min-h-11 rounded-xl border border-[var(--line)] px-3 text-sm" onClick={() => changeDate('')} type="button">현재로</button>}
       </div>
-      {!onDate && <button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" onClick={() => open()} type="button">원칙 추가</button>}
-    </div>
-    <label className="mt-4 flex flex-wrap items-center gap-2 text-sm">지난 원칙 보기
-      <input className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3" type="date" value={onDate} onChange={(event) => changeDate(event.target.value)} />
-      {onDate && <button className="min-h-11 rounded-xl border border-[var(--line)] px-3" onClick={() => changeDate('')} type="button">현재로</button>}
-    </label>
-    {error && <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-red-300" role="alert"><span>{error}</span>{refreshFailed && <button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => reload().catch((cause) => setError(cause.message ?? '원칙을 다시 불러오지 못했습니다.'))} type="button">목록 다시 불러오기</button>}</div>}
-    <div className="mt-4 grid gap-3">
-      {items.length === 0 && !error && <p className="text-sm text-[var(--muted-ink)]">해당 날짜에 적용 중인 원칙이 없습니다.</p>}
+    </PageToolbar>
+    {error && <div className="flex flex-wrap items-center gap-3 text-sm text-red-300" role="alert"><span>{error}</span>{refreshFailed && <button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => reload().catch((cause) => setError(cause.message ?? '원칙을 다시 불러오지 못했습니다.'))} type="button">목록 다시 불러오기</button>}</div>}
+    <div className="grid gap-3">
+      {items.length === 0 && !error && <p className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)] sm:p-6">해당 날짜에 적용 중인 원칙이 없습니다.</p>}
       {items.map((row) => <article key={row.principle_id} className="rounded-2xl border border-[var(--line)] p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <strong className="text-sm">{kindLabel[row.kind] ?? row.kind}{row.scope ? ` · ${row.scope}` : ''}</strong>

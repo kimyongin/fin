@@ -459,11 +459,7 @@ function App() {
       <div className="mx-auto max-w-6xl">
         <AppHeader
           activeTab={activeTab}
-          copied={activeTab === 'overview' ? copied : false}
-          copyLabel="CSV 복사"
-          copySuccessLabel="CSV를 복사했어요"
           friends={friends}
-          onCopy={activeTab === 'overview' ? handleCopyCsv : undefined}
           onPortfolioChange={!isAnonymousSession && friends.length > 0 ? handlePortfolioChange : undefined}
           onSignOut={signOut}
           onTabChange={handleTabChange}
@@ -512,12 +508,13 @@ function App() {
             accounts={filteredAccountCards}
             assetView={assetView}
             canEdit={canEdit}
+            csvCopied={copied}
             holdingsByAccountId={holdingsByAccountId}
             holdingsByTicker={holdingsByTicker}
             instrumentTagFilter={instrumentTagFilter}
             instruments={filteredInstrumentRows}
             onAssetViewChange={setAssetView}
-            onCompareTargets={() => setAssetView('allocation')}
+            onCopyCsv={handleCopyCsv}
             onCreateAccount={() => openAccountModal()}
             onCreateHolding={(ticker) => openHoldingModal({ ticker })}
             onCreateInstrument={() => openInstrumentModal()}
@@ -544,8 +541,11 @@ function App() {
         )}
         {activeTab === 'overview' && assetView === 'allocation' && (
           <StrategyPageView
+            assetView={assetView}
             canEdit={canEdit}
-            onBack={() => setAssetView('tags')}
+            csvCopied={copied}
+            onCopyCsv={handleCopyCsv}
+            onAssetViewChange={setAssetView}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             section="allocation"
             supabase={supabase}

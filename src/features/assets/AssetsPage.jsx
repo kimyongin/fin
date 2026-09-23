@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { assetViewOptions } from "../../constants/portfolio";
 import { PencilIcon } from "../../components/icons";
 import MetricSummary from "../../components/MetricSummary";
-import { PageToolbar, ViewTabs } from "../../components/PageControls";
+import AssetViewToolbar from "./AssetViewToolbar";
 import PortfolioEntityHeader from "../../components/PortfolioEntityHeader";
 import {
   AccountIdentity,
@@ -164,9 +163,8 @@ function TagActionToolbar({
 function Overview({ cards, totalValue }) {
   if (!cards.length) {
     return (
-      <section className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)]">
-        <h2 className="text-lg font-semibold">자산</h2>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted-ink)]">
+      <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+        <p className="text-sm leading-6 text-[var(--muted-ink)]">
           아직 보유 항목이 없습니다. 계좌와 종목을 만든 뒤 보유 수량을 입력하면
           태그 비중과 계좌별 현황이 여기에 보입니다.
         </p>
@@ -606,13 +604,14 @@ export default function AssetsPage({
   accounts,
   assetView,
   canEdit,
+  csvCopied,
   holdingsByAccountId,
   holdingsByTicker,
   instrumentTagFilter,
   instruments,
   onAccountTagFilterChange,
   onAssetViewChange,
-  onCompareTargets,
+  onCopyCsv,
   onCreateAccount,
   onCreateHolding,
   onCreateHoldingForAccount,
@@ -683,9 +682,7 @@ export default function AssetsPage({
   return (
     <section className="grid gap-4">
       <div className="grid gap-4">
-        <PageToolbar secondary={<button className="min-h-11 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]" onClick={onCompareTargets} type="button">목표와 비교</button>}>
-          <ViewTabs ariaLabel="자산 보기 전환" className="grid-cols-4" idBase="asset-view" onChange={onAssetViewChange} options={assetViewOptions} panelId="asset-view-panel" value={assetView} />
-        </PageToolbar>
+        <AssetViewToolbar copied={csvCopied} onCopyCsv={onCopyCsv} onViewChange={onAssetViewChange} value={assetView} />
         {(assetView === "accounts" || assetView === "instruments") && <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           {assetView === "accounts" ? (
             <TagActionToolbar

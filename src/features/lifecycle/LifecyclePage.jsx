@@ -205,11 +205,6 @@ function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled,
 
   return (
     <section className="grid gap-5">
-      <header className="grid gap-3">
-        <p className="text-sm leading-6 text-[var(--muted-ink)]">해야 할 일과 실제로 수행한 활동, 그 근거가 된 판단을 한곳에서 이어서 봅니다.</p>
-        {!ownerUserId && <a className="w-fit text-xs text-[var(--muted-ink)] underline hover:text-[var(--ink)]" href="#tasks">활동에서 조사 보기</a>}
-      </header>
-
       <div className="grid gap-5" id="lifecycle-panel">
         {error && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}</p>}
         {activityTagsError && <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert"><span>{activityTagsError}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={reloadActivityTags} type="button">다시 시도</button></div>}

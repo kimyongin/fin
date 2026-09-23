@@ -73,7 +73,27 @@ test('guides a new user from empty assets through OAuth setup and first review',
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('keeps the saved strategy visible when valuation is incomplete', async ({ page }) => {
+test('keeps the four primary page controls readable across viewport widths', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const [hash, title] of [
+      ['today', '오늘'],
+      ['overview', '자산'],
+      ['tasks', '활동'],
+      ['strategy', '원칙'],
+    ]) {
+      await page.goto(`/#${hash}`)
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
+      if (hash === 'overview') await expect(page.getByRole('tablist', { name: '자산 보기 전환' })).toBeVisible()
+      if (hash === 'tasks') await expect(page.getByRole('group', { name: '활동 목록 필터' })).toBeVisible()
+      if (hash === 'strategy') await expect(page.getByText('지난 원칙 보기')).toBeVisible()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    }
+  }
+})
+
+test('keeps the saved strategy visible when opening allocation', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await callRpc(page, 'app_save_strategy', {
@@ -85,7 +105,7 @@ test('keeps the saved strategy visible when valuation is incomplete', async ({ p
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toHaveCount(0)
   await openMenuTab(page, '자산')
   await page.getByRole('button', { name: '목표와 비교' }).click()
-  await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toBeVisible()
+  await expect(page.getByText('E2E Display Strategy')).toBeVisible()
   await expect(page).toHaveURL(/#allocation$/)
   await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
   await expect(page).toHaveURL(/#overview$/)

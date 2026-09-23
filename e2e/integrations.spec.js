@@ -48,14 +48,17 @@ test('handles mocked ticker-lookup Edge Function success and failure in the hold
   await expect.poll(() => calls).toBe(2)
 })
 
-test('copies the visible portfolio as CSV from the browser header', async ({ context, page }) => {
+test('copies the visible portfolio as CSV from the asset toolbar', async ({ context, page }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await openMenuTab(page, '자산')
   await page.getByRole('button', { name: 'CSV 복사' }).click()
+  await expect(page.getByRole('status').getByText('CSV를 복사했어요')).toBeVisible()
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('티커')
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('E2EAPL')
+  await page.getByRole('button', { name: '목표와 비교' }).click()
+  await expect(page.getByRole('button', { name: 'CSV 복사' })).toBeVisible()
 })
 
 test('renders saved data in every asset view', async ({ page }) => {

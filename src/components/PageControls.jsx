@@ -67,7 +67,7 @@ export function PageToolbar({ children, secondary }) {
   return (
     <div className="grid gap-3 border-b border-[var(--line)] pb-4 sm:flex sm:items-center sm:justify-between">
       <div className="min-w-0">{children}</div>
-      {secondary && <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">{secondary}</div>}
+      {secondary && <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">{secondary}</div>}
     </div>
   )
 }
