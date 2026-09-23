@@ -441,20 +441,6 @@ const policyPatchSchema = {
   additionalProperties: false,
 }
 
-const holdingThesisPatchSchema = {
-  type: 'object',
-  properties: {
-    reason_text: { type: ['string', 'null'], maxLength: 10000 },
-    horizon_text: { type: ['string', 'null'], maxLength: 4000 },
-    review_condition_text: { type: ['string', 'null'], maxLength: 4000 },
-    next_review_date: { type: ['string', 'null'], format: 'date' },
-    related_decision_id: { type: ['string', 'null'], format: 'uuid' },
-    is_active: { type: 'boolean' },
-  },
-  minProperties: 1,
-  additionalProperties: false,
-}
-
 export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_workflow_guide',
@@ -587,7 +573,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_daily_context',
     title: 'Prepare daily review context',
-    description: 'Start a daily review by creating one short-lived owner-only snapshot. It includes current principles and private_holding_notes; treat older investment_policy and holding_theses keys as transition copies, not the new source. Use the snapshot instead of separately reading portfolio, strategy, saved news, and activity for the same review. It does not save an analysis, mark a review complete, or fetch public news.',
+    description: 'Start a daily review by creating one short-lived owner-only snapshot. It includes current principles and private_holding_notes; treat the older investment_policy key as a transition copy, not the new source. Use the snapshot instead of separately reading portfolio, strategy, saved news, and activity for the same review. It does not save an analysis, mark a review complete, or fetch public news.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1161,48 +1147,6 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
   {
-    name: 'get_holding_thesis',
-    title: 'Holding thesis',
-    description: 'Read the explicitly saved reason for holding one instrument. With account_id, returns both the instrument-wide base and any account override, plus the applied source. Missing fields remain unknown and instrument or holding notes are separate.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        instrument_id: { type: 'integer', minimum: 1 },
-        account_id: { type: ['integer', 'null'], minimum: 1 },
-      },
-      required: ['instrument_id'],
-      additionalProperties: false,
-    },
-    outputSchema: successEnvelopeSchema,
-    annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'save_holding_thesis',
-    title: 'Save holding thesis',
-    description: 'Use only when the user explicitly asks to save or change why they hold an instrument. Omit account_id for the instrument-wide base or provide an account that currently holds it for an override. Read the current version first, patch only stated fields, and never invent a reason or review date. This does not change notes, holdings, trades, decisions, or tasks.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        schema_version: { const: 1 },
-        instrument_id: { type: 'integer', minimum: 1 },
-        account_id: { type: ['integer', 'null'], minimum: 1 },
-        expected_version: { type: ['integer', 'null'], minimum: 1 },
-        idempotency_key: { type: 'string', format: 'uuid' },
-        patch: holdingThesisPatchSchema,
-        change_reason: { type: 'string', minLength: 1, maxLength: 1000 },
-      },
-      required: ['schema_version', 'instrument_id', 'expected_version', 'idempotency_key', 'patch', 'change_reason'],
-      additionalProperties: false,
-    },
-    outputSchema: successEnvelopeSchema,
-    annotations: idempotentWriteAnnotations,
-  },
-  {
-    name: 'link_task_to_holding_thesis', title: 'Link a follow-up task to a holding thesis',
-    description: 'Link an existing owner task to an existing holding thesis after reading both current versions. This preserves the relationship only and never changes the thesis, task state, holding, or trades.',
-    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, thesis_id: { type: 'string', format: 'uuid' }, task_id: { type: 'string', format: 'uuid' }, expected_thesis_version: { type: 'integer', minimum: 1 }, expected_task_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','thesis_id','task_id','expected_thesis_version','expected_task_version','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
-  },
-  {
     name: 'preview_trade_entry',
     title: 'Preview a completed trade entry',
     description: 'Preview how a user-reported completed market buy or sell would change one account holding. Use decimal strings for quantity and execution price. This does not place an order, move cash, save a trade, or verify the brokerage balance.',
@@ -1356,9 +1300,6 @@ export const operatingRuleToolNames = [
 export const holdingThesisToolNames = [
   'list_private_holding_notes',
   'save_private_holding_note',
-  'get_holding_thesis',
-  'save_holding_thesis',
-  'link_task_to_holding_thesis',
 ] as const
 
 export const tradeEntryToolNames = [

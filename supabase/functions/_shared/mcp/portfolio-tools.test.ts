@@ -238,15 +238,11 @@ describe('portfolio MCP tool definitions', () => {
     expect(guide.boundaries.join(' ')).toContain('Legacy ToDo bundle tools and storage are retired')
   })
 
-  it('keeps holding theses explicit, scoped, and separate from holdings', () => {
-    const read = tool('get_holding_thesis')
-    const save = tool('save_holding_thesis')
-    expect(read.annotations.readOnlyHint).toBe(true)
-    expect(save.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
-    expect((save.inputSchema as any).properties.account_id.type).toEqual(['integer', 'null'])
-    expect((save.inputSchema as any).properties.expected_version.type).toEqual(['integer', 'null'])
-    expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('quantity')
-    expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('note')
+  it('removes the parallel holding thesis tools', () => {
+    const names = portfolioToolDefinitions.map((definition) => definition.name)
+    expect(names).not.toContain('get_holding_thesis')
+    expect(names).not.toContain('save_holding_thesis')
+    expect(names).not.toContain('link_task_to_holding_thesis')
   })
 
   it('advertises the direct private holding-note path without financial writes', () => {

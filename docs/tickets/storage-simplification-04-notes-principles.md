@@ -5,6 +5,8 @@ GitHub: https://github.com/kimyongin/fin/issues/89
 
 ## 구현 기록 (2026-09-23)
 
+- 추가 물리 정리 슬라이스: 운영·로컬에서 비어 있는 구 보유 이유 5개 테이블과 전용 RPC/종료 트리거를 삭제하는 증분 migration을 작성했다. 비공개 보유 메모는 유지하고 오늘 점검 snapshot의 구 `holding_theses` 복사본을 제거했다. 신규/기존 MCP 세션에서 구 도구를 더는 호출할 수 없게 처리기·정의를 제거했다. 격리 DB 35개 파일/536개 assertion, MCP 계약, Chromium 34개 시나리오 통과. 일반 로컬/운영에는 미적용이다.
+
 - 로컬 증분 migration으로 단일 `principles` 테이블에 실제 과거 정책/운영 규칙과 현재 값을 복사했다. 기존 테이블은 아직 지우지 않았으며 원문 백업/대조가 필요하다.
 - `app_list_principles`/`app_save_principle`의 소유자 격리·현재/날짜 조회·종료·동일 재시도·수정 행을 pgTAP 14건으로 검증했다. 현재 조회에 트랜잭션 시작 시각을 쓰면 방금 저장한 행이 보이지 않는 문제를 후속 migration에서 수정했다.
 - 앱의 원칙 목록/편집과 MCP `list_principles`/`save_principle`, policy workflow guide를 연결했다. `npm test` 109건, build, 가이드 검사 통과. Deno가 현재 PATH에 없어서 edge typecheck 미실행. 전체 DB 테스트에는 기존 `price_sync_contract_test`의 `sync_runs` 누락, `todo_bundle_test`의 UUID fixture 오류가 남는다.

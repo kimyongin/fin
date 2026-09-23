@@ -54,9 +54,9 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_activity_report_context / observed-local | 지정 기간 활동의 최신 현재 내용과 태그를 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |
 | list_activity_reports / observed-local | 저장된 일간·주간·월간 활동 리포트와 포함 활동 수정·기간 이동·새 원본에 따른 재생성 필요 상태를 조회합니다. 자동 재작성하지 않습니다. | A06 |
 | save_activity_report / observed-local | 사용자가 요청한 기간 회고를 원본 event/task/decision ID와 함께 버전 저장합니다. 자동 생성이나 투자 행동 기록은 만들지 않습니다. | A06 |
-| get_holding_thesis / legacy-hidden | 구 보유 이유 조회. 기존 세션 호환 호출만 허용하며 새 세션은 `list_private_holding_notes`를 사용합니다. | W02 |
-| save_holding_thesis / legacy-hidden | 구 보유 이유 저장. 기존 세션 호환 호출만 허용하며 새 세션은 `save_private_holding_note`를 사용합니다. | W02 |
-| link_task_to_holding_thesis / legacy-hidden | 구 보유 이유-할 일 연결. 새 세션은 필요한 후속 할 일을 직접 등록합니다. | W02,W04 |
+| get_holding_thesis / removed | 구 보유 이유 조회 도구와 DB RPC를 제거했다. `list_private_holding_notes`를 사용합니다. | W02 |
+| save_holding_thesis / removed | 구 보유 이유 저장 도구와 DB RPC를 제거했다. `save_private_holding_note`를 사용합니다. | W02 |
+| link_task_to_holding_thesis / removed | 구 보유 이유-할 일 연결 도구와 DB RPC를 제거했다. 필요한 후속 할 일은 직접 등록합니다. | W02,W04 |
 | preview_trade_entry / observed-local | 이미 체결된 시장형 매매 입력이 현재 수량·평균가를 어떻게 바꾸는지 서버에서 미리 계산합니다. 저장·주문·현금 이동·잔고 확인은 하지 않습니다. | W05 |
 | log_completed_trade / observed-local | 사용자가 기록을 요청한 완료 매매의 유효한 preview를 멱등 확정해 로컬 수량·평균가를 갱신합니다. 증권사 주문이나 잔고 확인은 하지 않습니다. | W05 |
 | list_transactions / observed-local | Portfolio 새 원장에 기록한 완료 체결을 읽습니다. 증권사 전체 거래내역이나 legacy/미입력 거래까지 완전하다고 설명하지 않습니다. | W05,W06 |

@@ -109,6 +109,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/20260922185907_private_holding_notes.sql',
+      'supabase/migrations/20260923035616_retire_holding_thesis_storage.sql',
     ],
     steps: [
       { id: 'resolve-holding', title: 'Resolve the instrument and account', instruction: 'Use find_holdings when the instrument or account is ambiguous. Ask the user to choose when multiple candidates remain.', tools: ['find_holdings'] },
