@@ -25,7 +25,7 @@
 
 - 증분 migration은 기존 파일을 수정하지 않고 분리 `.e2e` 인스턴스에 적용한다. 일반 로컬 DB와 운영 DB는 변경하지 않았다.
 - 최신 `20260923082415` migration까지 분리 DB 36파일/497검증, OAuth·토큰 MCP 계약, Chromium 35개 시나리오를 묶은 전체 `npm run test:e2e`가 통과했다. 대표 모바일 매매·보정, 자산 뷰/표 편집, 반복 할 일, 태그/검색, 친구 공유, 피드백 등을 포함한다.
-- `npm test`, `npm run build`, `npm run check:encoding`, `npm run check:workflow-guides`를 별도 확인한다. `npm run check:edge`는 이 PC에 Deno가 없어 미실행 상태로 남긴다.
+- `npm test` 19파일/94건, `npm run build`, `npm run check:encoding`, `npm run check:workflow-guides`를 확인했다. 시스템 PATH에는 Deno가 없지만 임시 npm Deno 2.9.6으로 5개 Edge 진입점에 동일 `deno check --no-lock --node-modules-dir=none` 인자를 실행해 통과했다. 처음에는 빈 구 도구 필터의 TypeScript 추론 오류를 발견해 제거하고 재검증했다. 이후 OAuth 서버 안내 변경까지 포함해 격리 DB 497건, MCP 계약, 신규 사용자 브라우저 시나리오 1건을 재실행해 통과했다. CI의 독립 실행은 배포 시 다시 확인한다.
 - E2E의 가상 인증은 실제 Google 로그인, 운영 OAuth, ChatGPT 웹·모바일 동작을 증명하지 않는다. 실사용 검증은 운영 배포 뒤 별도 기록한다.
 - 360·390·768·1024·1440px와 빈값/긴값/공유 상태의 실제 화면 점검은 앱 전체 수동 QA가 남아 있다. 자동 Chromium 테스트는 대표 모바일/데스크톱 흐름을 다룬다.
 

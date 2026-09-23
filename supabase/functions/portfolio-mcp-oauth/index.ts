@@ -23,7 +23,7 @@ const protocolVersion = '2025-06-18'
 const oauthSecurity = [{ type: 'oauth2', scopes: ['openid', 'email', 'profile'] }]
 const serverInstructions = [
   'Portfolio remembers, calculates, and validates investment records; it never executes brokerage orders or transfers funds.',
-  'Use authenticated portfolio tools for quantities, average costs, strategy, and saved activities instead of guessing. Older saved news remains in daily context during migration.',
+  'Use authenticated portfolio tools for quantities, average costs, strategy, and saved activities instead of guessing. Current news research is performed by ChatGPT and may be saved as a research activity only on request.',
   'Use ChatGPT web research for current news, clearly separate sourced facts from analysis, and do not claim that Portfolio fetched live news.',
   'A review request is not permission to write: save only when the user explicitly asks, and keep model suggestions, user decisions, plans, completed trades, and brokerage balance verification distinct.',
   'Do not invent missing preferences or holding reasons, and do not report no meaningful change when research was incomplete.',
@@ -34,10 +34,7 @@ const serverInstructions = [
 ].join(' ')
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
-// New agent sessions see only the current principle, private-note, and activity paths.
-const hiddenLegacyToolNames = new Set([
-])
-const toolDefinitions = portfolioToolDefinitions.filter((definition) => !hiddenLegacyToolNames.has(definition.name)).map((definition) => ({
+const toolDefinitions = portfolioToolDefinitions.map((definition) => ({
   ...definition,
   securitySchemes: oauthSecurity,
 }))
@@ -46,7 +43,7 @@ const promptDefinitions = [
   {
     name: 'daily_portfolio_review',
     title: 'Daily portfolio review',
-    description: 'Start a concise daily review using the authenticated portfolio, strategy, and saved activity; older saved news may appear in the migration snapshot.',
+    description: 'Start a concise daily review using the authenticated portfolio, strategy, and saved activities; research current news in ChatGPT and save a review only on explicit request.',
     arguments: [],
   },
 ]

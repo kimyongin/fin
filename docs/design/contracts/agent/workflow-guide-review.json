@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Verification is now the latest private holding checkpoint plus one automatic activity; clarified MCP description.",
+  "review_reason": "Removed obsolete empty legacy tool filter and corrected MCP server guidance after news storage retirement; workflow topics unchanged.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:8a78544b",
-      "contract_digest": "81245f8c89520957b1f211a016da8de73c497b1518fe4b6f4287f053d736be92"
+      "contract_digest": "f49aa44d5f2febf12c9c39ff0a750215604e59fa515b261a7ab050ee4a01abc7"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "c2f6e268a2847edb058cc541667a911513abbd13d882ba13017257787e773448"
+      "contract_digest": "eee0b20de6d7dabbe0663ac0f09743cdf3124c79cd6f86e993e5f63128eb7106"
     },
     "daily_review": {
       "revision": "fnv1a32:1743d26a",
-      "contract_digest": "c759b72f32c45f09140085f273e0b74bff39e8ee1a344202dd7c65feaa62591e"
+      "contract_digest": "4d5b544874c0fd452aea6f947706de324034774b6f03bdf8f271a432278ca349"
     },
     "decision_followup": {
       "revision": "fnv1a32:55c68510",
-      "contract_digest": "29185bffea3580a06c48b6c65d5cc81e445a89c4589e169fd3701e7ead4ba604"
+      "contract_digest": "7f8a7145f0f8a8d4cb70a9ee2e929435a56cbf0ee6f9190067f8a552f8164151"
     },
     "trade_entry": {
       "revision": "fnv1a32:497bf056",
-      "contract_digest": "d19b9315a20ea83dd6c89223c0b47b736709caee192a3cf6547c90f8be697aaf"
+      "contract_digest": "a93fdd1429a79641a0b7f87b263721b8e292c072aea5e06fba127d6e99b2b3fb"
     },
     "reconciliation": {
       "revision": "fnv1a32:1fa0dea4",
-      "contract_digest": "8a0d64514567772677cf5103909120d2b738bf12e26259af8f0291a5175ecdab"
+      "contract_digest": "37b8314c76bda8f8f422ecc8e01a2cfcbd8346b9d8bcfae380b457dadba8bd8b"
     },
     "todo": {
       "revision": "fnv1a32:2803dfd7",
-      "contract_digest": "07d940bb6c8abd809364b74404df22783d1fc6058dc149db4d2cdbfcbcc07caf"
+      "contract_digest": "06626505b7397e36a8d764903d71da63b4f5d69beef91a33571760bc1c7cea90"
     },
     "activity_report": {
       "revision": "fnv1a32:f0d9274f",
-      "contract_digest": "8da0fe1138b70b03a29b63088a9a39cbe81c1fd233c628ddad0afef586afff12"
+      "contract_digest": "6b39db631374298331ec598e929e07c5a2b0613da1a6c517d41a9b0428ac5229"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "48a9aaf30a0f45e9c5566dbb178bddde6190a16fa521b416ba994c3405dd2835"
+      "contract_digest": "ef4c5e8f5965229034550a1c15c80ab5f5d67863a10e3f94e9db8be12395db4d"
     }
   }
 }
