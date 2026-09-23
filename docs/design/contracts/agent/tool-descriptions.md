@@ -32,13 +32,13 @@ revision 12 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | archive_operating_rule / removed | 별도 보관 상태를 제거했다. 해당 원칙에 `end=true`를 저장합니다. | W06 |
 | list_general_tasks / observed-local | 본인의 미래 할 일을 상태별로 읽습니다. 이미 수행한 활동이나 실제 매매 내역을 대신하지 않습니다. | A02,A04 |
 | get_general_task / observed-local | 일반 할 일의 현재 상태·버전과 연결된 실제 수행 활동을 읽습니다. 별도 수정 이력은 저장하지 않으며 조회로 회차를 완료하거나 재개하지 않습니다. | A02,A04 |
-| save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 저장합니다. 활동에서 직접 이어진 할 일은 origin_activity_id로 선택 연결합니다. | A02,A04 |
+| save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 독립된 할 일로 저장합니다. | A02,A04 |
 | transition_general_task / observed-local | 현재 version과 회차 날짜를 확인해 일반 할 일의 이번 완료・잘못된 완료 해제・반복 전체 종료를 처리합니다. 반복 종료는 수행하지 않은 회차의 완료 기록을 만들지 않으며, 같은 일을 manual activity로 중복 기록하지 않습니다. | A02,A04 |
-| get_activity / observed-local | 활동의 현재 제목·메모·결과·결론, 편집 허용 필드, 원본 대상 ID, 수행 태스크와 후속 할 일을 조회합니다. 판단 활동 자체가 판단 기록의 정본입니다. | A03 |
+| get_activity / observed-local | 활동의 현재 제목·메모·결과·결론, 편집 허용 필드와 조회 권한이 있는 관련 할 일 요약을 조회합니다. 판단 활동 자체가 판단 기록의 정본입니다. | A03 |
 | record_manual_activity / observed-local | 이미 수행한 일을 일반·조사·점검·판단·회고 중 하나의 활동으로 기록합니다. 판단은 category=decision과 문맥의 제안/명시적 채택을 구분합니다. 점검은 category=review, 조사 상태·범위·출처는 context로 기록합니다. 분류만으로 잔고·체결·검증 사실을 만들 수 없습니다. | A03,W01,W03 |
 | update_activity / observed-local | 같은 수행의 현재 활동을 수정합니다. 수동 기록은 비금융 분류와 출처/범위도 정정할 수 있지만, 할 일 완료·금융 자동 기록의 분류와 원본 사실은 보호합니다. | A03 |
-| delete_manual_activity / observed-local | 명시적으로 요청받은 수동 활동만 삭제합니다. 후속 할 일과 기존 회고 본문은 유지하고 검색·임베딩에서는 제거합니다. 매매·잔고·할 일 완료 기록은 이 도구로 삭제하지 않습니다. | A03 |
-| search_activities / observed-local | 할 일과 한 일을 기간·상태·결론·종목·계좌·활동 태그·키워드로 함께 검색합니다. 선택적 `record_kinds` 배열 내부는 OR, 다른 조건과는 AND이며 빈 배열은 전체 종류입니다. 종류 조건이 있으면 키워드 검색만 적용합니다. 그 외 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 실행 여부를 알립니다. 공유 점검은 공개 요약만 검색하며 비공개 메모·태그·출처는 제외합니다. | A03,A06 |
+| delete_manual_activity / observed-local | 명시적으로 요청받은 수동 활동만 삭제합니다. 기존 할 일과 회고 본문은 유지하고 검색·임베딩에서는 제거합니다. 매매·잔고·할 일 완료 기록은 이 도구로 삭제하지 않습니다. | A03 |
+| search_activities / observed-local | 할 일과 기록을 기간·상태·결론·종목·계좌·활동 태그·키워드로 함께 검색합니다. 선택적 `record_kinds` 배열 내부는 OR, 다른 조건과는 AND이며 빈 배열은 전체 종류입니다. 종류 조건이 있으면 키워드 검색만 적용합니다. 그 외 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 실행 여부를 알립니다. 공유 점검은 공개 요약만 검색하며 비공개 메모·태그·출처는 제외합니다. | A03,A06 |
 | list_activity_tags, save_activity_tag, delete_activity_tag / observed-local | 자산 배분과 분리된 사용자 활동 태그 사전을 조회·추가·이름 변경·삭제합니다. | A03 |
 | set_activity_tags, set_general_task_tags / observed-local | 활동 또는 일반 할 일의 태그 집합을 교체합니다. 완료 시 현재 태그만 복사되고 과거 회차는 바뀌지 않습니다. | A03 |
 | get_activity_report_context / observed-local | 지정 기간 활동의 최신 현재 내용과 태그를 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |

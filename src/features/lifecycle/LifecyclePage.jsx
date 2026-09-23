@@ -130,17 +130,15 @@ function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, ini
     } finally { if (request.isCurrent()) setActivityDetailLoading(false) }
   }
 
-  async function refreshActivityDetail(saved, options = {}) {
+  async function refreshActivityDetail(saved) {
     setActionRefreshKey((value) => value + 1)
     if (activeActivityId.current !== saved?.id) return
     const request = activityRequestGate.current.begin()
     setActivityDetail(saved)
-    if (options.reload || !saved?.follow_up_tasks) {
-      try {
-        const loaded = await fetchActivity(supabase, saved.id, ownerUserId)
-        if (request.isCurrent()) setActivityDetail(loaded)
-      } catch { /* 목록 새로고침으로 복구 */ }
-    }
+    try {
+      const loaded = await fetchActivity(supabase, saved.id, ownerUserId)
+      if (request.isCurrent()) setActivityDetail(loaded)
+    } catch { /* 목록 새로고침으로 복구 */ }
   }
 
   function dismissActivityDetail() {
@@ -223,7 +221,7 @@ function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, ini
         /> : canViewReviews ? <ReviewHistoryPage ownerUserId={ownerUserId} supabase={supabase} /> : null}
       </div>
       {detail && <GeneralTaskDetail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} />}
-      {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onOpenTask={(id) => { dismissActivityDetail(); openDetail('tasks', id) }} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} onTagsChanged={updateActivityTags} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
+      {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} onTagsChanged={updateActivityTags} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onRetryTags={reloadActivityTags} onSave={saveGeneralAction} onTagsChanged={updateActivityTags} saving={savingGeneral} supabase={supabase} tags={activityTags} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
     </section>
   )

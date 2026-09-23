@@ -67,23 +67,22 @@ select extensions.is(
 );
 
 select extensions.is(
-  public.app_create_activity_follow_up(
-    (select id from activity_events where title='실적 자료 확인'),
-    '19777777-7777-4777-8777-777777777777',
+  public.app_save_general_task(null,null,'19777777-7777-4777-8777-777777777777',
     jsonb_build_object('title','다음 실적 확인','subject',jsonb_build_object('kind','portfolio'),
-      'due_date',(current_date+30)::text,'timezone','Asia/Seoul','recurrence_kind','none','authored_via','app')
-  )->>'origin_event_id',
-  (select id::text from activity_events where title='실적 자료 확인'),
-  'creates a follow-up linked to one origin activity'
-);
-select extensions.is((select count(*) from portfolio_tasks where origin_event_id=(select id from activity_events where title='실적 자료 확인')),1::bigint,'one activity can expose its follow-up task');
-select extensions.is(jsonb_array_length(public.app_get_activity((select id from activity_events where title='실적 자료 확인'),null)->'follow_up_tasks'),1,'activity detail returns follow-up tasks');
-select extensions.is(public.app_create_activity_follow_up(
-    (select id from activity_events where title='실적 자료 확인'),'19777777-7777-4777-8777-777777777777',
-    jsonb_build_object('title','다음 실적 확인','subject',jsonb_build_object('kind','portfolio'),
-      'due_date',(current_date+30)::text,'timezone','Asia/Seoul','recurrence_kind','none','authored_via','app')
-  )->>'title','다음 실적 확인','follow-up retry returns the same task');
-select extensions.is((select count(*) from portfolio_tasks where title='다음 실적 확인'),1::bigint,'follow-up retry does not duplicate task');
+      'trigger_text','실적 발표 확인','due_date',(current_date+30)::text,
+      'timezone','Asia/Seoul','recurrence_kind','none','authored_via','app'))->>'title',
+  '다음 실적 확인','future intent is an independent task');
+select extensions.is((select count(*) from information_schema.columns where table_schema='public' and table_name='portfolio_tasks' and column_name='origin_event_id'),0::bigint,'reverse follow-up column is retired');
+select extensions.is(public.app_transition_general_task(
+  (select id from portfolio_tasks where title='다음 실적 확인'),1,'complete','실적 확인 완료',null,
+  null,'19888888-8888-4888-8888-888888888888','app') #>> '{status}',
+  'done','completing a task creates a performed fact');
+select extensions.is(public.app_get_activity(
+  (select id from activity_events where action_type='complete_general_task' and title='다음 실적 확인'),null) #>> '{origin_task,title}',
+  '다음 실적 확인','completion detail includes the original task title');
+select extensions.is(public.app_get_activity(
+  (select id from activity_events where action_type='complete_general_task' and title='다음 실적 확인'),null) #>> '{origin_task,trigger_text}',
+  '실적 발표 확인','completion detail includes the original task instructions');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001902',true);
 select extensions.is(public.app_get_activity((select id from activity_events where title='실적 자료 확인'),null),null,'another user cannot read the activity');

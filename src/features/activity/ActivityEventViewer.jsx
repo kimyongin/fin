@@ -170,7 +170,7 @@ export function ActivityEvent({ action, onOpenActivity }) {
       <time className="text-xs text-[var(--muted-ink)] sm:pt-1">{formatTime(action.occurred_at ?? action.created_at)}</time>
       <article className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <ActivityKindBadge kind={action.record_kind} />
+          <ActivityKindBadge completed={action.action_type === 'complete_general_task'} kind={action.record_kind} />
           {onOpenActivity ? <button className="text-left text-sm font-semibold text-[var(--ink)] hover:text-[var(--accent)]" onClick={() => onOpenActivity(action)} type="button">{eventTarget(action)}</button> : <h3 className="text-sm font-semibold text-[var(--ink)]">{eventTarget(action)}</h3>}
           {!narrativeActivity && <span className="text-sm text-[var(--muted-ink)]">{actionLabels[action.action_type] ?? action.action_type}</span>}
           <span className={`rounded-full border px-2 py-0.5 text-xs ${failed ? 'border-red-400/40 text-red-100' : 'border-[var(--line)] text-[var(--muted-ink)]'}`}>{failed ? '실패' : action.source === 'agent' ? '에이전트' : '앱'}</span>

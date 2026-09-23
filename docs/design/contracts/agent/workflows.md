@@ -18,7 +18,7 @@ revision 5 · observed-local 도구와 배포 후 검증이 필요한 흐름을 
 
 ## W03 — 제안·채택·대체 (S10,S13,S14)
 
-제안은 proposed, 사용자의 명확한 선택만 adopted다. 판단은 `record_manual_activity(category=decision)`로 기록하고 같은 판단의 정정·채택은 `get_activity` 뒤 `update_activity`로 수정한다. ‘유지하고 다음 실적에 확인’은 판단 활동과 선택적 일반 할 일을 별도로 저장하고 후속 할 일의 `origin_activity_id`로 연결한다. 새 제안만으로 과거 채택 판단을 자동 변경하지 않는다. 계획은 체결이 아니다.
+제안은 proposed, 사용자의 명확한 선택만 adopted다. 판단은 `record_manual_activity(category=decision)`로 기록하고 같은 판단의 정정·채택은 `get_activity` 뒤 `update_activity`로 수정한다. ‘유지하고 다음 실적에 확인’은 판단 활동과 선택적 일반 할 일을 각각 저장한다. 새 제안만으로 과거 채택 판단을 자동 변경하지 않는다. 계획은 체결이 아니다.
 
 ## W04 — 조사 질문·정정 자료 (S11,S12)
 

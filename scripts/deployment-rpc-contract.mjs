@@ -2,7 +2,6 @@
 export const requiredMutationSignatures = {
   app_create_activity_with_tags: ['input_idempotency_key', 'input_payload', 'input_tag_ids'],
   app_create_general_task_with_tags: ['input_idempotency_key', 'input_payload', 'input_tag_ids'],
-  app_create_activity_follow_up: ['input_idempotency_key', 'input_origin_event_id', 'input_payload'],
   app_save_principle: ['input_body', 'input_end', 'input_expected_row_id', 'input_kind', 'input_principle_id', 'input_scope'],
   app_set_activity_tags: ['input_activity_id', 'input_expected_version', 'input_idempotency_key', 'input_tag_ids'],
   app_transition_general_task: ['input_action', 'input_authored_via', 'input_expected_version', 'input_idempotency_key', 'input_occurrence_on', 'input_reason', 'input_result', 'input_task_id'],

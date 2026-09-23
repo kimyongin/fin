@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
-  createActivityFollowUp,
   fetchActivity,
   fetchActivityTags,
   fetchDecisionActivities,
@@ -48,14 +47,13 @@ describe('decision and task data adapters', () => {
     })
   })
 
-  it('creates, reads, edits, and follows up one activity without exposing storage types', async () => {
+  it('creates, reads, and edits one activity without exposing storage types', async () => {
     const supabase = { rpc: vi.fn(async (_name, params) => ({ data: { id: params.input_activity_id ?? 7, version: 1 }, error: null })) }
     const idempotencyKey = crypto.randomUUID()
 
     await recordManualActivity(supabase, { title: '실적 확인', result: '보유', conclusion: '유지', idempotencyKey })
     await fetchActivity(supabase, 7)
     await updateActivity(supabase, { id: 7, version: 1 }, { result: '다음 달 재확인' })
-    await createActivityFollowUp(supabase, 7, { title: '다음 실적 확인', dueDate: '2026-10-23', idempotencyKey })
 
     expect(supabase.rpc.mock.calls[0]).toEqual(['app_create_activity_with_tags', {
       input_idempotency_key: idempotencyKey,
@@ -68,14 +66,7 @@ describe('decision and task data adapters', () => {
     expect(supabase.rpc.mock.calls[1]).toEqual(['app_get_activity', { input_activity_id: 7, input_owner_user_id: null }])
     expect(supabase.rpc.mock.calls[2][0]).toBe('app_update_activity')
     expect(supabase.rpc.mock.calls[2][1]).toMatchObject({ input_activity_id: 7, input_expected_version: 1, input_patch: { result: '다음 달 재확인' } })
-    expect(supabase.rpc.mock.calls[3]).toEqual(['app_create_activity_follow_up', {
-      input_origin_event_id: 7,
-      input_idempotency_key: idempotencyKey,
-      input_payload: {
-        title: '다음 실적 확인', subject: { kind: 'portfolio' }, due_date: '2026-10-23', timezone: 'Asia/Seoul',
-        trigger_text: null, recurrence_kind: 'none', recurrence_start_on: null, authored_via: 'app',
-      },
-    }])
+    expect(supabase.rpc).toHaveBeenCalledTimes(3)
   })
 
   it('keeps activity tags separate and passes combined search filters to the server', async () => {

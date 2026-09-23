@@ -48,7 +48,7 @@ describe('portfolio MCP tool definitions', () => {
     expect((tool('transition_general_task').inputSchema as any).properties.action.enum).toEqual(['complete','reopen','cancel'])
     expect((tool('record_manual_activity').inputSchema as any).properties.category.enum).toEqual(['general','research','review','decision','retrospective'])
     expect((tool('record_manual_activity').inputSchema as any).properties.context.type).toContain('object')
-    expect(tool('delete_manual_activity').description).toContain('follow-up tasks')
+    expect(tool('delete_manual_activity').description).toContain('existing tasks')
     expect(tool('delete_manual_activity').description).toContain('never changes a holding')
     expect((tool('delete_manual_activity').inputSchema as any).required).toEqual(['schema_version', 'activity_id', 'expected_version'])
     expect((tool('save_general_task').inputSchema as any).properties.recurrence_kind.enum).toEqual(['none', 'daily'])
@@ -112,10 +112,10 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('get_portfolio_integrity').annotations.readOnlyHint).toBe(true)
   })
 
-  it('uses activities and explicit linked tasks for decisions', () => {
+  it('uses activities and independent tasks for decisions', () => {
     expect(tool('list_decision_activities').annotations.readOnlyHint).toBe(true)
     expect(tool('record_manual_activity').annotations.idempotentHint).toBe(true)
-    expect((tool('save_general_task').inputSchema as any).properties).toHaveProperty('origin_activity_id')
+    expect((tool('save_general_task').inputSchema as any).properties).not.toHaveProperty('origin_activity_id')
     expect(getWorkflowGuide('decision_followup')?.steps.map((step) => step.tools).flat()).toContain('record_manual_activity')
     expect(portfolioToolDefinitions.map((definition) => definition.name)).not.toContain('record_investment_decision')
   })

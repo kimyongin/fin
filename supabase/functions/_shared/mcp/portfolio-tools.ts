@@ -588,7 +588,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_activity',
     title: 'Activity detail',
-    description: 'Read one owner activity with its current title, note, result, conclusion, and follow-up tasks. A decision activity is itself the decision record; distinguish model proposals from explicit user adoption in context.decision_state. Use editable_fields and version before an update. Reading never creates a task, changes financial facts, or marks anything complete.',
+    description: 'Read one activity with its current title, note, result, conclusion, and the related original task summary when that task is viewable. A decision activity is itself the decision record; distinguish model proposals from explicit user adoption in context.decision_state. Use editable_fields and version before an update. Reading never creates a task, changes financial facts, or marks anything complete.',
     inputSchema: {
       type: 'object',
       properties: { activity_id: { type: 'integer', minimum: 1 } },
@@ -661,10 +661,9 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         trigger_text: { type: ['string', 'null'], maxLength: 1000 },
         recurrence_kind: { type: 'string', enum: ['none', 'daily'], default: 'none' },
         recurrence_start_on: { type: ['string', 'null'], format: 'date' },
-        origin_activity_id: { type: ['integer', 'null'], minimum: 1 },
-        tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Optional tags for a new task; omit when editing or creating a linked follow-up.' },
+        tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Optional tags for a new task; omit when editing.' },
       },
-      required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','recurrence_kind','recurrence_start_on','origin_activity_id'],
+      required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','recurrence_kind','recurrence_start_on'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -740,7 +739,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'delete_manual_activity',
     title: 'Delete a manually recorded activity',
-    description: 'Delete only a user-reported manual activity after explicit user confirmation and reading its current version with get_activity. It disappears from activity lists, keyword and semantic search; linked follow-up tasks and saved report text remain unchanged. This never changes a holding, trade, or task completion. Automatic financial and task-completion events cannot be deleted with this tool.',
+    description: 'Delete only a user-reported manual activity after explicit user confirmation and reading its current version with get_activity. It disappears from activity lists, keyword and semantic search; existing tasks and saved report text remain unchanged. This never changes a holding, trade, or task completion. Automatic financial and task-completion events cannot be deleted with this tool.',
     inputSchema: {
       type: 'object',
       properties: {

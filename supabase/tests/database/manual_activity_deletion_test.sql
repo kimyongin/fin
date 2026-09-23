@@ -11,9 +11,7 @@ set local role authenticated;
 
 select public.app_create_activity('98111111-1111-4111-8111-111111111111',
   '{"title":"삭제할 조사","category":"research","result":"검색에서 사라질 내용","authored_via":"app"}'::jsonb);
-select public.app_create_activity_follow_up(
-  (select id from public.activity_events where title='삭제할 조사'),
-  '98222222-2222-4222-8222-222222222222',
+select public.app_save_general_task(null,null,'98222222-2222-4222-8222-222222222222',
   jsonb_build_object('title','남아야 하는 후속 일','subject',jsonb_build_object('kind','portfolio'),
     'timezone','Asia/Seoul','recurrence_kind','none','authored_via','app'));
 set local role postgres;
@@ -48,9 +46,9 @@ select extensions.throws_ok(
     '{"title":"삭제할 조사","category":"research","result":"검색에서 사라질 내용","authored_via":"app"}'::jsonb)$$,
   'P0001','Idempotency key was already used with a different request','late create retry cannot recreate a deleted activity');
 select extensions.is((select count(*) from public.portfolio_tasks where title='남아야 하는 후속 일'),
-  1::bigint,'deleting the origin does not delete its follow-up task');
+  1::bigint,'deleting a record does not delete an independent task');
 select extensions.is((select control_state from public.portfolio_tasks where title='남아야 하는 후속 일'),
-  'active','follow-up status does not change');
+  'active','independent task status does not change');
 select extensions.is(public.app_get_activity(
   (select id from public.activity_events where action_type='record_manual_activity' and user_id=auth.uid()),null),
   null::jsonb,'deleted detail is no longer readable');

@@ -226,20 +226,3 @@ export async function deleteManualActivity(supabase, activity) {
     input_expected_version: activity.version,
   })
 }
-
-export async function createActivityFollowUp(supabase, activityId, task) {
-  return rpc(supabase, 'app_create_activity_follow_up', {
-    input_origin_event_id: activityId,
-    input_idempotency_key: task.idempotencyKey,
-    input_payload: {
-      title: task.title.trim(),
-      subject: task.subject ?? { kind: 'portfolio' },
-      due_date: task.dueDate || null,
-      timezone: task.timezone ?? 'Asia/Seoul',
-      trigger_text: task.triggerText?.trim() || null,
-      recurrence_kind: task.recurrenceKind ?? 'none',
-      recurrence_start_on: task.recurrenceKind === 'daily' ? task.recurrenceStartOn : null,
-      authored_via: 'app',
-    },
-  })
-}

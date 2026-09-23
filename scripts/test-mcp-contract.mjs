@@ -206,6 +206,11 @@ try {
   assert(savedTask?.kind === 'general' && savedTask?.status === 'open', 'General task save contract failed')
   const taskRetry = await call(session.access_token, 'tools/call', { name: 'save_general_task', arguments: taskArgs })
   assert(taskRetry.body?.result?.structuredContent?.data?.id === savedTask.id, 'General task idempotent retry failed')
+  const retiredLink = await call(session.access_token, 'tools/call', {
+    name: 'save_general_task',
+    arguments: { ...taskArgs, idempotency_key: crypto.randomUUID(), origin_activity_id: crypto.randomUUID() },
+  })
+  assert(retiredLink.body?.result?.isError === true, 'Retired follow-up link must fail instead of silently creating an unrelated task')
 
   const context = await call(session.access_token, 'tools/call', {
     name: 'get_daily_context',

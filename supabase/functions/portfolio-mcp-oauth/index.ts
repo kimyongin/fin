@@ -352,19 +352,12 @@ const toolHandlers: Record<string, ToolHandler> = {
         recurrence_start_on: optionalString(args.recurrence_start_on) ?? null,
         authored_via: 'agent',
     }
-    const originActivityId = args.origin_activity_id == null ? null : requirePositiveInteger(args.origin_activity_id, 'origin_activity_id')
-    if (originActivityId != null && taskId != null) throw new ToolInputError('origin_activity_id is only accepted when creating a task')
-    if (tagIds.length > 0 && (originActivityId != null || taskId != null)) throw new ToolInputError('tag_ids are accepted only when creating a standalone task')
-    const data = originActivityId == null
-      ? await rpc(supabase, taskId == null ? 'app_create_general_task_with_tags' : 'app_save_general_task', {
-          input_idempotency_key: idempotencyKey, input_payload: payload,
-          ...(taskId == null ? { input_tag_ids: tagIds } : { input_task_id: taskId, input_expected_version: expectedVersion }),
-        })
-      : await rpc(supabase, 'app_create_activity_follow_up', {
-          input_origin_event_id: originActivityId,
-          input_idempotency_key: idempotencyKey,
-          input_payload: payload,
-        })
+    if (Object.hasOwn(args, 'origin_activity_id')) throw new ToolInputError('origin_activity_id is no longer supported; create an independent task')
+    if (tagIds.length > 0 && taskId != null) throw new ToolInputError('tag_ids are accepted only when creating a task')
+    const data = await rpc(supabase, taskId == null ? 'app_create_general_task_with_tags' : 'app_save_general_task', {
+      input_idempotency_key: idempotencyKey, input_payload: payload,
+      ...(taskId == null ? { input_tag_ids: tagIds } : { input_task_id: taskId, input_expected_version: expectedVersion }),
+    })
     return { ok: true, data }
   },
   async transition_general_task(supabase, args) {
