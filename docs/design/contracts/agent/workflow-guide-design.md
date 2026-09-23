@@ -10,8 +10,8 @@ ChatGPT가 사용자의 요청을 적절한 질문·조회·초안·저장으로
 | --- | --- | --- |
 | policy | 내 투자 기준을 질문하면서 정리해줘. 기존 답을 활용하고 목표·기간·유동성·위험·매매 성향·선호/금지 원칙을 필요한 만큼 묻고 초안을 확인한다. | list_principles, save_principle / W02, S02~S04 |
 | holding_thesis | 이 종목을 왜 보유하는지 정리해줘. 종목 공통 이유와 계좌별 예외, 재검토 조건을 구분한다. | find_holdings, get_holding_thesis, save_holding_thesis, get_task, link_task_to_holding_thesis / W02 |
-| daily_review | 오늘 점검해줘 / 점검하고 저장해줘. 이전 점검·미확인 범위부터 조사하고 사실·해석·불확실성을 구분한다. | get_daily_context, list_daily_briefings, get_daily_briefing, save_daily_briefing / W01 |
-| decision_followup | 유지하기로 한 이유와 다음 실적 확인을 남겨줘. 제안/사용자 채택, 조사 질문/실행 계획을 구분하고 부분 성공을 설명한다. | record_investment_decision, get_investment_decision, transition_investment_decision, list_tasks, get_task, transition_task, save_execution_task / W03~W04 |
+| daily_review | 오늘 점검해줘 / 점검하고 저장해줘. 이전 점검·미확인 범위부터 조사하고 사실·해석·불확실성을 구분한다. | get_daily_context, list_review_activities, record_manual_activity / W01 |
+| decision_followup | 유지하기로 한 이유와 다음 실적 확인을 남겨줘. 모델 제안/사용자 채택을 판단 활동에 구분하고 선택적 후속 일반 할 일의 부분 성공을 설명한다. | list_decision_activities, record_manual_activity, get_activity, update_activity, save_general_task, list_general_tasks / W03~W04 |
 | trade_entry | 실제로 산/판 내역을 기록해줘. 필요한 계좌·종목·수량·가격·날짜를 확인하고 preview→기록→선택적 계획 연결을 안내한다. | find_holdings, preview_trade_entry, log_completed_trade, list_transactions, link_trade_to_task / W05 |
 | reconciliation | 현재 잔고 맞추기 / 잘못된 기록의 현재값 보정 / 잔고 확인 표시. 의도에 따라 서로 다른 도구를 선택한다. | get_holding_integrity, get_portfolio_integrity, preview_holding_reconciliation, reconcile_holding, verify_holdings / W06 |
 

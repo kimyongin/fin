@@ -4,6 +4,7 @@ import {
   createActivityFollowUp,
   fetchActivity,
   fetchActivityTags,
+  fetchDecisionActivities,
   fetchInvestmentDecision,
   fetchInvestmentDecisionPage,
   fetchActionTimeline,
@@ -18,6 +19,15 @@ import {
 } from './data'
 
 describe('decision and task data adapters', () => {
+  it('pages decision activities through the feature-gated narrative read', async () => {
+    const cursor = { occurred_at: '2026-09-23T00:00:00Z', id: 12 }
+    const supabase = { rpc: vi.fn(async () => ({ data: { items: [{ id: 13 }], next_cursor: cursor }, error: null })) }
+    await expect(fetchDecisionActivities(supabase, { ownerUserId: 'owner-1', limit: 5 }))
+      .resolves.toEqual({ items: [{ id: 13 }], nextCursor: cursor })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_narrative_activities', {
+      input_kind: 'decision', input_owner_user_id: 'owner-1', input_limit: 5, input_cursor: null,
+    })
+  })
   it('lists decisions and tasks with explicit filters', async () => {
     const supabase = { rpc: vi.fn(async () => ({ data: [], error: null })) }
 

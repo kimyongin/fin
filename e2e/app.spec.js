@@ -105,6 +105,28 @@ test('labels an old partial no-action review as a saved conclusion', async ({ pa
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
+test('shows a saved decision activity as a choice rather than a trade', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const title = `E2E 판단 활동 ${Date.now()}`
+  const saved = await callRpc(page, 'app_create_activity', {
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: {
+      title, category: 'decision', authored_via: 'app',
+      result: '공시에서 확인한 사실', conclusion: '현재는 유지',
+      context: { decision_state: 'adopted', selected_option: '유지', reason: '다음 실적에서 재검토' },
+    },
+  })
+  expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+  await page.goto('/#decisions')
+  await expect(page.getByText(title)).toBeVisible()
+  await page.getByRole('button', { name: new RegExp(title) }).click()
+  await expect(page.getByText('내가 채택함').last()).toBeVisible()
+  await expect(page.getByText('다음 실적에서 재검토')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
 test('shows an adopted decision and its research follow-up without implying a trade', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')

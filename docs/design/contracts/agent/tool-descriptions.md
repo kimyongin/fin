@@ -25,12 +25,10 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | list_my_product_feedback / observed-local | 본인이 남긴 제품 피드백의 상태·운영자 답변·연결 이슈만 조회합니다. 타인의 접수나 관리자 큐를 노출하지 않습니다. | W09 |
 | get_daily_context / observed-local | 요청한 점검에 필요한 보유·원칙·이전 분석·과거 조사 범위를 서버 임시 문맥으로 준비합니다. 분석 저장·열람·잔고 확인은 기록하지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
 | list_review_activities / observed-local | 본인이 명시적으로 저장한 점검 활동을 최신순으로 읽습니다. 조회 자체는 기록하지 않으며 현재 가격·뉴스를 대신하지 않습니다. | W01,W08 |
-| record_investment_decision / observed-local | 사용자가 명시적으로 기록을 요청한 제안 또는 채택 판단을 구분해 저장하고 조사할 일 최대 3개를 함께 만듭니다. 실행 계획·체결·주문·잔고 변경은 하지 않습니다. | W03 |
-| list_investment_decisions / observed-local | 본인의 판단을 최근 갱신 순서로 읽고 proposed와 adopted를 구분합니다. | W03,W08 |
-| get_investment_decision / observed-local | 본인의 판단 상세·초기 상태 이력·연결된 조사 할 일을 읽습니다. 조회로 판단 상태를 변경하지 않습니다. | W03,W08 |
+| list_decision_activities / local | 저장된 판단 활동을 최신순으로 읽습니다. 제안과 사용자의 채택을 구분하고 별도 후속 할 일은 일반 할 일에서 읽습니다. | W03,W08 |
 | list_tasks / observed-local | 본인의 조사·점검할 일을 상태별로 읽습니다. 주문이나 체결 목록이 아닙니다. | W04,W08 |
 | get_task / observed-local | 본인의 할 일 상세·이력·연결 판단 ID를 읽습니다. 조회로 완료·보류·종료하지 않습니다. | W04,W08 |
-| transition_investment_decision / observed-local | 현재 version을 읽은 뒤 사용자의 명시적 의도로 proposed 판단을 채택하거나 거절합니다. 기존 선택지와 이유를 요구하며 주문·체결·원칙을 변경하지 않습니다. | W03 |
+| get_activity, update_activity / local | 소유자의 판단 활동을 상세 조회·정정합니다. 제안의 채택은 사용자가 고른 안과 이유를 활동 문맥에 남기며 주문·체결·원칙을 변경하지 않습니다. | W03 |
 | transition_task / observed-local | 현재 version을 읽고 조사 질문을 대기·해결·재개하거나 사용자의 요청으로 보류·재개·종료합니다. 해결은 답과 출처, 재개는 새 근거가 필요하며 매매 진행도를 변경하지 않습니다. | W04,W08 |
 | list_operating_rules / removed | 별도 운영 규칙 조회를 제거했다. `list_principles`에서 `kind=operation`, 해당 scope를 확인합니다. | W06 |
 | save_operating_rule / removed | 별도 운영 규칙 저장을 제거했다. 사용자가 승인한 규칙은 `save_principle`로 저장합니다. | W06 |
@@ -39,8 +37,8 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_general_task / observed-local | 일반 할 일의 현재 상태와 보존된 이력을 읽습니다. 조회로 회차를 완료하거나 재개하지 않습니다. | A02,A04 |
 | save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 저장합니다. 활동에서 직접 이어진 할 일은 origin_activity_id로 선택 연결합니다. | A02,A04 |
 | transition_general_task / observed-local | 현재 version과 회차 날짜를 확인해 일반 할 일의 이번 완료・잘못된 완료 해제・반복 전체 종료를 처리합니다. 반복 종료는 수행하지 않은 회차의 완료 기록을 만들지 않으며, 같은 일을 manual activity로 중복 기록하지 않습니다. | A02,A04 |
-| get_activity / observed-local | 활동의 현재 제목·메모·결과·결론, 편집 허용 필드, 원본 대상 ID, 수행 태스크와 후속 할 일을 조회합니다. 판단 활동의 target ID는 기존 판단 정본을 상세 조회하는 데 사용합니다. | A03 |
-| record_manual_activity / observed-local | 이미 수행한 일을 일반·조사·점검·판단·회고 중 하나의 활동으로 기록합니다. 점검 저장은 명시적 요청 때 category=review, 조사 상태·범위·출처는 context로 기록합니다. 분류만으로 잔고·체결·검증 사실을 만들 수 없습니다. | A03,W01 |
+| get_activity / observed-local | 활동의 현재 제목·메모·결과·결론, 편집 허용 필드, 원본 대상 ID, 수행 태스크와 후속 할 일을 조회합니다. 판단 활동 자체가 판단 기록의 정본입니다. | A03 |
+| record_manual_activity / observed-local | 이미 수행한 일을 일반·조사·점검·판단·회고 중 하나의 활동으로 기록합니다. 판단은 category=decision과 문맥의 제안/명시적 채택을 구분합니다. 점검은 category=review, 조사 상태·범위·출처는 context로 기록합니다. 분류만으로 잔고·체결·검증 사실을 만들 수 없습니다. | A03,W01,W03 |
 | update_activity / observed-local | 같은 수행의 현재 활동을 수정합니다. 수동 기록은 비금융 분류와 출처/범위도 정정할 수 있지만, 할 일 완료·금융 자동 기록의 분류와 원본 사실은 보호합니다. | A03 |
 | delete_manual_activity / observed-local | 명시적으로 요청받은 수동 활동만 삭제합니다. 후속 할 일과 기존 회고 본문은 유지하고 검색·임베딩에서는 제거합니다. 매매·잔고·할 일 완료 기록은 이 도구로 삭제하지 않습니다. | A03 |
 | search_activities / observed-local | 할 일과 한 일을 기간·상태·결론·종목·계좌·활동 태그·키워드로 함께 검색합니다. 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 실행 여부를 알리며, 불가능하면 정상 키워드 결과를 유지합니다. | A03,A06 |

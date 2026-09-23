@@ -577,58 +577,15 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: readOnlyAnnotations,
   },
   {
-    name: 'record_investment_decision',
-    title: 'Record investment decision',
-    description: 'Use only when the user explicitly asks to record a proposed idea or their adopted investment decision. It can atomically create up to three research follow-ups. An adopted decision requires the user-selected option and reason. It never creates an execution plan, trade, order, or holding change.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        schema_version: { const: 1 },
-        idempotency_key: { type: 'string', format: 'uuid' },
-        status: { type: 'string', enum: ['proposed', 'adopted'] },
-        subject: lifecycleSubjectSchema,
-        question: { type: 'string', minLength: 1, maxLength: 1000 },
-        options: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } },
-        selected_option: { type: 'string' },
-        reason: { type: 'string' },
-        uncertainty: { type: 'string' },
-        review_condition: { type: 'string' },
-        policy_snapshot: { type: 'object' },
-        source_briefing_id: { type: 'string', format: 'uuid' },
-        timezone: { type: 'string', minLength: 1, default: 'Asia/Seoul' },
-        follow_up_tasks: { type: 'array', maxItems: 3, items: researchTaskCreateSchema },
-      },
-      required: ['schema_version', 'idempotency_key', 'status', 'subject', 'question', 'options', 'timezone', 'follow_up_tasks'],
-      additionalProperties: false,
-    },
-    outputSchema: successEnvelopeSchema,
-    annotations: idempotentWriteAnnotations,
-  },
-  {
-    name: 'list_investment_decisions',
-    title: 'Investment decisions',
-    description: 'List saved investment decisions. Proposed ideas are not user-adopted decisions. For stable pagination, pass cursor:null and filter current, closed, or all; then pass next_cursor unchanged. Omit cursor only for legacy before-based behavior.',
+    name: 'list_decision_activities',
+    title: 'Saved investment decision activities',
+    description: 'List saved decision activities newest first. A model proposal is not a user-adopted choice. Read the current activity before editing it; a follow-up task is separate. This read does not place an order, create a trade, or change holdings.',
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
-        before: { type: 'string', format: 'date-time' },
-        cursor: updatedAtCursorSchema,
-        filter: { type: 'string', enum: ['current', 'closed', 'all'], default: 'current' },
+        cursor: { type: ['object', 'null'], properties: { occurred_at: { type: 'string', format: 'date-time' }, id: { type: 'integer', minimum: 1 } }, required: ['occurred_at', 'id'], additionalProperties: false },
       },
-      additionalProperties: false,
-    },
-    outputSchema: legacyOrPageOutputSchema,
-    annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'get_investment_decision',
-    title: 'Investment decision detail',
-    description: 'Read one owner-only investment decision with its status history and linked research follow-ups. It does not mark the decision as adopted or reviewed.',
-    inputSchema: {
-      type: 'object',
-      properties: { decision_id: { type: 'string', format: 'uuid' } },
-      required: ['decision_id'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -697,7 +654,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_activity',
     title: 'Activity detail',
-    description: 'Read one performed activity with its current title, note, result, conclusion, source target ID, linked originating task, and follow-up tasks. For a decision activity, use its investment_decisions target ID with the decision tools instead of treating the activity as the decision source. Use editable_fields and version before an update. Reading never creates a task, changes financial facts, or marks anything complete.',
+    description: 'Read one owner activity with its current title, note, result, conclusion, and follow-up tasks. A decision activity is itself the decision record; distinguish model proposals from explicit user adoption in context.decision_state. Use editable_fields and version before an update. Reading never creates a task, changes financial facts, or marks anything complete.',
     inputSchema: {
       type: 'object',
       properties: { activity_id: { type: 'integer', minimum: 1 } },
@@ -798,7 +755,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'record_manual_activity',
     title: 'Record a completed activity',
-    description: 'Record one user-reported activity that already happened. Classify research, review, decision, or retrospective work with category; omit it for general work. For a requested portfolio review save category review, put checked facts in result, interpretation in conclusion, and status/coverage_status plus scope and factual source links in context; failed research is insufficient_data, not no_action. Use only after explicit save intent. Complete a known matching task instead of duplicating the same performance. This does not create a task or change financial data; choosing a category cannot claim a completed trade or reconciliation.',
+    description: 'Record one user-reported activity that already happened. Classify research, review, decision, or retrospective work with category; omit it for general work. For a requested portfolio review save category review, put checked facts in result, interpretation in conclusion, and status/coverage_status plus scope and factual source links in context; failed research is insufficient_data, not no_action. For a decision, use context.decision_state=proposed for model advice and adopted only for the user’s explicit choice, with selected_option and reason; this is not a trade. Use only after explicit save intent. Complete a known matching task instead of duplicating the same performance. This does not create a task or change financial data; choosing a category cannot claim a completed trade or reconciliation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -869,27 +826,6 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       limit: { type: 'integer', minimum: 1, maximum: 500, default: 200 }, cursor: { type: ['object','null'] },
     }, required: ['period_start','period_end','timezone'], additionalProperties: false },
     outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'transition_investment_decision',
-    title: 'Adopt or dismiss proposed decision',
-    description: 'Use only after the user explicitly adopts or dismisses an existing proposed decision. Read its current version first. Adoption requires an option already present in the proposal and the user\'s reason. It never records a trade, order, execution plan, or holding change.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        schema_version: { const: 1 },
-        decision_id: { type: 'string', format: 'uuid' },
-        expected_version: { type: 'integer', minimum: 1 },
-        idempotency_key: { type: 'string', format: 'uuid' },
-        action: { type: 'string', enum: ['adopt', 'dismiss'] },
-        selected_option: { type: 'string' },
-        reason: { type: 'string', minLength: 1 },
-      },
-      required: ['schema_version', 'decision_id', 'expected_version', 'idempotency_key', 'action', 'reason'],
-      additionalProperties: false,
-    },
-    outputSchema: successEnvelopeSchema,
-    annotations: idempotentWriteAnnotations,
   },
   {
     name: 'transition_task',
@@ -1083,12 +1019,9 @@ export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_pro
 export const entityNoteToolNames = ['update_entity_note'] as const
 
 export const decisionTaskToolNames = [
-  'record_investment_decision',
-  'list_investment_decisions',
-  'get_investment_decision',
+  'list_decision_activities',
   'list_tasks',
   'get_task',
-  'transition_investment_decision',
   'transition_task',
   'save_execution_task',
   'link_trade_to_task',

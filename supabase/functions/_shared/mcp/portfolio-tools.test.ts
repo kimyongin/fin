@@ -112,24 +112,22 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('get_portfolio_integrity').annotations.readOnlyHint).toBe(true)
   })
 
-  it('keeps an adopted decision separate from trades and execution plans', () => {
-    const definition = tool('record_investment_decision')
-    const schema = definition.inputSchema as any
-    expect(definition.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
-    expect(schema.properties.status.enum).toEqual(['proposed', 'adopted'])
-    expect(schema.properties.follow_up_tasks.maxItems).toBe(3)
-    expect(schema.properties).not.toHaveProperty('trade')
-    expect(schema.properties).not.toHaveProperty('execution_plan')
+  it('uses activities and explicit linked tasks for decisions', () => {
+    expect(tool('list_decision_activities').annotations.readOnlyHint).toBe(true)
+    expect(tool('record_manual_activity').annotations.idempotentHint).toBe(true)
+    expect((tool('save_general_task').inputSchema as any).properties).toHaveProperty('origin_activity_id')
+    expect(getWorkflowGuide('decision_followup')?.steps.map((step) => step.tools).flat()).toContain('record_manual_activity')
+    expect(portfolioToolDefinitions.map((definition) => definition.name)).not.toContain('record_investment_decision')
   })
 
   it('keeps decision and task reads read-only', () => {
-    for (const name of ['list_investment_decisions', 'get_investment_decision', 'list_tasks', 'get_task']) {
+    for (const name of ['list_decision_activities', 'list_tasks', 'get_task']) {
       expect(tool(name).annotations.readOnlyHint).toBe(true)
     }
   })
 
   it('offers opt-in stable cursor pages without removing legacy before inputs', () => {
-    for (const name of ['list_investment_decisions', 'list_tasks', 'list_transactions']) {
+    for (const name of ['list_tasks', 'list_transactions']) {
       const schema = tool(name).inputSchema as any
       expect(schema.properties).toHaveProperty('before')
       expect(schema.properties.cursor.type).toEqual(['object', 'null'])
@@ -140,12 +138,10 @@ describe('portfolio MCP tool definitions', () => {
     expect((tool('list_transactions').inputSchema as any).properties).toHaveProperty('instrument_id')
   })
 
-  it('publishes guarded decision and task transitions', () => {
-    const decision = tool('transition_investment_decision')
+  it('publishes guarded task transitions while decision corrections use activity edits', () => {
     const task = tool('transition_task')
-    expect(decision.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
     expect(task.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
-    expect((decision.inputSchema as any).properties.action.enum).toEqual(['adopt', 'dismiss'])
+    expect(tool('update_activity').annotations.idempotentHint).toBe(true)
     expect((task.inputSchema as any).properties.action.enum).toEqual([
       'wait', 'resolve', 'reopen', 'pause', 'resume', 'close',
     ])

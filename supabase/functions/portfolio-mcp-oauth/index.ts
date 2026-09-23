@@ -359,31 +359,12 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
-  async record_investment_decision(supabase, args) {
-    const data = await rpc(supabase, 'app_record_investment_decision', {
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_payload: normalizeInvestmentDecisionPayload(args),
+  async list_decision_activities(supabase, args) {
+    const data = await rpc(supabase, 'app_list_narrative_activities', {
+      input_kind: 'decision', input_owner_user_id: null,
+      input_limit: Math.min(Math.max(Number(args.limit) || 20, 1), 50),
+      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
     })
-    return { ok: true, data }
-  },
-  async list_investment_decisions(supabase, args) {
-    const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50)
-    const page = cursorPage(args)
-    const data = page.enabled
-      ? await rpc(supabase, 'app_list_investment_decision_page', {
-          input_owner_user_id: null, input_filter: optionalString(args.filter) ?? 'current',
-          input_limit: limit, input_cursor: page.value,
-        })
-      : await rpc(supabase, 'app_list_investment_decisions', {
-          input_limit: limit, input_before: optionalString(args.before) ?? null,
-        })
-    return { ok: true, data }
-  },
-  async get_investment_decision(supabase, args) {
-    const data = await rpc(supabase, 'app_get_investment_decision', {
-      input_decision_id: requireUuid(args.decision_id, 'decision_id'),
-    })
-    if (data == null) throw new Error('Decision was not found or is not accessible')
     return { ok: true, data }
   },
   async list_tasks(supabase, args) {
@@ -574,15 +555,6 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_period_start: requireString(args.period_start, 'period_start'), input_period_end: requireString(args.period_end, 'period_end'),
       input_timezone: requireString(args.timezone, 'timezone'), input_limit: args.limit == null ? 200 : requirePositiveInteger(args.limit, 'limit'),
       input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
-    })
-    return { ok: true, data }
-  },
-  async transition_investment_decision(supabase, args) {
-    const data = await rpc(supabase, 'app_transition_investment_decision', {
-      input_decision_id: requireUuid(args.decision_id, 'decision_id'),
-      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_payload: normalizeDecisionTransitionPayload(args),
     })
     return { ok: true, data }
   },

@@ -5,6 +5,7 @@ import { FilterChips } from '../../components/PageControls'
 import ActivityDetailModal from './ActivityDetailModal'
 import ActivityTagPicker from './ActivityTagPicker'
 import ActionTimeline from './ActionTimeline'
+import DecisionActivitiesPage from './DecisionActivitiesPage'
 import { createRequestGate } from '../../lib/requestGate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import {
@@ -44,7 +45,7 @@ function taskStatusLabel(task) {
 
 function GeneralActionModal({ kind, onClose, onKindChange, onSave, onTagsChanged, saving, supabase, tags }) {
   const today = new Date().toLocaleDateString('en-CA')
-  const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', category: 'general', scope: '', sourceTitle: '', sourceUrl: '', tagIds: [] })
+  const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', category: 'general', decisionState: 'proposed', selectedOption: '', reason: '', scope: '', sourceTitle: '', sourceUrl: '', tagIds: [] })
   const isTask = kind === 'task'
   const sourceComplete = (!draft.sourceTitle.trim() && !draft.sourceUrl.trim()) || Boolean(draft.sourceTitle.trim() && /^https?:\/\/\S+$/i.test(draft.sourceUrl.trim()))
 
@@ -60,9 +61,11 @@ function GeneralActionModal({ kind, onClose, onKindChange, onSave, onTagsChanged
   function submit() {
     const scope = draft.scope.trim()
     const sourceUrl = draft.sourceUrl.trim()
-    const context = !isTask && (scope || sourceUrl) ? {
+    const context = !isTask && (scope || sourceUrl || draft.category === 'decision') ? {
       ...(scope ? { scope } : {}),
       ...(sourceUrl ? { sources: [{ title: draft.sourceTitle.trim(), url: sourceUrl }] } : {}),
+      ...(draft.category === 'decision' ? { decision_state: draft.decisionState } : {}),
+      ...(draft.category === 'decision' && draft.decisionState === 'adopted' ? { selected_option: draft.selectedOption.trim(), reason: draft.reason.trim() } : {}),
     } : null
     onSave({
       ...draft,
@@ -87,9 +90,10 @@ function GeneralActionModal({ kind, onClose, onKindChange, onSave, onTagsChanged
       {isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">{draft.recurrenceKind === 'daily' ? '반복 시작일' : '예정일'}</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, scheduleDate: event.target.value })} type="date" value={draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : draft.scheduleDate} /></label>}
       {!isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">수행일</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" max={today} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
       {!isTask && <label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">활동 종류 (선택)</span><select className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, category: event.target.value })} value={draft.category}><option value="general">일반</option><option value="research">조사</option><option value="review">점검</option><option value="decision">판단</option><option value="retrospective">회고</option></select></label>}
+      {!isTask && draft.category === 'decision' && <section className="grid gap-3 rounded-2xl border border-[var(--line)] p-3"><label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">판단 구분</span><select className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, decisionState: event.target.value })} value={draft.decisionState}><option value="proposed">제안</option><option value="adopted">내가 채택함</option><option value="dismissed">채택하지 않음</option></select></label>{draft.decisionState === 'adopted' && <><label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">선택한 안</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, selectedOption: event.target.value })} value={draft.selectedOption} /></label><label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">선택한 이유</span><textarea className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" onChange={(event) => setDraft({ ...draft, reason: event.target.value })} rows={2} value={draft.reason} /></label></>}</section>}
       {!isTask && <section className="grid gap-3 rounded-2xl border border-[var(--line)] p-3"><p className="text-xs text-[var(--muted-ink)]">조사 범위와 출처 (선택)</p><label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">확인한 범위</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" maxLength={2000} onChange={(event) => setDraft({ ...draft, scope: event.target.value })} placeholder="예: 보유 종목의 오늘 공시" value={draft.scope} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">출처 제목</span><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" maxLength={300} onChange={(event) => setDraft({ ...draft, sourceTitle: event.target.value })} value={draft.sourceTitle} /></label><label className="grid gap-1.5"><span className="text-xs text-[var(--muted-ink)]">출처 URL</span><input className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2" maxLength={2000} onChange={(event) => setDraft({ ...draft, sourceUrl: event.target.value })} placeholder="https://" type="url" value={draft.sourceUrl} /></label></div>{!sourceComplete && <p className="text-xs text-red-200">출처 제목과 http(s) URL을 함께 입력하세요.</p>}</section>}
       <ActivityTagPicker disabled={saving} onChange={(tagIds) => setDraft({ ...draft, tagIds })} onTagsChanged={(nextTags, tagIds) => { onTagsChanged(nextTags); setDraft((current) => ({ ...current, tagIds })) }} selectedIds={draft.tagIds} supabase={supabase} tags={tags} />
-      <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!draft.title.trim() || saving || !sourceComplete} onClick={submit} type="button">{saving ? '저장 중' : '저장'}</button></div>
+      <div className="flex justify-end gap-2"><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={onClose} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!draft.title.trim() || saving || !sourceComplete || (draft.category === 'decision' && draft.decisionState === 'adopted' && (!draft.selectedOption.trim() || !draft.reason.trim()))} onClick={submit} type="button">{saving ? '저장 중' : '저장'}</button></div>
     </div>
   </ModalShell>
 }
@@ -180,7 +184,7 @@ function Detail({ entry, loading, onBack, onClose, onEndGeneralTask, onOpenDecis
   )
 }
 
-export default function LifecyclePage({ actions = [], activityError = '', activityLoading = false, initialSelection = null, mode, onModeChange, onRefreshActivity, onSelectionHandled, ownerUserId = null, supabase }) {
+function LifecycleWorkbench({ actions = [], activityError = '', activityLoading = false, initialSelection = null, mode, onModeChange, onRefreshActivity, onSelectionHandled, ownerUserId = null, supabase }) {
   const [filterByMode, setFilterByMode] = useState({ decisions: 'current', tasks: 'active' })
   const [items, setItems] = useState([])
   const [nextCursor, setNextCursor] = useState(null)
@@ -422,4 +426,10 @@ export default function LifecyclePage({ actions = [], activityError = '', activi
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onSave={saveGeneralAction} onTagsChanged={setActivityTagsState} saving={savingGeneral} supabase={supabase} tags={activityTags} />}
     </section>
   )
+}
+
+export default function LifecyclePage(props) {
+  return props.mode === 'decisions'
+    ? <DecisionActivitiesPage ownerUserId={props.ownerUserId} supabase={props.supabase} />
+    : <LifecycleWorkbench {...props} />
 }

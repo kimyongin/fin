@@ -4,6 +4,14 @@ async function rpc(supabase, name, params) {
   return data
 }
 
+export async function fetchDecisionActivities(supabase, { cursor = null, limit = 20, ownerUserId = null } = {}) {
+  const data = await rpc(supabase, 'app_list_narrative_activities', {
+    input_kind: 'decision', input_owner_user_id: ownerUserId,
+    input_limit: limit, input_cursor: cursor,
+  })
+  return normalizePage(data)
+}
+
 export async function fetchInvestmentDecisions(supabase, { limit = 20, before = null, ownerUserId = null } = {}) {
   const data = await rpc(supabase, ownerUserId ? 'app_list_investment_decisions_for_owner' : 'app_list_investment_decisions', {
     ...(ownerUserId ? { input_owner_user_id: ownerUserId } : {}),
