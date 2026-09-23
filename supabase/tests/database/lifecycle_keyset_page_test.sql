@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select extensions.plan(14);
+select extensions.plan(12);
 
 insert into auth.users(id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000001401', 'authenticated', 'authenticated', 'lifecycle-page@example.com', '', now(), now(), now());
@@ -25,12 +25,6 @@ select ('24000000-0000-0000-0000-' || lpad(value::text, 12, '0'))::uuid,
        '00000000-0000-0000-0000-000000001401', 'research', 'Closed ' || value,
        '{"kind":"portfolio"}'::jsonb, 'Asia/Seoul', 'active', 'resolved', now() - interval '1 day', now()
 from generate_series(1, 30) value;
-
-insert into public.daily_briefings(id, user_id, review_date, timezone, analyzed_at, status, coverage_status, headline, context_snapshot, created_at)
-select ('74000000-0000-0000-0000-' || lpad(value::text, 12, '0'))::uuid,
-       '00000000-0000-0000-0000-000000001401', current_date, 'Asia/Seoul', now() - interval '1 day',
-       'no_action', 'complete', 'Briefing ' || value, '{}'::jsonb, now() - interval '1 day'
-from generate_series(1, 55) value;
 
 insert into public.portfolio_tasks(id, user_id, kind, title, subject, timezone, control_state, research_state, updated_at)
 values
@@ -76,12 +70,6 @@ insert into decision_page_results
 select 2, public.app_list_investment_decision_page(null, 'current', 50, payload->'next_cursor')
 from decision_page_results where page_no = 1;
 
-create temporary table briefing_page_results(page_no integer primary key, payload jsonb);
-insert into briefing_page_results values (1, public.app_list_daily_briefing_page(null, 50, null));
-insert into briefing_page_results
-select 2, public.app_list_daily_briefing_page(null, 50, payload->'next_cursor')
-from briefing_page_results where page_no = 1;
-
 select extensions.is(jsonb_array_length((select payload->'items' from task_page_results where page_no = 1)), 50, 'active task page is filled before closed tasks are considered');
 select extensions.ok((select payload->'next_cursor' is not null from task_page_results where page_no = 1), 'active task page returns a stable cursor');
 select extensions.is((select count(*)::integer from task_page_results, jsonb_array_elements(payload->'items') item where page_no = 1 and item->>'title' like 'Closed%'), 0, 'newer completed tasks never displace active work');
@@ -96,8 +84,6 @@ select extensions.is(jsonb_array_length(public.app_list_portfolio_task_page(null
 select extensions.is(jsonb_array_length((select payload->'items' from decision_page_results where page_no = 1)), 50, 'current decision page excludes newer closed decisions');
 select extensions.is((select count(distinct item->>'id')::integer from decision_page_results, jsonb_array_elements(payload->'items') item), 55, 'same-timestamp decisions paginate without gaps or duplicates');
 select extensions.is(jsonb_array_length(public.app_list_investment_decision_page(null, 'closed', 50, null)->'items'), 30, 'closed decisions have a separate filter');
-select extensions.is(jsonb_array_length((select payload->'items' from briefing_page_results where page_no = 1)), 50, 'briefing page is bounded');
-select extensions.is((select count(distinct item->>'id')::integer from briefing_page_results, jsonb_array_elements(payload->'items') item), 55, 'same-timestamp briefings paginate without gaps or duplicates');
 select extensions.throws_ok($$select public.app_list_portfolio_task_page(null, 'active', 20, '{"id":"bad"}'::jsonb)$$, 'Invalid task cursor', 'malformed task cursor fails closed');
 
 select * from extensions.finish();

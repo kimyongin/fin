@@ -289,7 +289,7 @@ try {
   assert(toolError?.code === 'validation_error' && toolError?.retryable === false, 'Invalid tool input returned the wrong recovery contract')
   assert(typeof toolError?.request_id === 'string' && toolError.request_id.length > 20, 'Tool error did not include a request ID')
 
-  console.log('OAuth and token MCP initialize/discovery/authentication, workflow guides, product feedback, policy save/read, daily briefing save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
+  console.log('OAuth and token MCP initialize/discovery/authentication, workflow guides, product feedback, policy save/read, review activity save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
 } finally {
   if (userId) {
     await fetch(`${baseUrl}/auth/v1/admin/users/${userId}`, {

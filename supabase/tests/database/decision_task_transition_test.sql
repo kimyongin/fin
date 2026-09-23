@@ -230,7 +230,7 @@ select extensions.is(
 );
 
 select extensions.is(
-    jsonb_array_length(public.app_create_daily_context('Asia/Seoul', null) #> '{snapshot,open_tasks,items}'),
+    jsonb_array_length(public.app_get_daily_context('Asia/Seoul', null) -> 'open_tasks'),
     0,
     'resolved tasks do not return as open work in the next daily context'
 );

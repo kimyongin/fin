@@ -248,11 +248,11 @@ test('saves private principles and reads the current revision on mobile', async 
   expect(principles.body.items).toEqual(expect.arrayContaining([expect.objectContaining({
     kind: 'investment', body: '장기 투자하고 자주 매매하지 않는다.',
   })]))
-  const context = await callRpc(page, 'app_create_daily_context', {
+  const context = await callRpc(page, 'app_get_daily_context', {
     input_subject_tickers: null, input_timezone: 'Asia/Seoul',
   })
   expect(context.status, JSON.stringify(context.body)).toBe(200)
-  expect(context.body.snapshot.principles.items).toEqual(expect.arrayContaining([
+  expect(context.body.principles).toEqual(expect.arrayContaining([
     expect.objectContaining({ kind: 'investment', body: '장기 투자하고 자주 매매하지 않는다.' }),
   ]))
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
@@ -419,12 +419,12 @@ test('saves a private holding reason without exposing it in the shared portfolio
   const publicState = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(JSON.stringify(publicState.body)).not.toContain('장기 서비스 성장성을 보고 보유한다.')
 
-  const context = await callRpc(page, 'app_create_daily_context', {
+  const context = await callRpc(page, 'app_get_daily_context', {
     input_subject_tickers: null,
     input_timezone: 'Asia/Seoul',
   })
   expect(context.status, JSON.stringify(context.body)).toBe(200)
-  expect(context.body.snapshot.private_holding_notes).toContainEqual(expect.objectContaining({
+  expect(context.body.private_holding_notes).toContainEqual(expect.objectContaining({
     instrument_id: instrument.id,
     note: '장기 서비스 성장성을 보고 보유한다.',
   }))

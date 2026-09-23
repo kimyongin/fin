@@ -15,7 +15,7 @@ insert into public.portfolio_tasks(id,user_id,kind,title,subject,timezone,contro
 ('72000000-0000-0000-0000-000000000010','00000000-0000-0000-0000-000000000721','research','실적 발표 확인','{"kind":"portfolio"}','Asia/Seoul','active','open');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000721',true);
 set local role authenticated;
-select extensions.is(jsonb_array_length(public.app_create_daily_context('Asia/Seoul',null) #> '{snapshot,open_tasks,items}'),1,
+select extensions.is(jsonb_array_length(public.app_get_daily_context('Asia/Seoul',null) -> 'open_tasks'),1,
     'open research task remains visible without the legacy bundle filter');
 
 select * from extensions.finish();

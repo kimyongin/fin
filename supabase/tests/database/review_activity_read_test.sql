@@ -25,7 +25,7 @@ select extensions.is(jsonb_array_length(public.app_list_narrative_activities('re
 select extensions.is(jsonb_array_length(public.app_list_narrative_activities('decision')->'items'),1,'kind filter excludes reviews');
 select extensions.is(public.app_list_narrative_activities('review')->'items'->1->'context'->>'scope','비공개 범위','owner receives review context');
 select extensions.is(public.app_get_daily_context('Asia/Seoul')->'last_review'->>'title','오늘 점검','current context reads latest saved review');
-select extensions.is((select count(*)::integer from public.daily_review_contexts where user_id='00000000-0000-0000-0000-000000001981'),0,'reading current context does not persist a snapshot');
+select extensions.hasnt_table('public','daily_review_contexts','reading current context has no snapshot table');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001982',true);
 select extensions.is(jsonb_array_length(public.app_list_narrative_activities('review','00000000-0000-0000-0000-000000001981')->'items'),0,'friend without review grant sees nothing');

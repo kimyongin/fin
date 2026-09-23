@@ -113,9 +113,9 @@ select extensions.is(
 );
 
 select extensions.is(
-    public.app_create_daily_context('Asia/Seoul', null) #>> '{snapshot,open_tasks,status}',
-    'available',
-    'the next daily context includes lifecycle data instead of unavailable placeholders'
+    jsonb_array_length(public.app_get_daily_context('Asia/Seoul', null) -> 'open_tasks'),
+    1,
+    'current context reads the open research task without persisting a snapshot'
 );
 
 select extensions.is(
