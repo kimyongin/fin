@@ -244,23 +244,20 @@ const briefingSchema = {
 const dailyContextOutputSchema = successEnvelope({
   type: 'object',
   properties: {
-    context_id: idSchema,
-    expires_at: timestampSchema,
-    snapshot: {
-      type: 'object',
-      properties: {
-        schema_version: { const: 1 },
-        as_of: timestampSchema,
-        review_date: { type: 'string', format: 'date' },
-        timezone: { type: 'string' },
-        requested_subject_tickers: { type: 'array', items: { type: 'string' } },
-        completeness: { type: 'object' },
-      },
-      required: ['schema_version', 'as_of', 'review_date', 'timezone', 'requested_subject_tickers', 'completeness'],
-      additionalProperties: true,
-    },
+    as_of: timestampSchema,
+    review_date: { type: 'string', format: 'date' },
+    timezone: { type: 'string' },
+    requested_subject_tickers: { type: 'array', items: { type: 'string' } },
+    portfolio: { type: 'object' },
+    strategy: { type: 'object' },
+    principles: { type: 'array' },
+    private_holding_notes: { type: 'array' },
+    open_tasks: { type: 'array' },
+    last_review: { type: ['object', 'null'] },
+    recent_reviews: { type: 'array' },
+    recent_decisions: { type: 'array' },
   },
-  required: ['context_id', 'expires_at', 'snapshot'],
+  required: ['as_of', 'review_date', 'timezone', 'requested_subject_tickers', 'portfolio', 'strategy', 'principles', 'private_holding_notes', 'open_tasks', 'last_review', 'recent_reviews', 'recent_decisions'],
   additionalProperties: false,
 })
 
@@ -541,7 +538,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_daily_context',
     title: 'Prepare daily review context',
-    description: 'Start a daily review by creating one short-lived owner-only snapshot. It includes current principles, private_holding_notes, and recent activities. Saved news facts are retired; ChatGPT researches current external news itself. It does not save an analysis or mark a review complete.',
+    description: 'Read current owner-only holdings, principles, private holding notes, open tasks, and saved review/decision activities for a requested review. This does not create a stored snapshot, save an analysis, or mark a review complete. ChatGPT researches current external news itself.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -559,7 +556,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       additionalProperties: false,
     },
     outputSchema: dailyContextOutputSchema,
-    annotations: contextAnnotations,
+    annotations: readOnlyAnnotations,
   },
   {
     name: 'list_review_activities',

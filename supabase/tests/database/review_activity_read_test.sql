@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(14);
+select extensions.plan(16);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001981','authenticated','authenticated','review-owner@example.com','',now(),now(),now()),
@@ -24,6 +24,8 @@ select extensions.is(public.app_list_narrative_activities('review',null,1)->'ite
 select extensions.is(jsonb_array_length(public.app_list_narrative_activities('review',null,1,public.app_list_narrative_activities('review',null,1)->'next_cursor')->'items'),1,'cursor reads next review');
 select extensions.is(jsonb_array_length(public.app_list_narrative_activities('decision')->'items'),1,'kind filter excludes reviews');
 select extensions.is(public.app_list_narrative_activities('review')->'items'->1->'context'->>'scope','비공개 범위','owner receives review context');
+select extensions.is(public.app_get_daily_context('Asia/Seoul')->'last_review'->>'title','오늘 점검','current context reads latest saved review');
+select extensions.is((select count(*)::integer from public.daily_review_contexts where user_id='00000000-0000-0000-0000-000000001981'),0,'reading current context does not persist a snapshot');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001982',true);
 select extensions.is(jsonb_array_length(public.app_list_narrative_activities('review','00000000-0000-0000-0000-000000001981')->'items'),0,'friend without review grant sees nothing');

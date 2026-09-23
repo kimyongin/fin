@@ -29,7 +29,7 @@ Read this file first for database work. Inspect only the relevant migration file
 
 `portfolio_view` joins holdings, accounts, instruments, and the newest price. It converts USD values with the latest available `USDKRW=X` price.
 
-The local `app_create_daily_context` wrapper includes the current owner-only `principles.items` and `private_holding_notes` in the persisted context snapshot. The old `investment_policy` field was removed. General portfolio DTOs and automatic activity JSON recursively redact private-note keys; shared briefing DTOs omit the context snapshot.
+New clients use `app_get_daily_context`, a read-only current owner context with portfolio, strategy, principles, private holding notes, open tasks, and saved review/decision activities. It does not insert a snapshot. The older `app_create_daily_context` wrapper still persists a six-hour snapshot for legacy briefing writes and awaits retirement. General portfolio DTOs and automatic activity JSON recursively redact private-note keys; shared legacy briefing DTOs omit the context snapshot.
 
 Instrument types are constrained to `market` for market-priced investments, `valuation` for evaluation-based investments, `cash` for cash balances, and `fx` for system-managed exchange rates.
 
@@ -53,6 +53,7 @@ Instrument types are constrained to `market` for market-priced investments, `val
 | `app_get_daily_briefing`, `app_list_daily_briefings` | Read one complete owner-only briefing aggregate or list compact briefing summaries. |
 | `app_list_daily_briefing_page` | Owner-aware allowlisted briefing summaries with stable `(analyzed_at,id)` keyset pagination. |
 | `app_list_narrative_activities` | Current saved review/decision activity page, newest first with `(occurred_at,id)` cursor. Owner receives context; friends require the matching `briefings` or `decisions` grant and receive a narrow summary without private note, source list, scope, or decision reason. A friend with the decision grant receives only the allowlisted proposed/adopted/dismissed state. Today and the OAuth review/decision list tools use this path. Legacy decision and briefing RPCs/tables remain pending retirement and are not advertised to new OAuth MCP clients. |
+| `app_get_daily_context` | Owner-only current review context read, assembled from current portfolio/strategy/principles/private notes/open tasks and saved review/decision activities. Validates timezone and optional ticker list, caps response size, and does not insert a snapshot or claim a new review. |
 | `app_list_briefing_related_tasks` | Resolve briefing→decision→task relations before applying the display limit. Owner and shared reads return an explicit `ok`, `forbidden`, or `not_found` status; shared reads require all three relevant feature grants. |
 | `app_record_investment_decision` | Atomically record a proposed or explicitly adopted decision plus zero to three research follow-ups. It is idempotent and cannot create an execution plan, trade, order, or holding change. |
 | `app_get/list_investment_decision*`, `app_get/list_portfolio_task*` | Read owner-only decision/task detail and compact lists. Initial history and decision-task snapshots preserve what was linked at creation. |

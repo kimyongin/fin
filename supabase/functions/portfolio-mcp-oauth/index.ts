@@ -344,7 +344,7 @@ const toolHandlers: Record<string, ToolHandler> = {
       : requireArray(args.subject_tickers, 'subject_tickers').map((value, index) =>
         requireString(value, `subject_tickers[${index}]`)
       )
-    const data = await rpc(supabase, 'app_create_daily_context', {
+    const data = await rpc(supabase, 'app_get_daily_context', {
       input_timezone: timezone,
       input_subject_tickers: subjectTickers,
     })

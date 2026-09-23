@@ -95,11 +95,11 @@ describe('portfolio MCP tool definitions', () => {
     expect(getWorkflowGuide('product_feedback')?.boundaries.join(' ')).toContain('cannot guarantee')
   })
 
-  it('does not label temporary context creation as read-only or idempotent', () => {
+  it('labels current context as a read-only operation', () => {
     expect(tool('get_daily_context').annotations).toMatchObject({
-      readOnlyHint: false,
+      readOnlyHint: true,
       destructiveHint: false,
-      idempotentHint: false,
+      idempotentHint: true,
       openWorldHint: false,
     })
   })

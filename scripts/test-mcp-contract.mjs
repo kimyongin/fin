@@ -212,9 +212,9 @@ try {
     arguments: { schema_version: 1, timezone: 'Asia/Seoul' },
   })
   const contextData = context.body?.result?.structuredContent?.data
-  assert(context.body?.result?.isError === false && contextData?.context_id && contextData?.expires_at, 'Daily context contract failed')
-  assert(contextData?.snapshot?.todo_bundles?.status === 'retired' && contextData?.snapshot?.todo_bundles?.items?.length === 0, 'Daily context legacy ToDo state contract failed')
-  assert(contextData?.snapshot?.open_tasks?.status === 'available' && contextData?.snapshot?.open_tasks?.items?.some((item) => item.id === savedTask.id), 'Daily context unified task contract failed')
+  assert(context.body?.result?.isError === false && contextData?.as_of && !contextData?.context_id, 'Read-only daily context contract failed')
+  assert(Array.isArray(contextData?.recent_reviews) && Array.isArray(contextData?.recent_decisions), 'Daily context activity lists contract failed')
+  assert(contextData?.open_tasks?.some((item) => item.id === savedTask.id), 'Daily context unified task contract failed')
 
   const saved = await call(session.access_token, 'tools/call', {
     name: 'record_manual_activity',

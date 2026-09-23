@@ -23,7 +23,7 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | list_recent_activity / observed-local | 본인의 최근 데이터 변경을 조회합니다. 활동 기록을 투자 결정이나 실제 증권사 체결 증명으로 해석하지 않습니다. | W06,W08 |
 | submit_product_feedback / observed-local | 사용자가 명시적으로 요청했거나 에이전트의 한 번의 요약 제안에 동의한 Portfolio 제품 피드백을 비공개로 저장합니다. 대화 전문·투자 데이터·인증정보·추정 원인을 첨부하거나 GitHub에 공개하지 않습니다. | W09 |
 | list_my_product_feedback / observed-local | 본인이 남긴 제품 피드백의 상태·운영자 답변·연결 이슈만 조회합니다. 타인의 접수나 관리자 큐를 노출하지 않습니다. | W09 |
-| get_daily_context / observed-local | 요청한 점검에 필요한 보유·원칙·이전 분석·과거 조사 범위를 서버 임시 문맥으로 준비합니다. 분석 저장·열람·잔고 확인은 기록하지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
+| get_daily_context / local | 현재 보유·원칙·개인 보유 메모·열린 할 일·저장된 점검/판단 활동을 저장 없이 읽습니다. 분석 저장·잔고 확인은 기록하지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
 | list_review_activities / observed-local | 본인이 명시적으로 저장한 점검 활동을 최신순으로 읽습니다. 조회 자체는 기록하지 않으며 현재 가격·뉴스를 대신하지 않습니다. | W01,W08 |
 | list_decision_activities / local | 저장된 판단 활동을 최신순으로 읽습니다. 제안과 사용자의 채택을 구분하고 별도 후속 할 일은 일반 할 일에서 읽습니다. | W03,W08 |
 | list_tasks / observed-local | 본인의 조사·점검할 일을 상태별로 읽습니다. 주문이나 체결 목록이 아닙니다. | W04,W08 |

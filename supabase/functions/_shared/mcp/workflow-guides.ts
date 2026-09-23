@@ -145,9 +145,10 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/migrations/20260922185521_daily_context_current_principles.sql',
       'supabase/migrations/20260922190315_daily_context_private_holding_notes.sql',
       'supabase/migrations/20260923045855_review_activity_read.sql',
+      'supabase/migrations/20260923052714_current_daily_context_read.sql',
     ],
     steps: [
-      { id: 'prepare-context', title: 'Prepare one review context', instruction: 'Call get_daily_context once for this review. Use its owner-only snapshot instead of rebuilding it with separate portfolio, strategy, and activity calls. It includes current principles, private holding reasons, and open tasks; separate saved news and ToDo bundles are retired. Missing reasons or principles remain unknown.', tools: ['get_daily_context'] },
+      { id: 'prepare-context', title: 'Read the current review context', instruction: 'Call get_daily_context for current owner facts. It reads holdings, principles, private holding reasons, open tasks, and prior review/decision activities without persisting a snapshot. Missing reasons or principles remain unknown. If facts change before saving, read them again.', tools: ['get_daily_context'] },
       { id: 'inspect-history', title: 'Inspect prior review when useful', instruction: 'Use list_review_activities when the current context indicates a prior review or unresolved coverage. Saved review activity is the source of truth; old briefing snapshots are retired.', tools: ['list_review_activities'] },
       { id: 'research-current', title: 'Research current external information', instruction: 'Use ChatGPT web research for current news and primary sources. Record checked, failed, and unverified coverage separately. Portfolio does not search the public web.', tools: [] },
       { id: 'explain-result', title: 'Explain decision-relevant changes', instruction: 'Separate sourced facts, interpretation, uncertainty, and suggested questions. Report no_action only after sufficient checking; incomplete research is insufficient_data or partial coverage.', tools: [] },
