@@ -17,7 +17,7 @@ insert into public.holdings(id,user_id,account_id,ticker,quantity,avg_price,purc
 (9803,'00000000-0000-0000-0000-000000000801',9801,'KRW',null,null,null,500);
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000801',true); set local role authenticated;
 select extensions.is(public.app_preview_holding_reconciliation(9801,'{"quantity":"25","avg_price":"68000"}','증권사 실제값으로 맞춤',current_date,array['quantity','avg_price'])#>>'{after,quantity}','25','market correction estimates an absolute quantity');
-select extensions.is((select count(*) from public.holding_reconciliation_previews),0::bigint,'estimate does not persist a preview row');
+select extensions.ok(to_regclass('public.holding_reconciliation_previews') is null,'estimate has no preview storage');
 select extensions.is(public.app_apply_holding_correction(9801,'{"quantity":"25","avg_price":"68000"}','증권사 실제값으로 맞춤',current_date,array['quantity','avg_price'],1,'80000000-0000-0000-0000-000000000001','app')->>'holding_state_version','2','correction advances the holding version');
 select extensions.is((select ledger_quantity from public.holdings where id=9801),25::numeric,'reconciliation replaces current quantity');
 select extensions.is(round((select ledger_cost_pool/ledger_quantity from public.holdings where id=9801)),68000::numeric,'reconciliation replaces current average cost');
