@@ -118,16 +118,13 @@ try {
   const reportDate = `${reportDateParts.year}-${reportDateParts.month}-${reportDateParts.day}`
   const reportContext = await call(session.access_token, 'tools/call', { name: 'get_activity_report_context', arguments: { period_start: reportDate, period_end: reportDate, timezone: 'Asia/Seoul', limit: 200, cursor: null } })
   assert(reportContext.body?.result?.structuredContent?.data?.next_cursor === null, 'Activity report context contract failed')
-  const reportArgs = {
-    schema_version: 1, report_id: null, expected_version: null, idempotency_key: crypto.randomUUID(),
-    period_kind: 'daily', period_start: reportDate, period_end: reportDate, timezone: 'Asia/Seoul',
-    title: 'Contract activity report', summary: 'No persisted action was required for this contract context.',
-    highlights: [], open_items: [], source_event_ids: [], source_task_ids: [], source_decision_ids: [],
-  }
-  const reportSaved = await call(session.access_token, 'tools/call', { name: 'save_activity_report', arguments: reportArgs })
-  assert(reportSaved.body?.result?.structuredContent?.data?.version === 1, 'Activity report save contract failed')
-  const reportList = await call(session.access_token, 'tools/call', { name: 'list_activity_reports', arguments: { limit: 20, cursor: null } })
-  assert(reportList.body?.result?.structuredContent?.data?.items?.some((item) => item.id === reportSaved.body.result.structuredContent.data.id), 'Activity report list contract failed')
+  const reportSaved = await call(session.access_token, 'tools/call', { name: 'record_manual_activity', arguments: {
+    schema_version: 1, idempotency_key: crypto.randomUUID(), title: 'Contract activity retrospective',
+    note: `Period: ${reportDate}`, result: 'Reviewed the complete period source.', conclusion: null,
+    occurred_at: null, timezone: 'Asia/Seoul', instrument_id: null, account_id: null,
+    category: 'retrospective', context: { scope: `${reportDate} ~ ${reportDate}` },
+  } })
+  assert(reportSaved.body?.result?.structuredContent?.data?.record_kind === 'retrospective', 'Retrospective activity save contract failed')
 
   const feedbackArgs = {
     schema_version: 1,

@@ -14,7 +14,7 @@
 | investment_decisions 및 state_history/tasks | 활동 내용·결론·의견 출처/사용자 선택 정보로 이관 | 별도 판단 상태 API·의무 채택/기각/대체 이력 |
 | news_facts/annotations, portfolio_task_evidence | 조사 활동의 내용·출처·태그 또는 완료 활동 결과 | 별도 자료 메뉴와 사실/의견 CRUD 체계 |
 | daily_briefings 및 evidence/scopes/sources/joins | 점검 활동과 검증된 출처·조사 범위 배열 | 근거별 독립 수명·연결 테이블 |
-| activity_reports/revisions | 기간·생성시각·근거 참조를 가진 회고 활동 | 별도 revision/과거 시점 복원·자동 재생성 필요 판정 |
+| activity_reports/revisions | 기간과 사실·해석을 담은 `retrospective` 활동 | 별도 리포트/리비전/자동 재생성 상태 |
 | daily_review_contexts | 현재 문맥 읽기 응답. 분석 시작 시각과 최소 기준 정보만 결과에 저장 | TTL 저장 문맥과 전체 포트폴리오 스냅샷 복제 |
 | portfolio_tasks/history, execution_plans/task_fill_links | 한 할 일 모델: 열린 일/완료, 일정·선택 반복. 오늘 완료와 반복 전체 종료를 구분 | 일시정지/재개, 조사 전용 상태, 자동 체결 진행률, 일반 편집 이력 |
 | general_task_occurrence_states | 기존 작동 방식과 이벤트 unique 제약 대안을 대조. 없애는 쪽이 간단할 때만 제거 | 동일 완료 사실의 불필요한 중복 정본 |

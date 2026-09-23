@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Retire saved news storage and route; daily guide now directs external research to ChatGPT and stored results to activities",
+  "review_reason": "Retire parallel report storage and use retrospective activities",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d97dfa1f",
-      "contract_digest": "223c32a523868fb2cf190984fb7e994ae3082bd3238d31df6cce81fa9a4d38c5"
+      "contract_digest": "2e7178ac2f77150d2b984e52afb2037b52d26f5d31676d7283572dd6a85d8eb4"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "666c652c9dcb2a3b9c9d59dbbb411dab5361c4d0399cd4ef8b1a40dc9a63e9c6"
+      "contract_digest": "60f9cd26f7e7abcb78616d3038dfaadd30ac9f01bc9c70aa372144552366fc89"
     },
     "daily_review": {
       "revision": "fnv1a32:d0970e34",
-      "contract_digest": "84b515c9472baf955403228cea255a2cbc747bcd50cd0a54c4b6de717bf0ccd2"
+      "contract_digest": "c4d037298f8b5961d8fdc81650cb4f314a379c84337775c6df2898b3d3a1919e"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "e55fe2768c817e36ade6398662c70c4656fedbc3e7827002d2e17cacfd5da1d3"
+      "contract_digest": "6120bab8c33000fbed9d9032291ab15f52eaef5b8710512bd46db9f68254c1a1"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "25516f57c7f3a43458f0c903a1a2b971859b522b9b48afa3c09a06a91c547709"
+      "contract_digest": "ea091c881ffb26675adcf1a61ac95102c668f72bd1e22f9a9206edb9dc159cc7"
     },
     "reconciliation": {
       "revision": "fnv1a32:7706100c",
-      "contract_digest": "8db211790b7a9fd56109fa7f84cf6e142c5e268ed8e2702997d0a759e4e28bd0"
+      "contract_digest": "1c1b3404dcb2685faaae35569c527f4ba10b8a39a18ecce08e47000c46c68baa"
     },
     "todo": {
       "revision": "fnv1a32:8dbed512",
-      "contract_digest": "65efe63353c4bcaa47630bf15671c5dc05d16bb285fb57197d5d50e552a5df26"
+      "contract_digest": "1df4ee3cb48571273c477a88d8c083d03e41f990ebdbd69189a4dc820931d574"
     },
     "activity_report": {
-      "revision": "fnv1a32:a12e16a6",
-      "contract_digest": "0f5a76b3ab213437c009ec0d06a627c70878877a400e9b837ca7c16fb45ecf91"
+      "revision": "fnv1a32:491dcdaf",
+      "contract_digest": "daa0a18f27741619964c9dbd2a51046de3d02859592a08070915b468f14f6380"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "1f078c8d1d895a2c5f2e0198958bfe1d612ebcf131c6dfb42c38df1ea107031d"
+      "contract_digest": "7fac322d9de966b16cbef9f7aad199d53e38d91cea6077ee984fb1175687c6af"
     }
   }
 }

@@ -49,8 +49,8 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | list_activity_tags, save_activity_tag, delete_activity_tag / observed-local | 자산 배분과 분리된 사용자 활동 태그 사전을 조회·추가·이름 변경·삭제합니다. | A03 |
 | set_activity_tags, set_general_task_tags / observed-local | 활동 또는 일반 할 일의 태그 집합을 교체합니다. 완료 시 현재 태그만 복사되고 과거 회차는 바뀌지 않습니다. | A03 |
 | get_activity_report_context / observed-local | 지정 기간 활동의 최신 현재 내용과 태그를 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |
-| list_activity_reports / observed-local | 저장된 일간·주간·월간 활동 리포트와 포함 활동 수정·기간 이동·새 원본에 따른 재생성 필요 상태를 조회합니다. 자동 재작성하지 않습니다. | A06 |
-| save_activity_report / observed-local | 사용자가 요청한 기간 회고를 원본 event/task/decision ID와 함께 버전 저장합니다. 자동 생성이나 투자 행동 기록은 만들지 않습니다. | A06 |
+| search_activities + get_activity / observed-local | 저장된 회고 활동(`retrospective`)을 다른 활동과 함께 찾고 읽습니다. 별도 리포트 목록/재생성 상태는 없습니다. | A06 |
+| record_manual_activity / observed-local | 사용자가 저장을 요청한 기간 회고를 `retrospective` 활동으로 기록합니다. 실제 거래나 할 일을 만들지 않습니다. | A06 |
 | get_holding_thesis / removed | 구 보유 이유 조회 도구와 DB RPC를 제거했다. `list_private_holding_notes`를 사용합니다. | W02 |
 | save_holding_thesis / removed | 구 보유 이유 저장 도구와 DB RPC를 제거했다. `save_private_holding_note`를 사용합니다. | W02 |
 | link_task_to_holding_thesis / removed | 구 보유 이유-할 일 연결 도구와 DB RPC를 제거했다. 필요한 후속 할 일은 직접 등록합니다. | W02,W04 |

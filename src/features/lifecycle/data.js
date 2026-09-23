@@ -109,13 +109,6 @@ export async function fetchActionTimeline(supabase, {
   }
 }
 
-export async function fetchActivityReports(supabase, { cursor = null, limit = 10 } = {}) {
-  return normalizePage(await rpc(supabase, 'app_list_activity_reports', {
-    input_limit: limit,
-    input_cursor: cursor,
-  }))
-}
-
 export async function fetchActivity(supabase, activityId, ownerUserId = null) {
   const data = await rpc(supabase, 'app_get_activity', {
     input_activity_id: activityId,

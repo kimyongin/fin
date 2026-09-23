@@ -898,31 +898,12 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_activity_report_context',
     title: 'Read source actions for a period report',
-    description: 'Page through every successful owner action in one date range before writing an activity report. Continue with next_cursor until null; do not summarize only the first page. It also returns current open tasks, explicitly labeled as current rather than historical period-end state. Reading never saves a report.',
+    description: 'Page through successful owner actions in a date range before composing a requested retrospective. Continue with next_cursor until null; do not summarize only the first page. Current open tasks are current-at-request, not historical period-end state. To save the result, use record_manual_activity with category retrospective; this read never writes.',
     inputSchema: { type: 'object', properties: {
       period_start: { type: 'string', format: 'date' }, period_end: { type: 'string', format: 'date' }, timezone: { type: 'string', minLength: 1 },
       limit: { type: 'integer', minimum: 1, maximum: 500, default: 200 }, cursor: { type: ['object','null'] },
     }, required: ['period_start','period_end','timezone'], additionalProperties: false },
     outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'list_activity_reports',
-    title: 'List saved activity reports',
-    description: 'List saved daily, weekly, or monthly activity reports. needs_regeneration means an included activity changed or moved periods, or a current in-period activity is not included; present the saved summary as stale and regenerate only when requested. Pass next_cursor unchanged.',
-    inputSchema: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 }, cursor: { type: ['object','null'] } }, additionalProperties: false },
-    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'save_activity_report',
-    title: 'Save a period activity report',
-    description: 'Save a user-requested daily, weekly, or monthly retrospective only after paging the full source period. Distinguish facts from interpretation, never infer investment intent from automatic edits, include every consulted event ID, and preserve current open tasks as a separately labeled snapshot. This does not schedule future reports or add an investment action event.',
-    inputSchema: { type: 'object', properties: {
-      schema_version: { const: 1 }, report_id: { type: ['string','null'], format: 'uuid' }, expected_version: { type: ['integer','null'], minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
-      period_kind: { type: 'string', enum: ['daily','weekly','monthly'] }, period_start: { type: 'string', format: 'date' }, period_end: { type: 'string', format: 'date' }, timezone: { type: 'string', minLength: 1 },
-      title: { type: 'string', minLength: 1, maxLength: 300 }, summary: { type: 'string', minLength: 1, maxLength: 10000 }, highlights: { type: 'array', maxItems: 100 }, open_items: { type: 'array', maxItems: 100 },
-      source_event_ids: { type: 'array', maxItems: 5000, uniqueItems: true, items: { type: 'integer', minimum: 1 } }, source_task_ids: { type: 'array', maxItems: 1000, uniqueItems: true, items: { type: 'string', format: 'uuid' } }, source_decision_ids: { type: 'array', maxItems: 1000, uniqueItems: true, items: { type: 'string', format: 'uuid' } },
-    }, required: ['schema_version','report_id','expected_version','idempotency_key','period_kind','period_start','period_end','timezone','title','summary','highlights','open_items','source_event_ids','source_task_ids','source_decision_ids'], additionalProperties: false },
-    outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
   {
     name: 'transition_investment_decision',
@@ -1170,8 +1151,6 @@ export const actionTaskToolNames = [
 
 export const activityReportToolNames = [
   'get_activity_report_context',
-  'list_activity_reports',
-  'save_activity_report',
 ] as const
 
 export const investmentPolicyToolNames = [

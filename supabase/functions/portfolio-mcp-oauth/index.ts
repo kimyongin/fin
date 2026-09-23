@@ -662,33 +662,6 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
-  async list_activity_reports(supabase, args) {
-    const data = await rpc(supabase, 'app_list_activity_reports', {
-      input_limit: args.limit == null ? 20 : requirePositiveInteger(args.limit, 'limit'),
-      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
-    })
-    return { ok: true, data }
-  },
-  async save_activity_report(supabase, args) {
-    requireSchemaVersion(args)
-    const reportId = args.report_id == null ? null : requireUuid(args.report_id, 'report_id')
-    const expectedVersion = args.expected_version == null ? null : requirePositiveInteger(args.expected_version, 'expected_version')
-    if ((reportId == null) !== (expectedVersion == null)) throw new ToolInputError('report_id and expected_version must both be set for an update')
-    const data = await rpc(supabase, 'app_save_activity_report', {
-      input_report_id: reportId, input_expected_version: expectedVersion,
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_payload: {
-        period_kind: requireString(args.period_kind, 'period_kind'), period_start: requireString(args.period_start, 'period_start'),
-        period_end: requireString(args.period_end, 'period_end'), timezone: requireString(args.timezone, 'timezone'),
-        title: requireString(args.title, 'title'), summary: requireString(args.summary, 'summary'),
-        highlights: requireArray(args.highlights, 'highlights'), open_items: requireArray(args.open_items, 'open_items'),
-        source_event_ids: requireArray(args.source_event_ids, 'source_event_ids'),
-        source_task_ids: requireArray(args.source_task_ids, 'source_task_ids').map((value,index) => requireUuid(value, `source_task_ids[${index}]`)),
-        source_decision_ids: requireArray(args.source_decision_ids, 'source_decision_ids').map((value,index) => requireUuid(value, `source_decision_ids[${index}]`)),
-      },
-    })
-    return { ok: true, data }
-  },
   async transition_investment_decision(supabase, args) {
     const data = await rpc(supabase, 'app_transition_investment_decision', {
       input_decision_id: requireUuid(args.decision_id, 'decision_id'),

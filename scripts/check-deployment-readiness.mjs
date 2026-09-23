@@ -63,7 +63,7 @@ for (const requiredTool of [
   'list_general_tasks',
   'save_general_task',
   'get_activity_report_context',
-  'save_activity_report',
+  'record_manual_activity',
   'update_entity_note',
   'submit_product_feedback',
   'list_my_product_feedback',
