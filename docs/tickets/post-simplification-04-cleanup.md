@@ -25,7 +25,7 @@ HoldingThesisModal.jsx/ActivityPage.jsx 및 lifecycle/data.js의 일부 조회 �
 ## 구현·검증 기록
 
 - `rg`로 import/호출자를 재확인한 뒤 미사용 파일과 adapter를 삭제했다. 삭제된 추적 파일 때문에 인코딩 검사가 실패하지 않도록 검사 대상의 실제 존재 여부를 확인하게 했다.
-- `npm test`: 20 파일/96 테스트 통과. `npm run build`: 성공. OAuth Edge handler Deno check: 성공.
+- `npm test`: 20 파일/96 테스트 통과. `npm run build`: 성공. OAuth Edge handler Deno check: 성공. 최종 전체 `npm run test:e2e`에서 격리 DB 37 파일/510 assertions, OAuth·토큰 MCP 계약, Chromium 37개(토큰·공유·기존 hash 경로 포함) 통과.
 - 공개 MCP 계약·설명 변경은 없다. 내부 소스 hash 변화에 대한 workflow-guide review manifest 사유를 기록했다.
 - 운영 배포와 실제 ChatGPT 웹·모바일 평가는 이 로컬 정리 범위 밖이다.
 
