@@ -104,7 +104,12 @@ select extensions.lives_ok(
 );
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000001501', true);
 select extensions.is((select body from public.product_feedback limit 1), '모바일 필터가 너무 깁니다.', 'the hidden row was not changed');
-select extensions.is(jsonb_array_length(public.app_list_product_feedback_admin(null, 20, 'received')->'items'), 2, 'an admin can filter and list the full queue');
+select extensions.is(
+  (select count(*) from jsonb_array_elements(public.app_list_product_feedback_admin(null, 20, 'received')->'items') item
+   where item->>'body' in ('모바일 필터가 너무 깁니다.', '다른 사용자의 제안')),
+  2::bigint,
+  'an admin can filter and list both fixture submissions even when the local DB contains other feedback'
+);
 select extensions.is(
   public.app_update_product_feedback_admin(
     (select (item->>'id')::uuid from jsonb_array_elements(public.app_list_product_feedback_admin(null, 20, null)->'items') as item where item->>'body' = '다른 사용자의 제안'),
