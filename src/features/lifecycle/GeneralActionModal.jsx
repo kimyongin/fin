@@ -7,13 +7,11 @@ import ActivityTagPicker from './ActivityTagPicker'
 
 export default function GeneralActionModal({ kind, onClose, onKindChange, onRetryTags, onSave, onTagsChanged, saving, supabase, tags, tagsError = '', tagsLoading = false }) {
   const today = businessDate()
-  const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', category: 'general', decisionState: 'proposed', selectedOption: '', reason: '', scope: '', sourceTitle: '', sourceUrl: '', tagIds: [] })
-  const [sourcesExpanded, setSourcesExpanded] = useState(false)
+  const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', tagIds: [] })
   const [tagsExpanded, setTagsExpanded] = useState(false)
   const initialDraft = useRef(draft)
   const isTask = kind === 'task'
   const dirty = JSON.stringify(draft) !== JSON.stringify(initialDraft.current) || !isTask
-  const sourceComplete = (!draft.sourceTitle.trim() && !draft.sourceUrl.trim()) || Boolean(draft.sourceTitle.trim() && /^https?:\/\/\S+$/i.test(draft.sourceUrl.trim()))
   const labelClass = 'grid min-w-0 gap-2 text-xs font-semibold text-[var(--muted-ink)]'
   const inputClass = 'min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base font-normal text-[var(--ink)] outline-none focus:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/40'
 
@@ -27,23 +25,14 @@ export default function GeneralActionModal({ kind, onClose, onKindChange, onRetr
   }
 
   function submit() {
-    const scope = draft.scope.trim()
-    const sourceUrl = draft.sourceUrl.trim()
-    const context = !isTask && (scope || sourceUrl || draft.category === 'decision') ? {
-      ...(scope ? { scope } : {}),
-      ...(sourceUrl ? { sources: [{ title: draft.sourceTitle.trim(), url: sourceUrl }] } : {}),
-      ...(draft.category === 'decision' ? { decision_state: draft.decisionState } : {}),
-      ...(draft.category === 'decision' && draft.decisionState === 'adopted' ? { selected_option: draft.selectedOption.trim(), reason: draft.reason.trim() } : {}),
-    } : null
     onSave({
       ...draft,
-      context,
       dueDate: isTask && draft.recurrenceKind !== 'daily' ? draft.scheduleDate : '',
       recurrenceStartOn: isTask && draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : null,
     })
   }
 
-  return <ModalShell closeDisabled={saving} dirty={dirty} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={submit} saveDisabled={!draft.title.trim() || (!isTask && (!sourceComplete || (draft.category === 'decision' && draft.decisionState === 'adopted' && (!draft.selectedOption.trim() || !draft.reason.trim()))))} saveLabel={saving ? '저장 중' : '저장'} />} onClose={onClose} title="활동 추가">
+  return <ModalShell closeDisabled={saving} dirty={dirty} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={submit} saveDisabled={!draft.title.trim()} saveLabel={saving ? '저장 중' : '저장'} />} onClose={onClose} title="활동 추가">
     <fieldset className="grid min-w-0 gap-4" disabled={saving}>
       <p className="text-sm leading-6 text-[var(--muted-ink)]">{isTask ? '앞으로 할 일을 등록합니다. 완료하면 기록이 연결됩니다.' : '이미 수행한 내용을 기록합니다.'}</p>
       <label className={labelClass}>{isTask ? '할 일 제목' : '기록 제목'}<input autoFocus className={inputClass} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
@@ -56,9 +45,7 @@ export default function GeneralActionModal({ kind, onClose, onKindChange, onRetr
         </div>
       </fieldset>
       {isTask && <label className={labelClass}>{draft.recurrenceKind === 'daily' ? '반복 시작일' : '예정일'}<input className={inputClass} onChange={(event) => setDraft({ ...draft, scheduleDate: event.target.value })} type="date" value={draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : draft.scheduleDate} /></label>}
-      {!isTask && <div className="grid gap-4 sm:grid-cols-2"><label className={labelClass}>수행일<input className={inputClass} max={today} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label><label className={labelClass}>활동 종류<select className={inputClass} onChange={(event) => setDraft({ ...draft, category: event.target.value })} value={draft.category}><option value="general">일반</option><option value="research">조사</option><option value="review">점검</option><option value="decision">판단</option><option value="retrospective">회고</option></select></label></div>}
-      {!isTask && draft.category === 'decision' && <section className="grid gap-4"><label className={labelClass}>판단 구분<select className={inputClass} onChange={(event) => setDraft({ ...draft, decisionState: event.target.value })} value={draft.decisionState}><option value="proposed">제안</option><option value="adopted">내가 채택함</option><option value="dismissed">채택하지 않음</option></select></label>{draft.decisionState === 'adopted' && <><label className={labelClass}>선택한 안<input className={inputClass} onChange={(event) => setDraft({ ...draft, selectedOption: event.target.value })} value={draft.selectedOption} /></label><label className={labelClass}>선택한 이유<textarea className={inputClass} onChange={(event) => setDraft({ ...draft, reason: event.target.value })} rows={2} value={draft.reason} /></label></>}</section>}
-      {!isTask && <section className="border-t border-[var(--line)] pt-3"><button aria-expanded={sourcesExpanded || !sourceComplete} className="flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold" onClick={() => setSourcesExpanded((open) => !open)} type="button">출처 및 조사 범위{draft.sourceTitle || draft.scope ? ' · 입력됨' : ''}<span aria-hidden="true">{sourcesExpanded ? '−' : '+'}</span></button>{(sourcesExpanded || !sourceComplete) && <div className="mt-3 grid gap-4"><label className={labelClass}>확인한 범위<input className={inputClass} maxLength={2000} onChange={(event) => setDraft({ ...draft, scope: event.target.value })} placeholder="예: 보유 종목의 오늘 공시" value={draft.scope} /></label><div className="grid gap-4 sm:grid-cols-2"><label className={labelClass}>출처 제목<input className={inputClass} maxLength={300} onChange={(event) => setDraft({ ...draft, sourceTitle: event.target.value })} value={draft.sourceTitle} /></label><label className={labelClass}>출처 URL<input className={inputClass} maxLength={2000} onChange={(event) => setDraft({ ...draft, sourceUrl: event.target.value })} placeholder="https://" type="url" value={draft.sourceUrl} /></label></div>{!sourceComplete && <p className="text-sm text-red-200">출처 제목과 http(s) URL을 함께 입력하세요.</p>}</div>}</section>}
+      {!isTask && <label className={labelClass}>수행일<input className={inputClass} max={today} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
       <section className="border-t border-[var(--line)] pt-3"><button aria-expanded={tagsExpanded || Boolean(tagsError)} className="flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold" onClick={() => setTagsExpanded((open) => !open)} type="button">태그{draft.tagIds.length ? ` · ${draft.tagIds.map((id) => tags.find((tag) => tag.id === id)?.name).filter(Boolean).join(', ')}` : ''}<span aria-hidden="true">{tagsExpanded ? '−' : '+'}</span></button>{(tagsExpanded || tagsError) && <div className="mt-3">{tagsLoading && <p className="text-sm text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="flex items-center gap-3 text-sm text-red-200"><span>{tagsError}</span><button className="min-h-11 rounded-2xl border border-red-400/40 px-3" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker disabled={saving || tagsLoading || Boolean(tagsError)} onChange={(tagIds) => setDraft({ ...draft, tagIds })} onTagsChanged={(nextTags, tagIds) => { onTagsChanged(nextTags); setDraft((current) => ({ ...current, tagIds })) }} selectedIds={draft.tagIds} supabase={supabase} tags={tags} /></div>}</section>
     </fieldset>
   </ModalShell>

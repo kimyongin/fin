@@ -1,22 +1,20 @@
 import { expect, test } from '@playwright/test'
 import { callRpc, openMenuTab, signInAs } from './helpers'
 
-test('validates only the visible activity type when switching to a task', async ({ page }) => {
+test('uses one simple title validation when switching between task and record', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#tasks')
   await page.getByRole('button', { name: '활동 추가', exact: true }).click()
   const editor = page.getByRole('dialog', { name: '활동 추가' })
   await editor.getByLabel('이미 했음').check()
-  await editor.getByRole('textbox', { name: '기록 제목' }).fill(`E2E 유형 전환 ${Date.now()}`)
-  await editor.getByRole('button', { name: '출처 및 조사 범위' }).click()
-  await editor.getByLabel('출처 제목').fill('부분 입력')
+  await expect(editor.getByLabel('활동 종류')).toHaveCount(0)
   await expect(editor.getByRole('button', { name: '저장', exact: true })).toBeDisabled()
-  await editor.getByLabel('활동 종류').selectOption('decision')
-  await editor.getByLabel('판단 구분').selectOption('adopted')
+  await editor.getByRole('textbox', { name: '기록 제목' }).fill(`E2E 기록 전환 ${Date.now()}`)
+  await expect(editor.getByRole('button', { name: '저장', exact: true })).toBeEnabled()
   await editor.getByLabel('이미 했음').uncheck()
   await expect(editor.getByRole('button', { name: '저장', exact: true })).toBeEnabled()
   await editor.getByLabel('이미 했음').check()
-  await expect(editor.getByRole('button', { name: '저장', exact: true })).toBeDisabled()
+  await expect(editor.getByRole('button', { name: '저장', exact: true })).toBeEnabled()
 })
 
 test('keeps a detail draft and resets discarded edits', async ({ page }) => {
@@ -94,12 +92,7 @@ test('creates and completes a general task while keeping manual work as activity
   await expect(activityDialog.getByLabel('매일 반복')).toBeDisabled()
   await expect(activityDialog.getByLabel('수행일')).toBeVisible()
   await activityDialog.getByRole('textbox', { name: '기록 제목' }).fill(activityTitle)
-  await activityDialog.getByLabel('기록 내용').fill('증권사 기준을 확인함')
-  await activityDialog.getByLabel('활동 종류').selectOption('research')
-  await activityDialog.getByRole('button', { name: '출처 및 조사 범위' }).click()
-  await activityDialog.getByLabel('확인한 범위').fill('보유 종목 공시')
-  await activityDialog.getByLabel('출처 제목').fill('공식 공시')
-  await activityDialog.getByLabel('출처 URL').fill('https://example.com/disclosure')
+  await activityDialog.getByLabel('기록 내용').fill('증권사 기준을 확인함. 공식 공시: https://example.com/disclosure')
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await expect(activityDialog).toBeVisible()
@@ -114,10 +107,9 @@ test('creates and completes a general task while keeping manual work as activity
   const manualEvent = events.body.find((event) => event.action_type === 'record_manual_activity' && event.after_data?.title === activityTitle)
   const detail = await callRpc(page, 'app_get_activity', { input_activity_id: manualEvent.id, input_owner_user_id: null })
   expect(detail.status, JSON.stringify(detail.body)).toBe(200)
-  expect(detail.body.record_kind).toBe('research')
-  expect(detail.body.after_data.context).toMatchObject({ scope: '보유 종목 공시', sources: [{ title: '공식 공시', url: 'https://example.com/disclosure' }] })
+  expect(detail.body.result).toContain('https://example.com/disclosure')
   await page.getByRole('button', { name: activityTitle, exact: true }).click()
-  await expect(page.getByRole('dialog', { name: '기록 상세' }).getByRole('link', { name: '공식 공시' })).toHaveAttribute('href', 'https://example.com/disclosure')
+  await expect(page.getByRole('dialog', { name: '기록 상세' }).getByText(/공식 공시: https:\/\/example.com\/disclosure/)).toBeVisible()
   await page.getByRole('dialog', { name: '기록 상세' }).getByRole('button', { name: '닫기' }).click()
 
   const repeatingTitle = `E2E 종료할 반복 ${Date.now()}`
@@ -246,15 +238,15 @@ test('shares newly created and renamed activity tags with search filters immedia
   await detail.getByRole('button', { name: '닫기' }).click()
   const filters = page.locator('details').filter({ hasText: '상세 필터' })
   await filters.locator('summary').click()
-  await expect(filters.getByLabel(renamed)).toBeVisible()
-  await expect(filters.getByLabel(tagName, { exact: true })).toHaveCount(0)
+  await expect(filters.getByRole('button', { name: renamed, exact: true })).toBeVisible()
+  await expect(filters.getByRole('button', { name: tagName, exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: title, exact: true }).click()
   await detail.getByRole('button', { name: /태그 편집/ }).click()
   await detail.getByText('태그 이름·삭제 관리').click()
   await detail.locator('details').getByRole('button', { name: '삭제' }).click()
   await expect(detail.getByLabel(renamed, { exact: true })).toHaveCount(0)
   await detail.getByRole('button', { name: '닫기' }).click()
-  await expect(filters.getByLabel(renamed)).toHaveCount(0)
+  await expect(filters.getByRole('button', { name: renamed, exact: true })).toHaveCount(0)
 })
 
 test('distinguishes a failed activity-tag read from an empty list and retries it', async ({ page }) => {
@@ -404,31 +396,41 @@ test('discards an older search page after the search is cleared', async ({ page 
   await expect(page.getByText('버린 이전 페이지')).toHaveCount(0)
 })
 
-test('filters activity kinds with OR and uses responsive edit dialogs with visible kinds', async ({ page }, testInfo) => {
+test('filters activity tags with OR/AND and keeps responsive record detail', async ({ page }, testInfo) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#tasks')
-  const prefix = `E2E 종류 묶음 ${Date.now()}`
-  for (const category of ['research', 'review', 'decision']) {
-    const created = await callRpc(page, 'app_create_activity', {
-      input_idempotency_key: crypto.randomUUID(),
-      input_payload: { title: `${prefix} ${category}`, category, authored_via: 'app' },
+  const prefix = `E2E 태그 묶음 ${Date.now()}`
+  const firstTag = await callRpc(page, 'app_save_activity_tag', { input_tag_id: null, input_expected_version: null, input_idempotency_key: crypto.randomUUID(), input_name: `${prefix} 조사` })
+  const secondTag = await callRpc(page, 'app_save_activity_tag', { input_tag_id: null, input_expected_version: null, input_idempotency_key: crypto.randomUUID(), input_name: `${prefix} 점검` })
+  expect(firstTag.status).toBe(200)
+  expect(secondTag.status).toBe(200)
+  for (const [label, tagIds] of [['조사', [firstTag.body.id]], ['점검', [secondTag.body.id]], ['둘 다', [firstTag.body.id, secondTag.body.id]], ['무태그', []]]) {
+    const created = await callRpc(page, 'app_create_activity_with_tags', {
+      input_idempotency_key: crypto.randomUUID(), input_tag_ids: tagIds,
+      input_payload: { title: `${prefix} ${label}`, authored_via: 'app' },
     })
     expect(created.status).toBe(200)
   }
   await page.reload()
-  await expect(page.getByLabel('활동 종류: 조사', { exact: true }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: `${prefix} 둘 다`, exact: true })).toBeVisible()
   await page.getByText('상세 필터', { exact: true }).click()
-  await page.getByRole('button', { name: '조사', exact: true }).click()
-  await page.getByRole('button', { name: '점검', exact: true }).click()
-  await expect(page.getByRole('button', { name: '조사', exact: true })).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByRole('button', { name: '점검', exact: true })).toHaveAttribute('aria-pressed', 'true')
-  await page.getByRole('textbox', { name: '활동 검색' }).fill(prefix)
+  const filters = page.locator('details').filter({ hasText: '상세 필터' })
+  await filters.getByRole('button', { name: `${prefix} 조사`, exact: true }).click()
+  await filters.getByRole('button', { name: `${prefix} 점검`, exact: true }).click()
+  await expect(filters.getByRole('button', { name: `${prefix} 조사`, exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(filters.getByRole('button', { name: `${prefix} 점검`, exact: true })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: '검색', exact: true }).click()
-  await expect(page.getByRole('heading', { name: `${prefix} research`, exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: `${prefix} review`, exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: `${prefix} decision`, exact: true })).toHaveCount(0)
-  await page.screenshot({ path: testInfo.outputPath('kind-filters.png') })
-  await page.getByRole('heading', { name: `${prefix} research`, exact: true }).click()
+  await expect(page.getByRole('heading', { name: `${prefix} 조사`, exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: `${prefix} 점검`, exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: `${prefix} 둘 다`, exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: `${prefix} 무태그`, exact: true })).toHaveCount(0)
+  await page.getByLabel('선택한 태그 모두 포함').check()
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.getByRole('heading', { name: `${prefix} 조사`, exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: `${prefix} 점검`, exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: `${prefix} 둘 다`, exact: true })).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('tag-filters.png') })
+  await page.getByRole('heading', { name: `${prefix} 둘 다`, exact: true }).click()
   const detail = page.getByRole('dialog', { name: '기록 상세' })
   await detail.getByRole('button', { name: '수정', exact: true }).click()
   await detail.getByRole('textbox', { name: '기록 제목', exact: true }).fill(`${prefix} 초안`)
@@ -449,10 +451,10 @@ test('filters activity kinds with OR and uses responsive edit dialogs with visib
   }
   await detail.getByRole('button', { name: '닫기', exact: true }).click()
   await detail.getByRole('button', { name: '변경 버리기', exact: true }).click()
-  await page.getByRole('button', { name: '점검', exact: true }).click()
-  await expect(page.getByRole('button', { name: '점검', exact: true })).toHaveAttribute('aria-pressed', 'false')
+  await filters.getByRole('button', { name: `${prefix} 점검`, exact: true }).click()
+  await expect(filters.getByRole('button', { name: `${prefix} 점검`, exact: true })).toHaveAttribute('aria-pressed', 'false')
   await page.getByRole('button', { name: '검색', exact: true }).click()
-  await expect(page.getByRole('heading', { name: `${prefix} review`, exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: `${prefix} 점검`, exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: '해제', exact: true }).click()
   await expect(page.getByRole('heading', { name: '할 일' })).toBeVisible()
 })

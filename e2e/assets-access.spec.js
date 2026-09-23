@@ -304,7 +304,7 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   await expect(sharedPrimary.getByRole('button', { name: '원칙', exact: true })).toBeVisible()
   await sharedPrimary.getByRole('button', { name: '활동', exact: true }).click()
   await friendPage.getByText('상세 필터').click()
-  await friendPage.getByRole('button', { name: '점검', exact: true }).click()
+  await friendPage.getByRole('textbox', { name: '활동 검색' }).fill('점검')
   await friendPage.getByRole('button', { name: '검색', exact: true }).click()
   await expect(friendPage.getByRole('heading', { name: '검색 결과' })).toBeVisible()
   await friendPage.getByRole('button', { name: 'Open menu' }).click()

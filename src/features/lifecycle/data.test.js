@@ -60,7 +60,7 @@ describe('decision and task data adapters', () => {
       input_tag_ids: [],
       input_payload: {
         title: '실적 확인', note: null, result: '보유', conclusion: '유지', occurred_at: null,
-        timezone: 'Asia/Seoul', instrument_id: null, account_id: null, category: 'general', context: null, authored_via: 'app',
+        timezone: 'Asia/Seoul', instrument_id: null, account_id: null, authored_via: 'app',
       },
     }])
     expect(supabase.rpc.mock.calls[1]).toEqual(['app_get_activity', { input_activity_id: 7, input_owner_user_id: null }])
@@ -74,14 +74,14 @@ describe('decision and task data adapters', () => {
     const supabase = { rpc: vi.fn(async (name) => ({ data: name === 'app_list_activity_tags' ? [{ id: tagId, name: '실적' }] : { items: [], next_cursor: null }, error: null })) }
     await expect(fetchActivityTags(supabase)).resolves.toEqual([{ id: tagId, name: '실적' }])
     await setActivityTags(supabase, { id: 5, version: 2 }, [tagId])
-    await searchActivities(supabase, { query: '보유 유지', state: 'done', conclusion: 'yes', tagIds: [tagId] })
+    await searchActivities(supabase, { query: '보유 유지', state: 'done', tagIds: [tagId] })
 
     expect(supabase.rpc.mock.calls[1][0]).toBe('app_set_activity_tags')
     expect(supabase.rpc.mock.calls[1][1]).toMatchObject({ input_activity_id: 5, input_expected_version: 2, input_tag_ids: [tagId] })
     expect(supabase.rpc.mock.calls[2]).toEqual(['app_search_activities', {
       input_owner_user_id: null, input_query: '보유 유지', input_from: null, input_to: null,
-      input_record_state: 'done', input_record_kinds: [], input_has_conclusion: true, input_instrument_id: null, input_account_id: null,
-      input_tag_ids: [tagId], input_tag_match: 'all', input_limit: 30, input_cursor: null, input_timezone: 'Asia/Seoul',
+      input_record_state: 'done', input_record_kinds: [], input_has_conclusion: null, input_instrument_id: null, input_account_id: null,
+      input_tag_ids: [tagId], input_tag_match: 'any', input_limit: 30, input_cursor: null, input_timezone: 'Asia/Seoul',
     }])
   })
 })

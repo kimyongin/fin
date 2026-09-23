@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import ModalShell from '../../components/ModalShell'
-import { activityKindLabels } from '../activity/activityKinds'
 import ActivityTagPicker from './ActivityTagPicker'
 import ActivityNarrative from './ActivityNarrative'
 import { activityNoon, businessDate } from '../../lib/businessDate'
@@ -26,14 +25,14 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
-  const [draft, setDraft] = useState({ title: '', note: '', result: '', conclusion: '', occurredOn: '', recordKind: 'general' })
+  const [draft, setDraft] = useState({ title: '', note: '', result: '', conclusion: '', occurredOn: '' })
   const previousActivityId = useRef(null)
   const [selectedTagIds, setSelectedTagIds] = useState([])
   const editable = useMemo(() => new Set(activity?.editable_fields ?? []), [activity])
   const editingDirty = editing && activity && (
     draft.title !== (activity.title ?? '') || draft.note !== (activity.note ?? '') ||
     draft.result !== (activity.result ?? '') || draft.conclusion !== (activity.conclusion ?? '') ||
-    draft.occurredOn !== localDate(activity.occurred_at) || draft.recordKind !== (activity.record_kind ?? 'general')
+    draft.occurredOn !== localDate(activity.occurred_at)
   )
   const availableTagIds = new Set(availableTags.map((tag) => tag.id))
   const tagsDirty = !ownerUserId && !tagsLoading && !tagsError && JSON.stringify([...selectedTagIds].sort()) !== JSON.stringify([...(activity?.tags ?? []).map((tag) => tag.id).filter((id) => availableTagIds.has(id))].sort())
@@ -49,7 +48,6 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       result: activity.result ?? '',
       conclusion: activity.conclusion ?? '',
       occurredOn: localDate(activity.occurred_at),
-      recordKind: activity.record_kind ?? 'general',
     })
     if (changedActivity) {
       setEditing(false)
@@ -62,7 +60,7 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
   }, [activity])
 
   function resetDraft() {
-    setDraft({ title: activity.title ?? '', note: activity.note ?? '', result: activity.result ?? '', conclusion: activity.conclusion ?? '', occurredOn: localDate(activity.occurred_at), recordKind: activity.record_kind ?? 'general' })
+    setDraft({ title: activity.title ?? '', note: activity.note ?? '', result: activity.result ?? '', conclusion: activity.conclusion ?? '', occurredOn: localDate(activity.occurred_at) })
     setEditing(false)
     setConfirmDiscard(false)
   }
@@ -76,7 +74,6 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       if (editable.has('note')) patch.note = draft.note || null
       if (editable.has('result')) patch.result = draft.result || null
       if (editable.has('conclusion')) patch.conclusion = draft.conclusion || null
-      if (editable.has('record_kind') && draft.recordKind !== activity.record_kind) patch.record_kind = draft.recordKind
       if (editable.has('occurred_at') && draft.occurredOn !== localDate(activity.occurred_at)) {
         patch.occurred_at = activityNoon(draft.occurredOn)
         patch.timezone = 'Asia/Seoul'
@@ -139,10 +136,11 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       {error && <p className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
       <section className="grid gap-3">
         {editing && editable.has('title') ? <label className="grid gap-2 text-xs font-semibold text-[var(--muted-ink)]">기록 제목<input autoFocus className="min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base font-normal text-[var(--ink)] outline-none focus:border-[var(--accent)]" maxLength={500} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label> : <h3 className="break-words text-xl font-semibold leading-8">{activity.title || activity.after_data?.title || activity.action_type}</h3>}
-        <p className="text-xs text-[var(--muted-ink)]">{formatDateTime(activity.occurred_at)} · {activity.record_kind === 'task' && activity.action_type === 'complete_general_task' ? '할 일 완료' : activityKindLabels[activity.record_kind] ?? '활동'} · {activity.source === 'agent' ? 'ChatGPT' : '앱'}</p>
+        <p className="text-xs text-[var(--muted-ink)]">{formatDateTime(activity.occurred_at)} · {activity.source === 'agent' ? 'ChatGPT' : '앱'}</p>
+        {(activity.tags?.length ?? 0) > 0 && <div className="flex flex-wrap gap-1">{activity.tags.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--muted-ink)]" key={tag.id}>{tag.name}</span>)}</div>}
       </section>
 
-      {editing && <div className="grid gap-4 sm:grid-cols-2">{editable.has('occurred_at') && <label className="grid gap-2 text-xs font-semibold text-[var(--muted-ink)]">수행일<input className="min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base font-normal text-[var(--ink)] outline-none focus:border-[var(--accent)]" max={businessDate()} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}{editable.has('record_kind') && <label className="grid gap-2 text-xs font-semibold text-[var(--muted-ink)]">활동 종류<select className="min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base font-normal text-[var(--ink)] outline-none focus:border-[var(--accent)]" onChange={(event) => setDraft({ ...draft, recordKind: event.target.value })} value={draft.recordKind}>{['general','research','review','decision','retrospective'].map((kind) => <option key={kind} value={kind}>{activityKindLabels[kind]}</option>)}</select></label>}</div>}
+      {editing && editable.has('occurred_at') && <label className="grid gap-2 text-xs font-semibold text-[var(--muted-ink)]">수행일<input className="min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base font-normal text-[var(--ink)] outline-none focus:border-[var(--accent)]" max={businessDate()} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
       {activity.origin_task && <section className="rounded-2xl bg-[var(--surface-2)] p-4"><h4 className="text-xs font-semibold text-[var(--muted-ink)]">관련 할 일</h4><p className="mt-2 break-words text-sm font-semibold">{activity.origin_task.title}</p>{activity.origin_task.trigger_text && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{activity.origin_task.trigger_text}</p>}{(activity.origin_task.due_date || activity.origin_task.recurrence_kind === 'daily') && <p className="mt-2 text-xs text-[var(--muted-ink)]">{activity.origin_task.recurrence_kind === 'daily' ? '매일 반복' : `예정일 ${activity.origin_task.due_date}`}</p>}</section>}
       {(editing || activity.result || activity.conclusion || activity.note || activity.after_data?.context) && <h4 className="text-sm font-semibold">기록 내용</h4>}
       {['result', 'conclusion', 'note'].map((field) => {

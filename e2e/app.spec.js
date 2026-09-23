@@ -95,7 +95,7 @@ test('submits product feedback and lets an allowlisted operator return a result'
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('finds a saved review by activity kind on a mobile-sized screen', async ({ page }) => {
+test('finds a saved review by activity text on a mobile-sized screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
@@ -115,8 +115,9 @@ test('finds a saved review by activity kind on a mobile-sized screen', async ({ 
   await page.reload()
   await expect(page).toHaveURL(/#overview$/)
   await openMenuTab(page, '활동')
+  await page.route('**/functions/v1/activity-search', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: '{"message":"semantic unavailable in this test"}' }))
   await page.getByText('상세 필터').click()
-  await page.getByRole('button', { name: '점검', exact: true }).click()
+  await page.getByRole('textbox', { name: '활동 검색' }).fill(headline)
   await page.getByRole('button', { name: '검색', exact: true }).click()
   await expect(page.getByText(headline).first()).toBeVisible()
   await page.getByRole('button', { name: headline }).click()
@@ -129,7 +130,7 @@ test('finds a saved review by activity kind on a mobile-sized screen', async ({ 
   }
 })
 
-test('finds an old review through the activity type filter', async ({ page }) => {
+test('finds an old review through activity search', async ({ page }) => {
   const oldReview = {
     id: 100,
     title: `당시 기준으로 유지하되 다음 확인 조건을 기다립니다 ${'긴 제목 '.repeat(18)}`,
@@ -147,7 +148,7 @@ test('finds an old review through the activity type filter', async ({ page }) =>
   await page.goto('/#today')
   await expect(page).toHaveURL(/#tasks$/)
   await page.getByText('상세 필터').click()
-  await page.getByRole('button', { name: '점검', exact: true }).click()
+  await page.getByRole('textbox', { name: '활동 검색' }).fill('당시 기준')
   await page.getByRole('button', { name: '검색', exact: true }).click()
   await expect(page.getByText(oldReview.title)).toBeVisible()
   await expect(page.getByText(oldReview.conclusion)).toBeVisible()

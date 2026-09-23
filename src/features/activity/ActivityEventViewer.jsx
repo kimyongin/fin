@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { CopyIcon } from '../../components/icons'
 import { writeClipboard } from '../../lib/clipboard'
 import { buildBulkSnapshotCsv } from './snapshotCsv'
-import ActivityKindBadge from './ActivityKindBadge'
 import { TimelineEntry } from '../../components/Timeline'
 
 const actionLabels = {
@@ -163,8 +162,9 @@ export function ChangeSummary({ action }) {
 }
 
 export function ActivityEvent({ action, onOpenActivity }) {
+  const tagChips = action.tags?.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--muted-ink)]" key={tag.id}>{tag.name}</span>)
   if (onOpenActivity) {
-    const meta = <><ActivityKindBadge completed={action.action_type === 'complete_general_task'} kind={action.record_kind} />{action.tags?.slice(0, 3).map((tag) => <span className="ml-1 rounded-full border border-[var(--line)] px-2 py-0.5" key={tag.id}>{tag.name}</span>)}{action.tags?.length > 3 && <span className="ml-1">+{action.tags.length - 3}</span>}{action.status === 'failed' && <span className="ml-2 text-red-200">실패</span>}</>
+    const meta = <>{tagChips?.slice(0, 3)}{(tagChips?.length ?? 0) > 3 && <span className="text-xs text-[var(--muted-ink)]">+{tagChips.length - 3}</span>}{action.status === 'failed' && <span className="text-red-200">실패</span>}</>
     return <TimelineEntry ariaLabel={eventTarget(action)} meta={meta} occurredAt={action.occurred_at ?? action.created_at} onOpen={() => onOpenActivity(action)} summary={action.result || action.conclusion || action.note} title={eventTarget(action)} />
   }
   const failed = action.status === 'failed'
@@ -175,7 +175,7 @@ export function ActivityEvent({ action, onOpenActivity }) {
       <time className="text-xs text-[var(--muted-ink)] sm:pt-1">{formatTime(action.occurred_at ?? action.created_at)}</time>
       <article className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <ActivityKindBadge completed={action.action_type === 'complete_general_task'} kind={action.record_kind} />
+          {tagChips}
           {onOpenActivity ? <button className="text-left text-sm font-semibold text-[var(--ink)] hover:text-[var(--accent)]" onClick={() => onOpenActivity(action)} type="button">{eventTarget(action)}</button> : <h3 className="text-sm font-semibold text-[var(--ink)]">{eventTarget(action)}</h3>}
           {!narrativeActivity && <span className="text-sm text-[var(--muted-ink)]">{actionLabels[action.action_type] ?? action.action_type}</span>}
           <span className={`rounded-full border px-2 py-0.5 text-xs ${failed ? 'border-red-400/40 text-red-100' : 'border-[var(--line)] text-[var(--muted-ink)]'}`}>{failed ? '실패' : action.source === 'agent' ? '에이전트' : '앱'}</span>
