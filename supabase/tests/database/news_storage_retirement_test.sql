@@ -17,8 +17,8 @@ select extensions.is(to_regprocedure('public.mcp_get_news_state(text)'), null::r
   'old token news reader is retired');
 select extensions.ok(to_regprocedure('public.app_create_activity(uuid,jsonb)') is not null,
   'research activities remain available');
-select extensions.ok(to_regprocedure('public.app_get_news_state(uuid)') is not null,
-  'daily-context base retains its temporary empty reader');
+select extensions.ok(to_regprocedure('public.app_get_news_state(uuid)') is null,
+  'empty news-state reader is retired after stored daily context');
 
 select * from extensions.finish();
 rollback;

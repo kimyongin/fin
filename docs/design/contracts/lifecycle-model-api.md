@@ -1,5 +1,7 @@
 # 원칙·판단·할 일·실행의 모델/API 계약
 
+> 역사 문서 (2026-09-21): 아래 원장·저장 preview·판단/실행 전용 모델은 ADR-0008과 [현재 저장 계약](../storage-contract-20260923.md)에 의해 대체되었다. 신규 구현 명세로 사용하지 않는다. 현재 물리 구조는 [schema overview](../../../supabase/schema/OVERVIEW.md)를 따른다.
+
 적용 기준: [ADR-0004](../../adr/0004-domain-storage-and-minimal-mutation-contract.md). 범용 저장 모델 대신 도메인 테이블+공통 변경 규약을 사용하며, 문맥은 서버 임시 보관, 당시 내용은 snapshot으로 보존한다.
 
 2026-09-21 · 로컬 구현 대조 완료. migration 002~019, 목적 중심 RPC/MCP, 앱 흐름과 자동 테스트에 반영했다. 논리 이름과 실제 물리 이름이 다르면 [schema overview](../../../supabase/schema/OVERVIEW.md)가 구현 원본이다. 운영 배포·legacy 이관·실사용 검증은 별도다.

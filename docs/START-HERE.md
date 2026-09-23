@@ -7,7 +7,7 @@
 1. [단순성 원칙](./engineering/SIMPLICITY.md): 기능·상태·테이블·API·이력을 함께 줄이는 기준.
 2. [ADR-0008](./adr/0008-minimal-portfolio-storage.md): 이전 저장 구조 유지 요구를 대체하는 결정.
 3. [재설계](./design/minimal-portfolio.md): 저장 방향, S1~S10, 축소 기능, 이관/공유 조건.
-   구현 전 [전수 대조](./design/storage-inventory-20260923.md)와 [최소 계약](./design/storage-contract-20260923.md)을 확인한다. 운영과 로컬 스키마가 다르다.
+   구현 전 [전수 대조](./design/storage-inventory-20260923.md), [최소 계약](./design/storage-contract-20260923.md), [현재 인계](./design/storage-release-readiness-20260923.md)를 확인한다. 운영과 로컬 스키마가 다르다.
 4. [티켓 목록](./tickets/README.md): storage-simplification-01~06.
 5. [PRD](./prd/portfolio.md), [개발 방법](./engineering/development.md), [아키텍처](./engineering/architecture.md).
 6. DB는 supabase/schema/OVERVIEW.md, UI는 docs/design/PRINCIPLES.md와 screen-structure.md. 현재 스키마와 목표를 구분한다.

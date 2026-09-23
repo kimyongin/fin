@@ -2,6 +2,8 @@
 
 2026-09-21 기준. GitHub Pages 공개는 검증된 앱 commit을 배포하는 단계이며 DB migration과 Edge Function을 대신 배포하지 않는다.
 
+2026-09-23 저장 단순화 작업의 현재 적용 상태·삭제 범위·호환 endpoint·미검증 항목은 [운영 인계](../design/storage-release-readiness-20260923.md)를 우선 확인한다. 아래 2026-09-22 ToDo·원칙 번들 배포 순서는 역사 기록이며 새 릴리스 계획이 아니다.
+
 ## 배포 순서
 
 1. 로컬에서 `npm test`, `npm run build`, `npm run test:db`를 실행한다. Edge 변경은 Deno가 있는 환경에서 `npm run check:edge`도 실행한다.
