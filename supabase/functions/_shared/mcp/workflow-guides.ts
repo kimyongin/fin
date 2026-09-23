@@ -46,6 +46,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/20260922183641_principles_revision_rows.sql',
+      'supabase/migrations/20260923041318_retire_investment_policy_storage.sql',
       'src/features/strategy/data.js',
     ],
     steps: [

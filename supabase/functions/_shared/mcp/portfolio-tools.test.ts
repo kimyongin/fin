@@ -203,14 +203,13 @@ describe('portfolio MCP tool definitions', () => {
     expect((transition.inputSchema as any).properties.action.enum).toEqual(['pause', 'resume', 'cancel'])
   })
 
-  it('keeps personal policy separate from inferred defaults and strategy mutation', () => {
-    const read = tool('get_investment_policy')
-    const save = tool('save_investment_policy')
-    expect(read.annotations.readOnlyHint).toBe(true)
-    expect(save.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
-    expect((save.inputSchema as any).properties.expected_version.type).toEqual(['integer', 'null'])
-    expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('mode')
-    expect((save.inputSchema as any).properties.patch.properties).not.toHaveProperty('target_percentage')
+  it('uses principles instead of a parallel personal-policy API', () => {
+    const names = portfolioToolDefinitions.map((definition) => definition.name)
+    expect(names).not.toContain('get_investment_policy')
+    expect(names).not.toContain('save_investment_policy')
+    expect(names).toContain('list_principles')
+    expect(names).toContain('save_principle')
+    expect(getWorkflowGuide('policy')?.steps[0].tools).toEqual(['list_principles'])
   })
 
   it('uses principles instead of a parallel operating-rule API', () => {

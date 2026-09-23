@@ -14,7 +14,7 @@ revision 5 · observed-local 도구와 배포 후 검증이 필요한 흐름을 
 
 ## W02 — 투자 기준·보유 이유 (S02~S04)
 
-get_investment_policy 또는 get_holding_thesis로 현재 버전을 읽는다. 사용자 전체 기준/운용 계획/종목별 이유를 구분한다. 명시적으로 저장한 항목만 해당 save 도구로 patch한다. ‘내 성향이 어떨까?’는 분석 요청이며 저장 요청이 아니다. 기존 조사·점검 할 일은 `link_task_to_holding_thesis`로 이유와 연결할 수 있지만 연결만으로 이유나 task 상태를 바꾸지 않는다. 모호한 ‘나중에’는 날짜를 만들지 않고 조건 문구로 유지한다.
+`list_principles`와 `list_private_holding_notes`로 현재 값을 읽는다. 사용자 전체 기준/운용 계획/종목별 이유를 구분한다. 명시적으로 승인한 기준 한 항목만 `save_principle`로, 종목별 이유는 `save_private_holding_note`로 저장한다. ‘내 성향이 어떨까?’는 분석 요청이며 저장 요청이 아니다. 미래에 확인할 일은 별도 일반 할 일로 등록한다. 모호한 ‘나중에’는 날짜를 만들지 않고 조건 문구로 유지한다.
 
 ## W03 — 제안·채택·대체 (S10,S13,S14)
 

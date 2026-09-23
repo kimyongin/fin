@@ -37,7 +37,6 @@ const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
 // New agent sessions see only the current principle, private-note, and activity paths.
 const hiddenLegacyToolNames = new Set([
   'get_news_state',
-  'get_investment_policy', 'save_investment_policy',
 ])
 const toolDefinitions = portfolioToolDefinitions.filter((definition) => !hiddenLegacyToolNames.has(definition.name)).map((definition) => ({
   ...definition,
@@ -327,42 +326,6 @@ function normalizeTaskTransitionPayload(args: Record<string, unknown>) {
     evidence,
     authored_via: 'agent',
   }
-}
-
-function normalizeInvestmentPolicyPatch(value: unknown) {
-  const patch = requireRecord(value, 'patch')
-  const allowedTextFields = [
-    'raw_text',
-    'goal_text',
-    'horizon_text',
-    'liquidity_need_text',
-    'risk_tolerance_text',
-    'trading_preference_text',
-  ]
-  const normalized: Record<string, unknown> = {}
-  for (const field of allowedTextFields) {
-    if (!Object.prototype.hasOwnProperty.call(patch, field)) continue
-    normalized[field] = patch[field] === null ? null : requireString(patch[field], `patch.${field}`)
-  }
-  if (Object.prototype.hasOwnProperty.call(patch, 'restrictions')) {
-    normalized.restrictions = requireArray(patch.restrictions, 'patch.restrictions').map((value, index) => {
-      const restriction = requireRecord(value, `patch.restrictions[${index}]`)
-      const kind = requireString(restriction.kind, `patch.restrictions[${index}].kind`)
-      if (!['preference', 'prohibition'].includes(kind)) {
-        throw new ToolInputError(`patch.restrictions[${index}].kind is invalid`)
-      }
-      return {
-        kind,
-        text: requireString(restriction.text, `patch.restrictions[${index}].text`),
-      }
-    })
-  }
-  const unknownFields = Object.keys(patch).filter((field) =>
-    !allowedTextFields.includes(field) && field !== 'restrictions'
-  )
-  if (unknownFields.length > 0) throw new ToolInputError('patch contains an unknown field')
-  if (Object.keys(normalized).length === 0) throw new ToolInputError('patch must not be empty')
-  return normalized
 }
 
 async function rpc(supabase: any, name: string, args: Record<string, unknown> = {}) {
@@ -805,24 +768,6 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_body: requireString(args.body, 'body'),
       input_scope: args.scope == null ? null : requireString(args.scope, 'scope'),
       input_end: args.end === true,
-    })
-    return { ok: true, data }
-  },
-  async get_investment_policy(supabase) {
-    const data = await rpc(supabase, 'app_get_investment_policy')
-    return { ok: true, data }
-  },
-  async save_investment_policy(supabase, args) {
-    requireSchemaVersion(args)
-    const expectedVersion = args.expected_version === null
-      ? null
-      : requirePositiveInteger(args.expected_version, 'expected_version')
-    const data = await rpc(supabase, 'app_save_investment_policy', {
-      input_expected_version: expectedVersion,
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_patch: normalizeInvestmentPolicyPatch(args.patch),
-      input_change_reason: requireString(args.change_reason, 'change_reason'),
-      input_authored_via: 'agent',
     })
     return { ok: true, data }
   },

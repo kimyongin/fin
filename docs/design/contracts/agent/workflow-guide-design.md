@@ -8,7 +8,7 @@ ChatGPT가 사용자의 요청을 적절한 질문·조회·초안·저장으로
 
 | topic | 사용자 요청 / 안내 내용 | 현재 사용할 도구 / 시나리오 |
 | --- | --- | --- |
-| policy | 내 투자 기준을 질문하면서 정리해줘. 기존 답을 활용하고 목표·기간·유동성·위험·매매 성향·선호/금지 원칙을 필요한 만큼 묻고 초안을 확인한다. | get_investment_policy, save_investment_policy / W02, S02~S04 |
+| policy | 내 투자 기준을 질문하면서 정리해줘. 기존 답을 활용하고 목표·기간·유동성·위험·매매 성향·선호/금지 원칙을 필요한 만큼 묻고 초안을 확인한다. | list_principles, save_principle / W02, S02~S04 |
 | holding_thesis | 이 종목을 왜 보유하는지 정리해줘. 종목 공통 이유와 계좌별 예외, 재검토 조건을 구분한다. | find_holdings, get_holding_thesis, save_holding_thesis, get_task, link_task_to_holding_thesis / W02 |
 | daily_review | 오늘 점검해줘 / 점검하고 저장해줘. 이전 점검·미확인 범위부터 조사하고 사실·해석·불확실성을 구분한다. | get_daily_context, list_daily_briefings, get_daily_briefing, save_daily_briefing / W01 |
 | decision_followup | 유지하기로 한 이유와 다음 실적 확인을 남겨줘. 제안/사용자 채택, 조사 질문/실행 계획을 구분하고 부분 성공을 설명한다. | record_investment_decision, get_investment_decision, transition_investment_decision, list_tasks, get_task, transition_task, save_execution_task / W03~W04 |
@@ -30,11 +30,11 @@ ChatGPT가 사용자의 요청을 적절한 질문·조회·초안·저장으로
 
 현재 기준과 운용 전략을 먼저 읽고 이미 알려진 내용을 반복 질문하지 않는다. 짧은 질문을 한 번에 1~2개씩 하며 사용자가 모르는 항목은 미정으로 둔다. 목표·기간·필요 현금·감내 가능한 손실·매매 빈도/방식·선호/금지 원칙은 질문 후보이며 고정 설문이나 성향 점수 계산은 아니다. 기존 대화에서 명확히 답한 내용도 활용한다.
 
-사용자가 말한 내용과 모델 제안을 구별해 초안을 제시한다. 충돌하는 답은 확인하고 답하지 않은 값을 추론해 채우지 않는다. 구조화 필드는 goal_text/horizon_text/liquidity_need_text/risk_tolerance_text/trading_preference_text/restrictions에 맞추고 상세 서술은 raw_text로 정리한다. 원문 전체 대화나 불필요한 민감정보를 저장하지 않는다.
+사용자가 말한 내용과 모델 제안을 구별해 초안을 제시한다. 충돌하는 답은 확인하고 답하지 않은 값을 추론해 채우지 않는다. 확정한 원칙은 종류(goal/horizon/liquidity/risk/trading/preference/prohibition 등)와 문구를 한 행씩 저장한다. 원문 전체 대화나 불필요한 민감정보를 저장하지 않는다.
 
-도출한 초안은 사용자가 확인한 뒤 저장한다. 이미 확정된 문구에 대해 명확히 저장을 요청했다면 같은 승인을 다시 요구하지 않는다. 분석 요청만 있으면 저장하지 않는다. 일부 수정은 나머지 필드를 유지하고 null은 명시적 삭제에만 사용한다. restrictions 배열 교체 시 기존 항목의 의도치 않은 삭제가 없도록 현재값을 반영한다. 투자 기준 저장은 목표 비중·운용 모드·보유 이유를 함께 수정하지 않는다.
+도출한 초안은 사용자가 확인한 뒤 저장한다. 이미 확정된 문구에 대해 명확히 저장을 요청했다면 같은 승인을 다시 요구하지 않는다. 분석 요청만 있으면 저장하지 않는다. 일부 수정은 해당 원칙 ID의 최신 행만 바꾸고 다른 원칙을 유지한다. 종료는 해당 원칙의 `end=true`로 처리한다. 투자 기준 저장은 목표 비중·운용 모드·보유 이유를 함께 수정하지 않는다.
 
-저장은 현재 version과 멱등 key를 사용한다. 응답 유실은 같은 key/입력 재시도, 버전 충돌은 재조회하고 충돌 내용을 확인한다. 성공 뒤 get_investment_policy로 확인한다. 재조회만 실패한 경우 저장 실패로 표현하거나 새 저장을 만들지 않는다. 앱의 나의 투자 기준과 같은 값인지 검증한다.
+저장은 기존 원칙 수정이면 최신 행 ID를 `expected_row_id`로 사용하고 새 원칙이면 null을 사용한다. 같은 문구의 재시도는 현재 행을 반환한다. 충돌은 재조회하고 변경 내용을 확인한다. 성공 뒤 `list_principles`로 확인한다. 재조회만 실패한 경우 저장 실패로 표현하거나 새 저장을 만들지 않는다. 앱의 나의 투자 기준과 같은 값인지 검증한다.
 
 ## 변경과 최신화
 

@@ -416,31 +416,6 @@ const taskTransitionEvidenceSchema = {
   additionalProperties: false,
 }
 
-const policyRestrictionSchema = {
-  type: 'object',
-  properties: {
-    kind: { type: 'string', enum: ['preference', 'prohibition'] },
-    text: { type: 'string', minLength: 1, maxLength: 1000 },
-  },
-  required: ['kind', 'text'],
-  additionalProperties: false,
-}
-
-const policyPatchSchema = {
-  type: 'object',
-  properties: {
-    raw_text: { type: ['string', 'null'], maxLength: 10000 },
-    goal_text: { type: ['string', 'null'], maxLength: 4000 },
-    horizon_text: { type: ['string', 'null'], maxLength: 4000 },
-    liquidity_need_text: { type: ['string', 'null'], maxLength: 4000 },
-    risk_tolerance_text: { type: ['string', 'null'], maxLength: 4000 },
-    trading_preference_text: { type: ['string', 'null'], maxLength: 4000 },
-    restrictions: { type: 'array', maxItems: 20, items: policyRestrictionSchema },
-  },
-  minProperties: 1,
-  additionalProperties: false,
-}
-
 export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_workflow_guide',
@@ -573,7 +548,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_daily_context',
     title: 'Prepare daily review context',
-    description: 'Start a daily review by creating one short-lived owner-only snapshot. It includes current principles and private_holding_notes; treat the older investment_policy key as a transition copy, not the new source. Use the snapshot instead of separately reading portfolio, strategy, saved news, and activity for the same review. It does not save an analysis, mark a review complete, or fetch public news.',
+    description: 'Start a daily review by creating one short-lived owner-only snapshot. It includes current principles and private_holding_notes. Use the snapshot instead of separately reading portfolio, strategy, saved news, and activity for the same review. It does not save an analysis, mark a review complete, or fetch public news.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1050,33 +1025,6 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
   {
-    name: 'get_investment_policy',
-    title: 'Investment policy and operating strategy',
-    description: 'Read explicitly saved personal goals, horizon, liquidity needs, risk/trading preferences, and restrictions together with the operating strategy. For an interview or multi-step policy update, read get_workflow_guide(topic=policy) first. Use get_strategy_state alone for allocation mechanics. Missing personal fields remain unknown; do not infer them from holdings or the active mode.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    outputSchema: successEnvelopeSchema,
-    annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'save_investment_policy',
-    title: 'Save personal investment policy',
-    description: 'Use only when the user explicitly asks to save or change their personal investment policy. For an interview-derived update, follow get_workflow_guide(topic=policy). Read the current version first, patch only approved fields, preserve restrictions that were not removed, and use null only to clear a field. This does not change target allocations, operating mode, holdings, decisions, or trades.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        schema_version: { const: 1 },
-        expected_version: { type: ['integer', 'null'], minimum: 1 },
-        idempotency_key: { type: 'string', format: 'uuid' },
-        patch: policyPatchSchema,
-        change_reason: { type: 'string', minLength: 1, maxLength: 1000 },
-      },
-      required: ['schema_version', 'expected_version', 'idempotency_key', 'patch', 'change_reason'],
-      additionalProperties: false,
-    },
-    outputSchema: successEnvelopeSchema,
-    annotations: idempotentWriteAnnotations,
-  },
-  {
     name: 'list_private_holding_notes',
     title: 'Read private holding reasons',
     description: 'Read the owner-only current reasons stored on instruments and account holdings. An account note overrides the instrument-wide reason for that account; a missing note means no reason was saved. These notes are not included in shared portfolio reads. Do not infer a reason from price or holdings.',
@@ -1236,8 +1184,6 @@ export const activityReportToolNames = [
 export const investmentPolicyToolNames = [
   'list_principles',
   'save_principle',
-  'get_investment_policy',
-  'save_investment_policy',
 ] as const
 
 export const holdingThesisToolNames = [

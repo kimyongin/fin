@@ -35,8 +35,6 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_task / observed-local | 본인의 할 일 상세·이력·연결 판단 ID를 읽습니다. 조회로 완료·보류·종료하지 않습니다. | W04,W08 |
 | transition_investment_decision / observed-local | 현재 version을 읽은 뒤 사용자의 명시적 의도로 proposed 판단을 채택하거나 거절합니다. 기존 선택지와 이유를 요구하며 주문·체결·원칙을 변경하지 않습니다. | W03 |
 | transition_task / observed-local | 현재 version을 읽고 조사 질문을 대기·해결·재개하거나 사용자의 요청으로 보류·재개·종료합니다. 해결은 답과 출처, 재개는 새 근거가 필요하며 매매 진행도를 변경하지 않습니다. | W04,W08 |
-| get_investment_policy / legacy-hidden | 구 개인 기준 조회. 기존 세션 호환 호출만 허용하며 새 세션은 `list_principles`를 사용합니다. | W02 |
-| save_investment_policy / legacy-hidden | 구 개인 기준 저장. 기존 세션 호환 호출만 허용하며 새 세션은 `save_principle`을 사용합니다. | W02 |
 | list_operating_rules / removed | 별도 운영 규칙 조회를 제거했다. `list_principles`에서 `kind=operation`, 해당 scope를 확인합니다. | W06 |
 | save_operating_rule / removed | 별도 운영 규칙 저장을 제거했다. 사용자가 승인한 규칙은 `save_principle`로 저장합니다. | W06 |
 | archive_operating_rule / removed | 별도 보관 상태를 제거했다. 해당 원칙에 `end=true`를 저장합니다. | W06 |

@@ -167,25 +167,20 @@ try {
   const invalidTokenPortfolio = await callTokenMcp(`${agentToken}-invalid`, 'tools/call', { name: 'get_portfolio_state', arguments: {} })
   assert(invalidTokenPortfolio.body?.error, 'Token MCP accepted an invalid agent token')
 
-  const policyBefore = await call(session.access_token, 'tools/call', { name: 'get_investment_policy', arguments: {} })
-  assert(policyBefore.body?.result?.structuredContent?.data?.profile == null, 'New contract user unexpectedly has an investment policy')
-  const policyKey = crypto.randomUUID()
-  const policyArgs = {
-    schema_version: 1,
-    expected_version: null,
-    idempotency_key: policyKey,
-    patch: {
-      goal_text: 'Keep the contract-test goal explicit.',
-      restrictions: [{ kind: 'prohibition', text: 'Do not infer missing preferences.' }],
-    },
-    change_reason: 'Verify policy interview save and read-back contract.',
+  const policyPrincipleArgs = {
+    schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
+    kind: 'prohibition', body: 'Do not infer missing preferences.', end: false,
   }
-  const policySaved = await call(session.access_token, 'tools/call', { name: 'save_investment_policy', arguments: policyArgs })
-  assert(policySaved.body?.result?.structuredContent?.data?.profile?.version === 1, 'Investment policy save contract failed')
-  const policyRetry = await call(session.access_token, 'tools/call', { name: 'save_investment_policy', arguments: policyArgs })
-  assert(policyRetry.body?.result?.structuredContent?.data?.profile?.version === 1, 'Investment policy idempotent retry failed')
-  const policyAfter = await call(session.access_token, 'tools/call', { name: 'get_investment_policy', arguments: {} })
-  assert(policyAfter.body?.result?.structuredContent?.data?.profile?.goal_text === policyArgs.patch.goal_text, 'Investment policy could not be read back')
+  const policySaved = await call(session.access_token, 'tools/call', {
+    name: 'save_principle', arguments: policyPrincipleArgs,
+  })
+  assert(policySaved.body?.result?.structuredContent?.data?.body === policyPrincipleArgs.body,
+    'Personal principle save contract failed')
+  const policyAfter = await call(session.access_token, 'tools/call', {
+    name: 'list_principles', arguments: {},
+  })
+  assert(policyAfter.body?.result?.structuredContent?.data?.items?.some((item) => item.body === policyPrincipleArgs.body),
+    'Personal principle could not be read back')
 
   const operationPrincipleArgs = {
     schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
