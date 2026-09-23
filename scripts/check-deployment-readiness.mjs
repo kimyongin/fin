@@ -17,7 +17,7 @@ const rpcChecks = [
   ['app_get_daily_context', { input_subject_tickers: null, input_timezone: 'Asia/Seoul' }],
   ['app_list_narrative_activities', { input_cursor: null, input_kind: 'review', input_limit: 1, input_owner_user_id: null }],
   ['app_list_narrative_activities', { input_cursor: null, input_kind: 'decision', input_limit: 1, input_owner_user_id: null }],
-  ['app_list_portfolio_task_page', { input_cursor: null, input_filter: 'active', input_limit: 1, input_owner_user_id: null }],
+  ['app_list_general_task_page', { input_cursor: null, input_filter: 'active', input_limit: 1 }],
   ['app_list_transaction_page', { input_account_id: null, input_cursor: null, input_instrument_id: null, input_limit: 1 }],
   ['app_list_my_product_feedback', { input_cursor: null, input_limit: 1 }],
 ]
