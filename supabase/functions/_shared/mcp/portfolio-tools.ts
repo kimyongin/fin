@@ -791,7 +791,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'preview_trade_entry',
     title: 'Preview a completed trade entry',
-    description: 'Preview how a user-reported completed market buy or sell would change one account holding. Use decimal strings for quantity and execution price. This does not place an order, move cash, save a trade, or verify the brokerage balance.',
+    description: 'Calculate a read-only, unsaved estimate for a user-reported completed market buy or sell. Use decimal strings for quantity and execution price. Return the holding id/version with the estimate; recording rechecks that version and recalculates under a server lock. This does not place an order, move cash, save a trade, or verify the brokerage balance.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -811,15 +811,22 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'log_completed_trade',
     title: 'Record a completed trade',
-    description: 'Use only after the user explicitly asks to record an already completed trade and after showing a fresh preview. Confirms that exact preview idempotently. It updates the local holding but never places or cancels a brokerage order, moves cash, or marks the balance verified.',
+    description: 'Use only when the user explicitly asks to record an already completed trade and after showing a fresh unsaved estimate. Pass its exact inputs and expected holding id/version with a stable idempotency key. The server locks and recalculates the current holding; a changed holding is rejected for a fresh estimate. This records a local trade and activity but never places or cancels an order, moves cash, or marks the balance verified.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 },
-        preview_id: { type: 'string', format: 'uuid' },
+        account_id: { type: 'integer', minimum: 1 },
+        instrument_id: { type: 'integer', minimum: 1 },
+        side: { type: 'string', enum: ['buy', 'sell'] },
+        quantity: { type: 'string', pattern: '^[0-9]+(?:\\.[0-9]{1,16})?$' },
+        unit_price: { type: 'string', pattern: '^[0-9]+(?:\\.[0-9]{1,16})?$' },
+        executed_on: { type: 'string', format: 'date' },
+        expected_holding_id: { type: ['integer', 'null'], minimum: 1 },
+        expected_version: { type: 'integer', minimum: 0 },
         idempotency_key: { type: 'string', format: 'uuid' },
       },
-      required: ['schema_version', 'preview_id', 'idempotency_key'],
+      required: ['schema_version', 'account_id', 'instrument_id', 'side', 'quantity', 'unit_price', 'executed_on', 'expected_holding_id', 'expected_version', 'idempotency_key'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,

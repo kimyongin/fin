@@ -29,6 +29,8 @@ GitHub: https://github.com/kimyongin/fin/issues/90
 
 ## 진행 기록
 
+- 저장 없는 매매 예상·직접 확정 슬라이스(2026-09-23): 기존 `preview_trade_entry`는 같은 입력을 현재 보유값으로 읽기만 하며 보유 ID/버전을 돌려준다. 새 `app_record_completed_trade`는 해당 입력·기대 버전·멱등 키를 받아 계좌/종목 스트림을 잠그고 현재값을 재계산한다. 앱/MCP의 확정 호출은 새 경로로 전환했다. 응답 유실 시 동일 키/입력으로 원 응답을 받는다. 거래 목록 호환을 위해 이번 단계는 `trade_entries`와 금융 영수증을 유지한다. 구 preview 테이블/DB 확정 함수, 보정 preview와 검증 원장/화면은 후속 정리 대상이다. 격리 DB 34파일/466검증, OAuth/토큰 MCP 계약, Chromium 모바일 매매 1건, 단위 19파일/94건, 웹 빌드·인코딩·가이드 검사 통과. 일반 로컬/운영 DB에는 미적용이다.
+
 - 추가 물리 정리 슬라이스: 운영·로컬에서 행 수 0인 체결 취소 preview/reversal/receipt 3개 테이블 및 전용 DB RPC를 증분 migration에서 제거했다. 과거 trade_entries의 reversed_at/reversal_reason 읽기 필드는 유지하며, 잘못된 입력의 현재값 보정 경로는 그대로 둔다. execution-task 테스트에서 더 이상 제품에 없는 취소 시나리오를 제거하고 부재 검증으로 대체했다. 격리 DB 37개 파일/553개 assertion, MCP 계약, Chromium 34개 시나리오 통과. 일반 로컬/운영에는 미적용이다.
 
 - 최신 매매도 되돌리기하지 않는 제품 결정을 먼저 웹과 OAuth MCP에 반영했다. 매매 모달의 `기록 취소` 흐름과 MCP reversal 도구 2개를 제거하고, 잘못 입력한 경우 증권사 현재 수량·평균가 확인 후 보정하도록 안내한다. 기존 과거 취소 표시와 DB 원문은 보존한다.

@@ -11,9 +11,16 @@ export async function previewTrade(supabase, draft) {
   return data
 }
 
-export async function confirmTrade(supabase, previewId, idempotencyKey) {
-  const { data, error } = await supabase.rpc('app_log_completed_trade', {
-    input_preview_id: previewId,
+export async function confirmTrade(supabase, draft, preview, idempotencyKey) {
+  const { data, error } = await supabase.rpc('app_record_completed_trade', {
+    input_account_id: Number(draft.accountId),
+    input_instrument_id: Number(draft.instrumentId),
+    input_side: draft.side,
+    input_quantity: draft.quantity,
+    input_unit_price: draft.unitPrice,
+    input_executed_on: draft.executedOn,
+    input_expected_holding_id: preview.holding_id,
+    input_expected_version: preview.holding_state_version,
     input_idempotency_key: idempotencyKey,
     input_authored_via: 'app',
   })

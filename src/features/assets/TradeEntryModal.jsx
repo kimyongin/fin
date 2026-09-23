@@ -32,7 +32,7 @@ export default function TradeEntryModal({ accounts, instrument, onClose, onSaved
     setError('')
     try {
       const preview = await previewTrade(supabase, { ...draft, instrumentId: instrument.id })
-      setAttempt({ preview, idempotencyKey: crypto.randomUUID(), committed: false })
+      setAttempt({ preview, draft: { ...draft, instrumentId: instrument.id }, idempotencyKey: crypto.randomUUID(), committed: false })
     } catch (nextError) {
       setError(nextError.message)
     } finally {
@@ -58,7 +58,7 @@ export default function TradeEntryModal({ accounts, instrument, onClose, onSaved
     setSaving(true)
     setError('')
     try {
-      await confirmTrade(supabase, attempt.preview.preview_id, attempt.idempotencyKey)
+      await confirmTrade(supabase, attempt.draft, attempt.preview, attempt.idempotencyKey)
       setAttempt((current) => ({ ...current, committed: true }))
       setSavedMessage('체결 기록은 저장되었습니다.')
       try {
@@ -68,7 +68,12 @@ export default function TradeEntryModal({ accounts, instrument, onClose, onSaved
         setError(`저장은 완료됐지만 화면을 새로 불러오지 못했습니다. 다시 불러오세요. (${refreshError.message})`)
       }
     } catch (nextError) {
-      setError(`저장 결과를 확인하지 못했습니다. 같은 요청으로 다시 시도할 수 있습니다. (${nextError.message})`)
+      if (nextError.message?.includes('Trade estimate is stale')) {
+        setAttempt(null)
+        setError('그 사이 보유 수량이나 평균가가 바뀌었습니다. 변경 미리보기를 다시 확인해 주세요.')
+      } else {
+        setError(`저장 결과를 확인하지 못했습니다. 같은 요청으로 다시 시도할 수 있습니다. (${nextError.message})`)
+      }
     } finally {
       setSaving(false)
     }

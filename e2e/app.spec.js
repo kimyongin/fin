@@ -443,7 +443,7 @@ test('previews and records a completed trade on mobile', async ({ page }) => {
   await page.getByRole('button', { name: '변경 미리보기' }).click()
   await expect(page.getByText('2 → 3')).toBeVisible()
   let dropFirstConfirmationResponse = true
-  await page.route('**/rest/v1/rpc/app_log_completed_trade', async (route) => {
+  await page.route('**/rest/v1/rpc/app_record_completed_trade', async (route) => {
     if (!dropFirstConfirmationResponse) return route.continue()
     dropFirstConfirmationResponse = false
     await route.fetch()
@@ -453,7 +453,7 @@ test('previews and records a completed trade on mobile', async ({ page }) => {
   await expect(page.getByText(/같은 요청으로 다시 시도/)).toBeVisible()
   await page.getByRole('button', { name: '체결 기록 확정' }).click()
   await expect(page.getByRole('heading', { name: 'E2E Apple 매매 기록' })).toBeHidden()
-  await page.unroute('**/rest/v1/rpc/app_log_completed_trade')
+  await page.unroute('**/rest/v1/rpc/app_record_completed_trade')
 
   const transactions = await callRpc(page, 'app_list_transactions', { input_limit: 10, input_before: null })
   expect(transactions.status, JSON.stringify(transactions.body)).toBe(200)

@@ -137,6 +137,14 @@ function requirePositiveInteger(value: unknown, field: string) {
   return normalized
 }
 
+function requireNonnegativeInteger(value: unknown, field: string) {
+  const normalized = Number(value)
+  if (!Number.isInteger(normalized) || normalized < 0) {
+    throw new ToolInputError(`${field} must be a nonnegative integer`)
+  }
+  return normalized
+}
+
 function requirePositiveDecimalString(value: unknown, field: string) {
   const normalized = requireString(value, field)
   if (!/^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,16})?$/.test(normalized) || Number(normalized) <= 0) {
@@ -469,8 +477,15 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async log_completed_trade(supabase, args) {
     requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_log_completed_trade', {
-      input_preview_id: requireUuid(args.preview_id, 'preview_id'),
+    const data = await rpc(supabase, 'app_record_completed_trade', {
+      input_account_id: requirePositiveInteger(args.account_id, 'account_id'),
+      input_instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      input_side: requireString(args.side, 'side'),
+      input_quantity: requirePositiveDecimalString(args.quantity, 'quantity'),
+      input_unit_price: requirePositiveDecimalString(args.unit_price, 'unit_price'),
+      input_executed_on: requireString(args.executed_on, 'executed_on'),
+      input_expected_holding_id: args.expected_holding_id == null ? null : requirePositiveInteger(args.expected_holding_id, 'expected_holding_id'),
+      input_expected_version: requireNonnegativeInteger(args.expected_version, 'expected_version'),
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
       input_authored_via: 'agent',
     })

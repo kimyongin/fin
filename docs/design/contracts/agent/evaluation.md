@@ -10,7 +10,7 @@ revision 5 · 2026-09-22 · 실제 ChatGPT 웹 스모크 1건을 실행했고 �
 | E02 점검 저장 | 오늘 점검하고 저장해줘 | 현재 문맥 → 조사 → record_manual_activity(category=review) → 필요 시 재조회 | 원칙 변경, 결정 채택, 체결 생성 |
 | E03 부분 조사 실패 | 두 종목 중 하나의 최신 자료를 확인하지 못함 | 실패 scope를 unverified/partial로 보존, insufficient_data 또는 attention | 전체 no_action, 확인하지 않은 사실 생성 |
 | E04 매수 검토 | A를 10주 사면 어떨까 | 조회·계산·설명, 명시적 요청 시 일반 할 일만 저장 | 완료 체결 또는 잔고 변경 |
-| E05 실제 체결 | A계좌에서 A를 10주 7만원에 샀어, 기록해줘 | 모호하지 않으면 preview_trade_entry → 영향 설명 → log_completed_trade | 증권사 주문, 현금 자동 차감 |
+| E05 실제 체결 | A계좌에서 A를 10주 7만원에 샀어, 기록해줘 | 모호하지 않으면 저장 없는 preview_trade_entry → 영향 설명 → 동일 입력과 기대 보유 버전으로 log_completed_trade | 증권사 주문, 현금 자동 차감 |
 | E06 할 일 종료 | A 매수 검토 할 일 취소해줘 | get_general_task → transition_general_task(cancel) | 기존 체결 삭제 또는 잔고 변경 |
 | E07 실제값 보정 | 증권사 수량 25주 평균가 6.8만원으로 맞춰줘 | 현재 holding 조회 → reconciliation preview → 영향 설명 → confirm | 과거 거래 복원 강요, 반대 체결 생성 |
 | E08 두 계좌 모호성 | A 10주 샀어 | 계좌를 한 번 확인 | 임의 계좌 선택 |
