@@ -239,6 +239,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/202609210011_reconciliation_and_verification.sql',
+      'supabase/migrations/20260923035022_retire_trade_reversal_storage.sql',
       'supabase/migrations/20260922042127_operating_rules.sql',
     ],
     steps: [

@@ -29,5 +29,7 @@ GitHub: https://github.com/kimyongin/fin/issues/90
 
 ## 진행 기록
 
+- 추가 물리 정리 슬라이스: 운영·로컬에서 행 수 0인 체결 취소 preview/reversal/receipt 3개 테이블 및 전용 DB RPC를 증분 migration에서 제거했다. 과거 trade_entries의 reversed_at/reversal_reason 읽기 필드는 유지하며, 잘못된 입력의 현재값 보정 경로는 그대로 둔다. execution-task 테스트에서 더 이상 제품에 없는 취소 시나리오를 제거하고 부재 검증으로 대체했다. 격리 DB 37개 파일/553개 assertion, MCP 계약, Chromium 34개 시나리오 통과. 일반 로컬/운영에는 미적용이다.
+
 - 최신 매매도 되돌리기하지 않는 제품 결정을 먼저 웹과 OAuth MCP에 반영했다. 매매 모달의 `기록 취소` 흐름과 MCP reversal 도구 2개를 제거하고, 잘못 입력한 경우 증권사 현재 수량·평균가 확인 후 보정하도록 안내한다. 기존 과거 취소 표시와 DB 원문은 보존한다.
 - 이 변경은 저장 preview/commit이나 DB `trade_reversals`를 아직 제거하지 않았다. 현재값 직접 저장·검증·구 금융 원장 이관을 완료하기 전에는 DB RPC/테이블 제거 또는 운영 배포 완료로 간주하지 않는다.

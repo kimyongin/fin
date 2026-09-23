@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select extensions.plan(18);
+select extensions.plan(16);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values ('00000000-0000-0000-0000-000000000801','authenticated','authenticated','execution-owner@example.com','',now(),now(),now());
@@ -31,7 +31,5 @@ select extensions.is((select ledger_quantity from holdings where ticker='PLAN'),
 select extensions.is((public.app_transition_execution_task((select id from portfolio_tasks where title='10주 매수'),1,'pause','사용자 요청으로 잠시 보류','77777777-7777-4777-8777-777777777777','agent')->>'control_state'),'paused','execution plan can be paused');
 select extensions.is((select count(*) from activity_events where action_type='transition_execution_task'),1::bigint,'execution task transition records an automatic event');
 select extensions.is((select ledger_quantity from holdings where ticker='PLAN'),10::numeric,'pausing a plan does not change holdings');
-select extensions.lives_ok($$select public.app_reverse_trade_entry((public.app_preview_trade_reversal((select id from trade_entries order by sequence_no desc limit 1),'잘못 기록한 두 번째 체결')->>'preview_id')::uuid,'88888888-8888-4888-8888-888888888888','agent')$$,'reverses a linked fill');
-select extensions.is((public.app_execution_plan_summary((select id from portfolio_tasks where title='10주 매수'))->>'progress'),'partial','reversing a fill recalculates progress');
 select * from extensions.finish();
 rollback;

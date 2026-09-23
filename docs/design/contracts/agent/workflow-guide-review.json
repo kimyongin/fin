@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Legacy ToDo bundle storage and RPCs removed after consumer audit; unified task and activity workflows unchanged.",
+  "review_reason": "Trade reversal storage and RPCs removed after consumer and row-count audit; current-value reconciliation remains the documented recovery flow.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d5222800",
-      "contract_digest": "2ceb38a8875d1b128fc3f80de9b001c6c80657d19bedb73f87826394331941a5"
+      "contract_digest": "59dc8db40e7faf0de956e948a54808f242af876a099540d4c6feeb3e5895cc66"
     },
     "holding_thesis": {
       "revision": "fnv1a32:e8f68540",
-      "contract_digest": "ddbb460493e2440167a8320389c0bc646728f7ff3b8c60dbb61fd4a13ec2295a"
+      "contract_digest": "9cbc8b8a650eea95acbce82c0328a349f5cb09ced2612265b0fa9f441a191db0"
     },
     "daily_review": {
       "revision": "fnv1a32:79601eb6",
-      "contract_digest": "743773fde35471168c1c901c6721a66963db78872f540b865e7aeb66939c36b0"
+      "contract_digest": "8d62fa6b3468abf3062fa7e75cd6b69cf9ad73d61b2379771a929f5c7ed89681"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "e3c9971dc1a44020af216aa1ad4d02ebc4140b6f9cbdf932940ed8cafbed5985"
+      "contract_digest": "10523c755aa174effa0339333007415c3351a453fe41db1bea0a92bcefc62a76"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "05624573c6e8ad53ed44eaf3ee4cc1b55d46178af2b85b322e82ca79b691408b"
+      "contract_digest": "b3680b2948f3cb86195bc3c321ef2ae7133afaa82f8fa55fc0fbe125505169b1"
     },
     "reconciliation": {
-      "revision": "fnv1a32:5bc16763",
-      "contract_digest": "3184997fcd4352b19c43cccf86f1f463c89ba6a488880fe8a498a24659220e4b"
+      "revision": "fnv1a32:43ee1d3a",
+      "contract_digest": "f1af30d0c73a5a74a196bb228b49ea6a214b477e51ea0a477bbdd5ddeb9bda9d"
     },
     "todo": {
       "revision": "fnv1a32:8dbed512",
-      "contract_digest": "c805489bf9b07f4eb541f5ef5998de6be4b569e8be174f5d936a073a58ce7333"
+      "contract_digest": "f57ba32f28f73e66835c4341c63f57ab7feacc6039d6ec934c734bca2524b5ec"
     },
     "activity_report": {
       "revision": "fnv1a32:a12e16a6",
-      "contract_digest": "2839c8361fd7aa356128377bade3bf5517976c0ce2068e2fe80c53f62dc2e9ea"
+      "contract_digest": "c2f40591bcebb3f8f06a897d02b4c06a8fcdb349a7a891be3b096f264c4eeb00"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "91bb8b361d7c49156ffd58369aa275a4ce12f8d186481e60930f56282971908e"
+      "contract_digest": "6a4197be5cb85de9edbffedd3efd0c92ebd6a8492d4211d05e14284bbe9bf678"
     }
   }
 }
