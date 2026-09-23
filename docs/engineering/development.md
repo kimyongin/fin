@@ -68,8 +68,8 @@ Edge Function 타입 검사는 Deno 2 환경의 `npm run check:edge`로 실행�
 
 ## 배포 현황과 안전 경계
 
-- `.github/workflows/deploy.yml`: master의 관련 경로 변경 또는 수동 실행 시 unit → Edge type check → 독립 DB/E2E → 인증된 원격 RPC 호환성을 같은 commit에서 확인하고 성공한 경우에만 dist를 gh-pages로 배포한다.
-- `.github/workflows/e2e.yml`: PR 또는 수동 실행에서 독립 E2E를 제공한다. master에서는 deploy workflow의 필수 gate가 같은 검사를 수행해 중복 실행하지 않는다.
+- `.github/workflows/deploy.yml`: master의 관련 경로 변경 또는 수동 실행 시 unit → guide → Edge type → 독립 DB/E2E → 인증된 원격 RPC 호환성을 같은 commit에서 확인하고 성공한 경우에만 dist를 빌드·gh-pages로 배포한다. build의 prebuild가 인코딩을 확인한다.
+- `.github/workflows/e2e.yml`: PR 또는 수동 실행에서 unit → guide → Edge type → build/encoding → 독립 DB/MCP/브라우저 E2E를 실행한다. 운영 secret/readiness는 PR에 요구하지 않는다. master에서는 deploy workflow의 필수 gate가 같은 테스트를 수행해 중복 실행하지 않는다.
 - 브랜치 보호/필수 체크 설정은 별도 확인해야 한다. 이 안내가 배포 gate를 자동 추가하지 않는다.
 - DB migration/Edge Function은 위 Pages 배포로 배포되지 않는다. 대상 프로젝트·순서·호환성·복구안을 확인하고 별도 승인된 작업으로 수행한다. 범용 push/reset 명령을 개발 기본 절차에 넣지 않는다.
 - 신규 서버 변경은 기존 클라이언트 호환과 데이터 보존을 먼저 확보하고, 새 화면/MCP 공개 후 대상 환경 검증을 기록한다. DB 실패를 과거 migration 삭제로 복구하지 않는다.

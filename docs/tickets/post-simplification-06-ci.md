@@ -1,6 +1,6 @@
 # [후속 정리] PR·배포의 공통 검증 기준 일치
 
-우선순위: P2 · 상태: 티켓 작성, 구현 전 · 2026-09-23
+우선순위: P2 · 상태: 로컬 구현·검증 완료, 원격 CI 관찰 전 · 2026-09-23
 관련: #51, #58, #91 · 기준 코드: 8cb943f
 
 ## 문제와 근거
@@ -17,10 +17,17 @@
 
 ## 완료 조건
 
-- [ ] PR 경로에서 의도적 unit/Edge 타입 오류가 검출됨을 확인한다.
-- [ ] 정상 commit의 공통 검사·빌드·격리 DB/MCP/브라우저 검증 결과를 기록한다.
-- [ ] 운영 readiness가 없는 PR도 공통 검증을 실행하고 배포 게이트는 계속 작동한다.
-- [ ] 동일 테스트가 중복 실행되지 않는지 확인하고 로컬 명령·실행 시간·CI 확인 여부를 남긴다.
+- [x] PR workflow에 `npm test`와 `npm run check:edge`를 명시해 해당 단계의 실패가 검증 job을 중단하도록 했다. 의도적 결함을 넣은 원격 PR 실험은 아직 하지 않았다.
+- [x] PR 경로에 guide, build/encoding, 격리 DB/MCP/Chromium E2E를 포함했다. 정상 코드의 로컬 검증 결과는 아래에 기록했다.
+- [x] PR에서는 운영 secret/readiness를 읽지 않으며, 배포 workflow의 인증된 원격 호환성 검사와 배포 의존성은 유지했다.
+- [x] PR은 한 job에서 각 테스트를 한 번만, master 배포는 기존 verify job에서 한 번만 실행한다. PR workflow는 master push에서 별도로 실행하지 않는다.
+
+## 구현·검증 기록
+
+- GitHub workflow YAML을 작은 변경으로 맞췄다. PR의 순서는 unit → guide → Edge type → build/encoding → 격리 E2E다. Deno 2 설치도 명시했다.
+- 로컬: `npm test` 20 파일/96 테스트, `npm run check:workflow-guides` 9개 topic, `npm run build` 성공. 로컬 PATH에 Deno가 없어 `npm run check:edge` 대신 `npm exec --yes --package=deno@2 -- deno check ...`로 5개 entrypoint를 검사해 통과했다. CI에는 Deno 설치 단계가 있다.
+- `npm run test:e2e`: 격리 DB 검사·OAuth/토큰 MCP 계약·Chromium 37개 모두 통과(약 2분). 테스트 실행기가 초기화한 대상은 `.e2e` 인스턴스뿐이다.
+- 원격 CI가 실제 PR에서 녹색인지와 고의 단위/타입 오류를 주입한 검출 실험은 아직 확인하지 않았다. 운영 readiness·배포도 수행하지 않았다.
 
 ## 진행 규칙
 
@@ -28,4 +35,3 @@
 - 최소 변경으로 수직 구현·검증한다. 새 테이블/이력/범용 프레임워크를 기본 해법으로 삼지 않는다.
 - 관련 코드·계약·MCP 설명/가이드 영향과 실제 검사 결과를 함께 기록한다. DB 변경 시 schema/OVERVIEW.md를 갱신한다.
 - 사용자 로컬 설정을 보존한다. 로컬 완료와 운영 배포/실제 ChatGPT 검증을 구분한다.
-
