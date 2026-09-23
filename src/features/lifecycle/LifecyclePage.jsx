@@ -13,8 +13,6 @@ import {
   fetchPortfolioTask,
   recordManualActivity,
   saveGeneralTask,
-  setActivityTags,
-  setGeneralTaskTags,
   transitionGeneralTask,
 } from './data'
 
@@ -131,27 +129,35 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
   const [activityDetail, setActivityDetail] = useState(null)
   const [activityDetailLoading, setActivityDetailLoading] = useState(false)
   const detailRequestGate = useRef(createRequestGate())
+  const createAttempt = useRef(null)
+  const createInFlight = useRef(false)
 
   async function saveGeneralAction(draft) {
+    if (createInFlight.current) return
+    createInFlight.current = true
     setSavingGeneral(true)
     setError('')
     try {
+      const fingerprint = JSON.stringify({ kind: generalEditor, draft })
+      if (createAttempt.current?.fingerprint !== fingerprint) {
+        createAttempt.current = { fingerprint, key: crypto.randomUUID() }
+      }
+      const idempotencyKey = createAttempt.current.key
       if (generalEditor === 'task') {
-        const task = await saveGeneralTask(supabase, { ...draft, idempotencyKey: crypto.randomUUID() })
-        if (draft.tagIds.length > 0) await setGeneralTaskTags(supabase, task, draft.tagIds)
+        await saveGeneralTask(supabase, { ...draft, idempotencyKey })
       } else {
         const occurredAt = draft.occurredOn && draft.occurredOn !== new Date().toLocaleDateString('en-CA')
           ? `${draft.occurredOn}T12:00:00+09:00`
           : null
-        const activity = await recordManualActivity(supabase, { ...draft, occurredAt, idempotencyKey: crypto.randomUUID() })
-        if (draft.tagIds.length > 0) await setActivityTags(supabase, activity, draft.tagIds)
+        await recordManualActivity(supabase, { ...draft, occurredAt, idempotencyKey })
         onRefreshActivity?.()
       }
+      createAttempt.current = null
       setActionRefreshKey((value) => value + 1)
       setGeneralEditor(null)
     } catch (nextError) {
       setError(nextError.message ?? '기록을 저장하지 못했습니다.')
-    } finally { setSavingGeneral(false) }
+    } finally { createInFlight.current = false; setSavingGeneral(false) }
   }
 
   useEffect(() => {

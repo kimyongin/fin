@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Removed obsolete empty legacy tool filter and corrected MCP server guidance after news storage retirement; workflow topics unchanged.",
+  "review_reason": "New activity and standalone task creation save selected tags atomically and document same-key retries",
   "topics": {
     "policy": {
       "revision": "fnv1a32:8a78544b",
-      "contract_digest": "f49aa44d5f2febf12c9c39ff0a750215604e59fa515b261a7ab050ee4a01abc7"
+      "contract_digest": "d6dacce334ca0ad035f3a96c1026ce7bb83107d162c8ba11b9eea1045f696c0f"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "eee0b20de6d7dabbe0663ac0f09743cdf3124c79cd6f86e993e5f63128eb7106"
+      "contract_digest": "ec740db0489856a0bf23fe973a7c79f2bf6e26cf0b877a217f0a02ba25e4a7c6"
     },
     "daily_review": {
       "revision": "fnv1a32:1743d26a",
-      "contract_digest": "4d5b544874c0fd452aea6f947706de324034774b6f03bdf8f271a432278ca349"
+      "contract_digest": "2b9943c3192f67ef475524239d3290f32fc9f91f509f72c6cc3efb33d15ec6f6"
     },
     "decision_followup": {
       "revision": "fnv1a32:55c68510",
-      "contract_digest": "7f8a7145f0f8a8d4cb70a9ee2e929435a56cbf0ee6f9190067f8a552f8164151"
+      "contract_digest": "b3e0e4c99413ffc39145f04a1434dcd0f327846c1ad72f655d7857093add0a1c"
     },
     "trade_entry": {
       "revision": "fnv1a32:497bf056",
-      "contract_digest": "a93fdd1429a79641a0b7f87b263721b8e292c072aea5e06fba127d6e99b2b3fb"
+      "contract_digest": "5cbf07b4298d288ce55e7bcd958c2ec35afd9397360ecb349d2153c6e9b5d104"
     },
     "reconciliation": {
       "revision": "fnv1a32:1fa0dea4",
-      "contract_digest": "37b8314c76bda8f8f422ecc8e01a2cfcbd8346b9d8bcfae380b457dadba8bd8b"
+      "contract_digest": "7c03904458d59278a8394fbcd1c084949d26863542ed60db86879319bb0526a4"
     },
     "todo": {
-      "revision": "fnv1a32:2803dfd7",
-      "contract_digest": "06626505b7397e36a8d764903d71da63b4f5d69beef91a33571760bc1c7cea90"
+      "revision": "fnv1a32:96683428",
+      "contract_digest": "fa1d4e358ea73c6428e5ff95602be7c0ad7984347a5a798585b9638737e57e6d"
     },
     "activity_report": {
       "revision": "fnv1a32:f0d9274f",
-      "contract_digest": "6b39db631374298331ec598e929e07c5a2b0613da1a6c517d41a9b0428ac5229"
+      "contract_digest": "b0a4f332c8652039c3e8b66dce4f44ec7777ef8434538b48c36ebdd08907cc9a"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "ef4c5e8f5965229034550a1c15c80ab5f5d67863a10e3f94e9db8be12395db4d"
+      "contract_digest": "33cb0cef416d26665ccf621cd0b36806cb36594c4666f4940fa89d8d6501c969"
     }
   }
 }

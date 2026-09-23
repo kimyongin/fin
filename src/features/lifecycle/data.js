@@ -169,9 +169,9 @@ export async function fetchGeneralTask(supabase, taskId) {
 }
 
 export async function saveGeneralTask(supabase, task) {
-  return rpc(supabase, 'app_save_general_task', {
-    input_task_id: task.id ?? null,
-    input_expected_version: task.expectedVersion ?? null,
+  const creating = task.id == null
+  return rpc(supabase, creating ? 'app_create_general_task_with_tags' : 'app_save_general_task', {
+    ...(creating ? { input_tag_ids: task.tagIds ?? [] } : { input_task_id: task.id, input_expected_version: task.expectedVersion ?? null }),
     input_idempotency_key: task.idempotencyKey,
     input_payload: {
       title: task.title.trim(),
@@ -200,8 +200,9 @@ export async function transitionGeneralTask(supabase, task, action, { result = n
 }
 
 export async function recordManualActivity(supabase, activity) {
-  return rpc(supabase, 'app_create_activity', {
+  return rpc(supabase, 'app_create_activity_with_tags', {
     input_idempotency_key: activity.idempotencyKey,
+    input_tag_ids: activity.tagIds ?? [],
     input_payload: {
       title: activity.title.trim(),
       note: activity.note?.trim() || null,

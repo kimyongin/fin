@@ -342,6 +342,7 @@ const toolHandlers: Record<string, ToolHandler> = {
     const expectedVersion = args.expected_version == null ? null : requirePositiveInteger(args.expected_version, 'expected_version')
     if ((taskId == null) !== (expectedVersion == null)) throw new ToolInputError('task_id and expected_version must both be set for an update')
     const idempotencyKey = requireUuid(args.idempotency_key, 'idempotency_key')
+    const tagIds = args.tag_ids == null ? [] : requireArray(args.tag_ids, 'tag_ids').map((value, index) => requireUuid(value, `tag_ids[${index}]`))
     const payload = {
         title: requireString(args.title, 'title'), subject: requireRecord(args.subject, 'subject'),
         due_date: optionalString(args.due_date) ?? null, timezone: requireString(args.timezone, 'timezone'),
@@ -352,10 +353,11 @@ const toolHandlers: Record<string, ToolHandler> = {
     }
     const originActivityId = args.origin_activity_id == null ? null : requirePositiveInteger(args.origin_activity_id, 'origin_activity_id')
     if (originActivityId != null && taskId != null) throw new ToolInputError('origin_activity_id is only accepted when creating a task')
+    if (tagIds.length > 0 && (originActivityId != null || taskId != null)) throw new ToolInputError('tag_ids are accepted only when creating a standalone task')
     const data = originActivityId == null
-      ? await rpc(supabase, 'app_save_general_task', {
-          input_task_id: taskId, input_expected_version: expectedVersion,
+      ? await rpc(supabase, taskId == null ? 'app_create_general_task_with_tags' : 'app_save_general_task', {
           input_idempotency_key: idempotencyKey, input_payload: payload,
+          ...(taskId == null ? { input_tag_ids: tagIds } : { input_task_id: taskId, input_expected_version: expectedVersion }),
         })
       : await rpc(supabase, 'app_create_activity_follow_up', {
           input_origin_event_id: originActivityId,
@@ -379,8 +381,10 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async record_manual_activity(supabase, args) {
     requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_create_activity', {
+    const tagIds = args.tag_ids == null ? [] : requireArray(args.tag_ids, 'tag_ids').map((value, index) => requireUuid(value, `tag_ids[${index}]`))
+    const data = await rpc(supabase, 'app_create_activity_with_tags', {
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_tag_ids: tagIds,
       input_payload: {
         title: requireString(args.title, 'title'),
         note: optionalString(args.note) ?? null,

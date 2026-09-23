@@ -57,8 +57,9 @@ describe('decision and task data adapters', () => {
     await updateActivity(supabase, { id: 7, version: 1 }, { result: '다음 달 재확인' })
     await createActivityFollowUp(supabase, 7, { title: '다음 실적 확인', dueDate: '2026-10-23', idempotencyKey })
 
-    expect(supabase.rpc.mock.calls[0]).toEqual(['app_create_activity', {
+    expect(supabase.rpc.mock.calls[0]).toEqual(['app_create_activity_with_tags', {
       input_idempotency_key: idempotencyKey,
+      input_tag_ids: [],
       input_payload: {
         title: '실적 확인', note: null, result: '보유', conclusion: '유지', occurred_at: null,
         timezone: 'Asia/Seoul', instrument_id: null, account_id: null, category: 'general', context: null, authored_via: 'app',

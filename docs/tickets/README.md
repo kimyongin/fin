@@ -1,5 +1,23 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## 다음 구현 — 저장 단순화 후속 안정화 (#92~#97)
+
+2026-09-23 검토 후 티켓 작성, 구현 전. 기준 코드 `8cb943f`. 재시도 중복·늦은 응답·날짜 불일치를 먼저 고친 뒤 미사용 코드와 실제 중복만 정리한다. 제품 개념이나 테이블을 다시 확장하지 않는다.
+
+| 순서 | GitHub | 로컬 명세 |
+| --- | --- | --- |
+| 1 | [#92 활동·할 일과 태그의 원자 저장 및 재시도 안정화](https://github.com/kimyongin/fin/issues/92) | [명세](./post-simplification-01-save.md) |
+| 2 | [#93 활동 상세·검색의 늦은 응답과 조회 상태 정리](https://github.com/kimyongin/fin/issues/93) | [명세](./post-simplification-02-requests.md) |
+| 3 | [#94 업무 날짜와 시간대 처리 통일](https://github.com/kimyongin/fin/issues/94) | [명세](./post-simplification-03-dates.md) |
+| 4 | [#95 미사용 화면·활동 조회·구 명칭 제거](https://github.com/kimyongin/fin/issues/95) | [명세](./post-simplification-04-cleanup.md) |
+| 5 | [#96 활동 본문·출처 표시 재사용과 편집 모달 분리](https://github.com/kimyongin/fin/issues/96) | [명세](./post-simplification-05-components.md) |
+| 6 | [#97 PR·배포의 공통 검증 기준 일치](https://github.com/kimyongin/fin/issues/97) | [명세](./post-simplification-06-ci.md) |
+
+추천 순서: #92 → #93 → #94 → #95 → #96. #97은 첫 슬라이스부터 필요한 검증을 보강하고 최종 적용 결과를 확인한다. #96은 저장·조회 안정화와 미사용 코드 제거 후 착수한다. 기존 #49/#50/#51/#57/#58 및 #82/#86~#91의 완료 증거와 운영/실사용 미검증 조건은 보존하고, 이번에 확인된 후속 코드 변경은 새 티켓에서 관리한다. #91이 운영 전환 인계를 계속 담당하며 새 티켓 생성으로 기존 티켓을 자동 종료하지 않는다.
+
+MCP 전체 handler 분할은 #57의 최소 구조 결정을 유지해 별도 필수 작업으로 만들지 않는다. #95는 내부 명칭·미사용 연결만 정리하고 공개 도구/기존 토큰 endpoint를 유지한다.
+
+
 ## 현재 작업 — 저장 구조 전반 단순화 (#86~#91)
 
 2026-09-23 · 로컬 수직 슬라이스 구현 중이며 #86~#91 전체 완료·운영 배포 전. [단순성 원칙](../engineering/SIMPLICITY.md), [ADR-0008](../adr/0008-minimal-portfolio-storage.md), [재설계](../design/minimal-portfolio.md)를 우선한다. 아래 이전 티켓의 별도 도메인/이력/원장 유지 요구는 충돌 범위에서 대체된다. 실제 진척과 잔여 조건은 각 티켓의 진행 기록을 따른다.

@@ -648,7 +648,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'save_general_task',
     title: 'Save a general portfolio task',
-    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. This stores intent only and never claims the work, trade, or verification happened.',
+    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. On creation, optional tag_ids are saved atomically with the task; a retry must keep the same key, content, and tags. This stores intent only and never claims the work, trade, or verification happened.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -661,6 +661,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         recurrence_kind: { type: 'string', enum: ['none', 'daily'], default: 'none' },
         recurrence_start_on: { type: ['string', 'null'], format: 'date' },
         origin_activity_id: { type: ['integer', 'null'], minimum: 1 },
+        tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Optional tags for a new task; omit when editing or creating a linked follow-up.' },
       },
       required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','recurrence_kind','recurrence_start_on','origin_activity_id'],
       additionalProperties: false,
@@ -689,7 +690,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'record_manual_activity',
     title: 'Record a completed activity',
-    description: 'Record one user-reported activity that already happened. Classify research, review, decision, or retrospective work with category; omit it for general work. For a requested portfolio review save category review, put checked facts in result, interpretation in conclusion, and status/coverage_status plus scope and factual source links in context; failed research is insufficient_data, not no_action. For a decision, use context.decision_state=proposed for model advice and adopted only for the user’s explicit choice, with selected_option and reason; this is not a trade. Use only after explicit save intent. Complete a known matching task instead of duplicating the same performance. This does not create a task or change financial data; choosing a category cannot claim a completed trade or reconciliation.',
+    description: 'Record one user-reported activity that already happened. Optional tag_ids are saved atomically with the activity; a retry must keep the same key, content, and tags. Classify research, review, decision, or retrospective work with category; omit it for general work. For a requested portfolio review save category review, put checked facts in result, interpretation in conclusion, and status/coverage_status plus scope and factual source links in context; failed research is insufficient_data, not no_action. For a decision, use context.decision_state=proposed for model advice and adopted only for the user’s explicit choice, with selected_option and reason; this is not a trade. Use only after explicit save intent. Complete a known matching task instead of duplicating the same performance. This does not create a task or change financial data; choosing a category cannot claim a completed trade or reconciliation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -700,6 +701,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         instrument_id: { type: ['integer', 'null'], minimum: 1 }, account_id: { type: ['integer', 'null'], minimum: 1 },
         category: { type: 'string', enum: ['general','research','review','decision','retrospective'], default: 'general' },
         context: { type: ['object','null'], description: 'Optional structured scope and sources; sources is an array of up to 20 {title,url} HTTP(S) links. Do not include secrets or unrelated personal data.', additionalProperties: true },
+        tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Optional existing owner activity tags to save with this new activity.' },
       },
       required: ['schema_version','idempotency_key','title','note','result','conclusion','occurred_at','timezone','instrument_id','account_id'],
       additionalProperties: false,
