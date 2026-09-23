@@ -13,6 +13,14 @@ if (!authResponse.ok) throw new Error(`Authenticated readiness login failed (${a
 const session = await authResponse.json()
 if (!session.access_token) throw new Error('Authenticated readiness login returned no access token')
 
+const schemaResponse = await fetch(`${baseUrl}/rest/v1/`, {
+  headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}`, Accept: 'application/openapi+json' },
+})
+if (!schemaResponse.ok) {
+  throw new Error(`Authenticated PostgREST schema read failed (${schemaResponse.status}); check API permissions and schema cache`)
+}
+const mutationCount = assertMutationRpcSignatures(await schemaResponse.json())
+
 const rpcChecks = [
   ['app_get_daily_context', { input_subject_tickers: null, input_timezone: 'Asia/Seoul' }],
   ['app_list_narrative_activities', { input_cursor: null, input_kind: 'review', input_limit: 1, input_owner_user_id: null }],
@@ -72,4 +80,5 @@ for (const requiredTool of [
   if (!toolNames.has(requiredTool)) throw new Error(`OAuth MCP is missing required tool: ${requiredTool}`)
 }
 
-console.log(`Authenticated readiness passed for ${rpcChecks.length} RPCs and OAuth MCP discovery.`)
+console.log(`Authenticated readiness passed for ${rpcChecks.length} read RPCs, ${mutationCount} mutation signatures (read-only), and OAuth MCP discovery.`)
+import { assertMutationRpcSignatures } from './deployment-rpc-contract.mjs'

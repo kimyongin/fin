@@ -86,6 +86,15 @@ try {
       SUPABASE_URL: localEnv.API_URL,
     },
   })
+  run(process.execPath, ['scripts/check-deployment-readiness.mjs'], {
+    env: {
+      ...process.env,
+      SUPABASE_ANON_KEY: localEnv.ANON_KEY,
+      SUPABASE_URL: localEnv.API_URL,
+      SUPABASE_SMOKE_EMAIL: 'e2e-owner@example.com',
+      SUPABASE_SMOKE_PASSWORD: 'e2e-password',
+    },
+  })
   run(process.execPath, ['node_modules/playwright/cli.js', 'test', ...process.argv.slice(2)], {
     env: {
       ...process.env,
