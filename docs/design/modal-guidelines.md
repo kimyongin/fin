@@ -74,6 +74,6 @@
 
 새 모달과 수정한 모달은 이 가이드를 기준으로 리뷰한다. 의도적 예외는 관련 티켓에 용도·이유·검증 결과를 적는다. 일반적인 여백 변경마다 ADR을 만들지 않는다.
 
-#117에서 실제 진입 가능한 모달을 목록화하고 적용/수정 필요/용도상 예외로 표시한다. 현재 확인된 소비자는 자산의 계좌·종목·보유·태그·매매·잔고·보유 메모·표 편집·종목 상세, 활동 추가·기록 상세·할 일 상세·판단/공유 점검 상세, 원칙 편집·배분 설정이다. 관련 파일은 EditorModals, AssetViewToolbar, AssetsPage, TradeEntryModal, HoldingIntegrityModal, HoldingReasonModal, SpreadsheetEditor, GeneralActionModal, ActivityDetailModal, GeneralTaskDetail, DecisionActivitiesPage, ReviewHistoryPage, PrincipleJournal, StrategyPage다. 도달 불가능한 구 화면은 새로 활성화하지 않는다.
+2026-09-24 현재 `ModalShell` 소비자는 자산 상세/로딩/오류(`AssetDetailModal`, `AssetsPage`), 계좌·종목·보유·태그 등록/수정(`EditorModals`), 태그 관리 탐색(`AssetViewToolbar`), 매매·증권사 확인(`TradeEntryModal`, `HoldingIntegrityModal`), 표 편집(`SpreadsheetEditor`), 활동 추가·기록/할 일 상세(`GeneralActionModal`, `ActivityDetailModal`, `GeneralTaskDetail`), 현재/과거 원칙(`PrincipleJournal`)이다. 구 보유 메모 전용 `HoldingReasonModal`과 판단·점검 별도 상세/배분 설정 모달은 현재 진입 경로에서 제거됐다. 도달 불가능한 구 화면은 새로 활성화하지 않는다. 전수 판정과 미검증 상태는 [#123](../tickets/ui-16-modal-inline-edit.md)에 기록한다.
 
 완료 보고에는 360/390/768/1024/1440px 중 확인한 폭과 빈값·긴값·오류·로딩·초안·선택 영역 상태, 키보드 및 저장/닫기 동작을 적는다. 모바일/PC 캡처로 참조 폼과 비교한다. 실기기 키보드·스크린리더 미검증은 따로 표시한다. 문서 작성과 실제 전체 적용 완료를 구분한다.
