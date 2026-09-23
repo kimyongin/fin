@@ -157,8 +157,8 @@ export async function searchActivities(supabase, {
 
 export async function saveGeneralTask(supabase, task) {
   const creating = task.id == null
-  return rpc(supabase, creating ? 'app_create_general_task_with_tags' : 'app_save_general_task', {
-    ...(creating ? { input_tag_ids: task.tagIds ?? [] } : { input_task_id: task.id, input_expected_version: task.expectedVersion ?? null }),
+  return rpc(supabase, creating ? 'app_create_general_task_with_tags' : 'app_save_general_task_detail', {
+    ...(creating ? { input_tag_ids: task.tagIds ?? [] } : { input_task_id: task.id, input_expected_version: task.expectedVersion ?? null, input_tag_ids: task.tagIds ?? [] }),
     input_idempotency_key: task.idempotencyKey,
     input_payload: {
       title: task.title.trim(),

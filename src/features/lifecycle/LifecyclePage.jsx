@@ -35,6 +35,7 @@ function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, ini
   const activityRequestGate = useRef(createRequestGate())
   const tagsRequestGate = useRef(createRequestGate())
   const activityHistoryGuard = useRef(null)
+  const taskHistoryGuard = useRef(null)
   const activeActivityId = useRef(null)
   const createAttempt = useRef(null)
   const createInFlight = useRef(false)
@@ -113,6 +114,15 @@ function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, ini
     dismissDetail()
   }
 
+  async function saveTaskDetail(task, draft) {
+    const saved = await saveGeneralTask(supabase, {
+      ...draft, id: task.id, expectedVersion: task.version,
+      subject: task.subject, timezone: task.timezone,
+    })
+    setDetail((current) => current?.item?.id === task.id ? { ...current, item: saved } : current)
+    setActionRefreshKey((value) => value + 1)
+  }
+
   async function openActivity(action) {
     const request = activityRequestGate.current.begin()
     activeActivityId.current = action.id
@@ -169,6 +179,7 @@ function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, ini
 
   const requestDetailClose = useDetailHistoryEntry(Boolean(detail || activityDetail), (confirmed) => {
     if (!confirmed && activityDetail && activityHistoryGuard.current?.() === false) return false
+    if (!confirmed && detail && taskHistoryGuard.current?.() === false) return false
     if (detail) dismissDetail()
     else dismissActivityDetail()
   })
@@ -220,7 +231,7 @@ function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, ini
           supabase={supabase}
         /> : canViewReviews ? <ReviewHistoryPage ownerUserId={ownerUserId} supabase={supabase} /> : null}
       </div>
-      {detail && <GeneralTaskDetail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} />}
+      {detail && <GeneralTaskDetail availableTags={activityTags} entry={detail} historyGuardRef={taskHistoryGuard} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} onRetryTags={reloadActivityTags} onSaveTask={ownerUserId ? null : saveTaskDetail} onTagsChanged={updateActivityTags} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
       {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} onTagsChanged={updateActivityTags} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onRetryTags={reloadActivityTags} onSave={saveGeneralAction} onTagsChanged={updateActivityTags} saving={savingGeneral} supabase={supabase} tags={activityTags} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
     </section>

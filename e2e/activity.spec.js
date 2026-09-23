@@ -126,6 +126,44 @@ test('creates and completes a general task while keeping manual work as activity
   await expect(pendingSection.getByText(repeatingTitle, { exact: true })).toHaveCount(0)
 })
 
+test('edits a task title, schedule, and tags in one detail save', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const title = `E2E 상세 편집 ${Date.now()}`
+  const tagName = `상세태그${Date.now()}`
+  await page.getByRole('button', { name: '활동 추가', exact: true }).click()
+  const editor = page.getByRole('dialog', { name: '활동 추가' })
+  await editor.getByRole('textbox', { name: '할 일 제목' }).fill(title)
+  await editor.getByRole('button', { name: '저장', exact: true }).click()
+  const detailResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_get_general_task'))
+  await page.getByText(title, { exact: true }).click()
+  const detail = page.getByRole('dialog', { name: '할 일 상세' })
+  const taskId = (await (await detailResponse).json()).id
+  await detail.getByRole('textbox', { name: '할 일 제목' }).fill(`${title} 수정`)
+  await detail.getByLabel('예정일').fill('2026-10-02')
+  await detail.getByRole('button', { name: /태그/ }).click()
+  await detail.getByPlaceholder('새 태그').fill(tagName)
+  await detail.getByPlaceholder('새 태그').locator('..').getByRole('button', { name: '추가', exact: true }).click()
+  await expect(detail.getByRole('button', { name: '저장', exact: true })).toBeEnabled()
+  await detail.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(detail.getByRole('textbox', { name: '할 일 제목' })).toHaveValue(`${title} 수정`)
+  await expect(detail.getByRole('button', { name: '저장', exact: true })).toBeDisabled()
+  const saved = await callRpc(page, 'app_get_general_task', { input_task_id: taskId })
+  expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+  expect(saved.body).toMatchObject({ title: `${title} 수정`, due_date: '2026-10-02' })
+  expect(saved.body.tags).toContainEqual(expect.objectContaining({ name: tagName }))
+  const rejected = await callRpc(page, 'app_save_general_task_detail', {
+    input_task_id: taskId, input_expected_version: saved.body.version,
+    input_idempotency_key: crypto.randomUUID(), input_tag_ids: [crypto.randomUUID()],
+    input_payload: { title: `${title} 저장되면 안 됨`, subject: saved.body.subject, due_date: saved.body.due_date,
+      timezone: saved.body.timezone, trigger_text: saved.body.trigger_text,
+      recurrence_kind: saved.body.recurrence_kind, recurrence_start_on: saved.body.recurrence_start_on, authored_via: 'app' },
+  })
+  expect(rejected.status).toBeGreaterThanOrEqual(400)
+  const unchanged = await callRpc(page, 'app_get_general_task', { input_task_id: taskId })
+  expect(unchanged.body).toMatchObject({ title: `${title} 수정`, version: saved.body.version })
+})
+
 test('deletes a manual activity without offering deletion for automatic events', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#tasks')
