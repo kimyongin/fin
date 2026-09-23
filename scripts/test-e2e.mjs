@@ -6,6 +6,8 @@ const supabaseArgs = ['--workdir', '.e2e']
 const applicationMigrationDir = resolve('supabase/migrations')
 const e2eMigrationDir = resolve('.e2e/supabase/migrations')
 const e2eBaselineBoundary = '202609210001_daily_review_foundation.sql'
+// The isolated baseline predates strategy modes; its UI write contract needs this migration.
+const requiredBaselineFollowups = new Set(['202607190014_strategy_modes_and_principles.sql'])
 const copiedMigrations = []
 const temporaryFunctionsDir = resolve('.e2e/supabase/functions')
 let copiedFunctions = false
@@ -23,7 +25,7 @@ function run(command, args, options = {}) {
 
 function syncApplicationMigrations() {
   const migrations = readdirSync(applicationMigrationDir)
-    .filter((name) => name.endsWith('.sql') && name > e2eBaselineBoundary)
+    .filter((name) => name.endsWith('.sql') && (name > e2eBaselineBoundary || requiredBaselineFollowups.has(name)))
     .sort()
 
   for (const name of migrations) {

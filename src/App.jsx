@@ -518,13 +518,18 @@ function App() {
             onCreateAccount={() => openAccountModal()}
             onCreateHolding={(ticker) => openHoldingModal({ ticker })}
             onCreateInstrument={() => openInstrumentModal()}
+            onCreateTag={() => openTagModal()}
             onCreateHoldingForAccount={(accountId) => openHoldingModal({ accountId })}
             onEditAccount={(account) => openAccountModal(account)}
             onEditHolding={(holding) => openHoldingModal({ holding })}
             onEditInstrument={(instrument) => openInstrumentModal(instrument)}
+            onEditTag={(tag) => openTagModal(tag)}
             onAccountTagFilterChange={setAccountTagFilter}
             onInstrumentTagFilterChange={setInstrumentTagFilter}
             onSpreadsheetSave={handleSpreadsheetSave}
+            onSyncPrices={handleSyncPrices}
+            syncingPrices={editor.syncingPrices}
+            syncMessage={editor.syncMessage}
             spreadsheetSaving={spreadsheetSaving}
             sheetAccounts={state.accounts}
             sheetInstruments={state.instruments}
@@ -545,12 +550,17 @@ function App() {
             canEdit={canEdit}
             csvCopied={copied}
             onCopyCsv={handleCopyCsv}
+            onCreateTag={() => openTagModal()}
+            onEditTag={(tag) => openTagModal(tag)}
+            onSyncPrices={handleSyncPrices}
             onAssetViewChange={setAssetView}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             section="allocation"
             supabase={supabase}
             tagCards={tagCards}
             tags={state.tags}
+            syncingPrices={editor.syncingPrices}
+            syncMessage={editor.syncMessage}
             totalValue={totalValue}
             valuationQuality={valuationQuality}
           />
@@ -569,8 +579,6 @@ function App() {
             friendSaving={friendSaving}
             friends={friends}
             onAddFriend={handleAddFriend}
-            onCreateTag={() => openTagModal()}
-            onEditTag={(tag) => openTagModal(tag)}
             onFriendChange={(field, value) => {
               setFriendError('')
               setFriendDraft((current) => ({ ...current, [field]: value }))
@@ -579,16 +587,12 @@ function App() {
             onAgentTokenCreate={handleCreateAgentToken}
             onAgentTokenDismiss={handleDismissIssuedAgentToken}
             onAgentTokenRevoke={handleRevokeAgentToken}
-            onSyncPrices={handleSyncPrices}
             onViewerProfileChange={(field, value) => {
               setViewerProfileError('')
               setViewerProfileMessage('')
               setViewerProfileDraft((current) => ({ ...current, [field]: value }))
             }}
             onViewerProfileSave={handleSaveViewerProfile}
-            syncingPrices={editor.syncingPrices}
-            syncMessage={editor.syncMessage}
-            tags={state.tags}
             viewerProfile={viewerProfile}
             viewerProfileDraft={viewerProfileDraft}
             viewerProfileError={viewerProfileError}

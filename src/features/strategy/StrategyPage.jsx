@@ -190,7 +190,7 @@ function StrategyEditor({
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">전략 편집</h2>
+            <h2 className="text-lg font-semibold">배분 설정 편집</h2>
             <p className="mt-1 text-sm text-[var(--muted-ink)]">
               장기 버킷과 모드별 목표 비중을 정합니다.
             </p>
@@ -322,7 +322,7 @@ function StrategyEditor({
           onClick={onSave}
           type="button"
         >
-          {saving ? "저장 중" : "전략 저장"}
+          {saving ? "저장 중" : "배분 설정 저장"}
         </button>
       </div>
     </section>
@@ -447,7 +447,7 @@ function PrinciplesModal({ draft, onClose, onSave, saving }) {
             }}
             type="button"
           >
-            {saving ? "저장 중" : "원칙 저장"}
+            {saving ? "저장 중" : "한도 저장"}
           </button>
         </div>
       </div>
@@ -508,7 +508,7 @@ function StrategyDashboard({
                 onClick={onEdit}
                 type="button"
               >
-                전략 편집
+                배분 설정
               </button>
             </div>
           )}
@@ -519,7 +519,7 @@ function StrategyDashboard({
           <div>
             <h2 className="text-lg font-semibold">배분 계산 한도</h2>
             <p className="mt-1 text-sm text-[var(--muted-ink)]">
-              모드는 목표를 정하고, 원칙은 조정 범위와 실행 조건을 제한합니다.
+              목표 배분을 계산할 때 적용할 조정 범위와 실행 조건입니다.
             </p>
           </div>
           {canEdit && (
@@ -691,7 +691,7 @@ function StrategyDashboard({
   );
 }
 
-export default function StrategyPage({
+function AllocationPage({
   assetView,
   canEdit,
   csvCopied,
@@ -704,6 +704,11 @@ export default function StrategyPage({
   section = "all",
   onAssetViewChange,
   onCopyCsv,
+  onCreateTag,
+  onEditTag,
+  onSyncPrices,
+  syncingPrices,
+  syncMessage,
 }) {
   const [strategyState, setStrategyState] = useState(
     createEmptyStrategyState(),
@@ -749,7 +754,7 @@ export default function StrategyPage({
       setSaving(false);
     }
   }
-  const assetToolbar = section === "allocation" && <AssetViewToolbar copied={csvCopied} onCopyCsv={onCopyCsv} onViewChange={onAssetViewChange} value={assetView} />;
+  const assetToolbar = section === "allocation" && <AssetViewToolbar canEdit={canEdit} copied={csvCopied} onCopyCsv={onCopyCsv} onCreateTag={onCreateTag} onEditTag={onEditTag} onSyncPrices={onSyncPrices} onViewChange={onAssetViewChange} syncMessage={syncMessage} syncingPrices={syncingPrices} tags={tags} value={assetView} />;
   if (loading)
     return (
       <div className="grid gap-5">{assetToolbar}<p className="text-sm text-[var(--muted-ink)]">원칙을 불러오는 중입니다.</p></div>
@@ -783,9 +788,6 @@ export default function StrategyPage({
   return (
     <div className="grid gap-5">
       {assetToolbar}
-      {canEdit && section !== "allocation" && (
-        <PrincipleJournal supabase={supabase} />
-      )}
       {error && (
         <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
           {error}
@@ -808,7 +810,7 @@ export default function StrategyPage({
         />
       ) : (
         <article className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
-          <h2 className="text-lg font-semibold">아직 운용 전략이 없습니다.</h2>
+          <h2 className="text-lg font-semibold">아직 배분 설정이 없습니다.</h2>
           <p className="mt-2 text-sm text-[var(--muted-ink)]">
             개인 기준과 별도로 목표 비중·적립금·운용 모드를 설정할 수 있습니다.
           </p>
@@ -817,7 +819,7 @@ export default function StrategyPage({
             onClick={() => setEditing(true)}
             type="button"
           >
-            전략 만들기
+            배분 설정 만들기
           </button>
         </article>
       )}
@@ -843,4 +845,9 @@ export default function StrategyPage({
       )}
     </div>
   );
+}
+
+export default function StrategyPage(props) {
+  if (props.section === 'principles' && props.canEdit) return <PrincipleJournal supabase={props.supabase} />
+  return <AllocationPage {...props} />
 }

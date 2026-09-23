@@ -616,11 +616,16 @@ export default function AssetsPage({
   onCreateHolding,
   onCreateHoldingForAccount,
   onCreateInstrument,
+  onCreateTag,
   onEditAccount,
   onEditHolding,
   onEditInstrument,
+  onEditTag,
   onInstrumentTagFilterChange,
   onSpreadsheetSave,
+  onSyncPrices,
+  syncingPrices,
+  syncMessage,
   spreadsheetSaving,
   sheetAccounts,
   sheetInstruments,
@@ -682,7 +687,7 @@ export default function AssetsPage({
   return (
     <section className="grid gap-4">
       <div className="grid gap-4">
-        <AssetViewToolbar copied={csvCopied} onCopyCsv={onCopyCsv} onViewChange={onAssetViewChange} value={assetView} />
+        <AssetViewToolbar canEdit={canEdit} copied={csvCopied} onCopyCsv={onCopyCsv} onCreateTag={onCreateTag} onEditTag={onEditTag} onSyncPrices={onSyncPrices} onViewChange={onAssetViewChange} syncMessage={syncMessage} syncingPrices={syncingPrices} tags={tags} value={assetView} />
         {(assetView === "accounts" || assetView === "instruments") && <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           {assetView === "accounts" ? (
             <TagActionToolbar

@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
 import { callRpc, openMenuTab, signInAs } from './helpers'
 
-test('handles mocked price-sync Edge Function success and failure in the settings UI', async ({ page }) => {
+test('handles mocked price-sync Edge Function success and failure in the asset UI', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
-  await openMenuTab(page, '설정')
+  await openMenuTab(page, '자산')
 
   let calls = 0
   await page.route('**/functions/v1/sync-prices', async (route) => {
@@ -17,7 +17,7 @@ test('handles mocked price-sync Edge Function success and failure in the setting
         }
       : { contentType: 'application/json', status: 500, body: JSON.stringify({ message: 'E2E sync failure' }) })
   })
-  const button = page.getByRole('button', { name: '가격 동기화' })
+  const button = page.getByRole('button', { name: '가격 갱신' })
   await button.click()
   await expect.poll(() => calls).toBe(1)
   await expect(page.getByText('1/1개 종목 확인, 새 가격 1건 저장.')).toBeVisible()

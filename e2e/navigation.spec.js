@@ -105,14 +105,47 @@ test('keeps the saved strategy visible when opening allocation', async ({ page }
     input_drift_threshold: 1, input_monthly_contribution: 100000, input_name: 'E2E Display Strategy', input_review_day: 1,
   })
   await openMenuTab(page, '원칙')
-  await expect(page.getByText('E2E Display Strategy')).toBeVisible()
+  await expect(page.getByText('지난 원칙 보기')).toBeVisible()
+  await expect(page.getByText('E2E Display Strategy')).toHaveCount(0)
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toHaveCount(0)
   await openMenuTab(page, '자산')
   await page.getByRole('button', { name: '목표와 비교' }).click()
   await expect(page.getByText('E2E Display Strategy')).toBeVisible()
+  await expect(page.getByRole('button', { name: '배분 설정', exact: true })).toBeVisible()
   await expect(page).toHaveURL(/#allocation$/)
+  await page.getByRole('button', { name: '배분 설정', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '배분 설정 편집' })).toBeVisible()
+  await page.getByRole('button', { name: '취소' }).click()
+  await page.getByRole('button', { name: '모드 변경' }).click()
+  await page.getByRole('dialog', { name: '운용 모드 변경' }).getByRole('combobox', { name: '모드' }).selectOption('defensive')
+  await page.getByRole('button', { name: '모드 적용' }).click()
+  await expect(page.getByText('운용 모드 · 방어')).toBeVisible()
   await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
   await expect(page).toHaveURL(/#overview$/)
+})
+
+test('manages instrument tags from the asset toolbar', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#overview')
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(page.getByRole('button', { name: '가격 갱신' })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await page.getByText('더보기', { exact: true }).click()
+  await page.getByRole('button', { name: '종목 태그 관리' }).click()
+  const manager = page.getByRole('dialog', { name: '종목 태그 관리' })
+  await expect(manager).toBeVisible()
+  await manager.getByRole('button', { name: '태그 추가' }).click()
+  const editor = page.getByRole('dialog', { name: '태그 추가' })
+  await expect(editor).toBeVisible()
+  const tagName = `E2E 종목 태그 ${Date.now()}`
+  await editor.getByRole('textbox', { name: '태그명' }).fill(tagName)
+  await editor.getByRole('button', { name: '저장' }).click()
+  await expect(editor).toHaveCount(0)
+  await page.getByText('더보기', { exact: true }).click()
+  await page.getByRole('button', { name: '종목 태그 관리' }).click()
+  await expect(page.getByRole('dialog', { name: '종목 태그 관리' }).getByRole('button', { name: new RegExp(tagName) })).toBeVisible()
 })
 
 test('shows incomplete valuation explicitly and suppresses allocation amounts', async ({ page }) => {
