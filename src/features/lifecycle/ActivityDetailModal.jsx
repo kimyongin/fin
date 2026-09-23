@@ -6,6 +6,7 @@ import ActivityTagPicker from './ActivityTagPicker'
 import ActivityNarrative from './ActivityNarrative'
 import { activityNoon, businessDate } from '../../lib/businessDate'
 import { deleteManualActivity, setActivityTags, updateActivity } from './data'
+import { ChangeSummary } from '../activity/ActivityEventViewer'
 
 function localDate(value) {
   if (!value) return ''
@@ -14,7 +15,7 @@ function localDate(value) {
 
 function formatDateTime(value) {
   if (!value) return '-'
-  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(value))
 }
 
 
@@ -153,6 +154,8 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       })}
 
       {activity.after_data?.context && <ActivityNarrative sections={[{ label: '확인 범위', content: typeof activity.after_data.context.scope === 'string' ? activity.after_data.context.scope : activity.after_data.context.scope ? JSON.stringify(activity.after_data.context.scope) : null }]} sources={activity.after_data.context.sources} />}
+
+      {!editing && !['record_manual_activity', 'complete_general_task'].includes(activity.action_type) && (activity.before_data || activity.after_data) && <section className="rounded-2xl border border-[var(--line)] p-4"><h4 className="mb-3 text-sm font-semibold">변경 내용</h4><ChangeSummary action={activity} /></section>}
 
 
 

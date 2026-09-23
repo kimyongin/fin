@@ -4,6 +4,7 @@ import { PageToolbar } from '../../components/PageControls'
 import { createRequestGate } from '../../lib/requestGate'
 import { businessDate } from '../../lib/businessDate'
 import MarkdownContent from '../../components/MarkdownContent'
+import { TimelineDayCard, TimelineEntry } from '../../components/Timeline'
 import { fetchPrincipleChanges, fetchPrinciples, savePrinciple } from './data'
 
 const changeLabel = { added: '추가', updated: '수정', ended: '적용 종료' }
@@ -20,6 +21,7 @@ export default function PrincipleJournal({ supabase }) {
   const [currentError, setCurrentError] = useState('')
   const [changesError, setChangesError] = useState('')
   const [selectedChange, setSelectedChange] = useState(null)
+  const [collapsedDays, setCollapsedDays] = useState(new Set())
   const [editing, setEditing] = useState(undefined)
   const [draft, setDraft] = useState({ principleId: null, body: '', changeNote: '' })
   const [initialDraft, setInitialDraft] = useState(null)
@@ -97,7 +99,12 @@ export default function PrincipleJournal({ supabase }) {
     }
   }
 
-  let lastDay = null
+  const changeDays = []
+  for (const change of changes) {
+    const day = businessDate(change.effective_at)
+    if (changeDays.at(-1)?.date === day) changeDays.at(-1).items.push(change)
+    else changeDays.push({ date: day, items: [change] })
+  }
   return <section className="grid gap-6">
     <PageToolbar secondary={<button className="min-h-11 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" onClick={() => open()} type="button">원칙 추가</button>} />
     <section className="grid gap-3" aria-label="현재 적용 중인 원칙">
@@ -116,19 +123,10 @@ export default function PrincipleJournal({ supabase }) {
       {loadingChanges && <p className="text-sm text-[var(--muted-ink)]">변경 이력을 불러오는 중입니다.</p>}
       {changesError && <div className="flex flex-wrap items-center gap-2 text-sm text-red-200" role="alert">{changesError}<button className="min-h-11 rounded-2xl border border-red-400/40 px-3" onClick={() => loadChanges({ append: changes.length > 0 && Boolean(nextCursor), cursor: nextCursor })} type="button">다시 시도</button></div>}
       {!loadingChanges && !changesError && changes.length === 0 && <p className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)]">아직 변경 이력이 없습니다.</p>}
-      <div className="grid gap-0 border-l border-[var(--line)] pl-4">
-        {changes.map((change) => {
-          const day = businessDate(change.effective_at)
-          const showDay = day !== lastDay
-          lastDay = day
-          return <div key={change.id} className="relative border-b border-[var(--line)] py-4 last:border-b-0">
-            <span aria-hidden="true" className="absolute -left-[1.35rem] top-6 h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
-            {showDay && <time className="mb-2 block text-sm font-semibold" dateTime={day}>{day}</time>}
-            <div className="flex flex-wrap items-center gap-2 text-sm"><time className="text-[var(--muted-ink)]" dateTime={change.effective_at}>{new Date(change.effective_at).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })}</time><span className="text-[var(--muted-ink)]">{changeLabel[change.change_type] ?? change.change_type}</span></div>
-            <p className="mt-2 break-words text-sm font-medium leading-6">{change.change_note || `원칙 ${changeLabel[change.change_type] ?? change.change_type}`}</p>
-            <button className="mt-2 min-h-11 rounded-2xl border border-[var(--line)] px-3 text-sm" onClick={() => setSelectedChange(change)} type="button">당시 원칙 보기</button>
-          </div>
-        })}
+      <div className="grid gap-3">
+        {changeDays.map((day) => <TimelineDayCard collapsed={collapsedDays.has(day.date)} day={day.date} key={day.date} onToggle={() => setCollapsedDays((current) => { const next = new Set(current); next.has(day.date) ? next.delete(day.date) : next.add(day.date); return next })}>
+          <ol className="relative border-l border-[var(--line)] sm:border-l-0">{day.items.map((change) => <TimelineEntry ariaLabel={`당시 원칙 보기: ${change.change_note || changeLabel[change.change_type] || '변경'}`} key={change.id} meta={changeLabel[change.change_type] ?? change.change_type} occurredAt={change.effective_at} onOpen={() => setSelectedChange(change)} title={change.change_note || `원칙 ${changeLabel[change.change_type] ?? change.change_type}`} />)}</ol>
+        </TimelineDayCard>)}
       </div>
       {nextCursor && <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" disabled={loadingMore} onClick={() => loadChanges({ append: true, cursor: nextCursor })} type="button">{loadingMore ? '불러오는 중' : '이전 변경 더 보기'}</button>}
     </section>

@@ -8,10 +8,7 @@ import { ReviewDetail } from '../review/ReviewHistoryPage'
 import ActivityKindBadge from '../activity/ActivityKindBadge'
 import { activityKinds } from '../activity/activityKinds'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
-
-function formatDay(value) {
-  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'full' }).format(new Date(`${value}T00:00:00`))
-}
+import { TimelineDayCard } from '../../components/Timeline'
 
 function statusLabel(task) {
   return task.recurrence_kind === 'daily' ? '매일 반복' : '할 일'
@@ -19,11 +16,23 @@ function statusLabel(task) {
 
 const emptySearch = () => ({ query: '', kinds: [], from: '', to: '', conclusion: 'all', tagIds: [] })
 
+function appendTimelinePage(current, next) {
+  const days = current.days.map((day) => ({ ...day, items: [...day.items] }))
+  for (const day of next.days) {
+    const existing = days.find((item) => item.date === day.date)
+    if (!existing) { days.push(day); continue }
+    const ids = new Set(existing.items.map((item) => item.id))
+    existing.items.push(...day.items.filter((item) => !ids.has(item.id)))
+  }
+  return { pending: current.pending, days, nextCursor: next.nextCursor }
+}
+
 export default function ActionTimeline({ availableTags = [], onAdd, onCompleteGeneralTask, onOpenActivity, onOpenTask, ownerUserId, refreshKey = 0, supabase }) {
   const [page, setPage] = useState({ pending: [], days: [], nextCursor: null })
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [retryMore, setRetryMore] = useState(false)
   const [collapsedDays, setCollapsedDays] = useState(new Set())
   const [searchDraft, setSearchDraft] = useState(emptySearch)
   const [searchApplied, setSearchApplied] = useState(null)
@@ -50,11 +59,10 @@ export default function ActionTimeline({ availableTags = [], onAdd, onCompleteGe
     try {
       const next = await fetchActionTimeline(supabase, { cursor, ownerUserId })
       if (!request.isCurrent()) return
-      setPage((current) => append
-        ? { pending: current.pending, days: [...current.days, ...next.days], nextCursor: next.nextCursor }
-        : next)
+      setPage((current) => append ? appendTimelinePage(current, next) : next)
+      setRetryMore(false)
     } catch (nextError) {
-      if (request.isCurrent()) setError(nextError.message ?? '활동 목록을 불러오지 못했습니다.')
+      if (request.isCurrent()) { setRetryMore(append); setError(nextError.message ?? '활동 목록을 불러오지 못했습니다.') }
     } finally {
       if (request.isCurrent()) { setLoading(false); setLoadingMore(false) }
     }
@@ -73,8 +81,9 @@ export default function ActionTimeline({ availableTags = [], onAdd, onCompleteGe
       })
       if (!request.isCurrent()) return
       setSearchPage((current) => append ? { items: [...current.items, ...next.items], nextCursor: next.nextCursor, semanticStatus: current.semanticStatus } : next)
+      setRetryMore(false)
     } catch (nextError) {
-      if (request.isCurrent()) setError(nextError.message ?? '활동을 검색하지 못했습니다.')
+      if (request.isCurrent()) { setRetryMore(append); setError(nextError.message ?? '활동을 검색하지 못했습니다.') }
     } finally {
       if (request.isCurrent()) { setLoading(false); setLoadingMore(false) }
     }
@@ -91,6 +100,7 @@ export default function ActionTimeline({ availableTags = [], onAdd, onCompleteGe
     setLoading(true)
     setLoadingMore(false)
     setSearchDraft(emptySearch())
+    setRetryMore(false)
     setSearchApplied(null)
     setSearchPage({ items: [], nextCursor: null, semanticStatus: 'not_requested' })
   }
@@ -131,7 +141,7 @@ export default function ActionTimeline({ availableTags = [], onAdd, onCompleteGe
       </form>
     </header>
 
-    {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => searchApplied ? runSearch({ values: searchApplied }) : load()} type="button">다시 시도</button></div>}
+    {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => searchApplied ? runSearch({ append: retryMore, cursor: retryMore ? searchPage.nextCursor : null, values: searchApplied }) : load({ append: retryMore, cursor: retryMore ? page.nextCursor : null })} type="button">다시 시도</button></div>}
     {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">활동 목록을 불러오는 중입니다.</p> : searchApplied ? <section className="grid gap-3"><div><h2 className="font-semibold">검색 결과</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">할 일과 기록을 같은 조건으로 찾았습니다. {searchPage.semanticStatus === 'active' ? '비슷한 표현도 함께 반영했습니다.' : searchApplied.query ? '현재는 조건·키워드 결과입니다.' : ''}</p></div>{searchPage.items.length === 0 ? <p className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted-ink)]">조건에 맞는 활동이 없습니다.</p> : searchPage.items.map((item) => <button className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-left" key={`${item.record_type}-${item.record_id}`} onClick={() => item.shared_review ? setSharedReview({ ...item, id: item.activity_id }) : item.record_type === 'activity' ? onOpenActivity({ id: item.activity_id }) : onOpenTask({ id: item.task_id, kind: item.task_kind })} type="button"><ActivityKindBadge completed={item.record_type === 'activity' && item.record_kind === 'task'} kind={item.record_type === 'task' ? 'task' : item.record_kind} /><span className="ml-2 text-xs text-[var(--muted-ink)]">{item.record_state === 'todo' ? '예정' : '완료'}{item.due_date ? ` · ${item.due_date}` : ''}</span><h3 className="mt-2 font-semibold">{item.title}</h3>{item.result && <p className="mt-2 text-sm text-[var(--muted-ink)]">{item.result}</p>}{item.conclusion && <p className="mt-1 text-sm text-[var(--accent)]">{item.conclusion}</p>}{item.tags?.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--muted-ink)]" key={tag.id}>{tag.name}</span>)}</div>}</button>)}{searchPage.nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold" disabled={loadingMore} onClick={() => runSearch({ append: true, cursor: searchPage.nextCursor, values: searchApplied })} type="button">{loadingMore ? '불러오는 중' : '더 보기'}</button>}</section> : <>
       <section>
         <div className="mb-3"><h2 className="text-lg font-semibold">할 일</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">미완료 과제 {page.pending.length}개</p></div>
@@ -144,11 +154,9 @@ export default function ActionTimeline({ availableTags = [], onAdd, onCompleteGe
         <div><h2 className="text-lg font-semibold">기록</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">날짜별 수행 내용과 변경 전후 값을 확인합니다.</p></div>
         {page.days.length === 0 ? <p className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted-ink)]">조건에 맞는 활동 기록이 없습니다.</p> : page.days.map((day) => {
           const collapsed = collapsedDays.has(day.date)
-          const summary = Object.entries(day.counts ?? {}).map(([label, count]) => `${label} ${count}`).join(' · ')
-          return <article className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)] sm:p-6" key={day.date}>
-            <button aria-expanded={!collapsed} className="flex min-h-11 w-full items-center justify-between gap-3 text-left" onClick={() => toggleDay(day.date)} type="button"><span><span className="block text-sm font-semibold">{formatDay(day.date)}</span><span className="mt-1 block text-xs text-[var(--muted-ink)]">{summary || `${day.item_count}건`}</span></span><span aria-hidden="true" className="text-[var(--muted-ink)]">{collapsed ? '펼치기' : '접기'}</span></button>
-            {!collapsed && <div className="mt-3 border-t border-[var(--line)] pt-4"><ActivityEventViewer actions={day.items} loading={false} onOpenActivity={onOpenActivity} showDateGroups={false} /></div>}
-          </article>
+          return <TimelineDayCard collapsed={collapsed} day={day.date} key={day.date} onToggle={() => toggleDay(day.date)}>
+            <ActivityEventViewer actions={day.items} loading={false} onOpenActivity={onOpenActivity} showDateGroups={false} />
+          </TimelineDayCard>
         })}
         {page.nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold disabled:opacity-50" disabled={loadingMore} onClick={() => load({ append: true, cursor: page.nextCursor })} type="button">{loadingMore ? '불러오는 중' : '이전 기록 더 보기'}</button>}
       </section>

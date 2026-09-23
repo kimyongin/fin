@@ -5,7 +5,7 @@ import { assertMutationRpcSignatures } from '../scripts/deployment-rpc-contract.
 test('protects an unsaved principle when cancelling its editor', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#strategy')
-  await page.getByRole('button', { name: '원칙 추가' }).click()
+  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
   const editor = page.getByRole('dialog', { name: '원칙 추가' })
   await editor.getByLabel('내용').fill('저장 전 원칙')
   await editor.getByRole('button', { name: '닫기' }).last().click()
@@ -35,7 +35,12 @@ test('pages principle changes and opens the exact historical Markdown row', asyn
   await page.getByRole('dialog', { name: '당시 원칙' }).getByRole('button', { name: '닫기' }).last().click()
   await page.getByRole('button', { name: '이전 변경 더 보기' }).click()
   await expect(page.getByRole('region', { name: '원칙 변경 이력' }).getByText('원칙 추가')).toBeVisible()
-  await expect(page.getByText('2026-09-23')).toHaveCount(1)
+  const dayToggle = page.getByRole('region', { name: '원칙 변경 이력' }).getByRole('button', { name: /2026년 9월 23일/ })
+  await expect(dayToggle).toHaveCount(1)
+  await dayToggle.click()
+  await expect(dayToggle).toHaveAttribute('aria-expanded', 'false')
+  await dayToggle.click()
+  await expect(dayToggle).toHaveAttribute('aria-expanded', 'true')
   await page.getByRole('button', { name: '당시 원칙 보기' }).last().click()
   await expect(page.getByRole('dialog', { name: '당시 원칙' }).getByRole('heading', { name: '첫 내용' })).toBeVisible()
 })
@@ -254,7 +259,7 @@ test('saves private principles and reads the current revision on mobile', async 
   await page.goto('/')
   await openMenuTab(page, '원칙')
 
-  await page.getByRole('button', { name: '원칙 추가' }).click()
+  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
   const editor = page.getByRole('dialog', { name: '원칙 추가' })
   await editor.getByLabel('내용 (마크다운)').fill('장기 투자하고 자주 매매하지 않는다.')
   await editor.getByRole('button', { name: '저장' }).click()
@@ -283,7 +288,7 @@ test('revises and ends one operating principle without a second history table', 
   await page.goto('/')
   await openMenuTab(page, '원칙')
 
-  await page.getByRole('button', { name: '원칙 추가' }).click()
+  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
   let editor = page.getByRole('dialog', { name: '원칙 추가' })
   await editor.getByLabel('내용 (마크다운)').fill('## 미래에셋 XLS 잔고\n평균가는 매입금액을 수량으로 나눈다.')
   await editor.getByLabel('변경 메모 (선택)').fill('운영 원칙 추가')
@@ -317,7 +322,7 @@ test('revises and ends one operating principle without a second history table', 
 test('retries a principle after a lost save response without creating a second row', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#strategy')
-  await page.getByRole('button', { name: '원칙 추가' }).click()
+  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
   const editor = page.getByRole('dialog', { name: '원칙 추가' })
   const body = `E2E 재시도 원칙 ${Date.now()}`
   await editor.getByLabel('내용 (마크다운)').fill(body)
@@ -340,7 +345,7 @@ test('retries a principle after a lost save response without creating a second r
 test('retries only the principle list after a successful save and failed refresh', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#strategy')
-  await page.getByRole('button', { name: '원칙 추가' }).click()
+  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
   const editor = page.getByRole('dialog', { name: '원칙 추가' })
   const body = `E2E 저장 후 목록 실패 ${Date.now()}`
   await editor.getByLabel('내용 (마크다운)').fill(body)

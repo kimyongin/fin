@@ -3,6 +3,7 @@ import { CopyIcon } from '../../components/icons'
 import { writeClipboard } from '../../lib/clipboard'
 import { buildBulkSnapshotCsv } from './snapshotCsv'
 import ActivityKindBadge from './ActivityKindBadge'
+import { TimelineEntry } from '../../components/Timeline'
 
 const actionLabels = {
   create_account: '계좌 추가', update_account: '계좌 수정', delete_account: '계좌 삭제',
@@ -61,11 +62,11 @@ function comparableValue(value) {
 }
 
 function formatDate(value) {
-  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'full' }).format(new Date(value))
+  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'full', timeZone: 'Asia/Seoul' }).format(new Date(value))
 }
 
 function formatTime(value) {
-  return new Intl.DateTimeFormat('ko-KR', { timeStyle: 'short' }).format(new Date(value))
+  return new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Seoul' }).format(new Date(value))
 }
 
 function eventData(action) {
@@ -140,7 +141,7 @@ function groupByDate(actions) {
   return groups
 }
 
-function ChangeSummary({ action }) {
+export function ChangeSummary({ action }) {
   if (action.action_type === 'bulk_edit_portfolio') {
     const hasBulkSnapshot = action.before_data?.portfolio_snapshot && action.after_data?.portfolio_snapshot
     return <div className="grid gap-2"><p className="text-sm text-[var(--ink)]">표 편집으로 보유자산 {action.after_data?.row_count ?? 0}개를 저장했습니다.</p>{hasBulkSnapshot && <div className="flex items-center gap-1.5"><SnapshotCopyButton label="Before" snapshot={action.before_data.portfolio_snapshot} /><SnapshotCopyButton label="After" snapshot={action.after_data.portfolio_snapshot} /></div>}</div>
@@ -162,6 +163,10 @@ function ChangeSummary({ action }) {
 }
 
 export function ActivityEvent({ action, onOpenActivity }) {
+  if (onOpenActivity) {
+    const meta = <><ActivityKindBadge completed={action.action_type === 'complete_general_task'} kind={action.record_kind} />{action.tags?.slice(0, 3).map((tag) => <span className="ml-1 rounded-full border border-[var(--line)] px-2 py-0.5" key={tag.id}>{tag.name}</span>)}{action.tags?.length > 3 && <span className="ml-1">+{action.tags.length - 3}</span>}{action.status === 'failed' && <span className="ml-2 text-red-200">실패</span>}</>
+    return <TimelineEntry ariaLabel={eventTarget(action)} meta={meta} occurredAt={action.occurred_at ?? action.created_at} onOpen={() => onOpenActivity(action)} summary={action.result || action.conclusion || action.note} title={eventTarget(action)} />
+  }
   const failed = action.status === 'failed'
   const narrativeActivity = ['record_manual_activity', 'complete_general_task'].includes(action.action_type)
   return (

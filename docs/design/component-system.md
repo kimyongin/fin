@@ -48,6 +48,8 @@ BriefingSummary, DecisionStatus, TaskProgress, EvidenceList, PositionChangePrevi
 
 ## 구현 결과와 검증
 
+`src/components/Timeline.jsx`는 #119의 활동·원칙 두 소비자가 사용하는 날짜 카드와 기록 행만 담당한다. 데이터 조회·커서·권한·도메인 의미는 각 기능에 남겨 둔다.
+
 1. #59에서 페이지 골격을 판단·할 일과 자산에 적용했고 #60에서 기존 ModalShell의 접근성 처리를 보존하며 footer/variant/닫기 정책을 보완했다.
 2. 판단·할 일·브리핑 상세와 계좌·종목·보유·태그·뉴스 편집으로 확대했다. #61은 표 전체 화면, #62는 나머지 페이지와 터치 영역을 적용했다. 별도 DialogSurface와 범용 form engine은 만들지 않았다.
 3. 360/390/768/1024/1440px, 탭 키보드, Tab/Shift+Tab/Escape, 포커스/inert, resize 중 draft, dirty 닫기, 브라우저 뒤로가기를 자동 검증했다.
