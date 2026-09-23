@@ -86,7 +86,11 @@ test('keeps the four primary page controls readable across viewport widths', asy
       await page.goto(`/#${hash}`)
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
       if (hash === 'overview') await expect(page.getByRole('tablist', { name: '자산 보기 전환' })).toBeVisible()
-      if (hash === 'tasks') await expect(page.getByRole('group', { name: '활동 목록 필터' })).toBeVisible()
+      if (hash === 'tasks') {
+        await expect(page.getByRole('textbox', { name: '활동 검색' })).toBeVisible()
+        await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
+        await expect(page.getByRole('heading', { name: '날짜별 한 일' })).toBeVisible()
+      }
       if (hash === 'strategy') await expect(page.getByText('지난 원칙 보기')).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     }

@@ -60,7 +60,9 @@ test('shows one unified action surface without legacy bundle controls', async ({
   await expect(page.getByRole('button', { name: '할 일 추가', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '한 일 기록', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '묶음 추가' })).toHaveCount(0)
-  await expect(page.getByLabel('활동 목록 필터').getByRole('button', { name: '전체' })).toBeVisible()
+  await expect(page.getByRole('group', { name: '활동 목록 필터' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '날짜별 한 일' })).toBeVisible()
   expect(legacyPageCalls).toBe(0)
 })
 
@@ -366,38 +368,19 @@ test('keeps the newest search when an older search responds later', async ({ pag
   await expect(page.getByRole('button', { name: /오래된 검색/ })).toHaveCount(0)
 })
 
-test('reselects the active activity filter without leaving the list loading', async ({ page }) => {
+test('shows pending and completed work together without a state filter', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#tasks')
-  const filters = page.getByRole('group', { name: '활동 목록 필터' })
-  for (const width of [390, 1440]) {
+  for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
-    await filters.getByRole('button', { name: '전체' }).click()
-    await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
-    await expect(page.getByText('활동 목록을 불러오는 중입니다.')).toHaveCount(0)
-    await filters.getByRole('button', { name: '한 일' }).click()
     await expect(page.getByRole('heading', { name: '날짜별 한 일' })).toBeVisible()
-    await filters.getByRole('button', { name: '한 일' }).click()
-    await expect(page.getByRole('heading', { name: '날짜별 한 일' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '활동 추가' })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: '활동 검색' })).toBeVisible()
+    await expect(page.getByRole('group', { name: '활동 목록 필터' })).toHaveCount(0)
     await expect(page.getByText('활동 목록을 불러오는 중입니다.')).toHaveCount(0)
-    await filters.getByRole('button', { name: '전체' }).click()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
-  let release
-  const held = new Promise((resolve) => { release = resolve })
-  let requested
-  const reached = new Promise((resolve) => { requested = resolve })
-  await page.route('**/rest/v1/rpc/app_list_action_timeline', async (route) => {
-    if (route.request().postDataJSON()?.input_filter !== 'done') return route.continue()
-    requested()
-    await held
-    await route.continue()
-  })
-  await filters.getByRole('button', { name: '한 일' }).click()
-  await reached
-  await filters.getByRole('button', { name: '한 일' }).click()
-  release()
-  await expect(page.getByRole('heading', { name: '날짜별 한 일' })).toBeVisible()
 })
 
 test('clears a pending search without accepting its late result', async ({ page }) => {

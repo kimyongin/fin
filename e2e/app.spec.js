@@ -214,7 +214,6 @@ test('links a decision activity to an ordinary follow-up without implying a trad
   expect(resolved.status, JSON.stringify(resolved.body)).toBe(200)
 
   await openMenuTab(page, '활동')
-  await page.getByLabel('활동 목록 필터').getByRole('button', { name: '한 일', exact: true }).click()
   await expect(page.getByRole('button', { name: question, exact: true }).first()).toBeVisible()
   await page.getByRole('button', { name: question, exact: true }).first().click()
   await expect(page.getByRole('heading', { name: '활동 상세' })).toBeVisible()
