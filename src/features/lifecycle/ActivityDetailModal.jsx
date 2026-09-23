@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import ModalShell from '../../components/ModalShell'
+import { activityKindLabels } from '../activity/activityKinds'
 import ActivityTagPicker from './ActivityTagPicker'
 import ActivityNarrative from './ActivityNarrative'
 import { activityNoon, businessDate } from '../../lib/businessDate'
@@ -16,9 +17,10 @@ function formatDateTime(value) {
   return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
-const activityKindLabels = { general: '일반', research: '조사', review: '점검', decision: '판단', retrospective: '회고', trade: '매매', reconciliation: '보정', task: '할 일' }
 
 export default function ActivityDetailModal({ activity, availableTags = [], historyGuardRef, loading, onClose, onDeleted, onOpenTask, onRetryTags, onSaved, onTagsChanged, ownerUserId, supabase, tagsError = '', tagsLoading = false }) {
+  const [tagsExpanded, setTagsExpanded] = useState(false)
+  const [followUpExpanded, setFollowUpExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -55,6 +57,8 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
     })
     if (changedActivity) {
       setEditing(false)
+      setTagsExpanded(false)
+      setFollowUpExpanded(false)
       setConfirmDelete(false)
       setConfirmDiscard(false)
       setPendingTaskId(null)
@@ -144,7 +148,32 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
     } finally { setSaving(false) }
   }
 
-  return <ModalShell closeDisabled={saving} dirty={dirty} historyGuardRef={historyGuardRef} onClose={onClose} title="활동 상세" variant="detail">
+  const footer = !loading && activity && !ownerUserId && editable.size > 0 ? (
+    <fieldset className="grid min-w-0 gap-3" disabled={saving}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {activity.action_type === 'record_manual_activity' && !editing && <>
+            <button className="min-h-11 rounded-xl border border-red-400/40 px-4 text-sm text-red-200 disabled:opacity-50" onClick={() => confirmDelete ? removeManualActivity() : setConfirmDelete(true)} type="button">{confirmDelete ? '삭제 확인' : '활동 삭제'}</button>
+            {confirmDelete && <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" onClick={() => setConfirmDelete(false)} type="button">취소</button>}
+          </>}
+        </div>
+        <div className="ml-auto flex gap-2">
+          {editing ? <>
+            <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" onClick={() => editingDirty ? setConfirmDiscard(true) : resetDraft()} type="button">취소</button>
+            <button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={saving || (editable.has('title') && !draft.title.trim())} onClick={save} type="button">{saving ? '저장 중' : '저장'}</button>
+          </> : <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" onClick={() => { setConfirmDelete(false); setEditing(true) }} type="button">수정</button>}
+        </div>
+      </div>
+      {confirmDelete && !editing && <p className="text-xs text-[var(--muted-ink)]">활동을 삭제해도 후속 할 일은 유지됩니다.</p>}
+      {confirmDiscard && <div className="flex flex-wrap items-center justify-end gap-2 text-sm">
+        <span>수정한 내용을 버릴까요?</span>
+        <button className="min-h-11 rounded-xl border border-[var(--line)] px-3" onClick={() => setConfirmDiscard(false)} type="button">계속 편집</button>
+        <button className="min-h-11 rounded-xl border border-red-400/40 px-3 text-red-200" onClick={resetDraft} type="button">변경 버리기</button>
+      </div>}
+    </fieldset>
+  ) : undefined
+
+  return <ModalShell closeDisabled={saving} dirty={dirty} footer={footer} historyGuardRef={historyGuardRef} onClose={onClose} title="활동 상세">
     <fieldset className="min-w-0" disabled={saving}>
     {loading || !activity ? <p className="py-8 text-sm text-[var(--muted-ink)]">활동을 불러오는 중입니다.</p> : <div className="grid gap-6">
       {error && <p className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
@@ -165,15 +194,14 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
 
       {activity.after_data?.context && <ActivityNarrative sections={[{ label: '확인 범위', content: typeof activity.after_data.context.scope === 'string' ? activity.after_data.context.scope : activity.after_data.context.scope ? JSON.stringify(activity.after_data.context.scope) : null }]} sources={activity.after_data.context.sources} />}
 
-      {!ownerUserId && editable.size > 0 && <div className="grid gap-2"><div className="flex justify-end gap-2">{editing ? <><button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" disabled={saving} onClick={() => editingDirty ? setConfirmDiscard(true) : resetDraft()} type="button">취소</button><button className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={saving || (editable.has('title') && !draft.title.trim())} onClick={save} type="button">{saving ? '저장 중' : '저장'}</button></> : <button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" onClick={() => setEditing(true)} type="button">수정</button>}</div>{confirmDiscard && <div className="flex flex-wrap items-center justify-end gap-2 text-sm"><span>수정한 내용을 버릴까요?</span><button className="rounded-xl border border-[var(--line)] px-3 py-2" onClick={() => setConfirmDiscard(false)} type="button">계속 편집</button><button className="rounded-xl border border-red-400/40 px-3 py-2 text-red-200" onClick={resetDraft} type="button">변경 버리기</button></div>}</div>}
-      {!ownerUserId && activity.action_type === 'record_manual_activity' && !editing && <div className="flex items-center justify-end gap-2">{confirmDelete && <span className="text-xs text-[var(--muted-ink)]">후속 할 일은 유지됩니다.</span>}<button className="rounded-xl border border-red-400/40 px-4 py-2 text-sm text-red-200 disabled:opacity-50" disabled={saving} onClick={() => confirmDelete ? removeManualActivity() : setConfirmDelete(true)} type="button">{confirmDelete ? '삭제 확인' : '활동 삭제'}</button>{confirmDelete && <button className="rounded-xl border border-[var(--line)] px-4 py-2 text-sm" disabled={saving} onClick={() => setConfirmDelete(false)} type="button">취소</button>}</div>}
 
-      {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4">{tagsLoading && <p className="mb-2 text-xs text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="mb-2 flex items-center gap-3 text-xs text-red-200"><span>{tagsError}</span><button className="rounded-lg border border-red-400/40 px-3 py-2" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker disabled={saving || tagsLoading || Boolean(tagsError)} onChange={setSelectedTagIds} onTagsChanged={(tags, ids) => { onTagsChanged(tags); setSelectedTagIds(ids) }} selectedIds={selectedTagIds} supabase={supabase} tags={availableTags} /><div className="mt-3 flex justify-end"><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold disabled:opacity-50" disabled={saving || tagsLoading || Boolean(tagsError)} onClick={saveTags} type="button">태그 저장</button></div></section>}
+
+      {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4"><button aria-expanded={tagsExpanded} className="min-h-11 w-full text-left text-sm font-semibold" onClick={() => setTagsExpanded(!tagsExpanded)} type="button">태그 편집{selectedTagIds.length > 0 ? ` · ${selectedTagIds.length}개` : ''}<span aria-hidden="true" className="float-right">{tagsExpanded ? '−' : '+'}</span></button>{tagsExpanded && <div className="mt-3">{tagsLoading && <p className="mb-2 text-xs text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="mb-2 flex items-center gap-3 text-xs text-red-200"><span>{tagsError}</span><button className="rounded-lg border border-red-400/40 px-3 py-2" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker disabled={saving || tagsLoading || Boolean(tagsError)} onChange={setSelectedTagIds} onTagsChanged={(tags, ids) => { onTagsChanged(tags); setSelectedTagIds(ids) }} selectedIds={selectedTagIds} supabase={supabase} tags={availableTags} /><div className="mt-3 flex justify-end"><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold disabled:opacity-50" disabled={saving || tagsLoading || Boolean(tagsError)} onClick={saveTags} type="button">태그 저장</button></div></div>}</section>}
 
       {activity.origin_task && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-left text-sm font-semibold" disabled={saving} onClick={() => openTask(activity.origin_task.id)} type="button">원래 할 일 보기 · {activity.origin_task.title}</button>}
       {activity.follow_up_tasks?.length > 0 && <section><h4 className="text-sm font-semibold">이어진 할 일</h4><div className="mt-2 grid gap-2">{activity.follow_up_tasks.map((task) => <button className="rounded-2xl bg-[var(--surface-2)] p-3 text-left text-sm" disabled={saving} key={task.id} onClick={() => openTask(task.id)} type="button">{task.title}{task.due_date ? <span className="ml-2 text-xs text-[var(--muted-ink)]">{task.due_date}</span> : null}</button>)}</div></section>}
       {pendingTaskId && <div className="flex flex-wrap items-center justify-end gap-2 text-sm" role="alert"><span>저장하지 않은 변경을 버리고 할 일을 볼까요?</span><button className="rounded-xl border border-[var(--line)] px-3 py-2" onClick={() => setPendingTaskId(null)} type="button">계속 편집</button><button className="rounded-xl border border-red-400/40 px-3 py-2 text-red-200" onClick={() => onOpenTask(pendingTaskId)} type="button">변경 버리고 이동</button></div>}
-      {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4"><h4 className="text-sm font-semibold">후속 할 일</h4><p className="mt-1 text-xs text-[var(--muted-ink)]">이 활동을 계기로 다음에 할 일을 남깁니다.</p><div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm" onChange={(event) => setFollowUp({ ...followUp, title: event.target.value })} placeholder="예: 다음 실적 발표 확인" value={followUp.title} /><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm" onChange={(event) => setFollowUp({ ...followUp, dueDate: event.target.value })} type="date" value={followUp.dueDate} /><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold disabled:opacity-50" disabled={saving || !followUp.title.trim()} onClick={addFollowUp} type="button">추가</button></div></section>}
+      {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4"><button aria-expanded={followUpExpanded} className="min-h-11 w-full text-left text-sm font-semibold" onClick={() => setFollowUpExpanded(!followUpExpanded)} type="button">후속 할 일 추가<span aria-hidden="true" className="float-right">{followUpExpanded ? '−' : '+'}</span></button>{followUpExpanded && <div><p className="mt-1 text-xs text-[var(--muted-ink)]">이 활동을 계기로 다음에 할 일을 남깁니다.</p><div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm" onChange={(event) => setFollowUp({ ...followUp, title: event.target.value })} placeholder="예: 다음 실적 발표 확인" value={followUp.title} /><input className="rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-sm" onChange={(event) => setFollowUp({ ...followUp, dueDate: event.target.value })} type="date" value={followUp.dueDate} /><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold disabled:opacity-50" disabled={saving || !followUp.title.trim()} onClick={addFollowUp} type="button">추가</button></div></div>}</section>}
     </div>}
     </fieldset>
   </ModalShell>

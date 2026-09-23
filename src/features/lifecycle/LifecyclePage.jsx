@@ -212,7 +212,6 @@ function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, ini
         {canViewTimeline && activityTagsError && <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert"><span>{activityTagsError}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={reloadActivityTags} type="button">다시 시도</button></div>}
         {canViewTimeline ? <ActionTimeline
           availableTags={activityTags}
-          canViewReviews={canViewReviews}
           key={ownerUserId ?? 'self'}
           onAdd={() => setGeneralEditor('task')}
           onCompleteGeneralTask={completeGeneralTask}

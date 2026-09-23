@@ -7,6 +7,14 @@ afterEach(() => {
 })
 
 describe('activity hybrid search', () => {
+  it('passes multiple kinds as OR filters without mixing unfiltered semantic matches', async () => {
+    const client = { rpc: vi.fn(async () => ({ data: { items: [], next_cursor: null }, error: null })) }
+    const result = await hybridSearchActivities(client, { query: '점검', record_kinds: ['review', 'research'] })
+    expect(result.semantic_status).toBe('keyword_page')
+    expect(client.rpc).toHaveBeenCalledTimes(1)
+    expect(client.rpc).toHaveBeenCalledWith('app_search_activities', expect.objectContaining({ input_record_kinds: ['review', 'research'] }))
+  })
+
   it('uses keyword search without invoking embeddings when no query is supplied', async () => {
     const client = { rpc: vi.fn(async () => ({ data: { items: [{ record_type: 'task', record_id: '1' }], next_cursor: null }, error: null })) }
     const result = await hybridSearchActivities(client, { query: null })

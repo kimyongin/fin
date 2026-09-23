@@ -29,6 +29,7 @@ test('keeps a detail draft while adding a follow-up and resets discarded edits',
   const detail = page.getByRole('dialog', { name: '활동 상세' })
   await detail.getByRole('button', { name: '수정', exact: true }).click()
   await detail.getByRole('textbox', { name: '제목' }).fill(`${title} 초안`)
+  await detail.getByRole('button', { name: '후속 할 일 추가' }).click()
   await detail.getByPlaceholder('예: 다음 실적 발표 확인').fill('후속 확인')
   await detail.getByPlaceholder('예: 다음 실적 발표 확인').locator('..').getByRole('button', { name: '추가', exact: true }).click()
   await expect(detail.getByRole('textbox', { name: '제목' })).toHaveValue(`${title} 초안`)
@@ -231,6 +232,7 @@ test('retries a follow-up after a lost response without making a duplicate task'
   await page.reload()
   await page.getByRole('button', { name: title, exact: true }).click()
   const detail = page.getByRole('dialog', { name: '활동 상세' })
+  await detail.getByRole('button', { name: '후속 할 일 추가' }).click()
   const followUpForm = detail.locator('section').filter({ hasText: '이 활동을 계기로 다음에 할 일을 남깁니다.' })
   await detail.getByPlaceholder('예: 다음 실적 발표 확인').fill(followUpTitle)
   let calls = 0
@@ -241,9 +243,9 @@ test('retries a follow-up after a lost response without making a duplicate task'
       await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'response lost' }) })
     } else await route.continue()
   })
-  await followUpForm.getByRole('button', { name: '추가' }).click()
+  await followUpForm.getByRole('button', { name: '추가', exact: true }).click()
   await expect(detail.getByText('response lost')).toBeVisible()
-  await followUpForm.getByRole('button', { name: '추가' }).click()
+  await followUpForm.getByRole('button', { name: '추가', exact: true }).click()
   await expect(detail.getByRole('button', { name: new RegExp(followUpTitle) })).toBeVisible()
   const loaded = await callRpc(page, 'app_get_activity', { input_activity_id: created.body.id, input_owner_user_id: null })
   expect(loaded.status).toBe(200)
@@ -262,8 +264,9 @@ test('shares newly created and renamed activity tags with search filters immedia
   await page.reload()
   await page.getByRole('button', { name: title, exact: true }).click()
   const detail = page.getByRole('dialog', { name: '활동 상세' })
+  await detail.getByRole('button', { name: '태그 편집' }).click()
   await detail.getByPlaceholder('새 태그').fill(tagName)
-  await detail.locator('fieldset').last().getByRole('button', { name: '추가' }).click()
+  await detail.getByPlaceholder('새 태그').locator('..').getByRole('button', { name: '추가', exact: true }).click()
   await expect(detail.getByLabel(tagName)).toBeChecked()
   await detail.getByRole('button', { name: '수정', exact: true }).click()
   await detail.getByRole('textbox', { name: '제목' }).fill(`${title} 초안`)
@@ -281,6 +284,7 @@ test('shares newly created and renamed activity tags with search filters immedia
   await expect(filters.getByLabel(renamed)).toBeVisible()
   await expect(filters.getByLabel(tagName, { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: title, exact: true }).click()
+  await detail.getByRole('button', { name: /태그 편집/ }).click()
   await detail.getByText('태그 이름·삭제 관리').click()
   await detail.locator('details').getByRole('button', { name: '삭제' }).click()
   await expect(detail.getByLabel(renamed)).toHaveCount(0)
@@ -433,4 +437,54 @@ test('discards an older search page after the search is cleared', async ({ page 
   releasePage()
   await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
   await expect(page.getByText('버린 이전 페이지')).toHaveCount(0)
+})
+
+test('filters activity kinds with OR and uses responsive edit dialogs with visible kinds', async ({ page }, testInfo) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const prefix = `E2E 종류 묶음 ${Date.now()}`
+  for (const category of ['research', 'review', 'decision']) {
+    const created = await callRpc(page, 'app_create_activity', {
+      input_idempotency_key: crypto.randomUUID(),
+      input_payload: { title: `${prefix} ${category}`, category, authored_via: 'app' },
+    })
+    expect(created.status).toBe(200)
+  }
+  await page.reload()
+  await expect(page.getByLabel('활동 종류: 조사', { exact: true }).first()).toBeVisible()
+  await page.getByText('상세 필터', { exact: true }).click()
+  await page.getByRole('checkbox', { name: '조사', exact: true }).check()
+  await page.getByRole('checkbox', { name: '점검', exact: true }).check()
+  await page.getByRole('textbox', { name: '활동 검색' }).fill(prefix)
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.getByRole('heading', { name: `${prefix} research`, exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: `${prefix} review`, exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: `${prefix} decision`, exact: true })).toHaveCount(0)
+  await page.screenshot({ path: testInfo.outputPath('kind-filters.png') })
+  await page.getByRole('heading', { name: `${prefix} research`, exact: true }).click()
+  const detail = page.getByRole('dialog', { name: '활동 상세' })
+  await detail.getByRole('button', { name: '수정', exact: true }).click()
+  await detail.getByRole('textbox', { name: '제목', exact: true }).fill(`${prefix} 초안`)
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    const bounds = await detail.boundingBox()
+    expect(bounds.width).toBeLessThanOrEqual(width)
+    if (width >= 640) {
+      expect(bounds.width).toBeLessThan(width)
+      expect(bounds.x).toBeGreaterThan(0)
+    } else {
+      expect(bounds.width).toBe(width)
+    }
+    await expect(detail.getByRole('textbox', { name: '제목', exact: true })).toHaveValue(`${prefix} 초안`)
+    await expect(detail.getByRole('button', { name: '저장', exact: true })).toBeInViewport()
+    expect(await detail.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+    if (width === 390 || width === 1440) await page.screenshot({ path: testInfo.outputPath(`activity-editor-${width}.png`) })
+  }
+  await detail.getByRole('button', { name: '닫기', exact: true }).click()
+  await detail.getByRole('button', { name: '변경 버리기', exact: true }).click()
+  await page.getByRole('checkbox', { name: '점검', exact: true }).uncheck()
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.getByRole('heading', { name: `${prefix} review`, exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: '해제', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
 })

@@ -601,10 +601,11 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'search_activities',
     title: 'Search tasks and performed activities',
-    description: 'Search future tasks and performed activities through one owner-scoped query. Combine optional Korean or ticker keywords with date, task-versus-done state, conclusion presence, account, instrument, and reusable activity tags. On the first completed-activity page, semantic similarity may supplement keyword ranking; semantic_status reports whether it ran, and keyword results remain available when it did not. Filters and sharing checks run before ranking. Pass next_cursor unchanged and never treat an unavailable semantic pass or an error as no history.',
+    description: 'Search future tasks and performed activities through one owner-scoped query. record_kinds selects any of the given kinds (OR); omit it or pass [] for all kinds. Combine kinds with keywords, dates, task-versus-done state, conclusion presence, account, instrument, and activity tags (AND across these conditions). Kind-filtered searches use keyword matching; without kinds, semantic similarity may supplement the first completed-activity page. semantic_status reports whether it ran. Filters and sharing checks run before pagination. Pass next_cursor unchanged and never treat an unavailable semantic pass or an error as no history.',
     inputSchema: { type: 'object', properties: {
       query: { type: ['string','null'], maxLength: 500 }, from: { type: ['string','null'], format: 'date' }, to: { type: ['string','null'], format: 'date' },
       record_state: { type: 'string', enum: ['all','todo','done'], default: 'all' }, has_conclusion: { type: ['boolean','null'] },
+      record_kinds: { type: 'array', maxItems: 8, uniqueItems: true, items: { type: 'string', enum: ['general','research','review','decision','retrospective','trade','reconciliation','task'] }, description: 'Match any selected kind. Empty or omitted means all kinds.' },
       instrument_id: { type: ['integer','null'], minimum: 1 }, account_id: { type: ['integer','null'], minimum: 1 },
       tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' } }, tag_match: { type: 'string', enum: ['all','any'], default: 'all' },
       limit: { type: 'integer', minimum: 1, maximum: 100, default: 30 }, cursor: { type: ['object','null'] }, timezone: { type: 'string', minLength: 1 },

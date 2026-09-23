@@ -17,6 +17,7 @@ type SearchArgs = {
   to?: string | null
   record_state?: 'all' | 'todo' | 'done'
   record_kind?: string
+  record_kinds?: string[]
   has_conclusion?: boolean | null
   instrument_id?: number | null
   account_id?: number | null
@@ -42,6 +43,7 @@ function rpcParams(args: SearchArgs) {
     input_to: args.to || null,
     input_record_state: args.record_state ?? 'all',
     input_record_kind: args.record_kind ?? 'all',
+    input_record_kinds: args.record_kinds ?? null,
     input_has_conclusion: typeof args.has_conclusion === 'boolean' ? args.has_conclusion : null,
     input_instrument_id: args.instrument_id ?? null,
     input_account_id: args.account_id ?? null,
@@ -78,7 +80,7 @@ export async function hybridSearchActivities(client: SupabaseClientLike, args: S
   const keyword = await rpc(client, 'app_search_activities', params)
   const keywordItems = Array.isArray(keyword.items) ? keyword.items as SearchItem[] : []
   const query = args.query?.trim()
-  if (!query || args.cursor || args.record_state === 'todo' || (args.record_kind && args.record_kind !== 'all')) {
+  if (!query || args.cursor || args.record_state === 'todo' || (args.record_kinds?.length ?? 0) > 0 || (!args.record_kinds && args.record_kind && args.record_kind !== 'all')) {
     return { ...keyword, semantic_status: query ? 'keyword_page' : 'not_requested', indexed_count: 0 }
   }
 

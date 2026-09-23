@@ -22,9 +22,9 @@ function ReviewStatus({ review }) {
   </div>
 }
 
-function ReviewDetail({ review, onClose }) {
+export function ReviewDetail({ review, onClose }) {
   const context = review.context ?? {}
-  return <ModalShell onClose={onClose} title="점검 상세" variant="detail"><div className="grid gap-5">
+  return <ModalShell onClose={onClose} title="점검 상세"><div className="grid gap-5">
     <ReviewStatus review={review} />
     <div><h3 className="text-xl font-semibold leading-8">{review.title}</h3><p className="mt-2 text-xs text-[var(--muted-ink)]">기록 {formatMoment(review.occurred_at)}</p></div>
     <ActivityNarrative sections={[

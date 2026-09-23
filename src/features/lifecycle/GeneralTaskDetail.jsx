@@ -30,7 +30,7 @@ export default function GeneralTaskDetail({ entry, loading, onBack, onClose, onE
     finally { setEnding(false) }
   }
   return (
-    <ModalShell onBack={onBack} onClose={onClose} title="할 일 상세" variant="detail">
+    <ModalShell closeDisabled={ending} onBack={onBack} onClose={onClose} title="할 일 상세">
       {loading || !item ? <p className="py-8 text-sm text-[var(--muted-ink)]">불러오는 중입니다.</p> : (
         <div className="grid gap-6">
           <section>

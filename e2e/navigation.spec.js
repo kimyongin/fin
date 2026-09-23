@@ -57,7 +57,7 @@ test('guides a new user from empty assets through OAuth setup and first review',
 
   await expect(page).toHaveURL(/#tasks$/)
   await page.getByText('상세 필터').click()
-  await page.getByLabel('활동 종류').selectOption('review')
+  await page.getByRole('checkbox', { name: '점검', exact: true }).check()
   await page.getByRole('button', { name: '검색', exact: true }).click()
   await expect(page.getByText('조건에 맞는 활동이 없습니다.')).toBeVisible()
   await openMenuTab(page, '가이드')

@@ -325,6 +325,7 @@ const toolHandlers: Record<string, ToolHandler> = {
       from: optionalString(args.from) ?? null,
       to: optionalString(args.to) ?? null,
       record_state: (optionalString(args.record_state) ?? 'all') as 'all' | 'todo' | 'done',
+      record_kinds: args.record_kinds == null ? [] : requireArray(args.record_kinds, 'record_kinds').map((value) => String(value)),
       has_conclusion: typeof args.has_conclusion === 'boolean' ? args.has_conclusion : null,
       instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
       account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),

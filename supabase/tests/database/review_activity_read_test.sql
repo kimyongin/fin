@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(16);
+select extensions.plan(22);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001981','authenticated','authenticated','review-owner@example.com','',now(),now(),now()),
@@ -29,10 +29,16 @@ select extensions.hasnt_table('public','daily_review_contexts','reading current 
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001982',true);
 select extensions.is(jsonb_array_length(public.app_list_narrative_activities('review','00000000-0000-0000-0000-000000001981')->'items'),0,'friend without review grant sees nothing');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001981',input_record_kinds=>array['review','research'])->'items'),0,'multi kind search cannot bypass missing review grant');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001981',true);
 select public.app_update_sharing_policy(0,'{"briefings":true}'::jsonb);
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001982',true);
 select extensions.is(jsonb_array_length(public.app_list_narrative_activities('review','00000000-0000-0000-0000-000000001981')->'items'),2,'review grant permits friend summary');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001981',input_record_kinds=>array['review','decision'])->'items'),2,'search returns shared reviews but not private decisions');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001981',input_record_kinds=>array['review'],input_query=>'내부 메모')->'items'),0,'private note cannot be used as search oracle');
+select extensions.is(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001981',input_query=>'어제 점검')->'items'->0->>'note',null::text,'shared search strips private note');
+select extensions.is(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001981',input_query=>'어제 점검')->'items'->0->'context'->>'scope',null::text,'shared search strips private context');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001981',input_record_kinds=>array['review'],input_tag_ids=>array['00000000-0000-0000-0000-000000001981'::uuid])->'items'),0,'private tag predicates never expose shared reviews');
 select extensions.is(public.app_list_narrative_activities('review','00000000-0000-0000-0000-000000001981')->'items'->1->>'note',null::text,'friend cannot read private note');
 select extensions.is(public.app_list_narrative_activities('review','00000000-0000-0000-0000-000000001981')->'items'->1->'context'->>'scope',null::text,'friend cannot read private scope or sources');
 select extensions.is(jsonb_array_length(public.app_list_narrative_activities('decision','00000000-0000-0000-0000-000000001981')->'items'),0,'review grant does not expose decisions');

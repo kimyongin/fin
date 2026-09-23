@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Reviewed the policy interview retry guidance and the fixed Asia/Seoul principle read adapter after stabilization.",
+  "review_reason": "Activity multi-kind OR search is optional; todo guide and tool description updated, shared-review privacy preserved. Other workflows and writes unchanged.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:2a706ba1",
-      "contract_digest": "543b1770db942e892715a77ef08f3ed730e6caa5b6dfc6fa237ebdb7c9e65712"
+      "contract_digest": "93b9faf21d0e5f6ae4f3e310b98d86da493ddf479729578faa4ff4203ab6775a"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "385443d77ce673fbfdc8b462f4d3a6cb69ec87f857bcb51a402c553d7d2b0ec8"
+      "contract_digest": "6bf42be329861ae37b8e6c9c96a805f050a31c1cfb48da4e58fe70eabfdf3315"
     },
     "daily_review": {
       "revision": "fnv1a32:1743d26a",
-      "contract_digest": "bf57ed0663dfaf779e62680bc8e57b7616918ff425e912345686dba571cd939f"
+      "contract_digest": "d0b81d16dec470fc0503fe4ff3ccdd2cb5b39c1fa378e8d6633ad9ab00242433"
     },
     "decision_followup": {
       "revision": "fnv1a32:55c68510",
-      "contract_digest": "f96470c2b2ceaa4fcd2fd2c901b9a718e058d069eb761fad4f23c07a2359d416"
+      "contract_digest": "815d8dff8808ad941b579fb374ba7bbaf2775ae1f9a8a5e972893fd3669deb0f"
     },
     "trade_entry": {
       "revision": "fnv1a32:497bf056",
-      "contract_digest": "e6de60a608da01fadbd557ac9071e2040e8d4145187320ae7d93752ffd7ddf50"
+      "contract_digest": "3c6a182c5c79ac96b52aa945626f7a4061e367abe7df4deff52e38d1a608f174"
     },
     "reconciliation": {
       "revision": "fnv1a32:1fa0dea4",
-      "contract_digest": "497a84b5e091fd5fd77dbf6c27ba83c614d87cd2a9a7c8c82c3eee8400bd411b"
+      "contract_digest": "3008491d835c0091840caf5624b715d4710baf48d14165f7ee4184bbd21142b0"
     },
     "todo": {
-      "revision": "fnv1a32:96683428",
-      "contract_digest": "224b8f00d670c0abca45be9245d813a25a66a3b270a39be240c840be1350bcee"
+      "revision": "fnv1a32:1fe50322",
+      "contract_digest": "2c3f0445fe8fbd5cc2ad0e29f44163e409fa8c59a9f3ee374b13eced9321a5e2"
     },
     "activity_report": {
       "revision": "fnv1a32:f0d9274f",
-      "contract_digest": "bd02d5ddc97dd763c04f2527fdd8bdd6d780a4e281f04dfb1151f7e5cb026a53"
+      "contract_digest": "ed3b8311c7b4587e3696fcacbcef0e8cbf502ba5f54830e32efd94081d05896d"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "7852b9f300b8a22269e71f077dac71091514c44be96a0ee3ac61dfd5493ed0de"
+      "contract_digest": "a2fd2ddbf6008c0d394cd6a3829d3a09cba819a5906c4579d924c6a0f9b10a71"
     }
   }
 }

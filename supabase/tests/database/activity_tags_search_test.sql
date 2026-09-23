@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(26);
+select extensions.plan(33);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001911','authenticated','authenticated','activity-search-owner@example.com','',now(),now(),now()),
@@ -53,6 +53,13 @@ select extensions.is((public.app_search_activities(null,'보유 유지',null,nul
 select extensions.is(jsonb_array_length(public.app_search_activities(null,null,null,null,'done',null,null,null,array[(select id from activity_tags where name='실적')],'all',30,null,'Asia/Seoul')->'items'),1,'tag filter finds the tagged activity');
 select extensions.is(jsonb_array_length(public.app_search_activities(null,'시세',null,null,'todo',null,null,null,null,'all',30,null,'Asia/Seoul')->'items'),0,'completed recurring occurrence is not still a todo today');
 select extensions.is(jsonb_array_length(public.app_search_activities(null,'변화 없음',null,null,'done',null,null,null,null,'all',30,null,'Asia/Seoul')->'items'),1,'completion result is searchable');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['general','task'])->'items'),2,'multiple kinds include both manual activity and completed task');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['review','research'])->'items'),0,'multiple nonmatching kinds exclude other kinds');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['general','task'],input_query=>'삼성전자')->'items'),1,'kind OR is intersected with keyword');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['general','task'],input_has_conclusion=>true)->'items'),1,'kind OR is intersected with conclusion');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['general','task'],input_limit=>1,input_cursor=>public.app_search_activities(input_record_kinds=>array['general','task'],input_limit=>1)->'next_cursor')->'items'),1,'multiple kinds paginate without losing matches');
+select extensions.throws_ok($$select public.app_search_activities(input_record_kinds=>array['review','invalid'])$$,'P0001','Invalid activity record kinds','invalid array kind rejected');
+select extensions.ok(exists(select 1 from jsonb_array_elements(public.app_list_action_timeline()->'days') d cross join lateral jsonb_array_elements(d->'items') i where i->>'title'='삼성전자 실적 확인' and i->>'record_kind'='general'),'timeline includes current title and persisted kind');
 select extensions.ok((public.app_search_activities(null,null,null,null,'all',null,null,null,null,'all',1,null,'Asia/Seoul')->'next_cursor') is not null,'combined search has stable pagination');
 
 select extensions.is(public.app_save_activity_tag(
