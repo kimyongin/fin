@@ -187,37 +187,22 @@ try {
   const policyAfter = await call(session.access_token, 'tools/call', { name: 'get_investment_policy', arguments: {} })
   assert(policyAfter.body?.result?.structuredContent?.data?.profile?.goal_text === policyArgs.patch.goal_text, 'Investment policy could not be read back')
 
-  const ruleBefore = await call(session.access_token, 'tools/call', {
-    name: 'list_operating_rules', arguments: { workflow_key: 'reconciliation' },
-  })
-  assert(ruleBefore.body?.result?.structuredContent?.data?.rules?.length === 0, 'New contract user unexpectedly has an operating rule')
-  const ruleArgs = {
-    schema_version: 1,
-    rule_id: null,
-    expected_version: null,
-    idempotency_key: crypto.randomUUID(),
-    title: 'Contract reconciliation rule',
-    workflow_key: 'reconciliation',
-    applicability: 'Contract-test brokerage export',
-    body: 'Treat acquisition amount and valuation amount as different fields; never divide by zero quantity.',
-    change_reason: 'Verify reusable operating-rule contracts.',
+  const operationPrincipleArgs = {
+    schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
+    kind: 'operation', scope: 'reconciliation', end: false,
+    body: 'For this brokerage export, distinguish acquisition and valuation amounts.',
   }
-  const ruleSaved = await call(session.access_token, 'tools/call', { name: 'save_operating_rule', arguments: ruleArgs })
-  const savedRule = ruleSaved.body?.result?.structuredContent?.data?.rule
-  assert(savedRule?.version === 1 && savedRule?.status === 'active', 'Operating rule save contract failed')
-  const ruleRetry = await call(session.access_token, 'tools/call', { name: 'save_operating_rule', arguments: ruleArgs })
-  assert(ruleRetry.body?.result?.structuredContent?.data?.rule?.id === savedRule.id, 'Operating rule idempotent retry failed')
-  const ruleAfter = await call(session.access_token, 'tools/call', {
-    name: 'list_operating_rules', arguments: { workflow_key: 'reconciliation' },
+  const operationSaved = await call(session.access_token, 'tools/call', {
+    name: 'save_principle', arguments: operationPrincipleArgs,
   })
-  assert(ruleAfter.body?.result?.structuredContent?.data?.rules?.[0]?.body === ruleArgs.body, 'Operating rule could not be read back')
-  const ruleArchived = await call(session.access_token, 'tools/call', {
-    name: 'archive_operating_rule', arguments: {
-      schema_version: 1, rule_id: savedRule.id, expected_version: 1,
-      idempotency_key: crypto.randomUUID(), reason: 'Finish contract lifecycle.',
-    },
+  assert(operationSaved.body?.result?.structuredContent?.data?.body === operationPrincipleArgs.body,
+    'Operating principle save contract failed')
+  const operationAfter = await call(session.access_token, 'tools/call', {
+    name: 'list_principles', arguments: {},
   })
-  assert(ruleArchived.body?.result?.structuredContent?.data?.rule?.status === 'archived', 'Operating rule archive contract failed')
+  assert(operationAfter.body?.result?.structuredContent?.data?.items?.some((item) =>
+    item.principle_id === operationPrincipleArgs.principle_id && item.kind === 'operation' && item.scope === 'reconciliation'),
+  'Operating principle could not be read back')
 
   const taskArgs = {
     schema_version: 1, task_id: null, expected_version: null, idempotency_key: crypto.randomUUID(),

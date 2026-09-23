@@ -37,9 +37,9 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | transition_task / observed-local | 현재 version을 읽고 조사 질문을 대기·해결·재개하거나 사용자의 요청으로 보류·재개·종료합니다. 해결은 답과 출처, 재개는 새 근거가 필요하며 매매 진행도를 변경하지 않습니다. | W04,W08 |
 | get_investment_policy / legacy-hidden | 구 개인 기준 조회. 기존 세션 호환 호출만 허용하며 새 세션은 `list_principles`를 사용합니다. | W02 |
 | save_investment_policy / legacy-hidden | 구 개인 기준 저장. 기존 세션 호환 호출만 허용하며 새 세션은 `save_principle`을 사용합니다. | W02 |
-| list_operating_rules / observed-local | 특정 workflow에 저장된 활성 데이터 관리 규칙을 읽습니다. 빈 목록과 조회 실패를 구분하고 applicability를 실제 입력과 대조합니다. | W06 |
-| save_operating_rule / observed-local | 사용자가 기억하라고 요청한 적용 조건과 처리 규칙을 CAS·멱등 방식으로 저장합니다. 규칙은 금융 검증이나 현재 지시를 우회하지 않습니다. | W06 |
-| archive_operating_rule / observed-local | 더 이상 적용하지 않을 규칙을 이력은 보존한 채 보관합니다. 과거 대조 결과나 보유값은 바꾸지 않습니다. | W06 |
+| list_operating_rules / removed | 별도 운영 규칙 조회를 제거했다. `list_principles`에서 `kind=operation`, 해당 scope를 확인합니다. | W06 |
+| save_operating_rule / removed | 별도 운영 규칙 저장을 제거했다. 사용자가 승인한 규칙은 `save_principle`로 저장합니다. | W06 |
+| archive_operating_rule / removed | 별도 보관 상태를 제거했다. 해당 원칙에 `end=true`를 저장합니다. | W06 |
 | list_general_tasks / observed-local | 본인의 일반 할 일을 상태별로 읽습니다. 조사・실행 과제나 이미 수행한 이벤트 목록을 대신하지 않습니다. | A02,A04 |
 | get_general_task / observed-local | 일반 할 일의 현재 상태와 보존된 이력을 읽습니다. 조회로 회차를 완료하거나 재개하지 않습니다. | A02,A04 |
 | save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 저장합니다. 활동에서 직접 이어진 할 일은 origin_activity_id로 선택 연결합니다. | A02,A04 |

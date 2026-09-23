@@ -13,6 +13,6 @@ export default defineConfig(({ command }) => ({
   },
   plugins: [react(), tailwindcss()],
   test: {
-    exclude: ['e2e/**', 'node_modules/**'],
+    exclude: ['e2e/**', '.e2e/**', 'node_modules/**'],
   },
 }))

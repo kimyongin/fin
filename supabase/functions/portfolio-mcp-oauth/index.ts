@@ -4,7 +4,7 @@ import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
 import {
   actionTaskToolNames, activityReportToolNames, dailyReviewToolNames, decisionTaskToolNames, entityNoteToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
-  investmentPolicyToolNames, operatingRuleToolNames, portfolioToolDefinitions, tradeEntryToolNames,
+  investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames,
   productFeedbackToolNames, workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
 import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
@@ -826,39 +826,6 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
-  async list_operating_rules(supabase, args) {
-    const data = await rpc(supabase, 'app_list_operating_rules', {
-      input_workflow_key: requireString(args.workflow_key, 'workflow_key'),
-      input_include_archived: args.include_archived === true,
-    })
-    return { ok: true, data }
-  },
-  async save_operating_rule(supabase, args) {
-    requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_save_operating_rule', {
-      input_rule_id: args.rule_id == null ? null : requireUuid(args.rule_id, 'rule_id'),
-      input_expected_version: args.expected_version == null ? null : requirePositiveInteger(args.expected_version, 'expected_version'),
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_title: requireString(args.title, 'title'),
-      input_workflow_key: requireString(args.workflow_key, 'workflow_key'),
-      input_applicability: requireString(args.applicability, 'applicability'),
-      input_body: requireString(args.body, 'body'),
-      input_change_reason: requireString(args.change_reason, 'change_reason'),
-      input_authored_via: 'agent',
-    })
-    return { ok: true, data }
-  },
-  async archive_operating_rule(supabase, args) {
-    requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_archive_operating_rule', {
-      input_rule_id: requireUuid(args.rule_id, 'rule_id'),
-      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_reason: requireString(args.reason, 'reason'),
-      input_authored_via: 'agent',
-    })
-    return { ok: true, data }
-  },
   async list_private_holding_notes(supabase) {
     const data = await rpc(supabase, 'app_list_private_holding_notes')
     return { ok: true, data }
@@ -941,7 +908,6 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   actionTasks: actionTaskToolNames,
   activityReports: activityReportToolNames,
   investmentPolicy: investmentPolicyToolNames,
-  operatingRules: operatingRuleToolNames,
   holdingThesis: holdingThesisToolNames,
   tradeEntry: tradeEntryToolNames,
   holdingIntegrity: holdingIntegrityToolNames,
