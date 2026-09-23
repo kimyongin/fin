@@ -90,16 +90,16 @@ function App() {
   const sessionUserIdRef = useRef(sessionUserId)
   sessionUserIdRef.current = sessionUserId
   const canEdit = viewContext.mode === 'owner' && !isAnonymousSession
-  const { activeTab, assetView, setActiveTab, setAssetView, tabs } = usePortfolioNavigation(canEdit, sharedFeatureAccess, !isAnonymousSession)
+  const { activeTab, setActiveTab, tabs } = usePortfolioNavigation(canEdit, sharedFeatureAccess, !isAnonymousSession)
   const [feedbackSourcePage, setFeedbackSourcePage] = useState('')
 
   const handleTabChange = useCallback((nextTab) => {
     if (sheetDirty && nextTab !== activeTab && !window.confirm('저장하지 않은 표 변경을 버리고 이동할까요?')) return
     if (nextTab === 'feedback' && activeTab !== 'feedback') {
-      setFeedbackSourcePage(activeTab === 'overview' && assetView !== 'holdings' ? assetView : activeTab)
+      setFeedbackSourcePage(activeTab)
     }
     setActiveTab(nextTab)
-  }, [activeTab, assetView, setActiveTab, sheetDirty])
+  }, [activeTab, setActiveTab, sheetDirty])
   const {
     createToken: handleCreateAgentToken,
     dismissIssuedToken: handleDismissIssuedAgentToken,
@@ -450,7 +450,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'overview' ? '자산' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? '활동' : activeTab === 'strategy' ? '원칙' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
+  const pageTitle = activeTab === 'overview' ? '자산' : activeTab === 'allocation' ? '배분' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? '활동' : activeTab === 'strategy' ? '원칙' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
     <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6">
@@ -489,7 +489,7 @@ function App() {
           />
         )}
 
-        {activeTab === 'overview' && assetView !== 'allocation' && (
+        {activeTab === 'overview' && (
           <AssetsPageView
             accountById={accountById}
             accounts={state.accounts}
@@ -502,7 +502,6 @@ function App() {
             holdingsByTicker={holdingsByTicker}
             instruments={instrumentRows}
             latestPriceByTicker={latestPriceByTicker}
-            onAssetViewChange={setAssetView}
             onCopyCsv={handleCopyCsv}
             onCreateAccount={() => openAccountModal()}
             onCreateHolding={(ticker) => openHoldingModal({ ticker })}
@@ -527,16 +526,14 @@ function App() {
             onTradeSaved={() => refreshState()}
           />
         )}
-        {activeTab === 'overview' && assetView === 'allocation' && (
+        {activeTab === 'allocation' && (
           <StrategyPageView
-            assetView={assetView}
             canEdit={canEdit}
             csvCopied={copied}
             onCopyCsv={handleCopyCsv}
             onCreateTag={() => openTagModal()}
             onEditTag={(tag) => openTagModal(tag)}
             onSyncPrices={handleSyncPrices}
-            onAssetViewChange={setAssetView}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             section="allocation"
             showStrategy={canEdit || Boolean(sharedFeatureAccess?.features?.strategy)}

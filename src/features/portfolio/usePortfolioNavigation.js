@@ -7,25 +7,19 @@ function tabFromHash(fallback = 'overview') {
   if (typeof window === 'undefined') return fallback
   const hash = window.location.hash.replace(/^#/, '').trim()
   if (hash === 'news' || hash === 'today') return 'tasks'
-  if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'allocation' || hash === 'tags') return 'overview'
+  if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'tags') return 'overview'
   return tabIds.has(hash) ? hash : fallback
-}
-
-function assetViewFromHash() {
-  if (typeof window === 'undefined') return 'holdings'
-  const hash = window.location.hash.replace(/^#/, '').trim()
-  return hash === 'allocation' ? hash : 'holdings'
 }
 
 export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canSubmitFeedback = canEdit) {
   const [activeTab, setActiveTab] = useState(() => tabFromHash())
-  const [assetView, setAssetView] = useState(() => assetViewFromHash())
 
   const tabs = useMemo(() => {
     if (canEdit) return allTabs
     const features = sharedFeatureAccess?.relationshipAccess ? sharedFeatureAccess.features : {}
     const allowedByTab = {
       overview: features.assets,
+      allocation: features.assets || features.strategy,
       decisions: features.decisions,
       tasks: features.tasks || features.activity || features.briefings,
       strategy: features.strategy,
@@ -43,10 +37,8 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
       const nextTab = tabFromHash()
       if (hash === 'today' || hash === 'news') window.history.replaceState(null, '', '#tasks')
       if (hash === 'accounts' || hash === 'instruments' || hash === 'tags' || hash === 'sheet' || hash === 'overview') {
-        setAssetView('holdings')
         if (hash !== 'overview') window.history.replaceState(null, '', '#overview')
       }
-      if (hash === 'allocation') setAssetView(hash)
       setActiveTab((current) => (current === nextTab ? current : nextTab))
     }
 
@@ -59,11 +51,11 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
   }, [canEdit])
 
   useEffect(() => {
-    const nextHash = activeTab === 'overview' && assetView !== 'holdings' ? `#${assetView}` : `#${activeTab}`
+    const nextHash = `#${activeTab}`
     if (window.location.hash !== nextHash) {
       window.history.replaceState(null, '', nextHash)
     }
-  }, [activeTab, assetView])
+  }, [activeTab])
 
   useEffect(() => {
     if (!tabs.some((tab) => tab.id === activeTab)) {
@@ -73,9 +65,7 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
 
   return {
     activeTab,
-    assetView,
     setActiveTab,
-    setAssetView,
     tabs,
   }
 }

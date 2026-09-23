@@ -651,7 +651,6 @@ function AllocationPage({
   valuationQuality,
   section = "all",
   showStrategy = true,
-  onAssetViewChange,
   onCreateTag,
   onEditTag,
 }) {
@@ -700,7 +699,7 @@ function AllocationPage({
       setSaving(false);
     }
   }
-  const assetToolbar = section === "allocation" && <AssetViewToolbar canEdit={canEdit} onCreateTag={onCreateTag} onEditTag={onEditTag} onViewChange={onAssetViewChange} tags={tags} />;
+  const assetToolbar = section === "allocation" && <AssetViewToolbar canEdit={canEdit} onCreateTag={onCreateTag} onEditTag={onEditTag} tags={tags} />;
   const currentComposition = section === "allocation" && <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4" aria-label="전체 계좌의 태그별 현재 비중">
     <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-lg font-semibold">전체 계좌 · 태그별 현재 비중</h2><span className="text-sm text-[var(--muted-ink)]">확인 가능한 평가액 {formatKrw(totalValue)}</span></div>
     {!tagCards.length ? <p className="mt-3 text-sm text-[var(--muted-ink)]">보유 종목이 없어 현재 구성을 표시할 수 없습니다.</p> : <div className="mt-3 divide-y divide-[var(--line)]">{tagCards.map((card) => <div className="flex items-center justify-between gap-3 py-2 text-sm" key={card.id}><span>{card.name === 'Untagged' ? '미분류' : card.name}</span><span>{formatKrw(card.value)} · {formatPercent(totalValue > 0 ? card.value / totalValue * 100 : NaN)}</span></div>)}</div>}

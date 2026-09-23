@@ -1,5 +1,6 @@
 export const allTabs = [
   { id: 'overview', label: '자산' },
+  { id: 'allocation', label: '배분' },
   { id: 'decisions', label: '판단 모아보기' },
   { id: 'tasks', label: '활동' },
   { id: 'strategy', label: '원칙' },

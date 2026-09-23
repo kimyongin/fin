@@ -72,7 +72,7 @@ function InstrumentDetail({ accounts, canEdit, instrument, linkedHoldings, notes
 
 export default function AssetsPage({
   accountById, accounts, canEdit, computedPositions, csvCopied, holdingsByTicker,
-  instruments, latestPriceByTicker, onAssetViewChange, onCopyCsv, onCreateAccount, onCreateHolding, onCreateHoldingForAccount, onEditAccount,
+  instruments, latestPriceByTicker, onCopyCsv, onCreateAccount, onCreateHolding, onCreateHoldingForAccount, onEditAccount,
   onEditHolding, onEditInstrument, onSpreadsheetSave, onSyncPrices, syncingPrices, syncMessage,
   spreadsheetSaving, sheetAccounts, sheetInstruments, holdings, instrumentTags, tagMapByTicker,
   tags, selectedAccountId, onSelectedAccountIdChange, query, onQueryChange, supabase, onTradeSaved, onSheetDirtyChange,
@@ -136,7 +136,6 @@ export default function AssetsPage({
         {syncMessage && <p aria-live="polite" className="mt-2 text-sm" role="status">{syncMessage}</p>}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--line)] pt-3 text-xs text-[var(--muted-ink)]">
           <span>{tagSummary.length ? tagSummary.map(([tag, value]) => `${tag} ${formatPercent(totalValue > 0 ? value / totalValue * 100 : NaN)}`).join(' · ') : '구성 정보가 없습니다.'}</span>
-          <button className="min-h-11 text-sm font-semibold text-[var(--accent)]" onClick={() => onAssetViewChange('allocation')} type="button">전체 배분 보기 →</button>
         </div>
       </section>
       <div className="grid gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto]">

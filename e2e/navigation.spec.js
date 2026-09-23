@@ -77,18 +77,20 @@ test('guides a new user from empty assets through OAuth setup and first review',
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('keeps the three primary page controls readable across viewport widths', async ({ page }) => {
+test('keeps the four primary page controls readable across viewport widths', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     for (const [hash, title] of [
       ['overview', '자산'],
+      ['allocation', '배분'],
       ['tasks', '활동'],
       ['strategy', '원칙'],
     ]) {
       await page.goto(`/#${hash}`)
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
       if (hash === 'overview') await expect(page.getByRole('region', { name: '보유 종목' })).toBeVisible()
+      if (hash === 'allocation') await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
       if (hash === 'tasks') {
         await expect(page.getByRole('textbox', { name: '활동 검색' })).toBeVisible()
         await expect(page.getByRole('heading', { name: '할 일' })).toBeVisible()
@@ -110,9 +112,10 @@ test('keeps the saved strategy visible when opening allocation', async ({ page }
   await expect(page.getByRole('heading', { name: '변경 이력' })).toBeVisible()
   await expect(page.getByText('E2E Display Strategy')).toHaveCount(0)
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toHaveCount(0)
-  await openMenuTab(page, '자산')
-  await page.getByRole('button', { name: '전체 배분 보기' }).click()
+  await openMenuTab(page, '배분')
   await expect(page.getByText('E2E Display Strategy')).toBeVisible()
+  await expect(page.locator('nav[aria-label="주요 메뉴"]').getByRole('button', { name: '배분', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('button', { name: '자산으로 돌아가기' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '배분 설정', exact: true })).toBeVisible()
   await expect(page).toHaveURL(/#allocation$/)
   await page.getByRole('button', { name: '배분 설정', exact: true }).click()
@@ -122,8 +125,9 @@ test('keeps the saved strategy visible when opening allocation', async ({ page }
   await page.getByRole('dialog', { name: '운용 모드 변경' }).getByRole('combobox', { name: '모드' }).selectOption('defensive')
   await page.getByRole('button', { name: '모드 적용' }).click()
   await expect(page.getByText('운용 모드 · 방어')).toBeVisible()
-  await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+  await openMenuTab(page, '자산')
   await expect(page).toHaveURL(/#overview$/)
+  await expect(page.getByRole('button', { name: '전체 배분 보기' })).toHaveCount(0)
 })
 
 test('manages instrument tags from the asset toolbar', async ({ page }) => {
@@ -134,7 +138,7 @@ test('manages instrument tags from the asset toolbar', async ({ page }) => {
     await expect(page.getByRole('button', { name: '가격 갱신' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
-  await page.getByRole('button', { name: '전체 배분 보기' }).click()
+  await openMenuTab(page, '배분')
   await page.getByRole('button', { name: '태그 관리' }).click()
   const manager = page.getByRole('dialog', { name: '종목 태그 관리' })
   await expect(manager).toBeVisible()
@@ -184,21 +188,22 @@ test('shows incomplete valuation explicitly and suppresses allocation amounts', 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
 
-  await page.getByRole('button', { name: '전체 배분 보기' }).click()
+  await openMenuTab(page, '배분')
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toBeVisible()
   await expect(page.getByRole('heading', { name: '이번 달 적립금 배분' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '리밸런싱 제안' })).toHaveCount(0)
 })
 
-test('keeps three primary destinations usable without horizontal overflow', async ({ page }) => {
+test('keeps four primary destinations usable without horizontal overflow', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
 
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     const primary = page.locator('nav[aria-label="주요 메뉴"]:visible')
-    await expect(primary.getByRole('button')).toHaveCount(3)
+    await expect(primary.getByRole('button')).toHaveCount(4)
     await expect(primary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
+    await expect(primary.getByRole('button', { name: '배분', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '활동', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '원칙', exact: true })).toBeVisible()
     await expect.poll(() => primary.evaluate((element) => {
@@ -310,10 +315,10 @@ test('keeps holdings, instrument detail, allocation and spreadsheet within suppo
     await expect(page.getByRole('dialog', { name: 'E2E Apple' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button', { name: '닫기' }).click()
-    await page.getByRole('button', { name: '전체 배분 보기' }).click()
+    await openMenuTab(page, '배분')
     await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-    await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+    await openMenuTab(page, '자산')
     await page.getByRole('button', { name: '표 편집' }).click()
     await expect(page.getByRole('dialog', { name: '표 편집' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
