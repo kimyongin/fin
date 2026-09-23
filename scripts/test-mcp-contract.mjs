@@ -217,45 +217,23 @@ try {
   assert(contextData?.snapshot?.open_tasks?.status === 'available' && contextData?.snapshot?.open_tasks?.items?.some((item) => item.id === savedTask.id), 'Daily context unified task contract failed')
 
   const saved = await call(session.access_token, 'tools/call', {
-    name: 'save_daily_briefing',
+    name: 'record_manual_activity',
     arguments: {
       schema_version: 1,
-      context_id: contextData.context_id,
       idempotency_key: crypto.randomUUID(),
-      evidence: [],
-      scopes: [{
-        local_key: 'portfolio',
-        subject: { kind: 'portfolio' },
-        window_from: new Date(Date.now() - 86400000).toISOString(),
-        window_to: new Date().toISOString(),
-        coverage: 'unverified',
-        reason: 'Contract test does not perform external research.',
-        checked_at: new Date().toISOString(),
-        evidence_keys: [],
-        checked_sources: [],
-      }],
-      briefing: {
-        headline: 'Contract test briefing',
-        status: 'insufficient_data',
-        changes: ['No researched change was asserted.'],
-        uncertainties: [{ title: 'External research was intentionally omitted.' }],
-      },
+      title: 'Contract test review', note: 'External research was intentionally omitted.',
+      result: 'No researched change was asserted.', conclusion: 'Insufficient data.',
+      occurred_at: null, timezone: 'Asia/Seoul', instrument_id: null, account_id: null,
+      category: 'review', context: { status: 'insufficient_data', coverage_status: 'failed', scope: 'portfolio' },
     },
   })
   const savedData = saved.body?.result?.structuredContent?.data
-  assert(saved.body?.result?.isError === false && savedData?.id && savedData?.coverage_status === 'failed', `Daily briefing save contract failed: ${JSON.stringify(saved.body?.result?.structuredContent?.error ?? savedData)}`)
-  assert(savedData.changes?.[0]?.summary === 'No researched change was asserted.', 'Briefing item normalization failed')
-
-  const reread = await call(session.access_token, 'tools/call', {
-    name: 'get_daily_briefing',
-    arguments: { briefing_id: savedData.id },
-  })
-  assert(reread.body?.result?.structuredContent?.data?.id === savedData.id, 'Saved daily briefing could not be read back')
+  assert(saved.body?.result?.isError === false && savedData?.id && savedData?.record_kind === 'review', `Review activity save contract failed: ${JSON.stringify(saved.body?.result?.structuredContent?.error ?? savedData)}`)
 
   const briefingPage = await call(session.access_token, 'tools/call', {
-    name: 'list_daily_briefings', arguments: { limit: 1, cursor: null },
+    name: 'list_review_activities', arguments: { limit: 1, cursor: null },
   })
-  assert(Array.isArray(briefingPage.body?.result?.structuredContent?.data?.items), 'Daily briefing cursor page contract failed')
+  assert(briefingPage.body?.result?.structuredContent?.data?.items?.[0]?.id === savedData.id, 'Saved review activity cursor page contract failed')
   const tradePage = await call(session.access_token, 'tools/call', {
     name: 'list_transactions', arguments: { limit: 1, cursor: null },
   })

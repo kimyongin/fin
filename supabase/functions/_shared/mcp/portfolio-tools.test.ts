@@ -104,52 +104,12 @@ describe('portfolio MCP tool definitions', () => {
     })
   })
 
-  it('labels briefing save as an idempotent non-destructive write', () => {
-    expect(tool('save_daily_briefing').annotations).toMatchObject({
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    })
-  })
-
-  it('keeps list and detail tools read-only', () => {
-    expect(tool('list_daily_briefings').annotations.readOnlyHint).toBe(true)
-    expect(tool('get_daily_briefing').annotations.readOnlyHint).toBe(true)
+  it('uses the activity contract for saved reviews', () => {
+    expect(dailyReviewToolNames).toEqual(['get_daily_context', 'list_review_activities'])
+    expect(tool('list_review_activities').annotations.readOnlyHint).toBe(true)
+    expect(tool('record_manual_activity').annotations.idempotentHint).toBe(true)
+    expect(tool('record_manual_activity').description).toContain('failed research is insufficient_data')
     expect(tool('get_portfolio_integrity').annotations.readOnlyHint).toBe(true)
-  })
-
-  it('publishes the agreed daily-review coverage states', () => {
-    const saveSchema = tool('save_daily_briefing').inputSchema as any
-    expect(saveSchema.required).toEqual([
-      'schema_version',
-      'context_id',
-      'idempotency_key',
-      'evidence',
-      'scopes',
-      'briefing',
-    ])
-    expect(saveSchema.properties.scopes.items.properties.coverage.enum).toEqual([
-      'sufficient',
-      'partial',
-      'unverified',
-    ])
-  })
-
-  it('publishes displayable briefing items and actionable daily-review outputs', () => {
-    const save = tool('save_daily_briefing')
-    const item = (save.inputSchema as any).properties.briefing.properties.changes.items
-    expect(item.oneOf[0]).toMatchObject({ type: 'string', minLength: 1 })
-    expect(item.oneOf[1].anyOf).toEqual([
-      { required: ['summary'] }, { required: ['title'] }, { required: ['body'] },
-    ])
-
-    const contextData = (tool('get_daily_context').outputSchema as any).properties.data
-    expect(contextData.required).toEqual(['context_id', 'expires_at', 'snapshot'])
-    const briefingData = (save.outputSchema as any).properties.data
-    expect(briefingData.required).toContain('id')
-    expect(briefingData.required).toContain('coverage_status')
-    expect((tool('list_daily_briefings').outputSchema as any).oneOf[0].properties.data.type).toBe('array')
   })
 
   it('keeps an adopted decision separate from trades and execution plans', () => {
@@ -169,7 +129,7 @@ describe('portfolio MCP tool definitions', () => {
   })
 
   it('offers opt-in stable cursor pages without removing legacy before inputs', () => {
-    for (const name of ['list_daily_briefings', 'list_investment_decisions', 'list_tasks', 'list_transactions']) {
+    for (const name of ['list_investment_decisions', 'list_tasks', 'list_transactions']) {
       const schema = tool(name).inputSchema as any
       expect(schema.properties).toHaveProperty('before')
       expect(schema.properties.cursor.type).toEqual(['object', 'null'])

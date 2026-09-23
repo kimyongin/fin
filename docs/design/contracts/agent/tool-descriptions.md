@@ -24,9 +24,7 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | submit_product_feedback / observed-local | 사용자가 명시적으로 요청했거나 에이전트의 한 번의 요약 제안에 동의한 Portfolio 제품 피드백을 비공개로 저장합니다. 대화 전문·투자 데이터·인증정보·추정 원인을 첨부하거나 GitHub에 공개하지 않습니다. | W09 |
 | list_my_product_feedback / observed-local | 본인이 남긴 제품 피드백의 상태·운영자 답변·연결 이슈만 조회합니다. 타인의 접수나 관리자 큐를 노출하지 않습니다. | W09 |
 | get_daily_context / observed-local | 요청한 점검에 필요한 보유·원칙·이전 분석·과거 조사 범위를 서버 임시 문맥으로 준비합니다. 분석 저장·열람·잔고 확인은 기록하지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
-| save_daily_briefing / observed-local | 명시적 저장 요청에 따라 context_id와 조사 근거·범위·브리핑을 저장합니다. 원칙 수정·사용자 판단 채택·실제 매매는 하지 않으며 실패를 저장 완료로 설명하면 안 됩니다. | W01,W04,W08 |
-| list_daily_briefings / observed-local | 본인의 저장 분석 요약을 분석 시각 역순으로 읽습니다. 조회로 열람이나 잔고 확인을 기록하지 않습니다. | W08 |
-| get_daily_briefing / observed-local | 본인의 브리핑과 당시 문맥·근거·확인 출처·조사 범위를 읽습니다. 현재 데이터와 당시 snapshot을 혼동하지 않습니다. | W08 |
+| list_review_activities / observed-local | 본인이 명시적으로 저장한 점검 활동을 최신순으로 읽습니다. 조회 자체는 기록하지 않으며 현재 가격·뉴스를 대신하지 않습니다. | W01,W08 |
 | record_investment_decision / observed-local | 사용자가 명시적으로 기록을 요청한 제안 또는 채택 판단을 구분해 저장하고 조사할 일 최대 3개를 함께 만듭니다. 실행 계획·체결·주문·잔고 변경은 하지 않습니다. | W03 |
 | list_investment_decisions / observed-local | 본인의 판단을 최근 갱신 순서로 읽고 proposed와 adopted를 구분합니다. | W03,W08 |
 | get_investment_decision / observed-local | 본인의 판단 상세·초기 상태 이력·연결된 조사 할 일을 읽습니다. 조회로 판단 상태를 변경하지 않습니다. | W03,W08 |
@@ -42,7 +40,7 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 저장합니다. 활동에서 직접 이어진 할 일은 origin_activity_id로 선택 연결합니다. | A02,A04 |
 | transition_general_task / observed-local | 현재 version과 회차 날짜를 확인해 일반 할 일의 이번 완료・잘못된 완료 해제・반복 전체 종료를 처리합니다. 반복 종료는 수행하지 않은 회차의 완료 기록을 만들지 않으며, 같은 일을 manual activity로 중복 기록하지 않습니다. | A02,A04 |
 | get_activity / observed-local | 활동의 현재 제목·메모·결과·결론, 편집 허용 필드, 원본 대상 ID, 수행 태스크와 후속 할 일을 조회합니다. 판단 활동의 target ID는 기존 판단 정본을 상세 조회하는 데 사용합니다. | A03 |
-| record_manual_activity / observed-local | 이미 수행한 일을 일반·조사·점검·판단·회고 중 하나의 활동으로 기록합니다. 분류는 생략하면 일반이며, 조사 출처·범위는 선택적 context에 넣습니다. 분류만으로 잔고·체결·검증 사실을 만들 수 없습니다. 민감한 조사·점검·판단·회고 본문은 소유자만 봅니다. | A03 |
+| record_manual_activity / observed-local | 이미 수행한 일을 일반·조사·점검·판단·회고 중 하나의 활동으로 기록합니다. 점검 저장은 명시적 요청 때 category=review, 조사 상태·범위·출처는 context로 기록합니다. 분류만으로 잔고·체결·검증 사실을 만들 수 없습니다. | A03,W01 |
 | update_activity / observed-local | 같은 수행의 현재 활동을 수정합니다. 수동 기록은 비금융 분류와 출처/범위도 정정할 수 있지만, 할 일 완료·금융 자동 기록의 분류와 원본 사실은 보호합니다. | A03 |
 | delete_manual_activity / observed-local | 명시적으로 요청받은 수동 활동만 삭제합니다. 후속 할 일과 기존 회고 본문은 유지하고 검색·임베딩에서는 제거합니다. 매매·잔고·할 일 완료 기록은 이 도구로 삭제하지 않습니다. | A03 |
 | search_activities / observed-local | 할 일과 한 일을 기간·상태·결론·종목·계좌·활동 태그·키워드로 함께 검색합니다. 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 실행 여부를 알리며, 불가능하면 정상 키워드 결과를 유지합니다. | A03,A06 |

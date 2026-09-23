@@ -129,73 +129,6 @@ function cursorPage(args: Record<string, unknown>) {
   return { enabled, value: args.cursor == null ? null : requireRecord(args.cursor, 'cursor') }
 }
 
-function normalizeBriefingItems(value: unknown, field: string) {
-  return requireArray(value, field).map((item, index) => {
-    if (typeof item === 'string') return { summary: requireString(item, `${field}[${index}]`) }
-    const record = requireRecord(item, `${field}[${index}]`)
-    const summary = optionalString(record.summary) ?? optionalString(record.title) ?? optionalString(record.body)
-    if (!summary) throw new ToolInputError(`${field}[${index}] needs summary, title, or body`)
-    return {
-      ...record,
-      summary,
-    }
-  })
-}
-
-function normalizeDailyBriefingPayload(args: Record<string, unknown>) {
-  requireSchemaVersion(args)
-  const briefing = requireRecord(args.briefing, 'briefing')
-  const decisionIds = Array.isArray(briefing.decision_ids) ? briefing.decision_ids : []
-  const taskIds = Array.isArray(briefing.task_ids) ? briefing.task_ids : []
-  if (decisionIds.length > 0 || taskIds.length > 0) {
-    throw new ToolInputError('decision_ids and task_ids are not supported in schema version 1')
-  }
-
-  const evidence = requireArray(args.evidence, 'evidence').map((value, index) => {
-    const item = requireRecord(value, `evidence[${index}]`)
-    const summary = requireString(item.fact_summary, `evidence[${index}].fact_summary`)
-    return {
-      evidence_key: requireString(item.local_key, `evidence[${index}].local_key`),
-      title: requireString(item.source_title, `evidence[${index}].source_title`),
-      source_name: optionalString(item.source_name),
-      source_url: requireString(item.source_url, `evidence[${index}].source_url`),
-      published_at: optionalString(item.published_at),
-      accessed_at: requireString(item.checked_at, `evidence[${index}].checked_at`),
-      summary,
-      facts: Array.isArray(item.facts) ? item.facts : [summary],
-    }
-  })
-
-  const scopes = requireArray(args.scopes, 'scopes').map((value, index) => {
-    const item = requireRecord(value, `scopes[${index}]`)
-    const subject = requireRecord(item.subject, `scopes[${index}].subject`)
-    return {
-      scope_key: requireString(item.local_key, `scopes[${index}].local_key`),
-      subject_kind: requireString(subject.kind, `scopes[${index}].subject.kind`),
-      subject_ref: optionalString(subject.ref),
-      window_from: requireString(item.window_from, `scopes[${index}].window_from`),
-      window_to: requireString(item.window_to, `scopes[${index}].window_to`),
-      coverage: requireString(item.coverage, `scopes[${index}].coverage`),
-      reason: optionalString(item.reason),
-      checked_at: requireString(item.checked_at, `scopes[${index}].checked_at`),
-      evidence_keys: requireArray(item.evidence_keys, `scopes[${index}].evidence_keys`),
-      checked_sources: requireArray(item.checked_sources, `scopes[${index}].checked_sources`),
-    }
-  })
-
-  return {
-    status: requireString(briefing.status, 'briefing.status'),
-    headline: requireString(briefing.headline, 'briefing.headline'),
-    changes: normalizeBriefingItems(briefing.changes, 'briefing.changes'),
-    uncertainties: normalizeBriefingItems(briefing.uncertainties, 'briefing.uncertainties'),
-    evidence,
-    scopes,
-    ...(optionalString(args.supersedes_briefing_id)
-      ? { supersedes_id: requireUuid(args.supersedes_briefing_id, 'supersedes_briefing_id') }
-      : {}),
-  }
-}
-
 function normalizeLifecycleSubject(value: unknown, field: string) {
   const subject = requireRecord(value, field)
   const kind = requireString(subject.kind, `${field}.kind`)
@@ -417,31 +350,13 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
-  async save_daily_briefing(supabase, args) {
-    const data = await rpc(supabase, 'app_save_daily_briefing', {
-      input_context_id: requireUuid(args.context_id, 'context_id'),
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_payload: normalizeDailyBriefingPayload(args),
+  async list_review_activities(supabase, args) {
+    const data = await rpc(supabase, 'app_list_narrative_activities', {
+      input_kind: 'review',
+      input_owner_user_id: null,
+      input_limit: Math.min(Math.max(Number(args.limit) || 20, 1), 50),
+      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
     })
-    return { ok: true, data }
-  },
-  async list_daily_briefings(supabase, args) {
-    const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50)
-    const page = cursorPage(args)
-    const data = page.enabled
-      ? await rpc(supabase, 'app_list_daily_briefing_page', {
-          input_owner_user_id: null, input_limit: limit, input_cursor: page.value,
-        })
-      : await rpc(supabase, 'app_list_daily_briefings', {
-          input_limit: limit, input_before: optionalString(args.before) ?? null,
-        })
-    return { ok: true, data }
-  },
-  async get_daily_briefing(supabase, args) {
-    const data = await rpc(supabase, 'app_get_daily_briefing', {
-      input_briefing_id: requireUuid(args.briefing_id, 'briefing_id'),
-    })
-    if (data == null) throw new Error('Briefing was not found or is not accessible')
     return { ok: true, data }
   },
   async record_investment_decision(supabase, args) {

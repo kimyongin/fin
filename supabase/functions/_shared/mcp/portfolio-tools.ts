@@ -562,53 +562,18 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: contextAnnotations,
   },
   {
-    name: 'save_daily_briefing',
-    title: 'Save daily portfolio briefing',
-    description: 'Save a user-requested daily briefing with its immutable context snapshot, sourced evidence, checked research scopes, and uncertainties. This never changes investment principles, accepts a decision for the user, records a trade, or places an order.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        schema_version: { const: 1 },
-        context_id: { type: 'string', format: 'uuid' },
-        idempotency_key: { type: 'string', format: 'uuid' },
-        evidence: { type: 'array', maxItems: 50, items: evidenceSchema },
-        scopes: { type: 'array', minItems: 1, maxItems: 200, items: scopeSchema },
-        briefing: briefingSchema,
-        supersedes_briefing_id: { type: 'string', format: 'uuid' },
-      },
-      required: ['schema_version', 'context_id', 'idempotency_key', 'evidence', 'scopes', 'briefing'],
-      additionalProperties: false,
-    },
-    outputSchema: dailyBriefingOutputSchema,
-    annotations: idempotentWriteAnnotations,
-  },
-  {
-    name: 'list_daily_briefings',
-    title: 'Daily portfolio briefings',
-    description: 'List saved daily briefing summaries, newest first. For stable pagination, pass cursor:null on the first call and then pass next_cursor unchanged; omit cursor only for legacy before-based behavior. Do not send cursor and before together.',
+    name: 'list_review_activities',
+    title: 'Saved portfolio review activities',
+    description: 'Read saved review activities newest first, with stable cursor pagination. These are user-requested saved analyses, not a live news search. Current holdings and prices must be checked separately. Review status and checked coverage are in context; missing or failed research is not no_action. This read never records a review or a brokerage verification.',
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
-        before: { type: 'string', format: 'date-time' },
-        cursor: analyzedAtCursorSchema,
+        cursor: { type: ['object', 'null'], properties: { occurred_at: { type: 'string', format: 'date-time' }, id: { type: 'integer', minimum: 1 } }, required: ['occurred_at', 'id'], additionalProperties: false },
       },
       additionalProperties: false,
     },
-    outputSchema: legacyOrPageOutputSchema,
-    annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'get_daily_briefing',
-    title: 'Daily portfolio briefing detail',
-    description: 'Read one complete owner-only briefing with its saved context snapshot, evidence, checked sources, and research scopes.',
-    inputSchema: {
-      type: 'object',
-      properties: { briefing_id: { type: 'string', format: 'uuid' } },
-      required: ['briefing_id'],
-      additionalProperties: false,
-    },
-    outputSchema: dailyBriefingOutputSchema,
+    outputSchema: successEnvelopeSchema,
     annotations: readOnlyAnnotations,
   },
   {
@@ -833,7 +798,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'record_manual_activity',
     title: 'Record a completed activity',
-    description: 'Record one user-reported activity that already happened. Classify research, review, decision, or retrospective work with category; omit it for general work. Include factual source links and scope in context when relevant, distinguishing facts from conclusions. Use only after explicit save intent. Complete a known matching task instead of duplicating the same performance. This does not create a task or change financial data; choosing a category cannot claim a completed trade or reconciliation.',
+    description: 'Record one user-reported activity that already happened. Classify research, review, decision, or retrospective work with category; omit it for general work. For a requested portfolio review save category review, put checked facts in result, interpretation in conclusion, and status/coverage_status plus scope and factual source links in context; failed research is insufficient_data, not no_action. Use only after explicit save intent. Complete a known matching task instead of duplicating the same performance. This does not create a task or change financial data; choosing a category cannot claim a completed trade or reconciliation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1108,9 +1073,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
 
 export const dailyReviewToolNames = [
   'get_daily_context',
-  'save_daily_briefing',
-  'list_daily_briefings',
-  'get_daily_briefing',
+  'list_review_activities',
 ] as const
 
 export const workflowGuideToolNames = ['get_workflow_guide'] as const

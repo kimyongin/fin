@@ -135,23 +135,24 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
   daily_review: {
     topic: 'daily_review',
     guide_id: 'portfolio.daily-review',
-    purpose: 'Continue from the last review, research current external changes, explain what matters, and save the briefing only when requested.',
+    purpose: 'Continue from the last review, research current external changes, explain what matters, and save a review activity only when requested.',
     scenario_ids: ['W01', 'W08', 'S05', 'S06', 'S07', 'S08', 'S09'],
-    related_tools: ['get_daily_context', 'list_daily_briefings', 'get_daily_briefing', 'save_daily_briefing'],
+    related_tools: ['get_daily_context', 'list_review_activities', 'record_manual_activity'],
     source_paths: [
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/202609210001_daily_review_foundation.sql',
       'supabase/migrations/20260922185521_daily_context_current_principles.sql',
       'supabase/migrations/20260922190315_daily_context_private_holding_notes.sql',
+      'supabase/migrations/20260923045855_review_activity_read.sql',
     ],
     steps: [
       { id: 'prepare-context', title: 'Prepare one review context', instruction: 'Call get_daily_context once for this review. Use its owner-only snapshot instead of rebuilding it with separate portfolio, strategy, and activity calls. It includes current principles, private holding reasons, and open tasks; separate saved news and ToDo bundles are retired. Missing reasons or principles remain unknown.', tools: ['get_daily_context'] },
-      { id: 'inspect-history', title: 'Inspect prior review when useful', instruction: 'Use list_daily_briefings and get_daily_briefing when the current context indicates a prior review or unresolved coverage that needs detail.', tools: ['list_daily_briefings', 'get_daily_briefing'] },
+      { id: 'inspect-history', title: 'Inspect prior review when useful', instruction: 'Use list_review_activities when the current context indicates a prior review or unresolved coverage. Saved review activity is the source of truth; old briefing snapshots are retired.', tools: ['list_review_activities'] },
       { id: 'research-current', title: 'Research current external information', instruction: 'Use ChatGPT web research for current news and primary sources. Record checked, failed, and unverified coverage separately. Portfolio does not search the public web.', tools: [] },
       { id: 'explain-result', title: 'Explain decision-relevant changes', instruction: 'Separate sourced facts, interpretation, uncertainty, and suggested questions. Report no_action only after sufficient checking; incomplete research is insufficient_data or partial coverage.', tools: [] },
-      { id: 'save-if-requested', title: 'Save only when requested', instruction: 'Call save_daily_briefing only when the user requested storage. Save evidence and every checked scope, including failed or unverified coverage. Decisions and task state changes remain separate operations.', tools: ['save_daily_briefing'] },
-      { id: 'verify-save', title: 'Verify a saved review', instruction: 'After save success, read the saved briefing when confirmation is needed and distinguish save success from any later read failure.', tools: ['get_daily_briefing'] },
+      { id: 'save-if-requested', title: 'Save only when requested', instruction: 'Call record_manual_activity with category review only on explicit save intent. Use title for headline, result for checked facts and meaningful changes, conclusion for interpretation, note for uncertainty. Put status (no_action, attention, insufficient_data), coverage_status (complete, partial, failed), checked scope and up to 20 factual source links in context. Research failure is insufficient_data, never no_action. A review does not adopt a decision or change a task.', tools: ['record_manual_activity'] },
+      { id: 'verify-save', title: 'Verify a saved review', instruction: 'After save success, use list_review_activities to confirm the new activity when needed. Distinguish save success from a later read failure.', tools: ['list_review_activities'] },
     ],
     boundaries: [
       'A review request alone does not authorize saving, adopting a decision, recording a trade, or verifying a brokerage balance.',
@@ -160,7 +161,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'Research failure and no meaningful change are different outcomes.',
     ],
     recovery: [
-      'If the context expired before save, create a fresh context and explain that the analysis basis changed.',
+      'If the context became stale before saving, refresh the current facts and explain that the analysis basis changed.',
       'Retry a lost save response with the same idempotency key and identical input.',
       'If one research scope failed, preserve that scope as failed or unverified instead of omitting it.',
     ],

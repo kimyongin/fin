@@ -1,71 +1,20 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { fetchBriefingRelatedTasks, fetchDailyBriefing, fetchDailyBriefingPage, fetchDailyBriefings } from './data'
+import { fetchReviewActivities } from './data'
 
-describe('daily review data adapter', () => {
-  it('lists briefing summaries with a bounded cursor request', async () => {
-    const supabase = {
-      rpc: vi.fn(async () => ({ data: [{ id: 'briefing-1' }], error: null })),
-    }
-
-    const result = await fetchDailyBriefings(supabase, { limit: 12, before: '2026-09-21T00:00:00Z' })
-
-    expect(supabase.rpc).toHaveBeenCalledWith('app_list_daily_briefings', {
-      input_limit: 12,
-      input_before: '2026-09-21T00:00:00Z',
-    })
-    expect(result).toEqual([{ id: 'briefing-1' }])
-  })
-
-  it('loads one complete briefing aggregate', async () => {
-    const supabase = {
-      rpc: vi.fn(async () => ({ data: { id: 'briefing-1', evidence: [] }, error: null })),
-    }
-
-    await expect(fetchDailyBriefing(supabase, 'briefing-1')).resolves.toMatchObject({ id: 'briefing-1' })
-    expect(supabase.rpc).toHaveBeenCalledWith('app_get_daily_briefing', {
-      input_briefing_id: 'briefing-1',
+describe('saved review activity adapter', () => {
+  it('reads owner-aware review activities with a stable cursor', async () => {
+    const cursor = { occurred_at: '2026-09-21T00:00:00Z', id: 4 }
+    const supabase = { rpc: vi.fn(async () => ({ data: { items: [{ id: 3, title: '점검' }], next_cursor: cursor }, error: null })) }
+    await expect(fetchReviewActivities(supabase, { ownerUserId: 'owner-1', limit: 12, cursor }))
+      .resolves.toEqual({ items: [{ id: 3, title: '점검' }], nextCursor: cursor })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_list_narrative_activities', {
+      input_kind: 'review', input_owner_user_id: 'owner-1', input_limit: 12, input_cursor: cursor,
     })
   })
 
-  it('does not treat an inaccessible briefing as an empty result', async () => {
-    const supabase = { rpc: vi.fn(async () => ({ data: null, error: null })) }
-
-    await expect(fetchDailyBriefing(supabase, 'missing')).rejects.toThrow('접근할 수 없습니다')
-  })
-
-  it('uses the allowlisted owner DTO for a friend portfolio', async () => {
-    const supabase = { rpc: vi.fn(async () => ({ data: [], error: null })) }
-    await fetchDailyBriefings(supabase, { ownerUserId: 'owner-1' })
-    expect(supabase.rpc).toHaveBeenCalledWith('app_list_daily_briefings_for_owner', {
-      input_owner_user_id: 'owner-1', input_limit: 20, input_before: null,
-    })
-  })
-
-  it('uses the stable owner-aware briefing page', async () => {
-    const cursor = { analyzed_at: '2026-09-21T00:00:00Z', id: crypto.randomUUID() }
-    const supabase = { rpc: vi.fn(async () => ({ data: { items: [{ id: 'briefing-1' }], next_cursor: cursor }, error: null })) }
-    await expect(fetchDailyBriefingPage(supabase, { cursor, ownerUserId: 'owner-1' }))
-      .resolves.toEqual({ items: [{ id: 'briefing-1' }], nextCursor: cursor })
-    expect(supabase.rpc).toHaveBeenCalledWith('app_list_daily_briefing_page', {
-      input_cursor: cursor,
-      input_limit: 20,
-      input_owner_user_id: 'owner-1',
-    })
-  })
-
-  it('finds only tasks explicitly linked through a briefing decision', async () => {
-    const supabase = { rpc: vi.fn(async () => ({ data: { status: 'ok', items: [{ id: 'task-1', title: '실적 확인' }] }, error: null })) }
-
-    await expect(fetchBriefingRelatedTasks(supabase, 'briefing-1'))
-      .resolves.toEqual([{ id: 'task-1', title: '실적 확인' }])
-    expect(supabase.rpc).toHaveBeenCalledWith('app_list_briefing_related_tasks', {
-      input_briefing_id: 'briefing-1', input_owner_user_id: null, input_limit: 3,
-    })
-  })
-
-  it('does not report missing tasks when the shared relation is forbidden', async () => {
-    const supabase = { rpc: vi.fn(async () => ({ data: { status: 'forbidden', items: [] }, error: null })) }
-    await expect(fetchBriefingRelatedTasks(supabase, 'briefing-1', 'owner-1')).rejects.toThrow('공유 권한')
+  it('surfaces read failures instead of showing an empty review', async () => {
+    const supabase = { rpc: vi.fn(async () => ({ data: null, error: new Error('offline') })) }
+    await expect(fetchReviewActivities(supabase)).rejects.toThrow('offline')
   })
 })

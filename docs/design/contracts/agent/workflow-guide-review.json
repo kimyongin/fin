@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Retire parallel report storage and use retrospective activities",
+  "review_reason": "Saved reviews now use activity storage and grant-aware narrative reads; reviewed all nine guides after shared registry and handler change",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d97dfa1f",
-      "contract_digest": "2e7178ac2f77150d2b984e52afb2037b52d26f5d31676d7283572dd6a85d8eb4"
+      "contract_digest": "efb549fcc04f780a7cbf1629c41355ba9ee0b067513358d5f7f7bce3b9e0cebc"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "60f9cd26f7e7abcb78616d3038dfaadd30ac9f01bc9c70aa372144552366fc89"
+      "contract_digest": "b51bdddbd43863e65053c546ca59ea87ef383a3cc17efa45dadad5f07b4ae34f"
     },
     "daily_review": {
-      "revision": "fnv1a32:d0970e34",
-      "contract_digest": "c4d037298f8b5961d8fdc81650cb4f314a379c84337775c6df2898b3d3a1919e"
+      "revision": "fnv1a32:1262475b",
+      "contract_digest": "89d0e4a8b160957e8432364512adf5e3279ef1cd319e25e8ae558a8f0e5ff88f"
     },
     "decision_followup": {
       "revision": "fnv1a32:ba39411c",
-      "contract_digest": "6120bab8c33000fbed9d9032291ab15f52eaef5b8710512bd46db9f68254c1a1"
+      "contract_digest": "8866a8590d76b7c611718cf42a89b4040a0a587cf106d5d55f16ec83e72e68df"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "ea091c881ffb26675adcf1a61ac95102c668f72bd1e22f9a9206edb9dc159cc7"
+      "contract_digest": "ca1206e248e217f57fca2db83663d513216f26f08234bc214a8e85565970fa6b"
     },
     "reconciliation": {
       "revision": "fnv1a32:7706100c",
-      "contract_digest": "1c1b3404dcb2685faaae35569c527f4ba10b8a39a18ecce08e47000c46c68baa"
+      "contract_digest": "d4cd14e4e1f83f860203f75a186f484615e61d0fc63b9b00a5c1d26713f171e5"
     },
     "todo": {
       "revision": "fnv1a32:8dbed512",
-      "contract_digest": "1df4ee3cb48571273c477a88d8c083d03e41f990ebdbd69189a4dc820931d574"
+      "contract_digest": "ddd0deaba09af3eb4cfb3eba64328a934446c690c159146c3801cc9fc4a572c4"
     },
     "activity_report": {
       "revision": "fnv1a32:491dcdaf",
-      "contract_digest": "daa0a18f27741619964c9dbd2a51046de3d02859592a08070915b468f14f6380"
+      "contract_digest": "fa11f8440aaedba438fc676baf291f468bf2c80fb1dcebb172cb4c9973c76e41"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "7fac322d9de966b16cbef9f7aad199d53e38d91cea6077ee984fb1175687c6af"
+      "contract_digest": "03b83762d2bab28d71a654cfe6824a41095ba319ae6a819934d7e49532148f99"
     }
   }
 }

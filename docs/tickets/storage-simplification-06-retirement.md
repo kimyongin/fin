@@ -42,6 +42,7 @@ GitHub: https://github.com/kimyongin/fin/issues/91
 - `portfolio_tasks.origin_event_id`와 이전 ToDo 매핑은 활동 ID를 참조한다. 수동 활동 삭제는 행 ID를 유지하는 tombstone으로 구현했고 검색·임베딩·중복요청 원문을 정리한다. 자동 금융/완료 활동은 이 삭제 계약에서 제외한다.
 - 격리 E2E에서 37개 DB 파일/580개 assertion, OAuth/토큰 MCP 계약, Chromium 34개 시나리오가 통과했다. 일반 로컬 DB/운영 DB에는 이번 증분 migration을 적용하지 않았다. GitHub 티켓 상태, 원격 배포와 실제 ChatGPT 웹·모바일 평가는 별도로 검증해야 한다.
 - 다음 우선순위는 위의 남은 수직 슬라이스를 따른다. 구 데이터 이관은 더 이상 필수가 아니다. 운영 DB 삭제·배포를 로컬 테스트 통과만으로 수행하지 않는다.
+- 점검 전환 진행(2026-09-23): `review` 활동을 기준으로 오늘 화면과 OAuth MCP 조회를 연결했다. `list_review_activities`는 명시적 `briefings` grant만 허용하고 비공개 메모·문맥·출처는 공유하지 않는다. 새 저장은 기존 `record_manual_activity(category=review)`를 사용하도록 가이드를 전환했다. 구 브리핑 도구는 새 OAuth 목록에서 빠졌으나 구 DB 저장소·문맥의 브리핑 소비자 제거와 물리 삭제는 아직 남았다. 격리 DB 37파일/516검증, MCP 계약, Chromium 34건, 단위 19파일/95검증, 빌드 통과. 운영·일반 로컬 DB에는 적용하지 않았다.
 
 ## 인수 조건
 

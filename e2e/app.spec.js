@@ -56,92 +56,43 @@ test('shows the latest saved daily review first on a mobile-sized screen', async
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
 
-  const context = await callRpc(page, 'app_create_daily_context', {
-    input_subject_tickers: null,
-    input_timezone: 'Asia/Seoul',
-  })
-  expect(context.status, JSON.stringify(context.body)).toBe(200)
-
-  const now = new Date()
   const headline = `E2E 오늘의 결론 ${Date.now()}`
-  const saved = await callRpc(page, 'app_save_daily_briefing', {
-    input_context_id: context.body.context_id,
+  const saved = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
     input_payload: {
-      status: 'attention',
-      headline,
-      changes: [{ summary: '확인이 필요한 변화입니다.' }],
-      uncertainties: [{ summary: '외부 조사는 테스트에서 생략했습니다.' }],
-      evidence: [],
-      scopes: [{
-        scope_key: 'portfolio-review',
-        subject_kind: 'portfolio',
-        window_from: new Date(now.getTime() - 86400000).toISOString(),
-        window_to: now.toISOString(),
-        coverage: 'unverified',
-        reason: 'E2E 화면 검증은 외부 조사를 수행하지 않습니다.',
-        checked_at: now.toISOString(),
-        evidence_keys: [],
-        checked_sources: [],
-      }],
+      title: headline, category: 'review', authored_via: 'app',
+      result: '확인이 필요한 변화입니다.',
+      note: '외부 조사는 테스트에서 생략했습니다.',
+      context: { status: 'insufficient_data', coverage_status: 'failed', scope: '전체 포트폴리오' },
     },
   })
   expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-
-  const relatedTaskTitle = `E2E 브리핑 후속 확인 ${Date.now()}`
-  const relatedDecision = await callRpc(page, 'app_record_investment_decision', {
-    input_idempotency_key: crypto.randomUUID(),
-    input_payload: {
-      status: 'proposed',
-      subject: { kind: 'portfolio' },
-      question: '이 브리핑의 변화를 다음 점검에서 어떻게 확인할까?',
-      options: ['다음 점검에서 확인'],
-      source_briefing_id: saved.body.id,
-      timezone: 'Asia/Seoul',
-      authored_via: 'app',
-      follow_up_tasks: [{ title: relatedTaskTitle, subject: { kind: 'portfolio' }, trigger_text: '다음 점검' }],
-    },
-  })
-  expect(relatedDecision.status, JSON.stringify(relatedDecision.body)).toBe(200)
 
   await page.reload()
   await expect(page).toHaveURL(/#today$/)
   await expect(page.getByText('오늘 저장한 점검')).toBeVisible()
   await expect(page.getByText(headline).first()).toBeVisible()
   await expect(page.getByText('자료 부족').first()).toBeVisible()
-  await page.getByRole('button', { name: relatedTaskTitle }).click()
-  await expect(page.getByRole('heading', { name: '할 일 상세' })).toBeVisible()
-  await page.getByRole('button', { name: '판단 1 보기' }).click()
-  await expect(page.getByRole('heading', { name: '판단 상세' })).toBeVisible()
-  await page.getByRole('button', { name: '닫기' }).click()
-  await openMenuTab(page, '오늘')
-  await page.getByRole('button', { name: '전체 브리핑 보기' }).click()
-  await expect(page.getByRole('heading', { name: '저장된 점검 상세' })).toBeVisible()
+  await page.getByRole('button', { name: '점검 상세 보기' }).click()
+  await expect(page.getByRole('heading', { name: '점검 상세' })).toBeVisible()
   await expect(page.getByText('확인이 필요한 변화입니다.').last()).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
 test('labels an old partial no-action review as a saved conclusion', async ({ page }) => {
   const oldReview = {
-    id: '10000000-0000-0000-0000-000000000001',
-    status: 'no_action',
-    coverage_status: 'partial',
-    headline: `당시 기준으로 유지하되 다음 확인 조건을 기다립니다 ${'긴 제목 '.repeat(18)}`,
-    analyzed_at: '2020-01-02T03:00:00Z',
-    timezone: 'Asia/Seoul',
-    changes: [1, 2, 3, 4].map((number) => ({ summary: `중요 변화 ${number}` })),
-    uncertainties: [],
-    scopes: [],
-    evidence: [],
+    id: 100,
+    title: `당시 기준으로 유지하되 다음 확인 조건을 기다립니다 ${'긴 제목 '.repeat(18)}`,
+    occurred_at: '2020-01-02T03:00:00Z',
+    result: '중요 변화 3',
+    conclusion: '다음 조건을 기다립니다.',
+    context: { status: 'no_action', coverage_status: 'partial' },
   }
   await signInAs(page, 'e2e-owner@example.com')
-  await page.route('**/rest/v1/rpc/app_list_daily_briefing_page', (route) => route.fulfill({
+  await page.route('**/rest/v1/rpc/app_list_narrative_activities', (route) => route.fulfill({
     contentType: 'application/json',
     status: 200,
     body: JSON.stringify({ items: [oldReview], next_cursor: null }),
-  }))
-  await page.route('**/rest/v1/rpc/app_get_daily_briefing', (route) => route.fulfill({
-    contentType: 'application/json', status: 200, body: JSON.stringify(oldReview),
   }))
   await page.goto('/#today')
 
@@ -149,8 +100,8 @@ test('labels an old partial no-action review as a saved conclusion', async ({ pa
   await expect(page.getByText('추가 조치 없음').first()).toBeVisible()
   await expect(page.getByText('일부 조사').first()).toBeVisible()
   await expect(page.getByText('오늘 분석이 아니라 마지막으로 저장된 당시 결론입니다.')).toBeVisible()
+  await page.getByRole('button', { name: '점검 상세 보기' }).click()
   await expect(page.getByText('중요 변화 3')).toBeVisible()
-  await expect(page.getByText('중요 변화 4')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 

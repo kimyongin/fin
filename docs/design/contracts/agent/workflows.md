@@ -7,9 +7,9 @@ revision 5 · observed-local 도구와 배포 후 검증이 필요한 흐름을 
 ## W01 — 일일 점검 (S05~S09, R01~R04)
 
 1. 요청이 분석만인지 저장 포함인지 구분한다. get_daily_context로 당시 기준·가격 품질·대상 범위·이전 실패 구간을 읽는다.
-2. ChatGPT의 검색 수단으로 조사한다. 최신 자료에 접근할 수 없으면 한계를 알리고 ‘변화 없음’으로 꾸미지 않는다. 과거 점검은 list_daily_briefings와 get_daily_briefing으로 확인한다. 별도 get_research_history 도구는 현재 제공하지 않는다.
+2. ChatGPT의 검색 수단으로 조사한다. 최신 자료에 접근할 수 없으면 한계를 알리고 ‘변화 없음’으로 꾸미지 않는다. 과거 점검은 list_review_activities로 확인한다. 별도 get_research_history 도구는 현재 제공하지 않는다.
 3. 사실/해석/불확실성과 종목별 조사 상태를 구분한다. 입력이 없는 성향·보유 이유를 만들어 넣지 않는다.
-4. 저장 요청이 있을 때만 save_daily_briefing. 판단·질문 변경은 브리핑 batch에 포함하지 않고 각각 지원되는 목적별 도구로 저장한다. no_action을 만들려고 미확인 범위를 제외하지 않는다.
+4. 저장 요청이 있을 때만 record_manual_activity(category=review). title에 제목, result에 확인한 사실, conclusion에 해석, context에 status·coverage_status·조사 범위·출처를 넣는다. 판단·질문 변경은 점검 기록에 포함하지 않고 각각 지원되는 목적별 도구로 저장한다. 조사 실패는 insufficient_data이지 no_action이 아니다.
 5. 한 줄 결론, 중요 변화 최대3개, 다음 할 일0~3개와 저장 성공/실패를 설명한다. 저장 기능이 없으면 대화 분석만 제공했다고 명시한다.
 
 ## W02 — 투자 기준·보유 이유 (S02~S04)
