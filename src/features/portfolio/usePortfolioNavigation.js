@@ -3,10 +3,10 @@ import { allTabs } from '../../constants/portfolio'
 
 const tabIds = new Set(allTabs.map((tab) => tab.id))
 
-function tabFromHash(fallback = 'today') {
+function tabFromHash(fallback = 'overview') {
   if (typeof window === 'undefined') return fallback
   const hash = window.location.hash.replace(/^#/, '').trim()
-  if (hash === 'news') return 'tasks'
+  if (hash === 'news' || hash === 'today') return 'tasks'
   if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'allocation' || hash === 'tags') return 'overview'
   return tabIds.has(hash) ? hash : fallback
 }
@@ -18,17 +18,16 @@ function assetViewFromHash() {
 }
 
 export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canSubmitFeedback = canEdit) {
-  const [activeTab, setActiveTab] = useState(() => tabFromHash(canEdit ? 'today' : 'overview'))
+  const [activeTab, setActiveTab] = useState(() => tabFromHash())
   const [assetView, setAssetView] = useState(() => assetViewFromHash())
 
   const tabs = useMemo(() => {
     if (canEdit) return allTabs
     const features = sharedFeatureAccess?.relationshipAccess ? sharedFeatureAccess.features : {}
     const allowedByTab = {
-      today: features.briefings,
       overview: features.assets,
       decisions: features.decisions,
-      tasks: features.tasks,
+      tasks: features.tasks || features.activity || features.briefings,
       strategy: features.strategy,
       activity: features.activity,
       feedback: canSubmitFeedback,
@@ -41,7 +40,8 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#/, '').trim()
-      const nextTab = tabFromHash(canEdit ? 'today' : 'overview')
+      const nextTab = tabFromHash()
+      if (hash === 'today' || hash === 'news') window.history.replaceState(null, '', '#tasks')
       if (hash === 'accounts' || hash === 'instruments' || hash === 'tags' || hash === 'sheet' || hash === 'overview') {
         setAssetView('holdings')
         if (hash !== 'overview') window.history.replaceState(null, '', '#overview')

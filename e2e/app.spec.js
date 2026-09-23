@@ -66,7 +66,7 @@ test('loads the owner portfolio with a virtual Supabase user session', async ({ 
 test('submits product feedback and lets an allowlisted operator return a result', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
-  await page.goto('/#today')
+  await page.goto('/#overview')
   await openMenuTab(page, '피드백')
 
   const body = `E2E 피드백 ${Date.now()} 모바일에서 필터를 더 쉽게 찾고 싶습니다.`
@@ -89,7 +89,7 @@ test('submits product feedback and lets an allowlisted operator return a result'
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('shows the latest saved daily review first on a mobile-sized screen', async ({ page }) => {
+test('finds a saved review by activity kind on a mobile-sized screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
@@ -107,21 +107,23 @@ test('shows the latest saved daily review first on a mobile-sized screen', async
   expect(saved.status, JSON.stringify(saved.body)).toBe(200)
 
   await page.reload()
-  await expect(page).toHaveURL(/#today$/)
-  await expect(page.getByText('오늘 저장한 점검')).toBeVisible()
+  await expect(page).toHaveURL(/#overview$/)
+  await openMenuTab(page, '활동')
+  await page.getByText('상세 필터').click()
+  await page.getByLabel('활동 종류').selectOption('review')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
   await expect(page.getByText(headline).first()).toBeVisible()
-  await expect(page.getByText('자료 부족').first()).toBeVisible()
-  await page.getByRole('button', { name: '점검 상세 보기' }).click()
-  await expect(page.getByRole('heading', { name: '점검 상세' })).toBeVisible()
+  await page.getByRole('button', { name: headline }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
   await expect(page.getByText('확인이 필요한 변화입니다.').last()).toBeVisible()
-  await expect(page.getByRole('dialog', { name: '점검 상세' }).getByRole('link', { name: '공식 자료' })).toHaveAttribute('href', 'https://example.com/review')
+  await expect(page.getByRole('dialog').getByRole('link', { name: '공식 자료' })).toHaveAttribute('href', 'https://example.com/review')
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
 })
 
-test('labels an old partial no-action review as a saved conclusion', async ({ page }) => {
+test('finds an old review through the activity type filter', async ({ page }) => {
   const oldReview = {
     id: 100,
     title: `당시 기준으로 유지하되 다음 확인 조건을 기다립니다 ${'긴 제목 '.repeat(18)}`,
@@ -131,19 +133,18 @@ test('labels an old partial no-action review as a saved conclusion', async ({ pa
     context: { status: 'no_action', coverage_status: 'partial' },
   }
   await signInAs(page, 'e2e-owner@example.com')
-  await page.route('**/rest/v1/rpc/app_list_narrative_activities', (route) => route.fulfill({
+  await page.route('**/functions/v1/activity-search', (route) => route.fulfill({
     contentType: 'application/json',
     status: 200,
-    body: JSON.stringify({ items: [oldReview], next_cursor: null }),
+    body: JSON.stringify({ items: [{ ...oldReview, record_type: 'activity', record_state: 'done', record_id: '100', activity_id: 100 }], next_cursor: null }),
   }))
   await page.goto('/#today')
-
-  await expect(page.getByText('마지막 저장 점검')).toBeVisible()
-  await expect(page.getByText('추가 조치 없음').first()).toBeVisible()
-  await expect(page.getByText('일부 조사').first()).toBeVisible()
-  await expect(page.getByText('오늘 분석이 아니라 마지막으로 저장된 당시 결론입니다.')).toBeVisible()
-  await page.getByRole('button', { name: '점검 상세 보기' }).click()
-  await expect(page.getByText('중요 변화 3')).toBeVisible()
+  await expect(page).toHaveURL(/#tasks$/)
+  await page.getByText('상세 필터').click()
+  await page.getByLabel('활동 종류').selectOption('review')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.getByText(oldReview.title)).toBeVisible()
+  await expect(page.getByText(oldReview.conclusion)).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 

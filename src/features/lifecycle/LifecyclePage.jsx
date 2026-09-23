@@ -8,6 +8,7 @@ import { activityNoon, businessDate } from '../../lib/businessDate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import GeneralActionModal from './GeneralActionModal'
 import GeneralTaskDetail from './GeneralTaskDetail'
+import ReviewHistoryPage from '../review/ReviewHistoryPage'
 import {
   fetchActivity,
   fetchActivityTags,
@@ -17,7 +18,7 @@ import {
   transitionGeneralTask,
 } from './data'
 
-function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled, ownerUserId = null, supabase }) {
+function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, initialSelection = null, mode, onSelectionHandled, ownerUserId = null, supabase }) {
   const [error, setError] = useState('')
   const [detail, setDetail] = useState(null)
   const [detailHistory, setDetailHistory] = useState([])
@@ -37,6 +38,7 @@ function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled,
   const activeActivityId = useRef(null)
   const createAttempt = useRef(null)
   const createInFlight = useRef(false)
+
 
   function updateActivityTags(tags) {
     tagsRequestGate.current.invalidate()
@@ -207,9 +209,10 @@ function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled,
     <section className="grid gap-5">
       <div className="grid gap-5" id="lifecycle-panel">
         {error && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}</p>}
-        {activityTagsError && <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert"><span>{activityTagsError}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={reloadActivityTags} type="button">다시 시도</button></div>}
-        <ActionTimeline
+        {canViewTimeline && activityTagsError && <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert"><span>{activityTagsError}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={reloadActivityTags} type="button">다시 시도</button></div>}
+        {canViewTimeline ? <ActionTimeline
           availableTags={activityTags}
+          canViewReviews={canViewReviews}
           key={ownerUserId ?? 'self'}
           onAdd={() => setGeneralEditor('task')}
           onCompleteGeneralTask={completeGeneralTask}
@@ -218,7 +221,7 @@ function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled,
           ownerUserId={ownerUserId}
           refreshKey={actionRefreshKey}
           supabase={supabase}
-        />
+        /> : canViewReviews ? <ReviewHistoryPage ownerUserId={ownerUserId} supabase={supabase} /> : null}
       </div>
       {detail && <GeneralTaskDetail entry={detail} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} />}
       {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onOpenTask={(id) => { dismissActivityDetail(); openDetail('tasks', id) }} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} onTagsChanged={updateActivityTags} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}

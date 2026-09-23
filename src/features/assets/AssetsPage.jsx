@@ -7,6 +7,7 @@ import HoldingReasonModal from './HoldingReasonModal'
 import TradeEntryModal from './TradeEntryModal'
 import HoldingIntegrityModal from './HoldingIntegrityModal'
 import { fetchPrivateHoldingNotes, savePrivateHoldingNote } from './privateHoldingNotesData'
+import PortfolioIntegritySummary from '../review/PortfolioIntegritySummary'
 
 const control = 'min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 text-sm'
 
@@ -159,6 +160,7 @@ export default function AssetsPage({
             {row.instrument_type === 'market' && <span className="col-span-2 text-xs text-[var(--muted-ink)] sm:hidden">수량 {formatNumber(row.quantity)} · 평균가 {row.avgCost == null ? '-' : formatUnitPrice(row.avgCost, row.currency)}</span>}
           </button>)}</div>}
       </section>
+      {canEdit && <PortfolioIntegritySummary supabase={supabase} />}
     {sheetOpen && canEdit && <SpreadsheetEditor accounts={sheetAccounts} canSave={canEdit} csvCopied={csvCopied} holdings={holdings} instrumentTags={instrumentTags} instruments={sheetInstruments} onClose={() => setSheetOpen(false)} onCopyCsv={onCopyCsv} onDirtyChange={onSheetDirtyChange} onSave={onSpreadsheetSave} saving={spreadsheetSaving} tags={tags} />}
     {selectedInstrument && <InstrumentDetail accounts={accounts} canEdit={canEdit} instrument={selectedInstrument} linkedHoldings={linkedHoldings} notes={privateNotes} onClose={() => setSelectedTicker(null)} onEditHolding={onEditHolding} onEditInstrument={onEditInstrument} onCreateHolding={onCreateHolding} onEditReason={(instrument, items) => setReasonEditor({ instrument, accounts: linkedAccounts(items) })} onRecordTrade={(instrument, items) => setTradeEditor({ instrument, accounts: linkedAccounts(items) })} onReconcileHolding={(instrument, holding) => setIntegrityEditor({ instrument, holding })} />}
     {reasonError && <p className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{reasonError}</p>}

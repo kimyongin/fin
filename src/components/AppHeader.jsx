@@ -42,7 +42,6 @@ function AppHeader({
 
   const availableIds = new Set(tabs.map((tab) => tab.id))
   const primaryTabs = [
-    availableIds.has('today') && { id: 'today', label: '오늘' },
     availableIds.has('overview') && { id: 'overview', label: '자산' },
     (availableIds.has('tasks') || availableIds.has('decisions') || availableIds.has('activity')) && {
       id: availableIds.has('tasks') ? 'tasks' : availableIds.has('decisions') ? 'decisions' : 'activity',

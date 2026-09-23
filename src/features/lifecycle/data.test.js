@@ -89,7 +89,7 @@ describe('decision and task data adapters', () => {
     expect(supabase.rpc.mock.calls[1][1]).toMatchObject({ input_activity_id: 5, input_expected_version: 2, input_tag_ids: [tagId] })
     expect(supabase.rpc.mock.calls[2]).toEqual(['app_search_activities', {
       input_owner_user_id: null, input_query: '보유 유지', input_from: null, input_to: null,
-      input_record_state: 'done', input_has_conclusion: true, input_instrument_id: null, input_account_id: null,
+      input_record_state: 'done', input_record_kind: 'all', input_has_conclusion: true, input_instrument_id: null, input_account_id: null,
       input_tag_ids: [tagId], input_tag_match: 'all', input_limit: 30, input_cursor: null, input_timezone: 'Asia/Seoul',
     }])
   })

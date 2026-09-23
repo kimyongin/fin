@@ -1,5 +1,4 @@
 export const allTabs = [
-  { id: 'today', label: '오늘' },
   { id: 'overview', label: '자산' },
   { id: 'decisions', label: '판단 모아보기' },
   { id: 'tasks', label: '활동' },

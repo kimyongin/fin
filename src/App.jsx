@@ -3,7 +3,6 @@ import AppHeader from './components/AppHeader'
 import AssetsPageView from './features/assets/AssetsPage'
 import GuidePageView from './features/guide/GuidePage'
 import FeedbackPageView from './features/feedback/FeedbackPage'
-import DailyReviewPageView from './features/review/DailyReviewPage'
 import LifecyclePageView from './features/lifecycle/LifecyclePage'
 import {
   CenteredMessage as CenteredMessageView,
@@ -451,7 +450,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? '활동' : activeTab === 'strategy' ? '원칙' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
+  const pageTitle = activeTab === 'overview' ? '자산' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? '활동' : activeTab === 'strategy' ? '원칙' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
     <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6">
@@ -477,20 +476,10 @@ function App() {
           </div>
         )}
 
-        {activeTab === 'today' && (
-          <DailyReviewPageView
-            onNavigate={setActiveTab}
-            onOpenTask={(id) => {
-              setLifecycleSelection({ id, mode: 'tasks' })
-              setActiveTab('tasks')
-            }}
-            ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
-            supabase={supabase}
-          />
-        )}
-
         {(['decisions', 'tasks', 'activity'].includes(activeTab)) && (
           <LifecyclePageView
+            canViewReviews={canEdit || Boolean(sharedFeatureAccess?.features?.briefings)}
+            canViewTimeline={canEdit || Boolean(sharedFeatureAccess?.features?.tasks || sharedFeatureAccess?.features?.activity)}
             initialSelection={lifecycleSelection}
             mode={activeTab}
             onModeChange={setActiveTab}

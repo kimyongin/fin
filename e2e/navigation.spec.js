@@ -55,8 +55,12 @@ test('guides a new user from empty assets through OAuth setup and first review',
   await signInAs(page, 'e2e-outsider@example.com')
   await page.goto('/#today')
 
-  await expect(page.getByText('아직 저장된 점검이 없습니다.')).toBeVisible()
-  await page.getByRole('button', { name: '연결 가이드 보기' }).click()
+  await expect(page).toHaveURL(/#tasks$/)
+  await page.getByText('상세 필터').click()
+  await page.getByLabel('활동 종류').selectOption('review')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.getByText('조건에 맞는 활동이 없습니다.')).toBeVisible()
+  await openMenuTab(page, '가이드')
   await expect(page).toHaveURL(/#guide$/)
   await expect(page.getByText('/functions/v1/portfolio-mcp-oauth')).toBeVisible()
   await page.getByRole('button', { name: 'OAuth MCP 주소 복사' }).click()
@@ -73,12 +77,11 @@ test('guides a new user from empty assets through OAuth setup and first review',
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('keeps the four primary page controls readable across viewport widths', async ({ page }) => {
+test('keeps the three primary page controls readable across viewport widths', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     for (const [hash, title] of [
-      ['today', '오늘'],
       ['overview', '자산'],
       ['tasks', '활동'],
       ['strategy', '원칙'],
@@ -188,15 +191,14 @@ test('shows incomplete valuation explicitly and suppresses allocation amounts', 
   await expect(page.getByRole('heading', { name: '리밸런싱 제안' })).toHaveCount(0)
 })
 
-test('keeps four primary destinations usable without horizontal overflow', async ({ page }) => {
+test('keeps three primary destinations usable without horizontal overflow', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
 
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     const primary = page.locator('nav[aria-label="주요 메뉴"]:visible')
-    await expect(primary.getByRole('button')).toHaveCount(4)
-    await expect(primary.getByRole('button', { name: '오늘', exact: true })).toBeVisible()
+    await expect(primary.getByRole('button')).toHaveCount(3)
     await expect(primary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '활동', exact: true })).toBeVisible()
     await expect(primary.getByRole('button', { name: '원칙', exact: true })).toBeVisible()
@@ -262,7 +264,6 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
   await expect(accountEditor).toHaveCount(0)
 
   const destinations = [
-    ['today', '오늘'],
     ['overview', '자산'],
     ['decisions', '활동'],
     ['tasks', '활동'],
@@ -280,6 +281,9 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     }
   }
+  await page.goto('/#today')
+  await expect(page).toHaveURL(/#tasks$/)
+  await expect(page.getByRole('heading', { level: 1, name: '활동' })).toBeVisible()
 })
 
 test('keeps legacy asset links pointed at their new purpose', async ({ page }) => {

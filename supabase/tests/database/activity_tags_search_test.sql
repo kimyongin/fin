@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(23);
+select extensions.plan(26);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001911','authenticated','authenticated','activity-search-owner@example.com','',now(),now(),now()),
@@ -46,6 +46,9 @@ select extensions.is(public.app_set_general_task_tags(
 select extensions.is((select tag.name from activity_event_tags relation join activity_events event on event.id=relation.activity_event_id join activity_tags tag on tag.id=relation.tag_id where event.action_type='complete_general_task'),'확인','later task tag edits do not rewrite past completion tags');
 
 select extensions.is(jsonb_array_length(public.app_search_activities(null,'삼성전자',null,null,'done',null,null,null,null,'all',30,null,'Asia/Seoul')->'items'),1,'keyword search finds current activity text');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'삼성전자',input_record_kind=>'general')->'items'),1,'kind filter keeps matching general activity');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'삼성전자',input_record_kind=>'review')->'items'),0,'kind filter excludes other activity kinds before pagination');
+select extensions.throws_ok($$select public.app_search_activities(input_record_kind=>'unknown')$$,'P0001','Invalid activity record kind','unknown kinds are rejected');
 select extensions.is((public.app_search_activities(null,'보유 유지',null,null,'done',true,null,null,null,'all',30,null,'Asia/Seoul')#>>'{items,0,title}'),'삼성전자 실적 확인','conclusion search and filter find the activity');
 select extensions.is(jsonb_array_length(public.app_search_activities(null,null,null,null,'done',null,null,null,array[(select id from activity_tags where name='실적')],'all',30,null,'Asia/Seoul')->'items'),1,'tag filter finds the tagged activity');
 select extensions.is(jsonb_array_length(public.app_search_activities(null,'시세',null,null,'todo',null,null,null,null,'all',30,null,'Asia/Seoul')->'items'),0,'completed recurring occurrence is not still a todo today');
