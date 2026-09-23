@@ -9,17 +9,17 @@ ChatGPT가 사용자의 요청을 적절한 질문·조회·초안·저장으로
 | topic | 사용자 요청 / 안내 내용 | 현재 사용할 도구 / 시나리오 |
 | --- | --- | --- |
 | policy | 내 투자 기준을 질문하면서 정리해줘. 기존 답을 활용하고 목표·기간·유동성·위험·매매 성향·선호/금지 원칙을 필요한 만큼 묻고 초안을 확인한다. | list_principles, save_principle / W02, S02~S04 |
-| holding_thesis | 이 종목을 왜 보유하는지 정리해줘. 종목 공통 이유와 계좌별 예외, 재검토 조건을 구분한다. | find_holdings, get_holding_thesis, save_holding_thesis, get_task, link_task_to_holding_thesis / W02 |
+| holding_thesis | 이 종목을 왜 보유하는지 정리해줘. 종목 공통 이유와 계좌별 예외, 재검토 조건을 구분한다. | find_holdings, list_private_holding_notes, save_private_holding_note, save_general_task / W02 |
 | daily_review | 오늘 점검해줘 / 점검하고 저장해줘. 이전 점검·미확인 범위부터 조사하고 사실·해석·불확실성을 구분한다. | get_daily_context, list_review_activities, record_manual_activity / W01 |
 | decision_followup | 유지하기로 한 이유와 다음 실적 확인을 남겨줘. 모델 제안/사용자 채택을 판단 활동에 구분하고 선택적 후속 일반 할 일의 부분 성공을 설명한다. | list_decision_activities, record_manual_activity, get_activity, update_activity, save_general_task, list_general_tasks / W03~W04 |
-| trade_entry | 실제로 산/판 내역을 기록해줘. 필요한 계좌·종목·수량·가격·날짜를 확인하고 preview→기록→선택적 계획 연결을 안내한다. | find_holdings, preview_trade_entry, log_completed_trade, list_transactions, link_trade_to_task / W05 |
+| trade_entry | 실제로 산/판 내역을 기록해줘. 필요한 계좌·종목·수량·가격·날짜를 확인하고 preview→기록을 안내한다. 미래 매매 의향은 요청 시 일반 할 일로 남긴다. | find_holdings, preview_trade_entry, log_completed_trade, list_transactions, save_general_task / W05 |
 | reconciliation | 현재 잔고 맞추기 / 잘못된 기록의 현재값 보정 / 잔고 확인 표시. 의도에 따라 서로 다른 도구를 선택한다. | get_holding_integrity, get_portfolio_integrity, preview_holding_reconciliation, reconcile_holding, verify_holdings / W06 |
 
 공유 설정은 앱으로 안내한다(W07). 실패 복구(W08)는 각 가이드의 해당 단계에 포함한다. 단순 조회용 가이드·범용 CRUD 가이드·독립 복구 topic은 추가하지 않는다. 이 표는 범위이며 실제 단계별 필수/선택 의존 도구 목록은 구현에서 명시한다. 현재 없는 독립 save_task/get_research_history나 MCP 운용 전략 수정 기능을 안내하지 않는다.
 
 ## 호출 계약과 발견
 
-- OAuth endpoint에 읽기 전용 get_workflow_guide 하나를 추가했다. 입력은 검증된 여섯 topic 중 하나다.
+- OAuth endpoint에 읽기 전용 get_workflow_guide 하나를 추가했다. 입력은 검증된 아홉 topic 중 하나다.
 - 성공은 기존 envelope 안에 topic, guide_id, revision, purpose, steps, boundaries, recovery, related_tools를 반환한다. steps는 순서·조건·참조 도구·사용자에게 필요한 질문/결과를 포함한다. 개인정보·사용자 DB 조회·변경·활동 기록은 없다.
 - 알 수 없거나 미공개 topic은 기존 validation_error 계약을 따른다. 구현 누락 도구를 정상 안내로 반환하지 않으며 관련 검증이 빌드/배포를 차단한다.
 - 설명과 server instructions에 복합 작업 시작 시 적절한 topic을 읽도록 짧게 안내한다. 관련 get/save 도구 설명에도 필요한 진입 힌트를 둔다. 단순 조회마다 추가 호출하거나 한 대화에서 같은 가이드를 반복 읽게 하지 않는다.

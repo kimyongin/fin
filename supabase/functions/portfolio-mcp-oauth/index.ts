@@ -145,39 +145,6 @@ function requirePositiveDecimalString(value: unknown, field: string) {
   return normalized
 }
 
-function normalizeTaskTransitionPayload(args: Record<string, unknown>) {
-  requireSchemaVersion(args)
-  const action = requireString(args.action, 'action')
-  if (!['wait', 'resolve', 'reopen', 'pause', 'resume', 'close'].includes(action)) {
-    throw new ToolInputError('action is invalid')
-  }
-  const evidence = requireArray(args.evidence, 'evidence').map((value, index) => {
-    const item = requireRecord(value, `evidence[${index}]`)
-    return {
-      title: requireString(item.title, `evidence[${index}].title`),
-      source_url: requireString(item.source_url, `evidence[${index}].source_url`),
-      summary: requireString(item.summary, `evidence[${index}].summary`),
-      checked_at: requireString(item.checked_at, `evidence[${index}].checked_at`),
-    }
-  })
-  const answer = optionalString(args.answer)
-  const reason = optionalString(args.reason)
-  if (action === 'resolve' && (!answer || evidence.length === 0)) {
-    throw new ToolInputError('resolving a task needs an answer and evidence')
-  }
-  if (action === 'reopen' && (!reason || evidence.length === 0)) {
-    throw new ToolInputError('reopening a task needs a reason and new evidence')
-  }
-  if (action === 'close' && !reason) throw new ToolInputError('closing a task needs a reason')
-  return {
-    action,
-    ...(answer ? { answer } : {}),
-    ...(reason ? { reason } : {}),
-    evidence,
-    authored_via: 'agent',
-  }
-}
-
 async function rpc(supabase: any, name: string, args: Record<string, unknown> = {}) {
   const { data, error } = await supabase.rpc(name, args)
   if (error) throw new PortfolioRpcError(error)
@@ -283,27 +250,6 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_limit: Math.min(Math.max(Number(args.limit) || 20, 1), 50),
       input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
     })
-    return { ok: true, data }
-  },
-  async list_tasks(supabase, args) {
-    const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 50)
-    const page = cursorPage(args)
-    const data = page.enabled
-      ? await rpc(supabase, 'app_list_portfolio_task_page', {
-          input_owner_user_id: null, input_filter: optionalString(args.filter) ?? 'active',
-          input_limit: limit, input_cursor: page.value,
-        })
-      : await rpc(supabase, 'app_list_portfolio_tasks', {
-          input_state: optionalString(args.state) ?? null,
-          input_limit: limit, input_before: optionalString(args.before) ?? null,
-        })
-    return { ok: true, data }
-  },
-  async get_task(supabase, args) {
-    const data = await rpc(supabase, 'app_get_portfolio_task', {
-      input_task_id: requireUuid(args.task_id, 'task_id'),
-    })
-    if (data == null) throw new Error('Task was not found or is not accessible')
     return { ok: true, data }
   },
   async list_general_tasks(supabase, args) {
@@ -473,55 +419,6 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_period_start: requireString(args.period_start, 'period_start'), input_period_end: requireString(args.period_end, 'period_end'),
       input_timezone: requireString(args.timezone, 'timezone'), input_limit: args.limit == null ? 200 : requirePositiveInteger(args.limit, 'limit'),
       input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
-    })
-    return { ok: true, data }
-  },
-  async transition_task(supabase, args) {
-    const data = await rpc(supabase, 'app_transition_portfolio_task', {
-      input_task_id: requireUuid(args.task_id, 'task_id'),
-      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_payload: normalizeTaskTransitionPayload(args),
-    })
-    return { ok: true, data }
-  },
-  async save_execution_task(supabase, args) {
-    requireSchemaVersion(args)
-    const taskId = args.task_id == null ? null : requireUuid(args.task_id, 'task_id')
-    const expectedVersion = args.expected_version == null ? null : requirePositiveInteger(args.expected_version, 'expected_version')
-    if ((taskId == null) !== (expectedVersion == null)) throw new ToolInputError('task_id and expected_version must both be set for an update')
-    const side = requireString(args.side, 'side')
-    if (!['buy', 'sell'].includes(side)) throw new ToolInputError('side is invalid')
-    const data = await rpc(supabase, 'app_save_execution_task', {
-      input_expected_version: expectedVersion,
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
-      input_payload: {
-        ...(taskId ? { task_id: taskId } : {}), title: requireString(args.title, 'title'),
-        account_id: requirePositiveInteger(args.account_id, 'account_id'), instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
-        side, target_quantity: requirePositiveDecimalString(args.target_quantity, 'target_quantity'), timezone: requireString(args.timezone, 'timezone'),
-        ...(optionalString(args.due_date) ? { due_date: optionalString(args.due_date) } : {}),
-        ...(optionalString(args.trigger_text) ? { trigger_text: optionalString(args.trigger_text) } : {}),
-        ...(optionalString(args.change_reason) ? { change_reason: optionalString(args.change_reason) } : {}), authored_via: 'agent',
-      },
-    })
-    return { ok: true, data }
-  },
-  async link_trade_to_task(supabase, args) {
-    requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_link_trade_to_task', {
-      input_trade_entry_id: requireUuid(args.trade_id, 'trade_id'), input_task_id: requireUuid(args.task_id, 'task_id'),
-      input_expected_task_version: requirePositiveInteger(args.expected_task_version, 'expected_task_version'),
-      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
-    })
-    return { ok: true, data }
-  },
-  async transition_execution_task(supabase, args) {
-    requireSchemaVersion(args)
-    const action = requireString(args.action, 'action')
-    if (!['pause','resume','cancel'].includes(action)) throw new ToolInputError('action is invalid')
-    const data = await rpc(supabase, 'app_transition_execution_task', {
-      input_task_id: requireUuid(args.task_id, 'task_id'), input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
-      input_action: action, input_reason: requireString(args.reason, 'reason'), input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
     })
     return { ok: true, data }
   },

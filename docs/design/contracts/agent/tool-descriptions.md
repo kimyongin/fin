@@ -2,7 +2,7 @@
 
 > 실행 가능한 description/inputSchema/outputSchema/annotations의 단일 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`다. 이 문서는 제품 의도와 과거 문구의 검토 카탈로그이며, 문구를 런타임 계약으로 복사하거나 현재 제공 기능으로 간주하지 않는다. 실제 제공 상태는 OAuth `tools/list`와 공통 정의의 자동 테스트에서 확인한다.
 
-revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
+revision 12 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
 
 ## 설명 작성 형식
 
@@ -26,14 +26,11 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_daily_context / local | 현재 보유·원칙·개인 보유 메모·열린 할 일·저장된 점검/판단 활동을 저장 없이 읽습니다. 분석 저장·잔고 확인은 기록하지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
 | list_review_activities / observed-local | 본인이 명시적으로 저장한 점검 활동을 최신순으로 읽습니다. 조회 자체는 기록하지 않으며 현재 가격·뉴스를 대신하지 않습니다. | W01,W08 |
 | list_decision_activities / local | 저장된 판단 활동을 최신순으로 읽습니다. 제안과 사용자의 채택을 구분하고 별도 후속 할 일은 일반 할 일에서 읽습니다. | W03,W08 |
-| list_tasks / observed-local | 본인의 조사·점검할 일을 상태별로 읽습니다. 주문이나 체결 목록이 아닙니다. | W04,W08 |
-| get_task / observed-local | 본인의 할 일 상세·이력·연결 판단 ID를 읽습니다. 조회로 완료·보류·종료하지 않습니다. | W04,W08 |
 | get_activity, update_activity / local | 소유자의 판단 활동을 상세 조회·정정합니다. 제안의 채택은 사용자가 고른 안과 이유를 활동 문맥에 남기며 주문·체결·원칙을 변경하지 않습니다. | W03 |
-| transition_task / observed-local | 현재 version을 읽고 조사 질문을 대기·해결·재개하거나 사용자의 요청으로 보류·재개·종료합니다. 해결은 답과 출처, 재개는 새 근거가 필요하며 매매 진행도를 변경하지 않습니다. | W04,W08 |
 | list_operating_rules / removed | 별도 운영 규칙 조회를 제거했다. `list_principles`에서 `kind=operation`, 해당 scope를 확인합니다. | W06 |
 | save_operating_rule / removed | 별도 운영 규칙 저장을 제거했다. 사용자가 승인한 규칙은 `save_principle`로 저장합니다. | W06 |
 | archive_operating_rule / removed | 별도 보관 상태를 제거했다. 해당 원칙에 `end=true`를 저장합니다. | W06 |
-| list_general_tasks / observed-local | 본인의 일반 할 일을 상태별로 읽습니다. 조사・실행 과제나 이미 수행한 이벤트 목록을 대신하지 않습니다. | A02,A04 |
+| list_general_tasks / observed-local | 본인의 미래 할 일을 상태별로 읽습니다. 이미 수행한 활동이나 실제 매매 내역을 대신하지 않습니다. | A02,A04 |
 | get_general_task / observed-local | 일반 할 일의 현재 상태와 보존된 이력을 읽습니다. 조회로 회차를 완료하거나 재개하지 않습니다. | A02,A04 |
 | save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 저장합니다. 활동에서 직접 이어진 할 일은 origin_activity_id로 선택 연결합니다. | A02,A04 |
 | transition_general_task / observed-local | 현재 version과 회차 날짜를 확인해 일반 할 일의 이번 완료・잘못된 완료 해제・반복 전체 종료를 처리합니다. 반복 종료는 수행하지 않은 회차의 완료 기록을 만들지 않으며, 같은 일을 manual activity로 중복 기록하지 않습니다. | A02,A04 |
@@ -60,9 +57,8 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드와 선택적 확인 메모를 기록합니다. 저장 결과와 최신 integrity 조회에서 메모·작성 경로를 다시 읽습니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
 | preview_trade_reversal / removed | 과거 취소 미리보기 도구와 DB RPC를 제거했다. | W06 |
 | reverse_trade_entry / removed | 과거 체결 취소 도구와 DB RPC를 제거했다. 오류는 증권사 현재값 확인 후 보정한다. | W06 |
-| save_execution_task / observed-local | 사용자가 명시적으로 기억해 달라는 시장형 수량 매수·매도 계획을 저장합니다. 계획만 기록하며 주문·체결·잔고를 만들지 않습니다. | W03,W05 |
-| link_trade_to_task / observed-local | 이미 기록한 체결을 계좌·종목·방향이 같은 실행 계획 하나에 연결해 진행도를 계산합니다. 체결이나 잔고는 변경하지 않습니다. | W05 |
-| transition_execution_task / observed-local | 사용자 요청으로 실행 계획만 보류·재개·취소합니다. 기존 체결과 잔고는 유지하며 계획 취소는 체결 취소가 아닙니다. | W03,W05 |
+| list_tasks, get_task, transition_task / removed | 조사 전용 상태를 새 OAuth 도구에서 종료했습니다. 미래 행동은 일반 할 일, 조사 결과는 활동으로 기록합니다. | W04,W08 |
+| save_execution_task, link_trade_to_task, transition_execution_task / removed | 수량 계획·체결 진행도 연결을 새 OAuth 도구에서 종료했습니다. 미래 매매 의향은 일반 할 일로 남기고 실제 체결은 별도로 기록합니다. | W03,W05 |
 
 기존 읽기를 합쳐 문맥을 구성할 수 있어도 새 서버 context/조사 범위와 동등하다고 주장하지 않는다. 쓰기 도구가 없으면 분석만 제공하고 앱에 저장했다고 말하지 않는다.
 

@@ -90,7 +90,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     boundaries: [
       'Do not store the full interview transcript or unnecessary sensitive information.',
       'Do not infer missing goals, risk tolerance, restrictions, or holding reasons from the portfolio or active strategy mode.',
-      'Saving a personal policy never changes allocation targets, operating mode, holdings, decisions, execution plans, or trades.',
+      'Saving a personal policy never changes allocation targets, operating mode, holdings, decisions, tasks, or trades.',
       'Save one approved idea per principle row; never duplicate model speculation as user policy.',
     ],
     recovery: [
@@ -190,7 +190,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     ],
     boundaries: [
       'Model advice remains proposed until the user explicitly adopts an option and reason.',
-      'A decision or execution plan never creates a brokerage order, completed trade, or holding change.',
+      'A decision or future task never creates a brokerage order, completed trade, or holding change.',
       'A saved judgment does not create a task automatically. A task and a judgment are independent writes, and partial success must be visible.',
     ],
     recovery: [
@@ -203,21 +203,20 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
   trade_entry: {
     topic: 'trade_entry',
     guide_id: 'portfolio.trade-entry',
-    purpose: 'Record a completed user-reported market trade with a previewed quantity and average-cost effect, then optionally link it to an existing plan.',
+    purpose: 'Record a completed user-reported market trade with a previewed quantity and average-cost effect. A future trade idea is an ordinary task, not an order or fill.',
     scenario_ids: ['W05', 'W08', 'S15', 'S16', 'S17'],
-    related_tools: ['find_holdings', 'preview_trade_entry', 'log_completed_trade', 'list_transactions', 'list_tasks', 'get_task', 'link_trade_to_task'],
+    related_tools: ['find_holdings', 'preview_trade_entry', 'log_completed_trade', 'list_transactions', 'save_general_task'],
     source_paths: [
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/202609210010_trade_entry_foundation.sql',
-      'supabase/migrations/202609210013_execution_tasks.sql',
     ],
     steps: [
       { id: 'confirm-completed', title: 'Confirm that the trade completed', instruction: 'Treat “what if I buy” as analysis or a plan. Continue only when the user reports an actual completed buy or sell.', tools: [] },
       { id: 'resolve-input', title: 'Resolve the trade fields', instruction: 'Identify account, instrument, side, quantity, unit price, and trade date. Use find_holdings and ask the user when multiple accounts or instruments match. If date is omitted, state the user-timezone date you will use.', tools: ['find_holdings'] },
       { id: 'preview-effect', title: 'Preview the local effect', instruction: 'Call preview_trade_entry and explain the before/after quantity and average cost. Surface an oversell or stale holding instead of guessing.', tools: ['preview_trade_entry'] },
       { id: 'record-trade', title: 'Record the confirmed trade', instruction: 'Within the user\'s explicit completed-trade request, call log_completed_trade with the fresh preview and an idempotency key. This records a local ledger entry only.', tools: ['log_completed_trade'] },
-      { id: 'optional-plan-link', title: 'Optionally link an existing plan', instruction: 'If the user wants plan progress updated, list/read the matching execution task and link the saved trade. The account, instrument, and side must match.', tools: ['list_tasks', 'get_task', 'link_trade_to_task'] },
+      { id: 'optional-follow-up', title: 'Optionally remember a future action', instruction: 'Only on request, save a future trade-related intention as a general task. It is not a quantity-progress ledger and never changes the completed trade.', tools: ['save_general_task'] },
       { id: 'verify-ledger', title: 'Verify the ledger entry', instruction: 'Use list_transactions with the account or instrument filter when a read-back is needed.', tools: ['list_transactions'] },
     ],
     boundaries: [
@@ -276,7 +275,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     guide_id: 'portfolio.action-tasks',
     purpose: 'Use one activity experience: tasks describe future intent, performed activities keep their current optional result and conclusion, and domain changes create protected automatic activities.',
     scenario_ids: ['A01', 'A02', 'A03', 'A04', 'A05'],
-    related_tools: ['list_general_tasks', 'get_general_task', 'get_activity', 'search_activities', 'list_activity_tags', 'save_general_task', 'transition_general_task', 'record_manual_activity', 'update_activity', 'delete_manual_activity', 'set_activity_tags', 'set_general_task_tags', 'list_tasks', 'get_task'],
+    related_tools: ['list_general_tasks', 'get_general_task', 'get_activity', 'search_activities', 'list_activity_tags', 'save_general_task', 'transition_general_task', 'record_manual_activity', 'update_activity', 'delete_manual_activity', 'set_activity_tags', 'set_general_task_tags'],
     source_paths: [
       'docs/design/tasks-and-events.md',
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
@@ -294,7 +293,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     ],
     steps: [
       { id: 'classify-intent', title: 'Classify intent versus performed fact', instruction: 'Do not write for analysis alone. A future ordinary follow-up is a general task. Work already performed is one activity with optional result and conclusion. A completed Portfolio mutation is already an automatic activity.', tools: [] },
-      { id: 'read-existing', title: 'Read existing tasks', instruction: 'Use list_general_tasks and get_general_task for ordinary follow-ups. Use list_tasks or get_task for authoritative research and execution tasks; never copy those into a general task.', tools: ['list_general_tasks', 'get_general_task', 'list_tasks', 'get_task'] },
+      { id: 'read-existing', title: 'Read existing tasks', instruction: 'Use list_general_tasks and get_general_task for future follow-ups. Research results and decisions are activities, not a second kind of task.', tools: ['list_general_tasks', 'get_general_task'] },
       { id: 'save-future-task', title: 'Save future intent', instruction: 'Call save_general_task for one user-meaningful future follow-up. When it directly follows a recorded activity, pass origin_activity_id. Use daily recurrence only for an explicitly recurring task.', tools: ['save_general_task'] },
       { id: 'complete-existing', title: 'Complete or end the matching task', instruction: 'Call transition_general_task with complete after the user reports performing a general task; the server creates one linked completion activity. Reopen corrects an erroneous checked occurrence. For a daily repeat the user wants to stop, use cancel with an explicit reason to end future appearances; it does not record an unperformed completion. Never create a second manual activity for the same work.', tools: ['transition_general_task'] },
       { id: 'record-unplanned-work', title: 'Record completed work', instruction: 'Call record_manual_activity for explicit user-reported work already done when there is no matching task to complete. Default to general; classify research, review, decision, or retrospective only when it describes that work. Preserve factual source URLs and scope in context when supplied, separate facts from the conclusion, and do not infer a trade, balance correction, or task completion from the category. Result and conclusion are optional.', tools: ['record_manual_activity'] },

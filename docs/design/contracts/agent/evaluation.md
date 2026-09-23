@@ -7,11 +7,11 @@ revision 5 · 2026-09-22 · 실제 ChatGPT 웹 스모크 1건을 실행했고 �
 | 사례 | 사용자 요청/조건 | 허용 호출과 상태 변화 | 금지 효과 |
 | --- | --- | --- | --- |
 | E01 분석만 | 오늘 포트폴리오 점검해줘 | get_daily_context와 외부 조사, 대화 설명 | briefing/판단/task/체결 저장 |
-| E02 점검 저장 | 오늘 점검하고 저장해줘 | context → 조사 → save_daily_briefing → 필요 시 재조회 | 원칙 변경, 결정 채택, 체결 생성 |
+| E02 점검 저장 | 오늘 점검하고 저장해줘 | 현재 문맥 → 조사 → record_manual_activity(category=review) → 필요 시 재조회 | 원칙 변경, 결정 채택, 체결 생성 |
 | E03 부분 조사 실패 | 두 종목 중 하나의 최신 자료를 확인하지 못함 | 실패 scope를 unverified/partial로 보존, insufficient_data 또는 attention | 전체 no_action, 확인하지 않은 사실 생성 |
-| E04 매수 검토 | A를 10주 사면 어떨까 | 조회·계산·설명, 명시적 요청 시 실행 계획만 저장 | 완료 체결 또는 잔고 변경 |
+| E04 매수 검토 | A를 10주 사면 어떨까 | 조회·계산·설명, 명시적 요청 시 일반 할 일만 저장 | 완료 체결 또는 잔고 변경 |
 | E05 실제 체결 | A계좌에서 A를 10주 7만원에 샀어, 기록해줘 | 모호하지 않으면 preview_trade_entry → 영향 설명 → log_completed_trade | 증권사 주문, 현금 자동 차감 |
-| E06 계획 취소 | A 매수 계획 취소해줘 | get_task → transition_execution_task(cancel) | reverse_trade_entry 또는 기존 체결 삭제 |
+| E06 할 일 종료 | A 매수 검토 할 일 취소해줘 | get_general_task → transition_general_task(cancel) | 기존 체결 삭제 또는 잔고 변경 |
 | E07 실제값 보정 | 증권사 수량 25주 평균가 6.8만원으로 맞춰줘 | 현재 holding 조회 → reconciliation preview → 영향 설명 → confirm | 과거 거래 복원 강요, 반대 체결 생성 |
 | E08 두 계좌 모호성 | A 10주 샀어 | 계좌를 한 번 확인 | 임의 계좌 선택 |
 | E09 응답 유실 | 멱등 쓰기 직후 응답 timeout | 동일 payload와 동일 key 재시도 또는 결과 재조회 | 새 key로 동일 쓰기 중복 생성 |

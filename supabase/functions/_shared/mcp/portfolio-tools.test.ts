@@ -120,43 +120,34 @@ describe('portfolio MCP tool definitions', () => {
     expect(portfolioToolDefinitions.map((definition) => definition.name)).not.toContain('record_investment_decision')
   })
 
-  it('keeps decision and task reads read-only', () => {
-    for (const name of ['list_decision_activities', 'list_tasks', 'get_task']) {
+  it('keeps decision and general task reads read-only', () => {
+    for (const name of ['list_decision_activities', 'list_general_tasks', 'get_general_task']) {
       expect(tool(name).annotations.readOnlyHint).toBe(true)
     }
   })
 
   it('offers opt-in stable cursor pages without removing legacy before inputs', () => {
-    for (const name of ['list_tasks', 'list_transactions']) {
-      const schema = tool(name).inputSchema as any
-      expect(schema.properties).toHaveProperty('before')
-      expect(schema.properties.cursor.type).toEqual(['object', 'null'])
-      expect((tool(name).outputSchema as any).oneOf).toHaveLength(2)
-    }
-    expect((tool('list_tasks').inputSchema as any).properties.filter.enum).toEqual(['active', 'paused', 'closed', 'all'])
+    const schema = tool('list_transactions').inputSchema as any
+    expect(schema.properties).toHaveProperty('before')
+    expect(schema.properties.cursor.type).toEqual(['object', 'null'])
+    expect((tool('list_transactions').outputSchema as any).oneOf).toHaveLength(2)
     expect((tool('list_transactions').inputSchema as any).properties).toHaveProperty('account_id')
     expect((tool('list_transactions').inputSchema as any).properties).toHaveProperty('instrument_id')
   })
 
-  it('publishes guarded task transitions while decision corrections use activity edits', () => {
-    const task = tool('transition_task')
+  it('publishes one general-task transition while decision corrections use activity edits', () => {
+    const task = tool('transition_general_task')
     expect(task.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
     expect(tool('update_activity').annotations.idempotentHint).toBe(true)
-    expect((task.inputSchema as any).properties.action.enum).toEqual([
-      'wait', 'resolve', 'reopen', 'pause', 'resume', 'close',
-    ])
+    expect((task.inputSchema as any).properties.action.enum).toEqual(['complete', 'reopen', 'cancel'])
     expect((task.inputSchema as any).properties).not.toHaveProperty('trade_id')
   })
 
-  it('keeps execution plans separate from completed fills', () => {
-    const save = tool('save_execution_task')
-    const link = tool('link_trade_to_task')
-    const transition = tool('transition_execution_task')
-    expect(save.annotations.idempotentHint).toBe(true)
-    expect((save.inputSchema as any).properties).not.toHaveProperty('unit_price')
-    expect((link.inputSchema as any).required).toContain('trade_id')
-    expect(link.description).toContain('never creates')
-    expect((transition.inputSchema as any).properties.action.enum).toEqual(['pause', 'resume', 'cancel'])
+  it('does not advertise parallel research or execution task tools', () => {
+    const names = portfolioToolDefinitions.map((definition) => definition.name)
+    for (const oldName of ['list_tasks', 'get_task', 'transition_task', 'save_execution_task', 'link_trade_to_task', 'transition_execution_task']) {
+      expect(names).not.toContain(oldName)
+    }
   })
 
   it('uses principles instead of a parallel personal-policy API', () => {

@@ -300,13 +300,6 @@ const dailyBriefingListOutputSchema = successEnvelope({
   },
 })
 
-const updatedAtCursorSchema = {
-  type: ['object', 'null'],
-  properties: { updated_at: timestampSchema, id: idSchema },
-  required: ['updated_at', 'id'],
-  additionalProperties: false,
-  description: 'Use null for the first cursor page, then pass next_cursor unchanged.',
-}
 const analyzedAtCursorSchema = {
   type: ['object', 'null'],
   properties: { analyzed_at: timestampSchema, id: idSchema },
@@ -376,18 +369,6 @@ const reconciliationOutputSchema = successEnvelope({
   required: ['reconciliation_id', 'holding_id', 'holding_state_version', 'before', 'after', 'verification_id'],
   additionalProperties: false,
 })
-
-const taskTransitionEvidenceSchema = {
-  type: 'object',
-  properties: {
-    title: { type: 'string', minLength: 1, maxLength: 500 },
-    source_url: { type: 'string', pattern: '^https?://' },
-    summary: { type: 'string', minLength: 1, maxLength: 4000 },
-    checked_at: { type: 'string', format: 'date-time' },
-  },
-  required: ['title', 'source_url', 'summary', 'checked_at'],
-  additionalProperties: false,
-}
 
 export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
@@ -559,37 +540,6 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
         cursor: { type: ['object', 'null'], properties: { occurred_at: { type: 'string', format: 'date-time' }, id: { type: 'integer', minimum: 1 } }, required: ['occurred_at', 'id'], additionalProperties: false },
       },
-      additionalProperties: false,
-    },
-    outputSchema: successEnvelopeSchema,
-    annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'list_tasks',
-    title: 'Portfolio tasks and execution plans',
-    description: 'List research/review tasks and quantity execution plans. A research task is a question; an execution plan is still not a brokerage order or proof of execution. For stable pagination, pass cursor:null and filter active, paused, closed, or all; then pass next_cursor unchanged. Omit cursor only for legacy research-state behavior.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        state: { type: 'string', enum: ['open', 'waiting', 'resolved', 'closed'] },
-        limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
-        before: { type: 'string', format: 'date-time' },
-        cursor: updatedAtCursorSchema,
-        filter: { type: 'string', enum: ['active', 'paused', 'closed', 'all'], default: 'active' },
-      },
-      additionalProperties: false,
-    },
-    outputSchema: legacyOrPageOutputSchema,
-    annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'get_task',
-    title: 'Portfolio task detail',
-    description: 'Read one owner-only portfolio task with its current state, history, and linked decision IDs. Reading does not complete, pause, or close the task.',
-    inputSchema: {
-      type: 'object',
-      properties: { task_id: { type: 'string', format: 'uuid' } },
-      required: ['task_id'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -801,59 +751,6 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
   },
   {
-    name: 'transition_task',
-    title: 'Update research task state',
-    description: 'Update one research follow-up after reading its current version. Resolving requires an answer and source evidence; reopening requires a reason and new evidence. Pause, resume, or close only on the user\'s explicit request. It never records a trade, order, execution progress, or holding change.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        schema_version: { const: 1 },
-        task_id: { type: 'string', format: 'uuid' },
-        expected_version: { type: 'integer', minimum: 1 },
-        idempotency_key: { type: 'string', format: 'uuid' },
-        action: { type: 'string', enum: ['wait', 'resolve', 'reopen', 'pause', 'resume', 'close'] },
-        answer: { type: 'string' },
-        reason: { type: 'string' },
-        evidence: { type: 'array', maxItems: 20, items: taskTransitionEvidenceSchema },
-      },
-      required: ['schema_version', 'task_id', 'expected_version', 'idempotency_key', 'action', 'evidence'],
-      additionalProperties: false,
-    },
-    outputSchema: successEnvelopeSchema,
-    annotations: idempotentWriteAnnotations,
-  },
-  {
-    name: 'save_execution_task',
-    title: 'Save a quantity execution plan',
-    description: 'Create or revise an explicit market buy/sell quantity plan after the user asks to remember it. This records a plan only: it never records a fill, changes a holding, or places a brokerage order.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        schema_version: { const: 1 }, task_id: { type: ['string', 'null'], format: 'uuid' },
-        expected_version: { type: ['integer', 'null'], minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
-        title: { type: 'string', minLength: 1, maxLength: 500 }, account_id: { type: 'integer', minimum: 1 }, instrument_id: { type: 'integer', minimum: 1 },
-        side: { type: 'string', enum: ['buy', 'sell'] }, target_quantity: { type: 'string', pattern: '^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,16})?$' },
-        due_date: { type: ['string', 'null'], format: 'date' }, trigger_text: { type: ['string', 'null'], maxLength: 1000 }, timezone: { type: 'string', minLength: 1 }, change_reason: { type: ['string', 'null'], maxLength: 1000 },
-      },
-      required: ['schema_version','task_id','expected_version','idempotency_key','title','account_id','instrument_id','side','target_quantity','timezone'], additionalProperties: false,
-    }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
-  },
-  {
-    name: 'link_trade_to_task',
-    title: 'Link a completed trade to an execution plan',
-    description: 'Link one already-recorded local fill to a matching account, instrument, and side plan so progress is calculated. This never creates, changes, reverses, or duplicates a trade and one fill can count toward at most one plan.',
-    inputSchema: { type: 'object', properties: {
-      schema_version: { const: 1 }, trade_id: { type: 'string', format: 'uuid' }, task_id: { type: 'string', format: 'uuid' }, expected_task_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
-    }, required: ['schema_version','trade_id','task_id','expected_task_version','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
-  },
-  {
-    name: 'transition_execution_task', title: 'Pause, resume, or cancel an execution plan',
-    description: 'Change only the control state of an execution plan after the user explicitly asks. Existing fills and holdings remain unchanged; cancelling a plan does not reverse any trade.',
-    inputSchema: { type: 'object', properties: {
-      schema_version: { const: 1 }, task_id: { type: 'string', format: 'uuid' }, expected_version: { type: 'integer', minimum: 1 }, action: { type: 'string', enum: ['pause','resume','cancel'] }, reason: { type: 'string', minLength: 1, maxLength: 1000 }, idempotency_key: { type: 'string', format: 'uuid' },
-    }, required: ['schema_version','task_id','expected_version','action','reason','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
-  },
-  {
     name: 'list_principles',
     title: 'List saved investment and operating principles',
     description: 'Read the owner-only principles that Portfolio remembers. The current view returns the latest row per stable principle ID; an optional local date returns the state as of that day. Ended principles are omitted by default. Read before advising from saved preferences or editing one; an empty list means nothing was saved, not permission to infer preferences.',
@@ -993,12 +890,6 @@ export const entityNoteToolNames = ['update_entity_note'] as const
 
 export const decisionTaskToolNames = [
   'list_decision_activities',
-  'list_tasks',
-  'get_task',
-  'transition_task',
-  'save_execution_task',
-  'link_trade_to_task',
-  'transition_execution_task',
 ] as const
 
 export const actionTaskToolNames = [
