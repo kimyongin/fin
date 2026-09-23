@@ -57,6 +57,8 @@ GitHub: https://github.com/kimyongin/fin/issues/91
 - 구 할 일 종류 종료(2026-09-23): `activity_events`에 기록된 수행 사실은 남기되, retired 조사/실행 task_id 연결을 끊고 해당 `portfolio_tasks` 행을 삭제한다. 새 할 일은 `general` 한 종류로, 제어 상태는 active/cancelled만 허용한다. 구 컬럼·일반 task history/version의 물리 축소는 다음 단계다. 격리 DB 34파일/466검증, OAuth/토큰 MCP 계약, Chromium 표적 2건 통과. 일반 로컬/운영 DB 미적용.
 - 일반 할 일 이력 축소(2026-09-23): 완료·재개는 활동과 회차 상태에 이미 남으므로 `portfolio_task_history`와 현재 이력 포인터를 제거했다. 별도의 변경 사유 입력은 일반 할 일 저장 계약에서 없앴다. 현재 행 `version`은 중복 이력이 아니라 동시 수정/완료 충돌 방지 용도로 유지한다. 격리 DB 34파일/468검증, OAuth/토큰 MCP 계약, Chromium 표적 2건, 단위 19파일/94건 통과. MCP 설명과 가이드 검토 manifest를 갱신했다. 일반 로컬/운영 DB 미적용.
 
+- 조사 상태 컬럼 축소(2026-09-23): 통합 검색과 기간 회고의 열린 할 일 조회를 `general` 한 종류로 고치고, 더 이상 현재 함수 본문에서 참조하지 않는 `portfolio_tasks.research_state`를 제거했다. 격리 DB 34파일/469검증, OAuth/토큰 MCP 계약, Chromium 일반 할 일 시나리오 1건 통과. 전체 Chromium과 일반 로컬/운영 DB 적용은 아직 하지 않았다.
+
 ## 인수 조건
 
 - [ ] 원칙의 과거 적용 내용 조회는 이력 축소의 명시적 예외로 유지한다. 새 변경부터 정확히 조회하고, 삭제 허용된 구 데이터에 대해 시각을 추정한 이력을 만들지 않는다.

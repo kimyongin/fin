@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select extensions.plan(18);
+select extensions.plan(19);
 
 select extensions.hasnt_table('public','investment_decisions','parallel decision source retired');
 select extensions.hasnt_table('public','investment_decision_state_history','decision transition history retired');
@@ -21,6 +21,7 @@ select extensions.ok((select pg_get_constraintdef(oid) from pg_constraint where 
 select extensions.is((select count(*) from public.portfolio_tasks where kind <> 'general'),0::bigint,'retired task rows are absent');
 select extensions.hasnt_table('public','portfolio_task_history','general task does not keep a second content history table');
 select extensions.ok(not exists(select 1 from information_schema.columns where table_schema='public' and table_name='portfolio_tasks' and column_name='current_history_id'),'task current row has no history pointer');
+select extensions.ok(not exists(select 1 from information_schema.columns where table_schema='public' and table_name='portfolio_tasks' and column_name='research_state'),'retired research state column is absent');
 
 select * from extensions.finish();
 rollback;
