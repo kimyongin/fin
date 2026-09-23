@@ -129,71 +129,6 @@ function cursorPage(args: Record<string, unknown>) {
   return { enabled, value: args.cursor == null ? null : requireRecord(args.cursor, 'cursor') }
 }
 
-function normalizeLifecycleSubject(value: unknown, field: string) {
-  const subject = requireRecord(value, field)
-  const kind = requireString(subject.kind, `${field}.kind`)
-  if (!['portfolio', 'instrument', 'position'].includes(kind)) {
-    throw new ToolInputError(`${field}.kind is invalid`)
-  }
-  const instrumentId = optionalString(subject.instrument_id)
-  const accountId = optionalString(subject.account_id)
-  if (kind !== 'portfolio' && !instrumentId) {
-    throw new ToolInputError(`${field}.instrument_id is required`)
-  }
-  if (kind === 'position' && !accountId) {
-    throw new ToolInputError(`${field}.account_id is required`)
-  }
-  return {
-    kind,
-    ...(instrumentId ? { instrument_id: instrumentId } : {}),
-    ...(accountId ? { account_id: accountId } : {}),
-    ...(optionalString(subject.label) ? { label: optionalString(subject.label) } : {}),
-  }
-}
-
-function normalizeInvestmentDecisionPayload(args: Record<string, unknown>) {
-  requireSchemaVersion(args)
-  const status = requireString(args.status, 'status')
-  if (!['proposed', 'adopted'].includes(status)) throw new ToolInputError('status is invalid')
-  const selectedOption = optionalString(args.selected_option)
-  const reason = optionalString(args.reason)
-  if (status === 'adopted' && (!selectedOption || !reason)) {
-    throw new ToolInputError('adopted decision needs selected_option and reason')
-  }
-  const options = requireArray(args.options, 'options').map((value, index) =>
-    requireString(value, `options[${index}]`)
-  )
-  const tasks = requireArray(args.follow_up_tasks, 'follow_up_tasks').map((value, index) => {
-    const task = requireRecord(value, `follow_up_tasks[${index}]`)
-    return {
-      title: requireString(task.title, `follow_up_tasks[${index}].title`),
-      subject: normalizeLifecycleSubject(task.subject, `follow_up_tasks[${index}].subject`),
-      ...(optionalString(task.due_date) ? { due_date: optionalString(task.due_date) } : {}),
-      ...(optionalString(task.trigger_text) ? { trigger_text: optionalString(task.trigger_text) } : {}),
-    }
-  })
-  const policySnapshot = args.policy_snapshot == null
-    ? {}
-    : requireRecord(args.policy_snapshot, 'policy_snapshot')
-  return {
-    status,
-    subject: normalizeLifecycleSubject(args.subject, 'subject'),
-    question: requireString(args.question, 'question'),
-    options,
-    ...(selectedOption ? { selected_option: selectedOption } : {}),
-    ...(reason ? { reason } : {}),
-    ...(optionalString(args.uncertainty) ? { uncertainty: optionalString(args.uncertainty) } : {}),
-    ...(optionalString(args.review_condition) ? { review_condition: optionalString(args.review_condition) } : {}),
-    policy_snapshot: policySnapshot,
-    ...(optionalString(args.source_briefing_id)
-      ? { source_briefing_id: requireUuid(args.source_briefing_id, 'source_briefing_id') }
-      : {}),
-    timezone: requireString(args.timezone, 'timezone'),
-    authored_via: 'agent',
-    follow_up_tasks: tasks,
-  }
-}
-
 function requirePositiveInteger(value: unknown, field: string) {
   const normalized = Number(value)
   if (!Number.isInteger(normalized) || normalized < 1) {
@@ -208,23 +143,6 @@ function requirePositiveDecimalString(value: unknown, field: string) {
     throw new ToolInputError(`${field} must be a positive decimal string with at most 16 decimal places`)
   }
   return normalized
-}
-
-function normalizeDecisionTransitionPayload(args: Record<string, unknown>) {
-  requireSchemaVersion(args)
-  const action = requireString(args.action, 'action')
-  if (!['adopt', 'dismiss'].includes(action)) throw new ToolInputError('action is invalid')
-  const reason = requireString(args.reason, 'reason')
-  const selectedOption = optionalString(args.selected_option)
-  if (action === 'adopt' && !selectedOption) {
-    throw new ToolInputError('adopting a decision needs selected_option')
-  }
-  return {
-    action,
-    reason,
-    ...(selectedOption ? { selected_option: selectedOption } : {}),
-    authored_via: 'agent',
-  }
 }
 
 function normalizeTaskTransitionPayload(args: Record<string, unknown>) {

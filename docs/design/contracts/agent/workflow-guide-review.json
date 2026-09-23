@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Daily review now reads current context without a persisted snapshot; decision follow-up uses activity records.",
+  "review_reason": "Removed unreachable legacy decision-only MCP parsing and schema helpers; published guide behavior is unchanged except activity-based decisions.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:d97dfa1f",
-      "contract_digest": "3af6586d33885929b765dbb3ddddc28204793406e7dc0cc3182d252865453e70"
+      "contract_digest": "2e804c134b4198c082a5d7c3ccecd609290823a13bb1add455f9033faac5fa4f"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "4219dfca6280f8454f89958b08fa4aac45a1edad8ebdf3c68c1e75f50fa1f02b"
+      "contract_digest": "b267f1b736d4009609f0209a299a5f2307bdbfe84410690ffa6ed3fe3398a1dc"
     },
     "daily_review": {
       "revision": "fnv1a32:1743d26a",
-      "contract_digest": "f54bd733b076d6a42c27efb75e2e52af83e85c09aeb11bd1f2510f2b2063774b"
+      "contract_digest": "6dac7404a8b0e03de747afe8f31133e9ec7574bcee65fa6f5d2c72934fa38878"
     },
     "decision_followup": {
       "revision": "fnv1a32:a89c0d3f",
-      "contract_digest": "9e4fe06c7a334c71fbd051e6d573fce7622b35af57bf376112b7b0f41add83d7"
+      "contract_digest": "f7dbe04f5be7bf6c4cf48fb6ae2a0d66aeb6f88fc91d3ac77a9b1907757a6200"
     },
     "trade_entry": {
       "revision": "fnv1a32:718f2176",
-      "contract_digest": "3bfe7baa9502f3dc221c6ccdeef5af1b93150170bdc5d2edd62f044692e89c4a"
+      "contract_digest": "3b366700d687d31c3a3012d443b901f85ca7e69353bbc152d28edf17c52ec78c"
     },
     "reconciliation": {
       "revision": "fnv1a32:7706100c",
-      "contract_digest": "24c03f3a6704050c1a66f60f64c45afad3ef921ff702f683e3c45151e7e4d45e"
+      "contract_digest": "f6dd7a0d8944cde01f6c63384e275de03855ce05375be50a09ce47df45123d4c"
     },
     "todo": {
       "revision": "fnv1a32:8dbed512",
-      "contract_digest": "9a15e209411ac4dbe9d9cdfe67840cec9778b3823eff65a87986aa4ef260db25"
+      "contract_digest": "2b20a192710ddb95625eed8cf26b73ffc498d8d65568b8f9365585863d87d3c9"
     },
     "activity_report": {
-      "revision": "fnv1a32:491dcdaf",
-      "contract_digest": "d841897b5f414de56d60556f7d65ca3464b61a57fe6684cfd671409c0238f0ac"
+      "revision": "fnv1a32:f0d9274f",
+      "contract_digest": "3a3e1305735fcb8d65e8bf0cbcf312358ef686250966343fe6c01868d8eb90ea"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "f85b77eeb3a405392ec22d88457efd89d7e075414d57b7802e210d9482bbdb7d"
+      "contract_digest": "b98e4ba157607978030a6728f40f8b18db8282c9f21ea6adaac25df5ad64de93"
     }
   }
 }

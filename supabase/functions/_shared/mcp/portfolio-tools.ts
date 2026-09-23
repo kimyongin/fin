@@ -377,30 +377,6 @@ const reconciliationOutputSchema = successEnvelope({
   additionalProperties: false,
 })
 
-const lifecycleSubjectSchema = {
-  type: 'object',
-  properties: {
-    kind: { type: 'string', enum: ['portfolio', 'instrument', 'position'] },
-    instrument_id: { type: 'string', minLength: 1 },
-    account_id: { type: 'string', minLength: 1 },
-    label: { type: 'string' },
-  },
-  required: ['kind'],
-  additionalProperties: false,
-}
-
-const researchTaskCreateSchema = {
-  type: 'object',
-  properties: {
-    title: { type: 'string', minLength: 1, maxLength: 500 },
-    subject: lifecycleSubjectSchema,
-    due_date: { type: ['string', 'null'], format: 'date' },
-    trigger_text: { type: 'string' },
-  },
-  required: ['title', 'subject'],
-  additionalProperties: false,
-}
-
 const taskTransitionEvidenceSchema = {
   type: 'object',
   properties: {

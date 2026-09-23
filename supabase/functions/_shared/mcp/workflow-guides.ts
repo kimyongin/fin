@@ -328,11 +328,12 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/20260923043832_retire_activity_report_storage.sql',
+      'supabase/migrations/20260923053254_period_context_decisions_from_activities.sql',
       'supabase/migrations/20260922171524_activity_context_freshness.sql',
     ],
     steps: [
       { id: 'choose-period', title: 'Choose the exact period', instruction: 'Confirm daily, weekly, or monthly scope, inclusive start/end dates, and timezone. A request to inspect a period does not itself authorize saving.', tools: [] },
-      { id: 'page-all-sources', title: 'Read every source page', instruction: 'Call get_activity_report_context and continue with next_cursor until null. Do not use a saved daily retrospective as the only source for a weekly or monthly one.', tools: ['get_activity_report_context'] },
+      { id: 'page-all-sources', title: 'Read every source page', instruction: 'Call get_activity_report_context and continue with next_cursor until null. Decisions are already among events; the decisions array is a convenience subset, not additional actions to count. Do not use a saved daily retrospective as the only source for a weekly or monthly one.', tools: ['get_activity_report_context'] },
       { id: 'separate-facts', title: 'Separate facts and interpretation', instruction: 'Distinguish value edits, completed tasks, actual trades, and verification. Explain a reason only when a saved note or decision states it. Treat current_open_tasks as current-at-request, not historical period-end state.', tools: [] },
       { id: 'compare-existing', title: 'Check existing retrospectives', instruction: 'Search activities for the same period and read any relevant retrospective. Do not overwrite it automatically when source activity changes.', tools: ['search_activities', 'get_activity'] },
       { id: 'save-if-requested', title: 'Save the requested retrospective', instruction: 'Only after explicit save intent, record one activity with category retrospective. Put the period in context.scope, facts in result, and interpretation in conclusion. Keep the text within activity field limits. A save never schedules another report.', tools: ['record_manual_activity'] },

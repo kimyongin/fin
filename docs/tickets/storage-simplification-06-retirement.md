@@ -46,6 +46,7 @@ GitHub: https://github.com/kimyongin/fin/issues/91
 - 다음 물리 정리의 의존 관계: `investment_decisions.source_briefing_id`가 구 브리핑 FK이고, `app_create_daily_context` 래퍼 체인은 `daily_review_contexts`에 snapshot을 여러 번 갱신한다. 판단 저장을 활동으로 전환하고 일일 문맥을 저장 없는 현재 조회로 대체하기 전에는 브리핑 테이블만 단독으로 삭제하지 않는다. `app_list_briefing_related_tasks` 및 구 공유 DTO도 함께 종료해야 한다.
 - 판단 전환 진행(2026-09-23): 새 OAuth MCP의 판단 전용 CRUD/상태전이 도구를 목록에서 제거하고 `record_manual_activity(category=decision)`·`list_decision_activities`·`get/update_activity`·선택 후속 `save_general_task`로 가이드를 전환했다. 앱의 옛 `#decisions` 경로는 판단 활동을 읽고 수동 입력에서 제안/명시적 채택을 구분한다. 친구 `decisions` grant는 좁은 목록에서 상태만 공개하고 사유·메모·출처는 숨긴다. 구 테이블/함수와 `#tasks` 안의 구 판단 상세 소비자는 아직 남아 있어 물리 종료 전환은 완료가 아니다. 격리 DB 37파일/519검증, unit 19파일/96검증, OAuth/토큰 MCP 계약, Chromium 35건, 빌드·인코딩·가이드 검사를 통과했다. 일반 로컬/운영 미적용.
 - 점검 문맥 전환 진행(2026-09-23): `get_daily_context` MCP 도구를 저장형 `app_create_daily_context` 대신 읽기 전용 `app_get_daily_context`로 연결한다. 현재 자산·원칙·비공개 보유 메모·열린 할 일과 최근 점검/판단 활동을 조합하며 문맥 행을 만들지 않는다. 구 저장형 문맥 RPC/테이블은 구 브리핑 저장과 DB 테스트가 아직 사용하므로 물리 종료 전 별도 차단·교체가 필요하다. 격리 DB 37파일/521검증, OAuth/토큰 MCP 계약, Chromium 35건, unit 19파일/96검증, 빌드·인코딩·가이드 검사 통과. 일반 로컬/운영 미적용.
+- 기간 회고 전환 진행(2026-09-23): 회고 문맥의 `decisions` 편의 목록을 구 판단 테이블이 아니라 같은 기간의 판단 활동에서 산출한다. 이미 원본 `events`에도 포함되므로 집계 시 중복 계산하지 않도록 가이드를 보완했다. OAuth MCP의 죽은 판단 전용 입력 파서/스키마도 제거했다. 구 `portfolio_tasks`의 현재 열린 할 일 참조는 후속 할 일 단순화 전까지 유지한다. 격리 DB 37파일/522검증, OAuth/토큰 MCP 계약, Chromium 35건, unit 19파일/96검증, 빌드·인코딩·가이드 검사 통과. 일반 로컬/운영 미적용.
 
 ## 인수 조건
 
