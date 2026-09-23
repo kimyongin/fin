@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ModalShell from '../../components/ModalShell'
+import { createRequestGate } from '../../lib/requestGate'
 import { fetchPrinciples, savePrinciple } from './data'
 
 const kinds = [
@@ -14,28 +15,44 @@ export default function PrincipleJournal({ supabase }) {
   const [onDate, setOnDate] = useState('')
   const [editing, setEditing] = useState(undefined)
   const [draft, setDraft] = useState({ principleId: null, kind: 'investment', body: '', scope: '' })
+  const [initialDraft, setInitialDraft] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [refreshFailed, setRefreshFailed] = useState(false)
+  const requestGate = useRef(createRequestGate())
+  const selectedDate = useRef(onDate)
+  const dirty = initialDraft !== null && (draft.kind !== initialDraft.kind || draft.body !== initialDraft.body || draft.scope !== initialDraft.scope)
+
+  async function reload(date = selectedDate.current) {
+    const request = requestGate.current.begin()
+    try {
+      const next = await fetchPrinciples(supabase, { onDate: date || null })
+      if (!request.isCurrent() || selectedDate.current !== date) return
+      setItems(next)
+      setRefreshFailed(false)
+      setError('')
+    } catch (cause) {
+      if (request.isCurrent() && selectedDate.current === date) throw cause
+    }
+  }
 
   useEffect(() => {
-    let active = true
     setError('')
-    fetchPrinciples(supabase, { onDate: onDate || null }).then((next) => {
-      if (active) setItems(next)
-    }).catch((cause) => { if (active) setError(cause.message ?? '원칙을 불러오지 못했습니다.') })
-    return () => { active = false }
+    reload(onDate).catch((cause) => setError(cause.message ?? '원칙을 불러오지 못했습니다.'))
+    return () => requestGate.current.invalidate()
   }, [supabase, onDate])
 
-  async function reload() {
-    setItems(await fetchPrinciples(supabase, { onDate: onDate || null }))
-    setRefreshFailed(false)
-    setError('')
+  function changeDate(date) {
+    selectedDate.current = date
+    requestGate.current.invalidate()
+    setOnDate(date)
   }
 
   function open(row = null) {
     setError('')
-    setDraft({ principleId: row?.principle_id ?? crypto.randomUUID(), kind: row?.kind ?? 'investment', body: row?.body ?? '', scope: row?.scope ?? '' })
+    const nextDraft = { principleId: row?.principle_id ?? crypto.randomUUID(), kind: row?.kind ?? 'investment', body: row?.body ?? '', scope: row?.scope ?? '' }
+    setDraft(nextDraft)
+    setInitialDraft(nextDraft)
     setEditing(row)
   }
 
@@ -75,8 +92,8 @@ export default function PrincipleJournal({ supabase }) {
       {!onDate && <button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" onClick={() => open()} type="button">원칙 추가</button>}
     </div>
     <label className="mt-4 flex flex-wrap items-center gap-2 text-sm">지난 원칙 보기
-      <input className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3" type="date" value={onDate} onChange={(event) => setOnDate(event.target.value)} />
-      {onDate && <button className="min-h-11 rounded-xl border border-[var(--line)] px-3" onClick={() => setOnDate('')} type="button">현재로</button>}
+      <input className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3" type="date" value={onDate} onChange={(event) => changeDate(event.target.value)} />
+      {onDate && <button className="min-h-11 rounded-xl border border-[var(--line)] px-3" onClick={() => changeDate('')} type="button">현재로</button>}
     </label>
     {error && <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-red-300" role="alert"><span>{error}</span>{refreshFailed && <button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => reload().catch((cause) => setError(cause.message ?? '원칙을 다시 불러오지 못했습니다.'))} type="button">목록 다시 불러오기</button>}</div>}
     <div className="mt-4 grid gap-3">
@@ -90,8 +107,12 @@ export default function PrincipleJournal({ supabase }) {
         <time className="mt-2 block text-xs text-[var(--muted-ink)]" dateTime={row.effective_at}>적용 {new Date(row.effective_at).toLocaleString()}</time>
       </article>)}
     </div>
-    {editing !== undefined && <ModalShell title={editing ? '원칙 수정' : '원칙 추가'} onClose={() => !busy && setEditing(undefined)}>
-      <div className="grid gap-4 p-1">
+    {editing !== undefined && <ModalShell closeDisabled={busy} dirty={dirty} title={editing ? '원칙 수정' : '원칙 추가'} onClose={() => setEditing(undefined)} footer={(requestClose) => <div className="flex flex-wrap justify-end gap-2">
+      {editing && <button className="min-h-11 rounded-xl border border-red-400/50 px-4 text-sm" disabled={busy} onClick={() => persist(true)} type="button">적용 종료</button>}
+      <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={busy} onClick={requestClose} type="button">취소</button>
+      <button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" disabled={busy} onClick={() => persist()} type="button">{busy ? '저장 중…' : '저장'}</button>
+    </div>}>
+      <fieldset className="grid gap-4 border-0 p-1" disabled={busy}>
         <label className="grid gap-1 text-sm">분류
           <select className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] px-3" value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value })}>
             {kinds.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -103,12 +124,7 @@ export default function PrincipleJournal({ supabase }) {
         <label className="grid gap-1 text-sm">내용
           <textarea className="min-h-36 rounded-xl border border-[var(--line)] bg-[var(--surface-3)] p-3" maxLength={10000} value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} />
         </label>
-        <div className="flex flex-wrap justify-end gap-2">
-          {editing && <button className="min-h-11 rounded-xl border border-red-400/50 px-4 text-sm" disabled={busy} onClick={() => persist(true)} type="button">적용 종료</button>}
-          <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={busy} onClick={() => setEditing(undefined)} type="button">취소</button>
-          <button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" disabled={busy} onClick={() => persist()} type="button">{busy ? '저장 중…' : '저장'}</button>
-        </div>
-      </div>
+      </fieldset>
     </ModalShell>}
   </section>
 }
