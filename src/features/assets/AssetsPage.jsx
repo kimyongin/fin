@@ -3,10 +3,8 @@ import ModalShell from '../../components/ModalShell'
 import { formatKrw, formatNumber, formatPercent, formatUnitPrice, formattedValueWithConversion } from '../../lib/format'
 import { effectiveKrwValue } from '../../lib/portfolioMath'
 import SpreadsheetEditor from './SpreadsheetEditor'
-import HoldingReasonModal from './HoldingReasonModal'
-import TradeEntryModal from './TradeEntryModal'
-import HoldingIntegrityModal from './HoldingIntegrityModal'
-import { fetchPrivateHoldingNotes, savePrivateHoldingNote } from './privateHoldingNotesData'
+import AssetDetailModal from './AssetDetailModal'
+import { fetchPrivateHoldingNotes } from './privateHoldingNotesData'
 import PortfolioIntegritySummary from '../review/PortfolioIntegritySummary'
 
 const control = 'min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 text-sm'
@@ -36,40 +34,6 @@ function PositionValue({ row }) {
   </div>
 }
 
-function InstrumentDetail({ accounts, canEdit, instrument, linkedHoldings, notes, onClose, onEditHolding, onEditInstrument, onEditReason, onRecordTrade, onReconcileHolding, onCreateHolding }) {
-  const generalNote = notes.find((item) => Number(item.instrument_id) === Number(instrument.id) && item.account_id == null)
-  return <ModalShell onClose={onClose} title={instrument.display_name ?? instrument.ticker} variant="detail">
-    <div className="grid gap-4 text-sm">
-      <p className="text-[var(--muted-ink)]">{instrument.ticker} · {instrument.currency} · {instrument.tagName ?? '태그 없음'}</p>
-      {instrument.instrument_type === 'market' && <p>현재가 {instrument.latestPrice == null ? '시세 없음' : formatUnitPrice(instrument.latestPrice, instrument.currency)}{instrument.latestPriceDate ? ` · 기준일 ${instrument.latestPriceDate}` : ''}</p>}
-      {generalNote && <p className="whitespace-pre-wrap break-words text-[var(--muted-ink)]">보유 메모 · {generalNote.note}</p>}
-      <div className="divide-y divide-[var(--line)] rounded-xl border border-[var(--line)]">
-        {linkedHoldings.map((holding) => {
-          const account = accounts.find((item) => String(item.id) === String(holding.account_id))
-          const privateNote = notes.find((item) => Number(item.instrument_id) === Number(instrument.id) && Number(item.account_id) === Number(holding.account_id))
-          return <div className="grid gap-2 p-3" key={holding.id}>
-            <div className="flex items-center justify-between gap-2"><strong>{account?.name ?? '계좌'}</strong><PositionValue row={holding} /></div>
-            {holding.instrument_type === 'market' && <p>수량 {formatNumber(holding.quantity)} · 평균가 {holding.avgCost == null ? '-' : formatUnitPrice(holding.avgCost, holding.currency)}</p>}
-            {holding.instrument_type === 'valuation' && <p>매입금액 {formatUnitPrice(holding.cost_basis_native, holding.currency)}</p>}
-            {holding.valuation_status === 'missing' && <p className="text-amber-300">시세·환율 또는 평가금액을 확인하세요.</p>}
-            {privateNote && <p className="whitespace-pre-wrap break-words text-[var(--muted-ink)]">계좌 메모 · {privateNote.note}</p>}
-            {canEdit && <div className="flex flex-wrap gap-2">
-              <button className={control} onClick={() => { onClose(); onEditHolding(holding) }} type="button">보유 수정</button>
-              <button className={control} onClick={() => { onClose(); onReconcileHolding(instrument, holding) }} type="button">잔고 맞추기</button>
-            </div>}
-          </div>
-        })}
-      </div>
-      {canEdit && <div className="flex flex-wrap gap-2">
-        <button className={control} onClick={() => { onClose(); onEditInstrument(instrument) }} type="button">종목 정보 수정</button>
-        <button className={control} onClick={() => { onClose(); onEditReason(instrument, linkedHoldings) }} type="button">보유 메모</button>
-        {instrument.instrument_type === 'market' && <button className={control} onClick={() => { onClose(); onRecordTrade(instrument, linkedHoldings) }} type="button">매매 기록</button>}
-        <button className={control} onClick={() => { onClose(); onCreateHolding(instrument.ticker) }} type="button">다른 계좌에 보유 추가</button>
-      </div>}
-    </div>
-  </ModalShell>
-}
-
 export default function AssetsPage({
   accountById, accounts, canEdit, computedPositions, csvCopied, holdingsByTicker,
   instruments, latestPriceByTicker, onCopyCsv, onCreateAccount, onCreateHolding, onCreateHoldingForAccount, onEditAccount,
@@ -79,12 +43,9 @@ export default function AssetsPage({
 }) {
   const [selectedTicker, setSelectedTicker] = useState(null)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [reasonEditor, setReasonEditor] = useState(null)
-  const [reasonError, setReasonError] = useState('')
-  const [reasonSaving, setReasonSaving] = useState(false)
-  const [tradeEditor, setTradeEditor] = useState(null)
-  const [integrityEditor, setIntegrityEditor] = useState(null)
   const [privateNotes, setPrivateNotes] = useState([])
+  const [privateNotesStatus, setPrivateNotesStatus] = useState('loading')
+  const [detailRefreshRevision, setDetailRefreshRevision] = useState(0)
   const [syncRequestedAt, setSyncRequestedAt] = useState('')
   const latestQuoteDate = useMemo(() => [...latestPriceByTicker.values()].map((row) => row.price_date).filter(Boolean).sort().at(-1), [latestPriceByTicker])
   const selectedAccount = accounts.find((item) => String(item.id) === String(selectedAccountId))
@@ -110,21 +71,25 @@ export default function AssetsPage({
   useEffect(() => {
     if (!canEdit || !supabase) return undefined
     let active = true
-    fetchPrivateHoldingNotes(supabase).then((items) => { if (active) setPrivateNotes(items) }).catch((error) => { if (active) setReasonError(error.message) })
+    fetchPrivateHoldingNotes(supabase).then((items) => { if (active) { setPrivateNotes(items); setPrivateNotesStatus('ready') } }).catch(() => { if (active) setPrivateNotesStatus('error') })
     return () => { active = false }
   }, [canEdit, supabase])
-  async function saveReason(payload) {
-    setReasonSaving(true); setReasonError('')
+  async function retryPrivateNotes() {
+    setPrivateNotesStatus('loading')
     try {
-      await savePrivateHoldingNote(supabase, { ...payload, instrumentId: reasonEditor.instrument.id })
       setPrivateNotes(await fetchPrivateHoldingNotes(supabase))
-      setReasonEditor(null)
-    } catch (error) { setReasonError(error.message) }
-    finally { setReasonSaving(false) }
+      setPrivateNotesStatus('ready')
+    } catch {
+      setPrivateNotesStatus('error')
+    }
+  }
+  async function refreshDetail() {
+    await onTradeSaved()
+    if (canEdit) setPrivateNotes(await fetchPrivateHoldingNotes(supabase))
+    setDetailRefreshRevision((value) => value + 1)
   }
   const selectedInstrument = instruments.find((item) => item.ticker === selectedTicker)
-  const linkedHoldings = (holdingsByTicker.get(selectedTicker) ?? []).filter((row) => accountId === 'all' || String(row.account_id) === String(accountId))
-  function linkedAccounts(items) { return items.map((row) => accountById.get(row.account_id)).filter(Boolean) }
+  const linkedHoldings = holdingsByTicker.get(selectedTicker) ?? []
   return <section className="grid gap-4">
       <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-soft)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -161,10 +126,8 @@ export default function AssetsPage({
       </section>
       {canEdit && <PortfolioIntegritySummary supabase={supabase} />}
     {sheetOpen && canEdit && <SpreadsheetEditor accounts={sheetAccounts} canSave={canEdit} csvCopied={csvCopied} holdings={holdings} instrumentTags={instrumentTags} instruments={sheetInstruments} onClose={() => setSheetOpen(false)} onCopyCsv={onCopyCsv} onDirtyChange={onSheetDirtyChange} onSave={onSpreadsheetSave} saving={spreadsheetSaving} tags={tags} />}
-    {selectedInstrument && <InstrumentDetail accounts={accounts} canEdit={canEdit} instrument={selectedInstrument} linkedHoldings={linkedHoldings} notes={privateNotes} onClose={() => setSelectedTicker(null)} onEditHolding={onEditHolding} onEditInstrument={onEditInstrument} onCreateHolding={onCreateHolding} onEditReason={(instrument, items) => setReasonEditor({ instrument, accounts: linkedAccounts(items) })} onRecordTrade={(instrument, items) => setTradeEditor({ instrument, accounts: linkedAccounts(items) })} onReconcileHolding={(instrument, holding) => setIntegrityEditor({ instrument, holding })} />}
-    {reasonError && <p className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{reasonError}</p>}
-    {reasonEditor && <HoldingReasonModal accounts={reasonEditor.accounts} instrument={reasonEditor.instrument} notes={privateNotes} onClose={() => setReasonEditor(null)} onSave={saveReason} saving={reasonSaving} />}
-    {tradeEditor && <TradeEntryModal accounts={tradeEditor.accounts} instrument={tradeEditor.instrument} onClose={() => setTradeEditor(null)} onSaved={onTradeSaved} supabase={supabase} />}
-    {integrityEditor && <HoldingIntegrityModal holding={integrityEditor.holding} instrument={integrityEditor.instrument} onClose={() => setIntegrityEditor(null)} onSaved={onTradeSaved} supabase={supabase} />}
+    {selectedInstrument && canEdit && privateNotesStatus === 'loading' ? <ModalShell onClose={() => setSelectedTicker(null)} title="자산 상세"><p>비공개 메모를 불러오는 중입니다.</p></ModalShell> : null}
+    {selectedInstrument && canEdit && privateNotesStatus === 'error' ? <ModalShell onClose={() => setSelectedTicker(null)} title="자산 상세"><div className="grid gap-4"><p role="alert">비공개 메모를 읽지 못해 편집을 시작할 수 없습니다.</p><button className={control} onClick={retryPrivateNotes} type="button">다시 시도</button></div></ModalShell> : null}
+    {selectedInstrument && (!canEdit || privateNotesStatus === 'ready') && <AssetDetailModal accounts={accounts} canEdit={canEdit} holdings={linkedHoldings} instrument={selectedInstrument} key={selectedInstrument.id} notes={privateNotes} notesStatus={privateNotesStatus} onClose={() => setSelectedTicker(null)} onRefresh={refreshDetail} refreshRevision={detailRefreshRevision} selectedAccountId={accountId} supabase={supabase} tags={tags} />}
   </section>
 }
