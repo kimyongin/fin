@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 
-import MarkdownContent from '../../components/MarkdownContent'
 import ModalShell from '../../components/ModalShell'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import { createRequestGate } from '../../lib/requestGate'
 import { fetchDecisionActivities } from './data'
+import ActivityNarrative from './ActivityNarrative'
 
 const stateLabels = { proposed: '제안', adopted: '내가 채택함', dismissed: '채택하지 않음' }
 
@@ -16,12 +16,13 @@ function DecisionDetail({ item, onClose }) {
   const context = item.context ?? {}
   return <ModalShell onClose={onClose} title="판단 상세" variant="detail"><div className="grid gap-5">
     <div><span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-xs">{stateLabels[context.decision_state] ?? '판단 기록'}</span><h3 className="mt-4 break-words text-xl font-semibold leading-8">{item.title}</h3><p className="mt-2 text-xs text-[var(--muted-ink)]">기록 {formatMoment(item.occurred_at)}</p></div>
-    {item.result && <section><h4 className="text-sm font-semibold">확인한 사실</h4><MarkdownContent className="mt-2 text-sm leading-6" content={item.result} /></section>}
-    {item.conclusion && <section><h4 className="text-sm font-semibold">판단 내용</h4><MarkdownContent className="mt-2 text-sm leading-6" content={item.conclusion} /></section>}
-    {context.selected_option && <section><h4 className="text-sm font-semibold">사용자가 선택한 안</h4><p className="mt-2 text-sm leading-6">{context.selected_option}</p></section>}
-    {context.reason && <section><h4 className="text-sm font-semibold">선택한 이유</h4><p className="mt-2 text-sm leading-6">{context.reason}</p></section>}
-    {item.note && <section><h4 className="text-sm font-semibold">메모</h4><MarkdownContent className="mt-2 text-sm leading-6" content={item.note} /></section>}
-    {Array.isArray(context.sources) && context.sources.length > 0 && <section><h4 className="text-sm font-semibold">근거 출처</h4><ul className="mt-2 grid gap-2">{context.sources.map((source, index) => <li key={`${source.url}-${index}`}><a className="text-sm text-[var(--accent)] underline" href={source.url} rel="noreferrer" target="_blank">{source.title}</a></li>)}</ul></section>}
+    <ActivityNarrative sections={[
+      { label: '확인한 사실', content: item.result, markdown: true },
+      { label: '판단 내용', content: item.conclusion, markdown: true },
+      { label: '사용자가 선택한 안', content: context.selected_option },
+      { label: '선택한 이유', content: context.reason },
+      { label: '메모', content: item.note, markdown: true },
+    ]} sources={context.sources} sourcesTitle="근거 출처" />
   </div></ModalShell>
 }
 

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 
-import MarkdownContent from '../../components/MarkdownContent'
 import ModalShell from '../../components/ModalShell'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import { createRequestGate } from '../../lib/requestGate'
@@ -8,6 +7,7 @@ import { fetchActionTimeline } from '../lifecycle/data'
 import PortfolioIntegritySummary from './PortfolioIntegritySummary'
 import { fetchReviewActivities } from './data'
 import { businessDate } from '../../lib/businessDate'
+import ActivityNarrative from '../lifecycle/ActivityNarrative'
 
 const statusLabels = { no_action: '추가 조치 없음', attention: '확인 필요', insufficient_data: '판단 자료 부족' }
 const coverageLabels = { complete: '조사 완료', partial: '일부 조사', failed: '자료 부족' }
@@ -35,11 +35,12 @@ function ReviewDetail({ review, onClose }) {
   return <ModalShell onClose={onClose} title="점검 상세" variant="detail"><div className="grid gap-5">
     <ReviewStatus review={review} />
     <div><h3 className="text-xl font-semibold leading-8">{review.title}</h3><p className="mt-2 text-xs text-[var(--muted-ink)]">기록 {formatMoment(review.occurred_at)}</p></div>
-    {review.result && <section><h4 className="text-sm font-semibold">확인한 사실과 변화</h4><MarkdownContent className="mt-2 text-sm leading-6" content={review.result} /></section>}
-    {review.conclusion && <section><h4 className="text-sm font-semibold">결론</h4><MarkdownContent className="mt-2 text-sm leading-6" content={review.conclusion} /></section>}
-    {review.note && <section><h4 className="text-sm font-semibold">메모</h4><MarkdownContent className="mt-2 text-sm leading-6" content={review.note} /></section>}
-    {context.scope && <section><h4 className="text-sm font-semibold">확인 범위</h4><p className="mt-2 text-sm leading-6">{context.scope}</p></section>}
-    {Array.isArray(context.sources) && context.sources.length > 0 && <section><h4 className="text-sm font-semibold">출처</h4><ul className="mt-2 grid gap-2">{context.sources.map((source, index) => <li key={`${source.url}-${index}`}><a className="text-sm text-[var(--accent)] underline" href={source.url} rel="noreferrer" target="_blank">{source.title}</a></li>)}</ul></section>}
+    <ActivityNarrative sections={[
+      { label: '확인한 사실과 변화', content: review.result, markdown: true },
+      { label: '결론', content: review.conclusion, markdown: true },
+      { label: '메모', content: review.note, markdown: true },
+      { label: '확인 범위', content: context.scope },
+    ]} sources={context.sources} />
   </div></ModalShell>
 }
 
