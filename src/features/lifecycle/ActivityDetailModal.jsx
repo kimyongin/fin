@@ -4,7 +4,7 @@ import ModalShell from '../../components/ModalShell'
 import ActivityTagPicker from './ActivityTagPicker'
 import ActivityNarrative from './ActivityNarrative'
 import { activityNoon, businessDate } from '../../lib/businessDate'
-import { deleteManualActivity, setActivityTags, updateActivity } from './data'
+import { deleteManualActivity, saveActivityDetail } from './data'
 import { ChangeSummary } from '../activity/ActivityEventViewer'
 
 function localDate(value) {
@@ -20,15 +20,17 @@ function formatDateTime(value) {
 
 export default function ActivityDetailModal({ activity, availableTags = [], historyGuardRef, loading, onClose, onDeleted, onRetryTags, onSaved, onTagsChanged, ownerUserId, supabase, tagsError = '', tagsLoading = false }) {
   const [tagsExpanded, setTagsExpanded] = useState(false)
-  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [draft, setDraft] = useState({ title: '', note: '', result: '', conclusion: '', occurredOn: '' })
   const previousActivityId = useRef(null)
+  const previousActivityVersion = useRef(null)
+  const previousLoading = useRef(false)
+  const saveAttempt = useRef(null)
   const [selectedTagIds, setSelectedTagIds] = useState([])
   const editable = useMemo(() => new Set(activity?.editable_fields ?? []), [activity])
+  const editing = !ownerUserId && editable.size > 0
   const editingDirty = editing && activity && (
     draft.title !== (activity.title ?? '') || draft.note !== (activity.note ?? '') ||
     draft.result !== (activity.result ?? '') || draft.conclusion !== (activity.conclusion ?? '') ||
@@ -41,8 +43,11 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
   useEffect(() => {
     if (!activity) return
     const changedActivity = previousActivityId.current !== activity.id
+    const refreshed = previousActivityVersion.current !== activity.version || (previousLoading.current && !loading)
     previousActivityId.current = activity.id
-    if (changedActivity || !editingDirty) setDraft({
+    previousActivityVersion.current = activity.version
+    previousLoading.current = loading
+    if (changedActivity || refreshed || !editingDirty) setDraft({
       title: activity.title ?? '',
       note: activity.note ?? '',
       result: activity.result ?? '',
@@ -50,49 +55,35 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       occurredOn: localDate(activity.occurred_at),
     })
     if (changedActivity) {
-      setEditing(false)
       setTagsExpanded(false)
       setConfirmDelete(false)
-      setConfirmDiscard(false)
       setError('')
     }
-    if (changedActivity || !tagsDirty) setSelectedTagIds((activity.tags ?? []).map((tag) => tag.id))
-  }, [activity])
-
-  function resetDraft() {
-    setDraft({ title: activity.title ?? '', note: activity.note ?? '', result: activity.result ?? '', conclusion: activity.conclusion ?? '', occurredOn: localDate(activity.occurred_at) })
-    setEditing(false)
-    setConfirmDiscard(false)
-  }
+    if (changedActivity || refreshed || !tagsDirty) setSelectedTagIds((activity.tags ?? []).map((tag) => tag.id))
+  }, [activity, loading])
 
   async function save() {
+    if (!dirty || saving) return
     setSaving(true)
     setError('')
     try {
       const patch = {}
-      if (editable.has('title')) patch.title = draft.title
-      if (editable.has('note')) patch.note = draft.note || null
-      if (editable.has('result')) patch.result = draft.result || null
-      if (editable.has('conclusion')) patch.conclusion = draft.conclusion || null
+      if (editable.has('title') && draft.title !== (activity.title ?? '')) patch.title = draft.title
+      if (editable.has('note') && draft.note !== (activity.note ?? '')) patch.note = draft.note || null
+      if (editable.has('result') && draft.result !== (activity.result ?? '')) patch.result = draft.result || null
+      if (editable.has('conclusion') && draft.conclusion !== (activity.conclusion ?? '')) patch.conclusion = draft.conclusion || null
       if (editable.has('occurred_at') && draft.occurredOn !== localDate(activity.occurred_at)) {
         patch.occurred_at = activityNoon(draft.occurredOn)
         patch.timezone = 'Asia/Seoul'
       }
-      const saved = await updateActivity(supabase, activity, patch)
+      const fingerprint = JSON.stringify({ id: activity.id, version: activity.version, patch, selectedTagIds })
+      if (saveAttempt.current?.fingerprint !== fingerprint) saveAttempt.current = { fingerprint, key: crypto.randomUUID() }
+      const saved = await saveActivityDetail(supabase, activity, patch, selectedTagIds, saveAttempt.current.key)
+      saveAttempt.current = null
       onSaved(saved)
-      setEditing(false)
     } catch (nextError) {
       setError(nextError.message ?? '활동을 수정하지 못했습니다.')
     } finally { setSaving(false) }
-  }
-
-  async function saveTags() {
-    setSaving(true); setError('')
-    try {
-      const saved = await setActivityTags(supabase, activity, selectedTagIds)
-      onSaved(saved)
-    } catch (nextError) { setError(nextError.message ?? '활동 태그를 저장하지 못했습니다.') }
-    finally { setSaving(false) }
   }
 
   async function removeManualActivity() {
@@ -105,28 +96,21 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
     } finally { setSaving(false) }
   }
 
-  const footer = !loading && activity && !ownerUserId && editable.size > 0 ? (
+  const footer = !loading && activity && !ownerUserId ? (requestClose) => (
     <fieldset className="grid min-w-0 gap-3" disabled={saving}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          {activity.action_type === 'record_manual_activity' && !editing && <>
-            <button className="min-h-11 rounded-2xl border border-red-400/40 px-4 text-sm font-semibold text-red-200 disabled:opacity-50" onClick={() => confirmDelete ? removeManualActivity() : setConfirmDelete(true)} type="button">{confirmDelete ? '삭제 확인' : '기록 삭제'}</button>
+          {activity.action_type === 'record_manual_activity' && <>
+            <button className="min-h-11 rounded-2xl border border-red-400/40 px-4 text-sm font-semibold text-red-200 disabled:opacity-50" disabled={dirty} onClick={() => confirmDelete ? removeManualActivity() : setConfirmDelete(true)} type="button">{confirmDelete ? '삭제 확인' : '기록 삭제'}</button>
             {confirmDelete && <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => setConfirmDelete(false)} type="button">취소</button>}
           </>}
         </div>
         <div className="ml-auto grid grid-cols-2 gap-2 sm:flex">
-          {editing ? <>
-            <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => editingDirty ? setConfirmDiscard(true) : resetDraft()} type="button">취소</button>
-            <button className="min-h-11 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={saving || (editable.has('title') && !draft.title.trim())} onClick={save} type="button">{saving ? '저장 중' : '저장'}</button>
-          </> : <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => { setConfirmDelete(false); setEditing(true) }} type="button">수정</button>}
+          <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={requestClose} type="button">닫기</button>
+          <button className="min-h-11 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={!dirty || saving || tagsLoading || Boolean(tagsError) || (editable.has('title') && !draft.title.trim())} onClick={save} type="button">{saving ? '저장 중' : '저장'}</button>
         </div>
       </div>
-      {confirmDelete && !editing && <p className="text-sm text-[var(--muted-ink)]">기록을 삭제해도 관련 할 일의 상태는 바뀌지 않습니다.</p>}
-      {confirmDiscard && <div className="flex flex-wrap items-center justify-end gap-2 text-sm">
-        <span>수정한 내용을 버릴까요?</span>
-        <button className="min-h-11 rounded-xl border border-[var(--line)] px-3" onClick={() => setConfirmDiscard(false)} type="button">계속 편집</button>
-        <button className="min-h-11 rounded-xl border border-red-400/40 px-3 text-red-200" onClick={resetDraft} type="button">변경 버리기</button>
-      </div>}
+      {confirmDelete && <p className="text-sm text-[var(--muted-ink)]">기록을 삭제해도 관련 할 일의 상태는 바뀌지 않습니다.</p>}
     </fieldset>
   ) : undefined
 
@@ -153,11 +137,11 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
 
       {activity.after_data?.context && <ActivityNarrative sections={[{ label: '확인 범위', content: typeof activity.after_data.context.scope === 'string' ? activity.after_data.context.scope : activity.after_data.context.scope ? JSON.stringify(activity.after_data.context.scope) : null }]} sources={activity.after_data.context.sources} />}
 
-      {!editing && !['record_manual_activity', 'complete_general_task'].includes(activity.action_type) && (activity.before_data || activity.after_data) && <section className="rounded-2xl border border-[var(--line)] p-4"><h4 className="mb-3 text-sm font-semibold">변경 내용</h4><ChangeSummary action={activity} /></section>}
+      {!['record_manual_activity', 'complete_general_task'].includes(activity.action_type) && (activity.before_data || activity.after_data) && <section className="rounded-2xl border border-[var(--line)] p-4"><h4 className="mb-3 text-sm font-semibold">변경 내용</h4><ChangeSummary action={activity} /></section>}
 
 
 
-      {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4"><button aria-expanded={tagsExpanded} className="min-h-11 w-full text-left text-sm font-semibold" onClick={() => setTagsExpanded(!tagsExpanded)} type="button">태그 편집{selectedTagIds.length > 0 ? ` · ${selectedTagIds.length}개` : ''}<span aria-hidden="true" className="float-right">{tagsExpanded ? '−' : '+'}</span></button>{tagsExpanded && <div className="mt-3">{tagsLoading && <p className="mb-2 text-xs text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="mb-2 flex items-center gap-3 text-xs text-red-200"><span>{tagsError}</span><button className="rounded-lg border border-red-400/40 px-3 py-2" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker disabled={saving || tagsLoading || Boolean(tagsError)} onChange={setSelectedTagIds} onTagsChanged={(tags, ids) => { onTagsChanged(tags); setSelectedTagIds(ids) }} selectedIds={selectedTagIds} supabase={supabase} tags={availableTags} /><div className="mt-3 flex justify-end"><button className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-semibold disabled:opacity-50" disabled={saving || tagsLoading || Boolean(tagsError)} onClick={saveTags} type="button">태그 저장</button></div></div>}</section>}
+      {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4"><button aria-expanded={tagsExpanded} className="min-h-11 w-full text-left text-sm font-semibold" onClick={() => setTagsExpanded(!tagsExpanded)} type="button">태그{selectedTagIds.length > 0 ? ` · ${selectedTagIds.length}개` : ''}<span aria-hidden="true" className="float-right">{tagsExpanded ? '−' : '+'}</span></button>{tagsExpanded && <div className="mt-3">{tagsLoading && <p className="mb-2 text-xs text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="mb-2 flex items-center gap-3 text-xs text-red-200"><span>{tagsError}</span><button className="rounded-lg border border-red-400/40 px-3 py-2" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker disabled={saving || tagsLoading || Boolean(tagsError)} onChange={setSelectedTagIds} onTagsChanged={(tags, ids) => { onTagsChanged(tags); setSelectedTagIds(ids) }} selectedIds={selectedTagIds} supabase={supabase} tags={availableTags} /></div>}</section>}
 
     </div>}
     </fieldset>

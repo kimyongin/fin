@@ -214,6 +214,17 @@ export async function updateActivity(supabase, activity, patch) {
   })
 }
 
+export async function saveActivityDetail(supabase, activity, patch, tagIds, idempotencyKey) {
+  return rpc(supabase, 'app_save_activity_detail', {
+    input_activity_id: activity.id,
+    input_expected_version: activity.version,
+    input_idempotency_key: idempotencyKey,
+    input_patch: patch,
+    input_tag_ids: tagIds,
+    input_authored_via: 'app',
+  })
+}
+
 export async function deleteManualActivity(supabase, activity) {
   return rpc(supabase, 'app_delete_manual_activity', {
     input_activity_id: activity.id,
