@@ -21,8 +21,7 @@ select extensions.is(public.app_preview_trade_entry(9701,9701,'buy',10,200,curre
   '20.0000000000000000','unsaved estimate adds purchased quantity');
 select extensions.is(public.app_preview_trade_entry(9701,9701,'buy',10,200,current_date)#>>'{after,avg_price}',
   '150.0000000000000000','estimate uses execution-price weighted average');
-select extensions.is((select count(*) from public.trade_previews where user_id=auth.uid()),0::bigint,
-  'repeated estimates do not persist preview rows');
+select extensions.hasnt_table('public','trade_previews','estimates have no persisted preview table');
 select extensions.is(public.app_preview_trade_entry(9701,9701,'buy',10,200,current_date)->>'holding_state_version',
   '1','estimate exposes the current holding version');
 
@@ -68,8 +67,8 @@ select extensions.is(public.app_preview_trade_entry(9701,9703,'buy',2,40,current
 select extensions.is(public.app_record_completed_trade(9701,9703,'buy',2,40,current_date,null,0,
   '70000000-0000-0000-0000-000000000005','app')#>>'{holding,avg_price}',
   '40.0000000000000000','first purchase creates the current holding');
-select extensions.is((select count(*) from public.trade_previews where user_id=auth.uid()),0::bigint,
-  'direct write does not persist a preview');
+select extensions.hasnt_function('public','app_log_completed_trade',array['uuid','uuid','text'],
+  'old preview-id confirmer is retired');
 select extensions.is((select record_kind from public.activity_events where action_type='log_completed_trade' and instrument_id=9703),
   'trade','automatic activity is classified as a trade');
 select extensions.is(jsonb_array_length(public.app_list_transaction_page(9703,9701,10,null)->'items'),1,
