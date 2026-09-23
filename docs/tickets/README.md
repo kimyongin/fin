@@ -1,5 +1,28 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## 미구현 — UI 버그 후속 (#104~#106)
+
+2026-09-23 정적 검토에서 발견한 버그다. 브라우저 재현과 코드 수정은 아직 하지 않았다. #98~#103의 기존 검증 증거와 운영 게이트를 대체하지 않는다.
+
+| 티켓 | 로컬 명세 |
+| --- | --- |
+| [#104 활동 상세 초안 보존·취소·연결 이동](https://github.com/kimyongin/fin/issues/104) | [명세](./ui-bug-followup-01-activity-drafts.md) |
+| [#105 유형 전환의 숨겨진 필드 검증](https://github.com/kimyongin/fin/issues/105) | [명세](./ui-bug-followup-02-action-validation.md) |
+| [#106 원칙 편집 보호·날짜 조회 순서](https://github.com/kimyongin/fin/issues/106) | [명세](./ui-bug-followup-03-principles.md) |
+
+버그와 별개인 [구조 리팩토링 검토](../engineering/refactoring-review-20260923.md)는 아래 #107~#110으로 구체화했다.
+
+## 미구현 — 구조 리팩토링 (#107~#110)
+
+| 티켓 | 로컬 명세 |
+| --- | --- |
+| [#107 전략 계산과 화면 표현 분리](https://github.com/kimyongin/fin/issues/107) | [명세](./refactor-01-strategy-calculations.md) |
+| [#108 공유·게스트 접근을 자산 액션에서 분리](https://github.com/kimyongin/fin/issues/108) | [명세](./refactor-02-sharing-boundary.md) |
+| [#109 E2E를 사용자 흐름별로 분리](https://github.com/kimyongin/fin/issues/109) | [명세](./refactor-03-e2e-scenarios.md) |
+| [#110 운영 전환 후 구 활동 표시 호환 정리](https://github.com/kimyongin/fin/issues/110) | [명세](./refactor-04-legacy-activity-display.md) |
+
+순서: #104~#106 버그 수정 → #107 → #108. #109는 버그 회귀 테스트 추가 후 분리하며, 파일 간 병렬 실행과 공유 데이터 의존성을 먼저 확인한다. #110은 #91 운영 전환/표시 호환 확인 후에만 진행하는 후순위이며 릴리스 선행 조건이 아니다. 외부 동작·저장 계약을 유지하고 새 범용 프레임워크를 만들지 않는다. 티켓 작성만 완료했으며 구현·커밋·배포는 하지 않았다.
+
 ## 로컬 구현·격리 검증 완료 — 안정화 재검토 (#98~#103)
 
 2026-09-23 · 기준 코드 `b7ee31d`에서 정적 재검토로 확인한 후속 문제를 로컬에서 구현했다. DB 37파일/510건, MCP 계약, Chromium 48건, 단위 99건과 빌드/가이드/인코딩을 검증했다. 각 티켓에 실제 결과와 미검증 범위를 기록했다. 원격 CI·운영 적용·실제 ChatGPT 평가는 별도 게이트다.
