@@ -340,7 +340,7 @@ const toolHandlers: Record<string, ToolHandler> = {
     const payload = {
         title: requireString(args.title, 'title'), subject: requireRecord(args.subject, 'subject'),
         due_date: optionalString(args.due_date) ?? null, timezone: requireString(args.timezone, 'timezone'),
-        trigger_text: optionalString(args.trigger_text) ?? null, change_reason: optionalString(args.change_reason) ?? null,
+        trigger_text: optionalString(args.trigger_text) ?? null,
         recurrence_kind: optionalString(args.recurrence_kind) ?? 'none',
         recurrence_start_on: optionalString(args.recurrence_start_on) ?? null,
         authored_via: 'agent',

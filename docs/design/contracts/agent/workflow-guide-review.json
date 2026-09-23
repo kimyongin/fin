@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Retire parallel research and execution task tools from OAuth MCP; direct agents to general tasks and activities while keeping financial writes separate.",
+  "review_reason": "General-task revision history was removed; completion events and recurrence checks remain the workflow source, and no guide requires revision replay or a mandatory change reason.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:8a78544b",
-      "contract_digest": "54c31b13d475c6bd21ee7196d4d4a60e2f7531cd9aab1fa5889e7f740bf435f4"
+      "contract_digest": "b0dd4c2ddc9214a7962edc857dacc80efd934baf89f1dade4646670ef79de0e1"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "877c04f0eada6cb4e4b21b53ac105818677482c999d96db0d6b4a488745caa53"
+      "contract_digest": "73f806f7911a923d04f0b5a2545526efbe7a2c228fd7986f1a22b41010a951bd"
     },
     "daily_review": {
       "revision": "fnv1a32:1743d26a",
-      "contract_digest": "1eb3353617d32a720fe8f9ae1ef4cb7d7b0122f1c07eb4609cab69ef4e73fd3c"
+      "contract_digest": "60cbfddf7a6b065a2a398dddb4a3ff31a8f98c011059673f172ab0f93027973c"
     },
     "decision_followup": {
       "revision": "fnv1a32:55c68510",
-      "contract_digest": "c38d87a9688e8f7adf08793961b9f2d39e25f4fe7e1bdc1362a5654b4bfe93fa"
+      "contract_digest": "3d164425ba4329944af16d3f2f931f9a5b0f47e74c7637f919036622a133a816"
     },
     "trade_entry": {
       "revision": "fnv1a32:aa4dded3",
-      "contract_digest": "47a41e37b07495d9aa7d6836d60718ebd643d8fa635b1d4b11d128ca7bb5476d"
+      "contract_digest": "953a03af1511c0471bfed3eee7015df7bb371d05d465609636bc58852db99f44"
     },
     "reconciliation": {
       "revision": "fnv1a32:7706100c",
-      "contract_digest": "fe4da58cc48a7c3e620cde49878b7608ecfc918017d6af3a0e0af30c3c8589b8"
+      "contract_digest": "366a21aeb31e316d2c7f6020c69558d90a4ad8d90978e7ed0947545afadfc4a7"
     },
     "todo": {
       "revision": "fnv1a32:2803dfd7",
-      "contract_digest": "a33f3fd497832f4c9fdf663c02c30fa1f21ee3b5a6d2f57ecc3dc321cb95c185"
+      "contract_digest": "2cf8b2c0337527a07c7b7656784b2e151c2f511d8ca716c4c6986b1706e3d4c3"
     },
     "activity_report": {
       "revision": "fnv1a32:f0d9274f",
-      "contract_digest": "92e3dff487a96b5da924880cca7c4f3ccbcce3bb92591a83872524888e517d32"
+      "contract_digest": "5e6a8f1f6daa3d4b0cb6ce385b13da3c2f1c67468b097c2b67cd0eae1fc5dc85"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "0613b106dae98379b70a5ccaac70cb6b776194bbc640f9715a23d78443dda5f1"
+      "contract_digest": "4d71232c2872cd1fb0d8250eb9d1fce746a2b0e9d3a5be3e3a951858b5edc880"
     }
   }
 }

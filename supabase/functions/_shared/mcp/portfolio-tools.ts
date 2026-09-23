@@ -564,7 +564,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_general_task',
     title: 'General portfolio task detail',
-    description: 'Read one owner-only general task with its current version, history, and linked action events. Reading never completes or changes the task.',
+    description: 'Read one owner-only general task with its current version and linked performed action events. The task is current intent, not a revision history; reading never completes or changes it.',
     inputSchema: {
       type: 'object',
       properties: { task_id: { type: 'string', format: 'uuid' } },
@@ -646,12 +646,12 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         title: { type: 'string', minLength: 1, maxLength: 500 },
         subject: { type: 'object', properties: { kind: { type: 'string', enum: ['portfolio', 'instrument', 'position'] } }, required: ['kind'], additionalProperties: true },
         due_date: { type: ['string', 'null'], format: 'date' }, timezone: { type: 'string', minLength: 1 },
-        trigger_text: { type: ['string', 'null'], maxLength: 1000 }, change_reason: { type: ['string', 'null'], maxLength: 1000 },
+        trigger_text: { type: ['string', 'null'], maxLength: 1000 },
         recurrence_kind: { type: 'string', enum: ['none', 'daily'], default: 'none' },
         recurrence_start_on: { type: ['string', 'null'], format: 'date' },
         origin_activity_id: { type: ['integer', 'null'], minimum: 1 },
       },
-      required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','change_reason','recurrence_kind','recurrence_start_on','origin_activity_id'],
+      required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','recurrence_kind','recurrence_start_on','origin_activity_id'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
