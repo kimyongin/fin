@@ -63,7 +63,7 @@ test('shows the latest saved daily review first on a mobile-sized screen', async
       title: headline, category: 'review', authored_via: 'app',
       result: '확인이 필요한 변화입니다.',
       note: '외부 조사는 테스트에서 생략했습니다.',
-      context: { status: 'insufficient_data', coverage_status: 'failed', scope: '전체 포트폴리오' },
+      context: { status: 'insufficient_data', coverage_status: 'failed', scope: '전체 포트폴리오', sources: [{ title: '공식 자료', url: 'https://example.com/review' }] },
     },
   })
   expect(saved.status, JSON.stringify(saved.body)).toBe(200)
@@ -76,7 +76,11 @@ test('shows the latest saved daily review first on a mobile-sized screen', async
   await page.getByRole('button', { name: '점검 상세 보기' }).click()
   await expect(page.getByRole('heading', { name: '점검 상세' })).toBeVisible()
   await expect(page.getByText('확인이 필요한 변화입니다.').last()).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await expect(page.getByRole('dialog', { name: '점검 상세' }).getByRole('link', { name: '공식 자료' })).toHaveAttribute('href', 'https://example.com/review')
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
 })
 
 test('labels an old partial no-action review as a saved conclusion', async ({ page }) => {
@@ -115,7 +119,7 @@ test('shows a saved decision activity as a choice rather than a trade', async ({
     input_payload: {
       title, category: 'decision', authored_via: 'app',
       result: '공시에서 확인한 사실', conclusion: '현재는 유지',
-      context: { decision_state: 'adopted', selected_option: '유지', reason: '다음 실적에서 재검토' },
+      context: { decision_state: 'adopted', selected_option: '유지', reason: '다음 실적에서 재검토', sources: [{ title: '실적 자료', url: 'https://example.com/earnings' }] },
     },
   })
   expect(saved.status, JSON.stringify(saved.body)).toBe(200)
@@ -124,6 +128,7 @@ test('shows a saved decision activity as a choice rather than a trade', async ({
   await page.getByRole('button', { name: new RegExp(title) }).click()
   await expect(page.getByText('내가 채택함').last()).toBeVisible()
   await expect(page.getByText('다음 실적에서 재검토')).toBeVisible()
+  await expect(page.getByRole('dialog', { name: '판단 상세' }).getByRole('link', { name: '실적 자료' })).toHaveAttribute('href', 'https://example.com/earnings')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
@@ -324,6 +329,11 @@ test('creates and completes a general task while keeping manual work as activity
   await activityDialog.getByLabel('확인한 범위').fill('보유 종목 공시')
   await activityDialog.getByLabel('출처 제목').fill('공식 공시')
   await activityDialog.getByLabel('출처 URL').fill('https://example.com/disclosure')
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(activityDialog).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
   await activityDialog.getByRole('button', { name: '저장', exact: true }).click()
   await expect(activityDialog).toBeHidden()
   const events = await callRpc(page, 'app_list_recent_activity', { limit_count: 100, input_owner_user_id: null })
@@ -335,6 +345,9 @@ test('creates and completes a general task while keeping manual work as activity
   expect(detail.status, JSON.stringify(detail.body)).toBe(200)
   expect(detail.body.record_kind).toBe('research')
   expect(detail.body.after_data.context).toMatchObject({ scope: '보유 종목 공시', sources: [{ title: '공식 공시', url: 'https://example.com/disclosure' }] })
+  await page.getByRole('button', { name: activityTitle, exact: true }).click()
+  await expect(page.getByRole('dialog', { name: '활동 상세' }).getByRole('link', { name: '공식 공시' })).toHaveAttribute('href', 'https://example.com/disclosure')
+  await page.getByRole('dialog', { name: '활동 상세' }).getByRole('button', { name: '닫기' }).click()
 
   const repeatingTitle = `E2E 종료할 반복 ${Date.now()}`
   await page.getByRole('button', { name: '활동 추가', exact: true }).click()
