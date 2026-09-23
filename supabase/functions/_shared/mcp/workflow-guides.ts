@@ -39,7 +39,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
   policy: {
     topic: 'policy',
     guide_id: 'portfolio.policy-interview',
-    purpose: 'Interview only missing preferences, show a reviewable draft, and save each explicitly approved principle as one current row with simple revision history.',
+    purpose: 'Interview only missing preferences, show a reviewable Markdown draft, and save explicitly approved principles with simple revision history.',
     scenario_ids: ['W02', 'S02', 'S03', 'S04'],
     related_tools: ['list_principles', 'save_principle'],
     source_paths: [
@@ -47,6 +47,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/20260922183641_principles_revision_rows.sql',
       'supabase/migrations/20260923041318_retire_investment_policy_storage.sql',
+      'supabase/migrations/20260923173731_simplify_principles_markdown.sql',
       'src/features/strategy/data.js',
     ],
     steps: [
@@ -65,7 +66,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       {
         id: 'prepare-draft',
         title: 'Prepare a reviewable draft',
-        instruction: 'Separate what the user stated from model suggestions. Resolve material contradictions, leave unanswered fields unknown, and show the structured draft before a new interview result is saved.',
+        instruction: 'Separate what the user stated from model suggestions. Resolve material contradictions, leave unanswered topics unknown, and show the Markdown draft before saving. Several related rules may belong in one document; preserve unrelated existing text.',
         tools: [],
       },
       {
@@ -76,8 +77,8 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       },
       {
         id: 'save-patch',
-        title: 'Save the approved fields',
-        instruction: 'Call save_principle once per approved principle. For an edit, reuse its stable principle_id and latest row id. For a new principle, generate one UUID and keep it for any retry; use a null expected_row_id. To stop one, set end=true; do not delete history. Retry a lost response only after reading current state.',
+        title: 'Save the approved text',
+        instruction: 'Call save_principle for the approved Markdown body. For an edit, reuse its stable principle_id and latest row id. For a new principle, generate one UUID and keep it for any retry; use a null expected_row_id. Add a short optional change_note only from the user-stated reason, never invent one. To stop one, set end=true; do not delete history. Retry a lost response only after reading current state.',
         tools: ['save_principle'],
       },
       {
@@ -91,7 +92,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'Do not store the full interview transcript or unnecessary sensitive information.',
       'Do not infer missing goals, risk tolerance, restrictions, or holding reasons from the portfolio or active strategy mode.',
       'Saving a personal policy never changes allocation targets, operating mode, holdings, decisions, tasks, or trades.',
-      'Save one approved idea per principle row; never duplicate model speculation as user policy.',
+      'One principle row may contain several related approved rules; do not split by headings or save model speculation as user policy.',
     ],
     recovery: [
       'For a lost save response, read list_principles first. If the requested text is current, report success; otherwise retry the identical save with the same principle_id and expected_row_id. Never generate a second principle ID for that attempt.',
@@ -249,7 +250,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/migrations/20260923040254_retire_operating_rule_storage.sql',
     ],
     steps: [
-      { id: 'read-rules', title: 'Read saved reconciliation principles', instruction: 'Call list_principles and consider current operation principles scoped to reconciliation before interpreting a brokerage file. Check each applicability statement against the actual file. An empty list and a failed read are different; never guess a saved convention after a read failure.', tools: ['list_principles'] },
+      { id: 'read-rules', title: 'Read saved reconciliation principles', instruction: 'Call list_principles and read the active Markdown body for any relevant brokerage or reconciliation instructions before interpreting a file. Check applicability from the text and actual file; there is no category or scope field. An empty list and a failed read are different; never guess a saved convention after a read failure.', tools: ['list_principles'] },
       { id: 'classify-operation', title: 'Classify the correction', instruction: 'Use reconciliation for actual current values, including after an incorrect local trade entry. Use verification only when current values are already correct and the user compared named fields with the brokerage.', tools: [] },
       { id: 'resolve-and-read', title: 'Resolve and inspect the holding', instruction: 'Use find_holdings when needed, then read holding or portfolio integrity. Ask the user to confirm current brokerage quantity and average cost before correcting a wrong trade entry.', tools: ['find_holdings', 'get_holding_integrity', 'get_portfolio_integrity'] },
       { id: 'preview-correction', title: 'Estimate an absolute correction', instruction: 'Call preview_holding_reconciliation with actual values and explicitly compared fields. It saves nothing; explain the effect and retain the returned holding version. This is not a trade.', tools: ['preview_holding_reconciliation'] },

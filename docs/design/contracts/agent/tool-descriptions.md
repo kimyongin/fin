@@ -27,7 +27,7 @@ revision 12 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | list_review_activities / observed-local | 본인이 명시적으로 저장한 점검 활동을 최신순으로 읽습니다. 조회 자체는 기록하지 않으며 현재 가격·뉴스를 대신하지 않습니다. | W01,W08 |
 | list_decision_activities / local | 저장된 판단 활동을 최신순으로 읽습니다. 제안과 사용자의 채택을 구분하고 별도 후속 할 일은 일반 할 일에서 읽습니다. | W03,W08 |
 | get_activity, update_activity / local | 소유자의 판단 활동을 상세 조회·정정합니다. 제안의 채택은 사용자가 고른 안과 이유를 활동 문맥에 남기며 주문·체결·원칙을 변경하지 않습니다. | W03 |
-| list_operating_rules / removed | 별도 운영 규칙 조회를 제거했다. `list_principles`에서 `kind=operation`, 해당 scope를 확인합니다. | W06 |
+| list_operating_rules / removed | 별도 운영 규칙 조회를 제거했다. `list_principles`의 현재 마크다운 본문에서 관련 규칙과 적용 맥락을 읽습니다. | W06 |
 | save_operating_rule / removed | 별도 운영 규칙 저장을 제거했다. 사용자가 승인한 규칙은 `save_principle`로 저장합니다. | W06 |
 | archive_operating_rule / removed | 별도 보관 상태를 제거했다. 해당 원칙에 `end=true`를 저장합니다. | W06 |
 | list_general_tasks / observed-local | 본인의 미래 할 일을 상태별로 읽습니다. 이미 수행한 활동이나 실제 매매 내역을 대신하지 않습니다. | A02,A04 |

@@ -105,7 +105,7 @@ try {
   assert(initialPrinciples.body?.result?.structuredContent?.data?.items?.length === 0, 'New MCP user unexpectedly has principles')
   const principleArgs = {
     schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
-    kind: 'investment', body: 'Contract-approved long-term rule', scope: null, end: false,
+    body: '## Long-term rule\nContract-approved long-term rule', change_note: 'Initial rule', end: false,
   }
   const savedPrinciple = await call(session.access_token, 'tools/call', { name: 'save_principle', arguments: principleArgs })
   assert(savedPrinciple.body?.result?.structuredContent?.data?.body === principleArgs.body, 'MCP principle save failed')
@@ -166,7 +166,7 @@ try {
 
   const policyPrincipleArgs = {
     schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
-    kind: 'prohibition', body: 'Do not infer missing preferences.', end: false,
+    body: 'Do not infer missing preferences.', end: false,
   }
   const policySaved = await call(session.access_token, 'tools/call', {
     name: 'save_principle', arguments: policyPrincipleArgs,
@@ -181,8 +181,8 @@ try {
 
   const operationPrincipleArgs = {
     schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
-    kind: 'operation', scope: 'reconciliation', end: false,
-    body: 'For this brokerage export, distinguish acquisition and valuation amounts.',
+    end: false,
+    body: '## Reconciliation\nFor this brokerage export, distinguish acquisition and valuation amounts.',
   }
   const operationSaved = await call(session.access_token, 'tools/call', {
     name: 'save_principle', arguments: operationPrincipleArgs,
@@ -193,7 +193,7 @@ try {
     name: 'list_principles', arguments: {},
   })
   assert(operationAfter.body?.result?.structuredContent?.data?.items?.some((item) =>
-    item.principle_id === operationPrincipleArgs.principle_id && item.kind === 'operation' && item.scope === 'reconciliation'),
+    item.principle_id === operationPrincipleArgs.principle_id && item.body === operationPrincipleArgs.body),
   'Operating principle could not be read back')
 
   const taskArgs = {

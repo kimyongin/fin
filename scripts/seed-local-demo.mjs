@@ -163,18 +163,18 @@ if (!strategy.strategy) {
 }
 
 const principleFixtures = [
-  ['investment', '데모 원칙 · 투자 전에는 내 비중과 현금 여력을 먼저 확인한다.', null],
-  ['investment', '데모 원칙 · 단일 종목 비중이 커지면 추가 매수보다 리스크를 먼저 검토한다.', null],
-  ['investment', '데모 원칙 · 확인하지 않은 뉴스만으로 매매하지 않는다.', null],
-  ['operation', '데모 운영 · 증권사 수량·평균가와 다르면 현재값을 직접 보정한다.', 'workflow'],
+  '데모 원칙 · 투자 전에는 내 비중과 현금 여력을 먼저 확인한다.',
+  '데모 원칙 · 단일 종목 비중이 커지면 추가 매수보다 리스크를 먼저 검토한다.',
+  '데모 원칙 · 확인하지 않은 뉴스만으로 매매하지 않는다.',
+  '## 운영\n데모 운영 · 증권사 수량·평균가와 다르면 현재값을 직접 보정한다.',
 ]
 const currentPrinciples = await rpc('app_list_principles', { input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: false })
 const knownBodies = new Set(currentPrinciples.items?.map((item) => item.body))
-for (const [kind, body, scope] of principleFixtures) {
+for (const body of principleFixtures) {
   if (knownBodies.has(body)) continue
   await rpc('app_save_principle', {
     input_principle_id: randomUUID(), input_expected_row_id: null,
-    input_kind: kind, input_body: body, input_scope: scope, input_end: false,
+    input_body: body, input_change_note: '데모 원칙 등록', input_end: false,
   })
 }
 
@@ -397,7 +397,7 @@ const mcpPrincipleBody = '데모 원칙 · MCP 기록은 웹에서도 같은 현
 if (!mcpPrinciples.items.some((item) => item.body === mcpPrincipleBody)) {
   await tool('save_principle', {
     schema_version: 1, principle_id: randomUUID(), expected_row_id: null,
-    kind: 'investment', body: mcpPrincipleBody, scope: null, end: false,
+    body: mcpPrincipleBody, change_note: 'MCP 데모', end: false,
   })
 }
 const webPrinciples = await mcpUserRpc('app_list_principles', {

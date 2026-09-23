@@ -56,13 +56,12 @@ export async function fetchPrincipleChanges(supabase, { cursor = null, limit = 2
   return { items: data?.items ?? [], nextCursor: data?.next_cursor ?? null }
 }
 
-export async function savePrinciple(supabase, { principleId, expectedRowId = null, kind, body, scope = null, end = false }) {
+export async function savePrinciple(supabase, { principleId, expectedRowId = null, body, changeNote = null, end = false }) {
   const { data, error } = await supabase.rpc('app_save_principle', {
     input_principle_id: principleId,
     input_expected_row_id: expectedRowId,
-    input_kind: kind,
-    input_body: body.trim(),
-    input_scope: scope?.trim() || null,
+    input_body: body,
+    input_change_note: changeNote?.trim() || null,
     input_end: end,
   })
   if (error) throw error

@@ -3,14 +3,9 @@ import ModalShell from '../../components/ModalShell'
 import { PageToolbar } from '../../components/PageControls'
 import { createRequestGate } from '../../lib/requestGate'
 import { businessDate } from '../../lib/businessDate'
+import MarkdownContent from '../../components/MarkdownContent'
 import { fetchPrincipleChanges, fetchPrinciples, savePrinciple } from './data'
 
-const kinds = [
-  ['investment', '투자 방향'], ['goal', '목표'], ['horizon', '투자 기간'],
-  ['liquidity', '유동성'], ['risk', '위험 허용'], ['trading', '매매 방식'],
-  ['operation', '운영 규칙'], ['strategy', '전략 메모'],
-]
-const kindLabel = Object.fromEntries(kinds)
 const changeLabel = { added: '추가', updated: '수정', ended: '적용 종료' }
 const inputClass = 'min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base font-normal text-[var(--ink)] outline-none focus:border-[var(--accent)]'
 const labelClass = 'grid gap-2 text-xs font-semibold text-[var(--muted-ink)]'
@@ -24,15 +19,15 @@ export default function PrincipleJournal({ supabase }) {
   const [loadingMore, setLoadingMore] = useState(false)
   const [currentError, setCurrentError] = useState('')
   const [changesError, setChangesError] = useState('')
-  const [expanded, setExpanded] = useState([])
+  const [selectedChange, setSelectedChange] = useState(null)
   const [editing, setEditing] = useState(undefined)
-  const [draft, setDraft] = useState({ principleId: null, kind: 'investment', body: '', scope: '' })
+  const [draft, setDraft] = useState({ principleId: null, body: '', changeNote: '' })
   const [initialDraft, setInitialDraft] = useState(null)
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState('')
   const currentGate = useRef(createRequestGate())
   const changesGate = useRef(createRequestGate())
-  const dirty = initialDraft !== null && (draft.kind !== initialDraft.kind || draft.body !== initialDraft.body || draft.scope !== initialDraft.scope)
+  const dirty = initialDraft !== null && (draft.body !== initialDraft.body || draft.changeNote !== initialDraft.changeNote)
 
   async function loadCurrent() {
     const request = currentGate.current.begin()
@@ -76,7 +71,7 @@ export default function PrincipleJournal({ supabase }) {
 
   function open(row = null) {
     setFormError('')
-    const nextDraft = { principleId: row?.principle_id ?? crypto.randomUUID(), kind: row?.kind ?? 'investment', body: row?.body ?? '', scope: row?.scope ?? '' }
+    const nextDraft = { principleId: row?.principle_id ?? crypto.randomUUID(), body: row?.body ?? '', changeNote: '' }
     setDraft(nextDraft)
     setInitialDraft(nextDraft)
     setEditing(row)
@@ -111,8 +106,8 @@ export default function PrincipleJournal({ supabase }) {
       {currentError && <div className="flex flex-wrap items-center gap-2 text-sm text-red-200" role="alert">{currentError}<button className="min-h-11 rounded-2xl border border-red-400/40 px-3" onClick={loadCurrent} type="button">다시 시도</button></div>}
       {!loadingCurrent && !currentError && items.length === 0 && <p className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)]">현재 적용 중인 원칙이 없습니다.</p>}
       {items.map((row) => <article key={row.principle_id} className="rounded-2xl border border-[var(--line)] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{kindLabel[row.kind] ?? row.kind}{row.scope ? ` · ${row.scope}` : ''}</strong><button className="min-h-11 rounded-2xl border border-[var(--line)] px-3 text-sm" onClick={() => open(row)} type="button">수정</button></div>
-        <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{row.body}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">원칙</strong><button className="min-h-11 rounded-2xl border border-[var(--line)] px-3 text-sm" onClick={() => open(row)} type="button">수정</button></div>
+        <MarkdownContent className="mt-2 break-words text-sm leading-6" content={row.body} />
         <time className="mt-2 block text-xs text-[var(--muted-ink)]" dateTime={row.effective_at}>적용 {new Date(row.effective_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}</time>
       </article>)}
     </section>
@@ -126,13 +121,12 @@ export default function PrincipleJournal({ supabase }) {
           const day = businessDate(change.effective_at)
           const showDay = day !== lastDay
           lastDay = day
-          const isExpanded = expanded.includes(change.id)
           return <div key={change.id} className="relative border-b border-[var(--line)] py-4 last:border-b-0">
             <span aria-hidden="true" className="absolute -left-[1.35rem] top-6 h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
             {showDay && <time className="mb-2 block text-sm font-semibold" dateTime={day}>{day}</time>}
-            <div className="flex flex-wrap items-center gap-2 text-sm"><time className="text-[var(--muted-ink)]" dateTime={change.effective_at}>{new Date(change.effective_at).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })}</time><strong>{changeLabel[change.change_type] ?? change.change_type} · {kindLabel[change.kind] ?? change.kind}{change.scope ? ` · ${change.scope}` : ''}</strong></div>
-            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{change.body}</p>
-            {change.previous && <><button aria-expanded={isExpanded} className="mt-2 min-h-11 rounded-2xl border border-[var(--line)] px-3 text-sm" onClick={() => setExpanded((list) => isExpanded ? list.filter((id) => id !== change.id) : [...list, change.id])} type="button">{isExpanded ? '이전 내용 접기' : '이전 내용 보기'}</button>{isExpanded && <div className="mt-2 rounded-2xl bg-[var(--surface-2)] p-3 text-sm"><p className="text-xs text-[var(--muted-ink)]">{kindLabel[change.previous.kind] ?? change.previous.kind}{change.previous.scope ? ` · ${change.previous.scope}` : ''}</p><p className="mt-2 whitespace-pre-wrap break-words leading-6">{change.previous.body}</p></div>}</>}
+            <div className="flex flex-wrap items-center gap-2 text-sm"><time className="text-[var(--muted-ink)]" dateTime={change.effective_at}>{new Date(change.effective_at).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })}</time><span className="text-[var(--muted-ink)]">{changeLabel[change.change_type] ?? change.change_type}</span></div>
+            <p className="mt-2 break-words text-sm font-medium leading-6">{change.change_note || `원칙 ${changeLabel[change.change_type] ?? change.change_type}`}</p>
+            <button className="mt-2 min-h-11 rounded-2xl border border-[var(--line)] px-3 text-sm" onClick={() => setSelectedChange(change)} type="button">당시 원칙 보기</button>
           </div>
         })}
       </div>
@@ -144,10 +138,14 @@ export default function PrincipleJournal({ supabase }) {
     </div>}>
       <fieldset className="grid gap-4 border-0 p-1" disabled={busy}>
         {formError && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100" role="alert">{formError}</p>}
-        <label className={labelClass}>분류<select className={inputClass} value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value })}>{kinds.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-        <label className={labelClass}>적용 범위 (선택)<input className={inputClass} maxLength={200} value={draft.scope} onChange={(event) => setDraft({ ...draft, scope: event.target.value })} /></label>
-        <label className={labelClass}>내용<textarea className={`${inputClass} min-h-36`} maxLength={10000} value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} /></label>
+        <label className={labelClass}>내용 (마크다운)<textarea className={`${inputClass} min-h-64 font-mono`} maxLength={10000} value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} /></label>
+        <label className={labelClass}>변경 메모 (선택)<input className={inputClass} maxLength={1000} value={draft.changeNote} onChange={(event) => setDraft({ ...draft, changeNote: event.target.value })} /></label>
       </fieldset>
+    </ModalShell>}
+    {selectedChange && <ModalShell title="당시 원칙" onClose={() => setSelectedChange(null)} footer={(requestClose) => <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm" onClick={requestClose} type="button">닫기</button>}>
+      <time className="block text-sm text-[var(--muted-ink)]" dateTime={selectedChange.effective_at}>{new Date(selectedChange.effective_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}</time>
+      {selectedChange.change_note && <p className="mt-2 text-sm">{selectedChange.change_note}</p>}
+      <MarkdownContent className="mt-4 break-words text-sm leading-6" content={selectedChange.body} />
     </ModalShell>}
   </section>
 }

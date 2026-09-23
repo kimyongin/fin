@@ -438,9 +438,8 @@ const toolHandlers: Record<string, ToolHandler> = {
     const data = await rpc(supabase, 'app_save_principle', {
       input_principle_id: requireUuid(args.principle_id, 'principle_id'),
       input_expected_row_id: args.expected_row_id == null ? null : requirePositiveInteger(args.expected_row_id, 'expected_row_id'),
-      input_kind: requireString(args.kind, 'kind'),
       input_body: requireString(args.body, 'body'),
-      input_scope: args.scope == null ? null : requireString(args.scope, 'scope'),
+      input_change_note: args.change_note == null ? null : requireString(args.change_note, 'change_note'),
       input_end: args.end === true,
     })
     return { ok: true, data }

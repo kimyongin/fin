@@ -21,10 +21,10 @@ describe('principle revision data adapter', () => {
 
   it('appends one approved revision with a stable ID and expected row', async () => {
     const supabase = { rpc: vi.fn().mockResolvedValue({ data: { id: 3 }, error: null }) }
-    await expect(savePrinciple(supabase, { principleId: 'stable-id', expectedRowId: 2, kind: 'risk', body: ' 손실 제한 ' })).resolves.toEqual({ id: 3 })
+    await expect(savePrinciple(supabase, { principleId: 'stable-id', expectedRowId: 2, body: ' 손실 제한 ', changeNote: ' 변경 ' })).resolves.toEqual({ id: 3 })
     expect(supabase.rpc).toHaveBeenCalledWith('app_save_principle', {
-      input_principle_id: 'stable-id', input_expected_row_id: 2, input_kind: 'risk',
-      input_body: '손실 제한', input_scope: null, input_end: false,
+      input_principle_id: 'stable-id', input_expected_row_id: 2,
+      input_body: ' 손실 제한 ', input_change_note: '변경', input_end: false,
     })
   })
 })

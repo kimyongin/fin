@@ -766,7 +766,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'list_principles',
     title: 'List saved investment and operating principles',
-    description: 'Read the owner-only principles that Portfolio remembers. The current view returns the latest row per stable principle ID; an optional local date returns the state as of that day. Ended principles are omitted by default. Read before advising from saved preferences or editing one; an empty list means nothing was saved, not permission to infer preferences.',
+    description: 'Read owner-only Markdown principles. The current view returns the latest row per stable principle ID; an optional local date returns the state as of that day. Ended principles are omitted by default. Read before advising from saved preferences or editing one; an empty list means nothing was saved, not permission to infer preferences.',
     inputSchema: { type: 'object', properties: {
       on_date: { type: 'string', format: 'date' }, timezone: { type: 'string', minLength: 1, maxLength: 100 }, include_ended: { type: 'boolean', default: false },
     }, additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
@@ -774,12 +774,12 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'save_principle',
     title: 'Save one approved principle',
-    description: 'Append a revision to exactly one owner-only principle after the user asks to save it. Read list_principles first. Generate a new UUID for a new principle, or reuse its stable principle_id and latest row id for an edit. Use end=true to stop applying the principle; never infer or save model suggestions as user-approved rules. Does not alter holdings, allocation targets, or trades.',
+    description: 'Append a revision to one owner-only Markdown principle only after explicit user approval. Read list_principles first. Generate a UUID for a new principle or reuse its principle_id and latest row id for an edit. Put any headings or applicability in body Markdown, not separate fields. An optional change_note summarizes the edit for the history timeline; it is not a replacement for the full body. Use end=true to stop applying the principle. Never save model suggestions as user-approved rules. Does not alter holdings, allocation targets, or trades.',
     inputSchema: { type: 'object', properties: {
       schema_version: { const: 1 }, principle_id: { type: 'string', format: 'uuid' }, expected_row_id: { type: ['integer','null'], minimum: 1 },
-      kind: { type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$' }, body: { type: 'string', minLength: 1, maxLength: 10000 },
-      scope: { type: ['string','null'], maxLength: 200 }, end: { type: 'boolean', default: false },
-    }, required: ['schema_version','principle_id','expected_row_id','kind','body'], additionalProperties: false },
+      body: { type: 'string', minLength: 1, maxLength: 10000 }, change_note: { type: ['string','null'], maxLength: 1000 },
+      end: { type: 'boolean', default: false },
+    }, required: ['schema_version','principle_id','expected_row_id','body'], additionalProperties: false },
     outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
   {
