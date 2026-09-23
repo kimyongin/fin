@@ -43,6 +43,7 @@ GitHub: https://github.com/kimyongin/fin/issues/91
 - 격리 E2E에서 37개 DB 파일/580개 assertion, OAuth/토큰 MCP 계약, Chromium 34개 시나리오가 통과했다. 일반 로컬 DB/운영 DB에는 이번 증분 migration을 적용하지 않았다. GitHub 티켓 상태, 원격 배포와 실제 ChatGPT 웹·모바일 평가는 별도로 검증해야 한다.
 - 다음 우선순위는 위의 남은 수직 슬라이스를 따른다. 구 데이터 이관은 더 이상 필수가 아니다. 운영 DB 삭제·배포를 로컬 테스트 통과만으로 수행하지 않는다.
 - 점검 전환 진행(2026-09-23): `review` 활동을 기준으로 오늘 화면과 OAuth MCP 조회를 연결했다. `list_review_activities`는 명시적 `briefings` grant만 허용하고 비공개 메모·문맥·출처는 공유하지 않는다. 새 저장은 기존 `record_manual_activity(category=review)`를 사용하도록 가이드를 전환했다. 구 브리핑 도구는 새 OAuth 목록에서 빠졌으나 구 DB 저장소·문맥의 브리핑 소비자 제거와 물리 삭제는 아직 남았다. 격리 DB 37파일/516검증, MCP 계약, Chromium 34건, 단위 19파일/95검증, 빌드 통과. 운영·일반 로컬 DB에는 적용하지 않았다.
+- 다음 물리 정리의 의존 관계: `investment_decisions.source_briefing_id`가 구 브리핑 FK이고, `app_create_daily_context` 래퍼 체인은 `daily_review_contexts`에 snapshot을 여러 번 갱신한다. 판단 저장을 활동으로 전환하고 일일 문맥을 저장 없는 현재 조회로 대체하기 전에는 브리핑 테이블만 단독으로 삭제하지 않는다. `app_list_briefing_related_tasks` 및 구 공유 DTO도 함께 종료해야 한다.
 
 ## 인수 조건
 
