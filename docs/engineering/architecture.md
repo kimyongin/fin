@@ -2,7 +2,7 @@
 
 2026-09-23 · 현재 구조 설명 + 새 코드 배치 원칙. 대규모 폴더 이동을 요구하지 않는다. 저장 모델은 ADR-0008과 [현재 인계](../design/storage-release-readiness-20260923.md)를 따른다.
 
-컴포넌트 상세: [React 공통 UI](../design/component-system.md). 서버 모듈 상세: [backend-modules](./backend-modules.md). 둘 다 책임/인터페이스 설계안이며 공통 라이브러리를 이미 구현했다는 뜻은 아니다.
+컴포넌트 상세: [React 공통 UI](../design/component-system.md). 서버 책임과 공통화 기준: [backend-modules](./backend-modules.md). 문서에 언급된 공통화가 모두 별도 라이브러리로 구현됐다는 뜻은 아니다.
 
 ## 현재 코드 지도
 

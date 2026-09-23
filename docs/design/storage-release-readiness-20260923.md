@@ -33,6 +33,7 @@
 
 1. 대상 Supabase 프로젝트, 현재 적용 migration 번호와 51개 pending 목록, 데이터 삭제 범위와 마지막 정상 앱 commit을 다시 확인한다. 운영 계정·공유 설정 중 보존해야 할 항목을 분리한다. 이 단계에서 `db reset`을 사용하지 않는다.
 2. Deno가 있는 CI에서 Edge 타입 검사를 포함한 같은 commit 검증을 통과한다. DB migration을 순서대로 적용하고, 새 RPC뿐 아니라 기존 클라이언트의 필요한 읽기 경로도 인증된 계정으로 확인한다.
+   `npm run check:deployment`는 인증된 PostgREST OpenAPI를 **읽기만** 하여 필수 저장 RPC 6개의 이름·입력 인자와 조회 RPC를 검사한다. 운영 데이터를 변경하지 않는다. 인증 실패는 계정/키, schema read 403은 권한, RPC 누락·인자 불일치는 미적용 migration/스키마 캐시를 먼저 확인한다. 정상 로컬 검사 결과만으로 운영 검사 통과를 대신하지 않는다.
 3. OAuth MCP Edge Function을 DB 호환 상태로 배포해 initialize/tools/list/call·권한·금융 중복/충돌 계약을 확인한다. 토큰 MCP는 폐기 결정 전까지 계속 호환시킨다.
 4. 원격 readiness 통과 후에만 master를 푸시해 Pages workflow를 실행한다. Pages 자동 배포는 DB/Edge를 배포하지 않으므로 순서를 뒤집지 않는다.
 5. 공개 후 소유자·친구 계정과 실제 ChatGPT 웹·모바일에서 새 세션으로 점검/활동/보정/공유를 확인한다. 부분 실패 시 적용된 migration을 되돌려 편집하지 말고 전진 migration 또는 이전 정상 프런트로 복구한다.
