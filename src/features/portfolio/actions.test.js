@@ -1,13 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createGuestUnlockDraft, createViewerProfileDraft } from '../../lib/viewerAccess'
 import { createPortfolioActions } from './actions'
 
 function createSupabaseMock() {
   return {
-    auth: {
-      signOut: vi.fn(async () => ({})),
-      signInAnonymously: vi.fn(async () => ({ data: { session: { user: { id: 'anon' } } }, error: null })),
-    },
     functions: {
       invoke: vi.fn(async () => ({
         data: { total_count: 1, synced: [{ ticker: 'AAPL', rows: 1 }], failed: [] },
@@ -24,25 +19,16 @@ function createParams(overrides = {}) {
   return {
     accountModal: null,
     canEdit: true,
-    createGuestUnlockDraft,
-    createViewerProfileDraft,
-    guestUnlockDraft: createGuestUnlockDraft(),
     holdingLookupResult: null,
     holdingModal: null,
     holdingsByAccountId: new Map(),
     holdingsByTicker: new Map(),
     instrumentModal: null,
     latestPriceByTicker: new Map(),
-    loadActiveViewerAccess: vi.fn(async () => null),
     refreshState: vi.fn(async () => {}),
-    session: { user: { id: 'user-1' } },
     setAccountError: vi.fn(),
     setAccountModal: vi.fn(),
     setAccountSaving: vi.fn(),
-    setAuthStatus: vi.fn(),
-    setGuestUnlockDraft: vi.fn(),
-    setGuestUnlockError: vi.fn(),
-    setGuestUnlockSaving: vi.fn(),
     setHoldingError: vi.fn(),
     setHoldingLookupError: vi.fn(),
     setHoldingLookupResult: vi.fn(),
@@ -53,26 +39,16 @@ function createParams(overrides = {}) {
     setInstrumentModal: vi.fn(),
     setInstrumentSaving: vi.fn(),
     setLoadError: vi.fn(),
-    setSession: vi.fn(),
     setSyncMessage: vi.fn(),
     setSyncingPrices: vi.fn(),
     setTagError: vi.fn(),
     setTagModal: vi.fn(),
     setTagSaving: vi.fn(),
-    setViewContext: vi.fn(),
-    setViewerProfile: vi.fn(),
-    setViewerProfileDraft: vi.fn(),
-    setViewerProfileError: vi.fn(),
-    setViewerProfileMessage: vi.fn(),
-    setViewerProfileSaving: vi.fn(),
-    setViewerProfileSchemaReady: vi.fn(),
     state: { accounts: [], holdings: [], instruments: [], tags: [] },
     supabase,
     tagMapByTicker: new Map(),
     tagModal: null,
     today: () => '2026-07-12',
-    viewerProfile: createViewerProfileDraft(),
-    viewerProfileDraft: createViewerProfileDraft(),
     ...overrides,
   }
 }
@@ -315,26 +291,4 @@ describe('createPortfolioActions', () => {
     expect(params.setSyncMessage).toHaveBeenCalledWith(expect.stringContaining('가격 동기화 실패'))
   })
 
-  it('loads the unlocked owner portfolio after a guest enters shared view', async () => {
-    const params = createParams({
-      guestUnlockDraft: { public_name: 'friend', viewer_password: 'secret' },
-      session: { user: { id: 'guest', is_anonymous: true } },
-      supabase: {
-        ...createSupabaseMock(),
-        rpc: vi.fn(async (name) => name === 'unlock_viewer_access'
-          ? { data: { owner_user_id: 'owner-1', owner_public_name: 'friend' }, error: null }
-          : { data: null, error: null }),
-      },
-    })
-    const actions = createPortfolioActions(params)
-
-    await actions.handleGuestUnlock()
-
-    expect(params.refreshState).toHaveBeenCalledWith('owner-1')
-    expect(params.setViewContext).toHaveBeenCalledWith({
-      mode: 'shared',
-      ownerUserId: 'owner-1',
-      ownerPublicName: 'friend',
-    })
-  })
 })

@@ -1,5 +1,3 @@
-import { formatSupabaseError, isViewerSchemaMissingError } from '../../lib/viewerAccess'
-import { recordUserActivity } from '../agent/data'
 import { createAccountActions } from './accountActions'
 import { createHoldingActions } from './holdingActions'
 import { createInstrumentActions } from './instrumentActions'
@@ -9,7 +7,7 @@ import {
   createInstrumentModalDraft,
   createTagModalDraft,
 } from './helpers'
-import { portfolioMessages, viewerProfileSavedMessage } from './messages'
+import { portfolioMessages } from './messages'
 import { summarizePriceSync } from './priceSync'
 import { createTagActions } from './tagActions'
 
@@ -25,9 +23,6 @@ export function createPortfolioActions(params) {
   const {
     accountModal,
     canEdit,
-    createGuestUnlockDraft,
-    createViewerProfileDraft,
-    guestUnlockDraft,
     holdingLookupResult,
     holdingModal,
     holdingsByAccountId,
@@ -35,14 +30,9 @@ export function createPortfolioActions(params) {
     instrumentModal,
     latestPriceByTicker,
     refreshState,
-    session,
     setAccountError,
     setAccountModal,
     setAccountSaving,
-    setAuthStatus,
-    setGuestUnlockDraft,
-    setGuestUnlockError,
-    setGuestUnlockSaving,
     setHoldingError,
     setHoldingLookupError,
     setHoldingLookupResult,
@@ -53,26 +43,16 @@ export function createPortfolioActions(params) {
     setInstrumentModal,
     setInstrumentSaving,
     setLoadError = () => {},
-    setSession,
     setSyncMessage,
     setSyncingPrices,
     setTagError,
     setTagModal,
     setTagSaving,
-    setViewContext,
-    setViewerProfile,
-    setViewerProfileDraft,
-    setViewerProfileError,
-    setViewerProfileMessage,
-    setViewerProfileSaving,
-    setViewerProfileSchemaReady,
     state,
     supabase,
     tagMapByTicker,
     tagModal,
     today,
-    viewerProfile,
-    viewerProfileDraft,
   } = params
   const callRpc = createRpcCaller(supabase)
 
@@ -84,21 +64,6 @@ export function createPortfolioActions(params) {
       setLoadError(`변경은 저장됐지만 최신 화면을 불러오지 못했습니다. 다시 불러와 주세요. ${error.message ?? ''}`.trim())
       return false
     }
-  }
-
-  async function recordActivity(event) {
-    try {
-      await recordUserActivity(supabase, event)
-    } catch {
-      // Activity logging should never block the portfolio edit itself.
-    }
-  }
-
-  async function signOut() {
-    setGuestUnlockError('')
-    setGuestUnlockDraft(createGuestUnlockDraft())
-    setViewContext({ mode: 'owner', ownerUserId: null, ownerPublicName: '' })
-    await supabase.auth.signOut()
   }
 
   function openAccount(account = null) {
@@ -134,44 +99,6 @@ export function createPortfolioActions(params) {
     setTagModal(createTagModalDraft({ nextSortOrder: state.tags.length, tag, tags: state.tags }))
   }
 
-  async function handleGuestUnlock() {
-    setGuestUnlockSaving(true)
-    setGuestUnlockError('')
-    try {
-      let nextSession = session
-      if (!nextSession) {
-        const { data, error } = await supabase.auth.signInAnonymously()
-        if (error) throw error
-        nextSession = data.session
-      }
-      if (!nextSession) throw new Error(portfolioMessages.guestUnlockStartError)
-
-      const { data, error } = await supabase.rpc('unlock_viewer_access', {
-        input_public_name: guestUnlockDraft.public_name,
-        input_viewer_password: guestUnlockDraft.viewer_password,
-      })
-      if (error) throw error
-      const access = Array.isArray(data) ? data[0] : data
-      setViewContext({
-        mode: 'shared',
-        ownerUserId: access?.owner_user_id ?? null,
-        ownerPublicName: access?.owner_public_name ?? guestUnlockDraft.public_name.trim(),
-      })
-      await refreshState(access?.owner_user_id ?? null)
-      setGuestUnlockDraft(createGuestUnlockDraft())
-      if (!session) {
-        setSession({ ...nextSession })
-        setAuthStatus('signed-in')
-      }
-    } catch (error) {
-      setGuestUnlockError(error.code === 'anonymous_provider_disabled'
-        ? portfolioMessages.guestUnlockAnonymousDisabled
-        : formatSupabaseError(error, portfolioMessages.guestUnlockFailed))
-    } finally {
-      setGuestUnlockSaving(false)
-    }
-  }
-
   async function handleSyncPrices() {
     if (!canEdit) return
     setSyncingPrices(true)
@@ -189,66 +116,15 @@ export function createPortfolioActions(params) {
     }
   }
 
-  async function handleSaveViewerProfile() {
-    if (!canEdit) return
-    setViewerProfileSaving(true)
-    setViewerProfileError('')
-    setViewerProfileMessage('')
-    try {
-      const publicName = viewerProfileDraft.public_name.trim()
-      const password = viewerProfileDraft.viewer_password.trim()
-      if (viewerProfileDraft.sharing_enabled && !publicName) throw new Error(portfolioMessages.viewerPublicNameRequired)
-      if (password && password.length < 4) throw new Error(portfolioMessages.viewerPasswordTooShort)
-      if (viewerProfileDraft.sharing_enabled && !password && !viewerProfile.viewer_password_updated_at) throw new Error(portfolioMessages.viewerPasswordRequired)
-
-      const data = await callRpc('set_viewer_profile', {
-        input_public_name: publicName,
-        input_sharing_enabled: Boolean(viewerProfileDraft.sharing_enabled),
-        input_viewer_password: password,
-      })
-      const nextProfile = createViewerProfileDraft(Array.isArray(data) ? data[0] : data)
-      await recordActivity({
-        actionType: 'update_viewer_profile',
-        afterData: {
-          password_updated: Boolean(viewerProfileDraft.viewer_password),
-          public_name: nextProfile.public_name,
-          sharing_enabled: nextProfile.sharing_enabled,
-          viewer_password_updated_at: nextProfile.viewer_password_updated_at,
-        },
-        beforeData: {
-          public_name: viewerProfile.public_name,
-          sharing_enabled: viewerProfile.sharing_enabled,
-          viewer_password_updated_at: viewerProfile.viewer_password_updated_at,
-        },
-        targetId: session.user.id,
-        targetTable: 'profiles',
-      })
-      setViewerProfileSchemaReady(true)
-      setViewerProfile(nextProfile)
-      setViewerProfileDraft(nextProfile)
-      setViewerProfileMessage(viewerProfileSavedMessage(Boolean(viewerProfileDraft.viewer_password)))
-    } catch (error) {
-      if (isViewerSchemaMissingError(error)) {
-        setViewerProfileSchemaReady(false)
-        setViewerProfileError(formatSupabaseError(error, portfolioMessages.viewerProfileSchemaFailed))
-      } else setViewerProfileError(error.message ?? portfolioMessages.viewerProfileSaveFailed)
-    } finally {
-      setViewerProfileSaving(false)
-    }
-  }
-
   return {
     ...createAccountActions({ accountModal, callRpc, canEdit, holdingsByAccountId, refreshAfterMutation, setAccountError, setAccountModal, setAccountSaving }),
     ...createHoldingActions({ callRpc, canEdit, holdingLookupResult, holdingModal, latestPriceByTicker, refreshAfterMutation, refreshState, setHoldingError, setHoldingLookupError, setHoldingLookupResult, setHoldingLookupSaving, setHoldingModal, setHoldingSaving, state, supabase }),
     ...createInstrumentActions({ callRpc, canEdit, holdingsByTicker, instrumentModal, openHolding, refreshAfterMutation, setInstrumentError, setInstrumentModal, setInstrumentSaving, today }),
     ...createTagActions({ callRpc, canEdit, refreshAfterMutation, setTagError, setTagModal, setTagSaving, tagModal }),
-    handleGuestUnlock,
-    handleSaveViewerProfile,
     handleSyncPrices,
     openAccount,
     openHolding,
     openInstrument,
     openTag,
-    signOut,
   }
 }

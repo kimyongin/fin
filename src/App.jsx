@@ -18,6 +18,7 @@ import SettingsPageView from './features/settings/SettingsPage'
 import StrategyPageView from './features/strategy/StrategyPage'
 import { buildPortfolioCsv } from './features/portfolio/helpers'
 import { createPortfolioActions } from './features/portfolio/actions'
+import { createAccessActions } from './features/auth/accessActions'
 import {
   createEmptyPortfolioState,
   createOwnerViewContext,
@@ -354,50 +355,36 @@ function App() {
     handleDeleteHolding,
     handleDeleteInstrument,
     handleDeleteTag,
-    handleGuestUnlock,
     handleLookupHoldingTicker,
     handleSaveAccount,
     handleSaveHolding,
     handleSaveInstrument,
     handleSaveTag,
-    handleSaveViewerProfile,
     handleSyncPrices,
     openAccount: openAccountModal,
     openHolding: openHoldingModal,
     openInstrument: openInstrumentModal,
     openTag: openTagModal,
-    signOut,
   } = createPortfolioActions({
     canEdit,
-    createGuestUnlockDraft,
-    createViewerProfileDraft,
     ...editor,
-    guestUnlockDraft,
     holdingsByAccountId,
     holdingsByTicker,
     latestPriceByTicker,
-    loadActiveViewerAccess,
     refreshState,
-    session,
-    setAuthStatus,
-    setGuestUnlockDraft,
-    setGuestUnlockError,
-    setGuestUnlockSaving,
     setLoadError,
-    setSession,
-    setViewContext,
-    setViewerProfile,
-    setViewerProfileDraft,
-    setViewerProfileError,
-    setViewerProfileMessage,
-    setViewerProfileSaving,
-    setViewerProfileSchemaReady,
     state,
     supabase,
     tagMapByTicker,
     today,
-    viewerProfile,
-    viewerProfileDraft,
+  })
+
+  const { handleGuestUnlock, handleSaveViewerProfile, signOut } = createAccessActions({
+    canEdit, createGuestUnlockDraft, createViewerProfileDraft, guestUnlockDraft, refreshState, session,
+    setAuthStatus, setGuestUnlockDraft, setGuestUnlockError, setGuestUnlockSaving, setSession,
+    setViewContext, setViewerProfile, setViewerProfileDraft, setViewerProfileError,
+    setViewerProfileMessage, setViewerProfileSaving, setViewerProfileSchemaReady,
+    supabase, viewerProfile, viewerProfileDraft,
   })
 
   if (authStatus === 'loading') {
