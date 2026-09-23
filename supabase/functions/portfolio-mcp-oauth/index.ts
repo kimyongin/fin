@@ -30,7 +30,7 @@ const serverInstructions = [
   'Before a multi-step Portfolio task, use get_workflow_guide when its advertised topic matches the user\'s request; do not repeat the same revision in one conversation.',
   'Report a write as saved only after its tool returns success; retry a lost response with the same idempotency key and re-read after a version conflict.',
   'Treat feedback about the Portfolio product separately from investment records: explicit clear registration requests may be saved directly, while an agent-initiated suggestion requires one user confirmation and must never include transcripts, portfolio data, credentials, or guessed causes.',
-  'Use tasks for future intent and activities for performed work, optional results, and conclusions. Complete a known matching task instead of duplicating the same performance; successful Portfolio mutations already create their own protected activity.',
+  'Use tasks for future intent and activities for performed work. Activity records have a readable Markdown body, optional ordinary tags and navigational task/holding references; they are not classified by hidden kinds. Complete a known matching task instead of duplicating the same performance; successful Portfolio mutations already create their own activity.',
 ].join(' ')
 const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
@@ -240,23 +240,6 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
-  async list_review_activities(supabase, args) {
-    const data = await rpc(supabase, 'app_list_narrative_activities', {
-      input_kind: 'review',
-      input_owner_user_id: null,
-      input_limit: Math.min(Math.max(Number(args.limit) || 20, 1), 50),
-      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
-    })
-    return { ok: true, data }
-  },
-  async list_decision_activities(supabase, args) {
-    const data = await rpc(supabase, 'app_list_narrative_activities', {
-      input_kind: 'decision', input_owner_user_id: null,
-      input_limit: Math.min(Math.max(Number(args.limit) || 20, 1), 50),
-      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
-    })
-    return { ok: true, data }
-  },
   async list_general_tasks(supabase, args) {
     const data = await rpc(supabase, 'app_list_general_task_page', {
       input_filter: optionalString(args.filter) ?? 'active',
@@ -325,12 +308,11 @@ const toolHandlers: Record<string, ToolHandler> = {
       from: optionalString(args.from) ?? null,
       to: optionalString(args.to) ?? null,
       record_state: (optionalString(args.record_state) ?? 'all') as 'all' | 'todo' | 'done',
-      record_kinds: args.record_kinds == null ? [] : requireArray(args.record_kinds, 'record_kinds').map((value) => String(value)),
-      has_conclusion: typeof args.has_conclusion === 'boolean' ? args.has_conclusion : null,
       instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
       account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
+      holding_id: args.holding_id == null ? null : requirePositiveInteger(args.holding_id, 'holding_id'),
       tag_ids: Array.isArray(args.tag_ids) ? args.tag_ids.map((value,index) => requireUuid(value, `tag_ids[${index}]`)) : [],
-      tag_match: (optionalString(args.tag_match) ?? 'all') as 'all' | 'any',
+      tag_match: (optionalString(args.tag_match) ?? 'any') as 'all' | 'any',
       limit: args.limit == null ? 30 : requirePositiveInteger(args.limit, 'limit'),
       cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
       timezone: optionalString(args.timezone) ?? 'Asia/Seoul',
@@ -381,15 +363,13 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_tag_ids: tagIds,
       input_payload: {
         title: requireString(args.title, 'title'),
-        note: optionalString(args.note) ?? null,
-        result: optionalString(args.result) ?? null,
-        conclusion: optionalString(args.conclusion) ?? null,
+        body: optionalString(args.body) ?? null,
         occurred_at: optionalString(args.occurred_at) ?? null,
         timezone: requireString(args.timezone, 'timezone'),
+        task_id: args.task_id == null ? null : requireUuid(args.task_id, 'task_id'),
+        holding_id: args.holding_id == null ? null : requirePositiveInteger(args.holding_id, 'holding_id'),
         instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
         account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
-        category: args.category == null ? 'general' : requireString(args.category, 'category'),
-        context: args.context == null ? null : requireRecord(args.context, 'context'),
         authored_via: 'agent',
       },
     })
@@ -398,7 +378,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   async update_activity(supabase, args) {
     requireSchemaVersion(args)
     const patch = requireRecord(args.patch, 'patch')
-    const allowed = new Set(['title', 'note', 'result', 'conclusion', 'occurred_at', 'timezone', 'instrument_id', 'account_id', 'record_kind', 'context'])
+    const allowed = new Set(['title', 'body', 'occurred_at', 'timezone', 'task_id', 'holding_id', 'instrument_id', 'account_id'])
     for (const key of Object.keys(patch)) if (!allowed.has(key)) throw new ToolInputError(`patch.${key} is not editable`)
     const data = await rpc(supabase, 'app_update_activity', {
       input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),
@@ -409,9 +389,9 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
-  async delete_manual_activity(supabase, args) {
+  async delete_activity(supabase, args) {
     requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_delete_manual_activity', {
+    const data = await rpc(supabase, 'app_delete_activity', {
       input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),
       input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
     })

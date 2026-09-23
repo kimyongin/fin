@@ -6,7 +6,7 @@ const tabIds = new Set(allTabs.map((tab) => tab.id))
 function tabFromHash(fallback = 'overview') {
   if (typeof window === 'undefined') return fallback
   const hash = window.location.hash.replace(/^#/, '').trim()
-  if (hash === 'news' || hash === 'today') return 'tasks'
+  if (['news', 'today', 'decisions', 'activity'].includes(hash)) return 'tasks'
   if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'tags') return 'overview'
   return tabIds.has(hash) ? hash : fallback
 }
@@ -20,10 +20,8 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
     const allowedByTab = {
       overview: features.assets,
       allocation: features.assets || features.strategy,
-      decisions: features.decisions,
-      tasks: features.tasks || features.activity || features.briefings,
+      tasks: features.tasks || features.activity,
       strategy: features.strategy,
-      activity: features.activity,
       feedback: canSubmitFeedback,
       settings: false,
       guide: true,
@@ -35,7 +33,7 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
     const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#/, '').trim()
       const nextTab = tabFromHash()
-      if (hash === 'today' || hash === 'news') window.history.replaceState(null, '', '#tasks')
+      if (['today', 'news', 'decisions', 'activity'].includes(hash)) window.history.replaceState(null, '', '#tasks')
       if (hash === 'accounts' || hash === 'instruments' || hash === 'tags' || hash === 'sheet' || hash === 'overview') {
         if (hash !== 'overview') window.history.replaceState(null, '', '#overview')
       }

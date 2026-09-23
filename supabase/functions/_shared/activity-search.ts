@@ -16,11 +16,9 @@ type SearchArgs = {
   from?: string | null
   to?: string | null
   record_state?: 'all' | 'todo' | 'done'
-  record_kind?: string
-  record_kinds?: string[]
-  has_conclusion?: boolean | null
   instrument_id?: number | null
   account_id?: number | null
+  holding_id?: number | null
   tag_ids?: string[]
   tag_match?: 'all' | 'any'
   limit?: number
@@ -42,13 +40,11 @@ function rpcParams(args: SearchArgs) {
     input_from: args.from || null,
     input_to: args.to || null,
     input_record_state: args.record_state ?? 'all',
-    input_record_kind: args.record_kind ?? 'all',
-    input_record_kinds: args.record_kinds ?? null,
-    input_has_conclusion: typeof args.has_conclusion === 'boolean' ? args.has_conclusion : null,
     input_instrument_id: args.instrument_id ?? null,
     input_account_id: args.account_id ?? null,
+    input_holding_id: args.holding_id ?? null,
     input_tag_ids: args.tag_ids ?? [],
-    input_tag_match: args.tag_match ?? 'all',
+    input_tag_match: args.tag_match ?? 'any',
     input_limit: Math.min(Math.max(args.limit ?? 30, 1), 100),
     input_cursor: args.cursor ?? null,
     input_timezone: args.timezone ?? 'Asia/Seoul',
@@ -80,7 +76,7 @@ export async function hybridSearchActivities(client: SupabaseClientLike, args: S
   const keyword = await rpc(client, 'app_search_activities', params)
   const keywordItems = Array.isArray(keyword.items) ? keyword.items as SearchItem[] : []
   const query = args.query?.trim()
-  if (!query || args.cursor || args.record_state === 'todo' || (args.record_kinds?.length ?? 0) > 0 || (!args.record_kinds && args.record_kind && args.record_kind !== 'all')) {
+  if (!query || args.cursor || args.record_state === 'todo') {
     return { ...keyword, semantic_status: query ? 'keyword_page' : 'not_requested', indexed_count: 0 }
   }
 
@@ -104,11 +100,11 @@ export async function hybridSearchActivities(client: SupabaseClientLike, args: S
       input_owner_user_id: args.owner_user_id ?? null,
       input_from: args.from || null,
       input_to: args.to || null,
-      input_has_conclusion: typeof args.has_conclusion === 'boolean' ? args.has_conclusion : null,
       input_instrument_id: args.instrument_id ?? null,
       input_account_id: args.account_id ?? null,
+      input_holding_id: args.holding_id ?? null,
       input_tag_ids: args.tag_ids ?? [],
-      input_tag_match: args.tag_match ?? 'all',
+      input_tag_match: args.tag_match ?? 'any',
       input_limit: Math.min(Math.max(args.limit ?? 30, 1), 100),
       input_timezone: args.timezone ?? 'Asia/Seoul',
     })

@@ -9,7 +9,7 @@ test('navigates the authenticated browser through strategy, activity, and settin
   const policy = await callRpc(page, 'app_get_sharing_policy')
   await callRpc(page, 'app_update_sharing_policy', {
     input_expected_version: policy.body.version,
-    input_grants: { briefings: false, decisions: false, tasks: false },
+    input_grants: { activity: false, tasks: false },
   })
 
   async function openTab(label, title) {
@@ -20,12 +20,12 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await openTab('원칙', '원칙')
   await openTab('활동', '활동')
   await openTab('설정', '설정')
-  const reviewSharing = page.getByRole('button', { name: '투자 점검 기록도 공유' })
+  const reviewSharing = page.getByRole('button', { name: '활동 공유' })
   await expect(reviewSharing).toHaveAttribute('aria-pressed', 'false')
   await reviewSharing.click()
   await expect(reviewSharing).toHaveAttribute('aria-pressed', 'true')
   const sharingPolicy = await callRpc(page, 'app_get_sharing_policy')
-  expect(sharingPolicy.body.grants).toMatchObject({ briefings: true, decisions: true, tasks: true })
+  expect(sharingPolicy.body.grants).toMatchObject({ activity: true, tasks: false })
   await reviewSharing.click()
   await expect(reviewSharing).toHaveAttribute('aria-pressed', 'false')
   await expect(page.getByText(/^버전 \d{8}T\d{6}Z$/)).toBeVisible()
@@ -41,13 +41,13 @@ test('routes old news links to the research activity flow', async ({ page }) => 
   const title = `E2E 조사 활동 ${Date.now()}`
   const created = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
-    input_payload: { title, category: 'research', note: '공식 자료 확인', authored_via: 'app', timezone: 'Asia/Seoul' },
+    input_payload: { title, body: '공식 자료 확인', authored_via: 'app', timezone: 'Asia/Seoul' },
   })
   expect(created.status, JSON.stringify(created.body)).toBe(200)
   await page.reload()
   await expect(page.getByRole('button', { name: title, exact: true })).toBeVisible()
   const detail = await callRpc(page, 'app_get_activity', { input_activity_id: created.body.id, input_owner_user_id: null })
-  expect(detail.body.record_kind).toBe('research')
+  expect(detail.body.body).toBe('공식 자료 확인')
 })
 
 test('guides a new user from empty assets through OAuth setup and first review', async ({ page }) => {
@@ -313,7 +313,7 @@ test('keeps holdings, instrument detail, allocation and spreadsheet within suppo
     await page.getByRole('button', { name: /E2E Apple/ }).click()
     await expect(page.getByRole('dialog', { name: 'E2E Apple' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-    await page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button', { name: '닫기' }).click()
+    await page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button', { name: '닫기' }).first().click()
     await openMenuTab(page, '배분')
     await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 배분/ })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)

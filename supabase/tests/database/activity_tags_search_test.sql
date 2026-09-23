@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(33);
+select extensions.plan(29);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001911','authenticated','authenticated','activity-search-owner@example.com','',now(),now(),now()),
@@ -18,7 +18,7 @@ select extensions.throws_ok(
 );
 
 select public.app_create_activity('20444444-4444-4444-8444-444444444444',jsonb_build_object(
-  'title','삼성전자 실적 확인','result','이익 증가','conclusion','보유 유지','timezone','Asia/Seoul','authored_via','app'));
+  'title','삼성전자 실적 확인','body','이익 증가. 보유 유지','timezone','Asia/Seoul','authored_via','app'));
 select extensions.is(public.app_set_activity_tags(
   (select id from activity_events where title='삼성전자 실적 확인'),1,
   array[(select id from activity_tags where name='실적')],
@@ -45,22 +45,18 @@ select extensions.is(public.app_set_general_task_tags(
 )#>>'{tags,0,name}','실적','later task tag edits are allowed');
 select extensions.is((select tag.name from activity_event_tags relation join activity_events event on event.id=relation.activity_event_id join activity_tags tag on tag.id=relation.tag_id where event.action_type='complete_general_task'),'확인','later task tag edits do not rewrite past completion tags');
 
-select extensions.is(jsonb_array_length(public.app_search_activities(null,'삼성전자',null,null,'done',null,null,null,null,'all',30,null,'Asia/Seoul')->'items'),1,'keyword search finds current activity text');
-select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'삼성전자',input_record_kind=>'general')->'items'),1,'kind filter keeps matching general activity');
-select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'삼성전자',input_record_kind=>'review')->'items'),0,'kind filter excludes other activity kinds before pagination');
-select extensions.throws_ok($$select public.app_search_activities(input_record_kind=>'unknown')$$,'P0001','Invalid activity record kind','unknown kinds are rejected');
-select extensions.is((public.app_search_activities(null,'보유 유지',null,null,'done',true,null,null,null,'all',30,null,'Asia/Seoul')#>>'{items,0,title}'),'삼성전자 실적 확인','conclusion search and filter find the activity');
-select extensions.is(jsonb_array_length(public.app_search_activities(null,null,null,null,'done',null,null,null,array[(select id from activity_tags where name='실적')],'all',30,null,'Asia/Seoul')->'items'),1,'tag filter finds the tagged activity');
-select extensions.is(jsonb_array_length(public.app_search_activities(null,'시세',null,null,'todo',null,null,null,null,'all',30,null,'Asia/Seoul')->'items'),0,'completed recurring occurrence is not still a todo today');
-select extensions.is(jsonb_array_length(public.app_search_activities(null,'변화 없음',null,null,'done',null,null,null,null,'all',30,null,'Asia/Seoul')->'items'),1,'completion result is searchable');
-select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['general','task'])->'items'),2,'multiple kinds include both manual activity and completed task');
-select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['review','research'])->'items'),0,'multiple nonmatching kinds exclude other kinds');
-select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['general','task'],input_query=>'삼성전자')->'items'),1,'kind OR is intersected with keyword');
-select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['general','task'],input_has_conclusion=>true)->'items'),1,'kind OR is intersected with conclusion');
-select extensions.is(jsonb_array_length(public.app_search_activities(input_record_kinds=>array['general','task'],input_limit=>1,input_cursor=>public.app_search_activities(input_record_kinds=>array['general','task'],input_limit=>1)->'next_cursor')->'items'),1,'multiple kinds paginate without losing matches');
-select extensions.throws_ok($$select public.app_search_activities(input_record_kinds=>array['review','invalid'])$$,'P0001','Invalid activity record kinds','invalid array kind rejected');
-select extensions.ok(exists(select 1 from jsonb_array_elements(public.app_list_action_timeline()->'days') d cross join lateral jsonb_array_elements(d->'items') i where i->>'title'='삼성전자 실적 확인' and i->>'record_kind'='general'),'timeline includes current title and persisted kind');
-select extensions.ok((public.app_search_activities(null,null,null,null,'all',null,null,null,null,'all',1,null,'Asia/Seoul')->'next_cursor') is not null,'combined search has stable pagination');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'삼성전자',input_record_state=>'done')->'items'),1,'keyword search finds current activity title');
+select extensions.is((public.app_search_activities(input_query=>'보유 유지',input_record_state=>'done')#>>'{items,0,title}'),'삼성전자 실적 확인','body text is searchable');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_record_state=>'done',input_tag_ids=>array[(select id from activity_tags where name='실적')])->'items'),1,'tag filter finds the tagged activity');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_record_state=>'done',input_tag_ids=>array[(select id from activity_tags where name='실적'),(select id from activity_tags where name='확인')])->'items'),2,'multiple tags match any by default');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_record_state=>'done',input_tag_ids=>array[(select id from activity_tags where name='실적'),(select id from activity_tags where name='확인')],input_tag_match=>'all')->'items'),0,'all-tag option requires every selected tag');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'시세',input_record_state=>'todo')->'items'),0,'completed recurring occurrence is not still a todo today');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'변화 없음',input_record_state=>'done')->'items'),1,'completion body is searchable');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'삼성전자',input_record_state=>'done',input_tag_ids=>array[(select id from activity_tags where name='확인')])->'items'),0,'keyword and tag conditions intersect before pagination');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_record_state=>'done',input_limit=>1,input_cursor=>public.app_search_activities(input_record_state=>'done',input_limit=>1)->'next_cursor')->'items'),1,'tagless results paginate without losing matches');
+select extensions.throws_ok($$select public.app_search_activities(input_tag_match=>'invalid')$$,'P0001','Invalid activity tag match','invalid tag match is rejected');
+select extensions.ok(exists(select 1 from jsonb_array_elements(public.app_list_action_timeline()->'days') d cross join lateral jsonb_array_elements(d->'items') i where i->>'title'='삼성전자 실적 확인' and i->>'body'='이익 증가. 보유 유지'),'timeline includes readable body rather than a kind');
+select extensions.ok((public.app_search_activities(input_record_state=>'done',input_limit=>1)->'next_cursor') is not null,'combined search has stable pagination');
 
 select extensions.is(public.app_save_activity_tag(
   (select id from activity_tags where name='실적'),1,'20aaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','기업 실적'
@@ -72,7 +68,7 @@ select extensions.is(public.app_delete_activity_tag(
 select extensions.is((select count(*) from activity_event_tags relation join activity_tags tag on tag.id=relation.tag_id where tag.name='확인'),0::bigint,'tag deletion removes relation rows');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001912',true);
-select extensions.is(jsonb_array_length(public.app_search_activities(null,'삼성전자',null,null,'all',null,null,null,null,'all',30,null,'Asia/Seoul')->'items'),0,'search never returns another owner data');
+select extensions.is(jsonb_array_length(public.app_search_activities(input_query=>'삼성전자')->'items'),0,'search never returns another owner data');
 select extensions.is(jsonb_array_length(public.app_list_activity_tags(null)),0,'tag dictionary is owner isolated');
 
 select * from extensions.finish();

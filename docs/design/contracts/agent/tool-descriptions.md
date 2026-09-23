@@ -2,7 +2,7 @@
 
 > 실행 가능한 description/inputSchema/outputSchema/annotations의 단일 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`다. 이 문서는 제품 의도와 과거 문구의 검토 카탈로그이며, 문구를 런타임 계약으로 복사하거나 현재 제공 기능으로 간주하지 않는다. 실제 제공 상태는 OAuth `tools/list`와 공통 정의의 자동 테스트에서 확인한다.
 
-revision 12 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
+revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 동작의 원본은 상위 API 계약이다. 입력 필드 전체를 여기에 복제하지 않는다.
 
 ## 설명 작성 형식
 
@@ -23,10 +23,8 @@ revision 12 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | list_recent_activity / observed-local | 본인의 최근 데이터 변경을 조회합니다. 활동 기록을 투자 결정이나 실제 증권사 체결 증명으로 해석하지 않습니다. | W06,W08 |
 | submit_product_feedback / observed-local | 사용자가 명시적으로 요청했거나 에이전트의 한 번의 요약 제안에 동의한 Portfolio 제품 피드백을 비공개로 저장합니다. 대화 전문·투자 데이터·인증정보·추정 원인을 첨부하거나 GitHub에 공개하지 않습니다. | W09 |
 | list_my_product_feedback / observed-local | 본인이 남긴 제품 피드백의 상태·운영자 답변·연결 이슈만 조회합니다. 타인의 접수나 관리자 큐를 노출하지 않습니다. | W09 |
-| get_daily_context / local | 현재 보유·원칙·개인 보유 메모·열린 할 일·저장된 점검/판단 활동을 저장 없이 읽습니다. 분석 저장·잔고 확인은 기록하지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
-| list_review_activities / observed-local | 본인이 명시적으로 저장한 점검 활동을 최신순으로 읽습니다. 조회 자체는 기록하지 않으며 현재 가격·뉴스를 대신하지 않습니다. | W01,W08 |
-| list_decision_activities / local | 저장된 판단 활동을 최신순으로 읽습니다. 제안과 사용자의 채택을 구분하고 별도 후속 할 일은 일반 할 일에서 읽습니다. | W03,W08 |
-| get_activity, update_activity / local | 소유자의 판단 활동을 상세 조회·정정합니다. 제안의 채택은 사용자가 고른 안과 이유를 활동 문맥에 남기며 주문·체결·원칙을 변경하지 않습니다. | W03 |
+| get_daily_context / local | 현재 보유·원칙·개인 보유 메모·열린 할 일·최근 활동을 저장 없이 읽습니다. 최근 활동은 점검/판단 종류로 분류되지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
+| get_activity, update_activity / local | 활동 제목·마크다운 본문·날짜·허용된 대상 참조를 조회·정정합니다. 자동 활동의 본문 정정도 실제 잔고나 할 일 상태를 바꾸지 않습니다. | W03 |
 | list_operating_rules / removed | 별도 운영 규칙 조회를 제거했다. `list_principles`의 현재 마크다운 본문에서 관련 규칙과 적용 맥락을 읽습니다. | W06 |
 | save_operating_rule / removed | 별도 운영 규칙 저장을 제거했다. 사용자가 승인한 규칙은 `save_principle`로 저장합니다. | W06 |
 | archive_operating_rule / removed | 별도 보관 상태를 제거했다. 해당 원칙에 `end=true`를 저장합니다. | W06 |
@@ -34,16 +32,16 @@ revision 12 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_general_task / observed-local | 일반 할 일의 현재 상태·버전과 연결된 실제 수행 활동을 읽습니다. 별도 수정 이력은 저장하지 않으며 조회로 회차를 완료하거나 재개하지 않습니다. | A02,A04 |
 | save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 독립된 할 일로 저장합니다. | A02,A04 |
 | transition_general_task / observed-local | 현재 version과 회차 날짜를 확인해 일반 할 일의 이번 완료・잘못된 완료 해제・반복 전체 종료를 처리합니다. 반복 종료는 수행하지 않은 회차의 완료 기록을 만들지 않으며, 같은 일을 manual activity로 중복 기록하지 않습니다. | A02,A04 |
-| get_activity / observed-local | 활동의 현재 제목·메모·결과·결론, 편집 허용 필드와 조회 권한이 있는 관련 할 일 요약을 조회합니다. 판단 활동 자체가 판단 기록의 정본입니다. | A03 |
-| record_manual_activity / observed-local | 이미 수행한 일을 일반·조사·점검·판단·회고 중 하나의 활동으로 기록합니다. 판단은 category=decision과 문맥의 제안/명시적 채택을 구분합니다. 점검은 category=review, 조사 상태·범위·출처는 context로 기록합니다. 분류만으로 잔고·체결·검증 사실을 만들 수 없습니다. | A03,W01,W03 |
-| update_activity / observed-local | 같은 수행의 현재 활동을 수정합니다. 수동 기록은 비금융 분류와 출처/범위도 정정할 수 있지만, 할 일 완료·금융 자동 기록의 분류와 원본 사실은 보호합니다. | A03 |
-| delete_manual_activity / observed-local | 명시적으로 요청받은 수동 활동만 삭제합니다. 기존 할 일과 회고 본문은 유지하고 검색·임베딩에서는 제거합니다. 매매·잔고·할 일 완료 기록은 이 도구로 삭제하지 않습니다. | A03 |
-| search_activities / observed-local | 할 일과 기록을 기간·상태·결론·종목·계좌·활동 태그·키워드로 함께 검색합니다. 선택적 `record_kinds` 배열 내부는 OR, 다른 조건과는 AND이며 빈 배열은 전체 종류입니다. 종류 조건이 있으면 키워드 검색만 적용합니다. 그 외 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 실행 여부를 알립니다. 공유 점검은 공개 요약만 검색하며 비공개 메모·태그·출처는 제외합니다. | A03,A06 |
+| get_activity / observed-local | 활동의 현재 제목·본문·날짜·태그와 권한이 있는 관련 할 일·보유 참조를 조회합니다. | A03 |
+| record_manual_activity / observed-local | 이미 수행한 일을 제목·마크다운 본문·날짜·일반 태그·선택적 대상 참조로 기록합니다. 태그나 참조만으로 잔고·체결·할 일 완료 사실을 만들 수 없습니다. | A03,W01,W03 |
+| update_activity / observed-local | 같은 기록의 제목·본문·날짜·참조를 정정합니다. 수동/자동 기록 모두 실제 금융·할 일 상태와 독립입니다. | A03 |
+| delete_activity / local | 명시적으로 확인받은 기록을 목록·검색에서 제거합니다. 자동 기록도 삭제 가능하지만 실제 잔고·체결·할 일 완료와 금융 재시도 영수증은 유지합니다. | A03 |
+| search_activities / observed-local | 할 일과 기록을 기간·상태·종목·계좌·보유·활동 태그·키워드로 함께 검색합니다. 복수 태그는 기본 OR, 선택적 AND이며 다른 조건과는 AND입니다. 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 알려줍니다. 활동 공유만으로 관련 할 일/보유 상세를 노출하지 않습니다. | A03,A06 |
 | list_activity_tags, save_activity_tag, delete_activity_tag / observed-local | 자산 배분과 분리된 사용자 활동 태그 사전을 조회·추가·이름 변경·삭제합니다. | A03 |
 | set_activity_tags, set_general_task_tags / observed-local | 활동 또는 일반 할 일의 태그 집합을 교체합니다. 완료 시 현재 태그만 복사되고 과거 회차는 바뀌지 않습니다. | A03 |
 | get_activity_report_context / observed-local | 지정 기간 활동의 최신 현재 내용과 태그를 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |
-| search_activities + get_activity / observed-local | 저장된 회고 활동(`retrospective`)을 다른 활동과 함께 찾고 읽습니다. 별도 리포트 목록/재생성 상태는 없습니다. | A06 |
-| record_manual_activity / observed-local | 사용자가 저장을 요청한 기간 회고를 `retrospective` 활동으로 기록합니다. 실제 거래나 할 일을 만들지 않습니다. | A06 |
+| search_activities + get_activity / observed-local | 저장된 회고를 날짜·키워드·선택적 일반 태그로 다른 활동과 함께 찾고 읽습니다. 별도 리포트 목록/재생성 상태는 없습니다. | A06 |
+| record_manual_activity / observed-local | 사용자가 저장을 요청한 기간 회고를 일반 활동 본문으로 기록합니다. 실제 거래나 할 일을 만들지 않습니다. | A06 |
 | get_holding_thesis / removed | 구 보유 이유 조회 도구와 DB RPC를 제거했다. `list_private_holding_notes`를 사용합니다. | W02 |
 | save_holding_thesis / removed | 구 보유 이유 저장 도구와 DB RPC를 제거했다. `save_private_holding_note`를 사용합니다. | W02 |
 | link_task_to_holding_thesis / removed | 구 보유 이유-할 일 연결 도구와 DB RPC를 제거했다. 필요한 후속 할 일은 직접 등록합니다. | W02,W04 |

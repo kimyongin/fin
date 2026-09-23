@@ -4,10 +4,11 @@ import ModalShell from '../../components/ModalShell'
 import ModalActions from '../../components/ModalActions'
 import { businessDate } from '../../lib/businessDate'
 import ActivityTagPicker from './ActivityTagPicker'
+import ActivityReferences from './ActivityReferences'
 
 export default function GeneralActionModal({ kind, onClose, onKindChange, onRetryTags, onSave, onTagsChanged, saving, supabase, tags, tagsError = '', tagsLoading = false }) {
   const today = businessDate()
-  const [draft, setDraft] = useState({ title: '', result: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', tagIds: [] })
+  const [draft, setDraft] = useState({ title: '', body: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', tagIds: [], taskId: null, holdingId: null })
   const [tagsExpanded, setTagsExpanded] = useState(false)
   const initialDraft = useRef(draft)
   const isTask = kind === 'task'
@@ -36,7 +37,7 @@ export default function GeneralActionModal({ kind, onClose, onKindChange, onRetr
     <fieldset className="grid min-w-0 gap-4" disabled={saving}>
       <p className="text-sm leading-6 text-[var(--muted-ink)]">{isTask ? '앞으로 할 일을 등록합니다. 완료하면 기록이 연결됩니다.' : '이미 수행한 내용을 기록합니다.'}</p>
       <label className={labelClass}>{isTask ? '할 일 제목' : '기록 제목'}<input autoFocus className={inputClass} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
-      <label className={labelClass}>{isTask ? '확인할 때' : '기록 내용'}<textarea className={inputClass} onChange={(event) => setDraft({ ...draft, [isTask ? 'triggerText' : 'result']: event.target.value })} rows={3} value={isTask ? draft.triggerText : draft.result} /></label>
+      <label className={labelClass}>{isTask ? '확인할 때' : '기록 내용'}<textarea className={inputClass} maxLength={isTask ? undefined : 25000} onChange={(event) => setDraft({ ...draft, [isTask ? 'triggerText' : 'body']: event.target.value })} rows={5} value={isTask ? draft.triggerText : draft.body} /></label>
       <fieldset>
         <legend className="text-xs text-[var(--muted-ink)]">옵션</legend>
         <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1">
@@ -46,6 +47,7 @@ export default function GeneralActionModal({ kind, onClose, onKindChange, onRetr
       </fieldset>
       {isTask && <label className={labelClass}>{draft.recurrenceKind === 'daily' ? '반복 시작일' : '예정일'}<input className={inputClass} onChange={(event) => setDraft({ ...draft, scheduleDate: event.target.value })} type="date" value={draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : draft.scheduleDate} /></label>}
       {!isTask && <label className={labelClass}>수행일<input className={inputClass} max={today} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
+      {!isTask && <ActivityReferences disabled={saving} holdingId={draft.holdingId} onHoldingChange={(holdingId) => setDraft((current) => ({ ...current, holdingId }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} />}
       <section className="border-t border-[var(--line)] pt-3"><button aria-expanded={tagsExpanded || Boolean(tagsError)} className="flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold" onClick={() => setTagsExpanded((open) => !open)} type="button">태그{draft.tagIds.length ? ` · ${draft.tagIds.map((id) => tags.find((tag) => tag.id === id)?.name).filter(Boolean).join(', ')}` : ''}<span aria-hidden="true">{tagsExpanded ? '−' : '+'}</span></button>{(tagsExpanded || tagsError) && <div className="mt-3">{tagsLoading && <p className="text-sm text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="flex items-center gap-3 text-sm text-red-200"><span>{tagsError}</span><button className="min-h-11 rounded-2xl border border-red-400/40 px-3" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker disabled={saving || tagsLoading || Boolean(tagsError)} onChange={(tagIds) => setDraft({ ...draft, tagIds })} onTagsChanged={(nextTags, tagIds) => { onTagsChanged(nextTags); setDraft((current) => ({ ...current, tagIds })) }} selectedIds={draft.tagIds} supabase={supabase} tags={tags} /></div>}</section>
     </fieldset>
   </ModalShell>

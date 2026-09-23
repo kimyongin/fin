@@ -165,7 +165,7 @@ export function ActivityEvent({ action, onOpenActivity }) {
   const tagChips = action.tags?.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--muted-ink)]" key={tag.id}>{tag.name}</span>)
   if (onOpenActivity) {
     const meta = <>{tagChips?.slice(0, 3)}{(tagChips?.length ?? 0) > 3 && <span className="text-xs text-[var(--muted-ink)]">+{tagChips.length - 3}</span>}{action.status === 'failed' && <span className="text-red-200">실패</span>}</>
-    return <TimelineEntry ariaLabel={eventTarget(action)} meta={meta} occurredAt={action.occurred_at ?? action.created_at} onOpen={() => onOpenActivity(action)} summary={action.result || action.conclusion || action.note} title={eventTarget(action)} />
+    return <TimelineEntry ariaLabel={eventTarget(action)} meta={meta} occurredAt={action.occurred_at ?? action.created_at} onOpen={() => onOpenActivity(action)} summary={action.body || action.result || action.conclusion || action.note} title={eventTarget(action)} />
   }
   const failed = action.status === 'failed'
   const narrativeActivity = ['record_manual_activity', 'complete_general_task'].includes(action.action_type)

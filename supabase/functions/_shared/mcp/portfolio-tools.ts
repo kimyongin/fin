@@ -137,110 +137,6 @@ const nonNegativeDecimalStringSchema = {
   pattern: '^(?:0|[1-9][0-9]*)(?:\\.[0-9]{1,16})?$',
   description: 'A non-negative decimal encoded as a string; JSON numbers are not accepted.',
 }
-const briefingItemSchema = {
-  description: 'A concise displayable item. Prefer summary; title and body remain accepted for existing clients.',
-  oneOf: [
-    { type: 'string', minLength: 1, maxLength: 4000 },
-    {
-      type: 'object',
-      properties: {
-        summary: { type: 'string', minLength: 1, maxLength: 4000 },
-        title: { type: 'string', minLength: 1, maxLength: 500 },
-        body: { type: 'string', minLength: 1, maxLength: 4000 },
-        subject: { type: 'string', maxLength: 500 },
-        impact: { type: 'string', maxLength: 4000 },
-      },
-      anyOf: [{ required: ['summary'] }, { required: ['title'] }, { required: ['body'] }],
-      additionalProperties: true,
-    },
-  ],
-}
-
-const evidenceSchema = {
-  type: 'object',
-  properties: {
-    local_key: { type: 'string', minLength: 1, maxLength: 100 },
-    source_url: { type: 'string', pattern: '^https?://' },
-    source_title: { type: 'string', minLength: 1, maxLength: 500 },
-    source_name: { type: 'string' },
-    published_at: { type: ['string', 'null'], format: 'date-time' },
-    checked_at: { type: 'string', format: 'date-time' },
-    fact_summary: { type: 'string', minLength: 1, maxLength: 4000 },
-    facts: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['local_key', 'source_url', 'source_title', 'checked_at', 'fact_summary'],
-  additionalProperties: false,
-}
-
-const checkedSourceSchema = {
-  type: 'object',
-  properties: {
-    source_url: { type: 'string', pattern: '^https?://' },
-    checked_at: { type: 'string', format: 'date-time' },
-    outcome: { type: 'string', enum: ['checked', 'failed'] },
-    note: { type: 'string' },
-  },
-  required: ['source_url', 'checked_at', 'outcome'],
-  additionalProperties: false,
-}
-
-const scopeSchema = {
-  type: 'object',
-  properties: {
-    local_key: { type: 'string', minLength: 1, maxLength: 100 },
-    subject: {
-      type: 'object',
-      properties: {
-        kind: { type: 'string', enum: ['portfolio', 'instrument', 'category', 'account'] },
-        ref: { type: 'string' },
-      },
-      required: ['kind'],
-      additionalProperties: false,
-    },
-    window_from: { type: 'string', format: 'date-time' },
-    window_to: { type: 'string', format: 'date-time' },
-    coverage: { type: 'string', enum: ['sufficient', 'partial', 'unverified'] },
-    reason: { type: 'string' },
-    checked_at: { type: 'string', format: 'date-time' },
-    evidence_keys: {
-      type: 'array',
-      items: { type: 'string', minLength: 1, maxLength: 100 },
-      uniqueItems: true,
-    },
-    checked_sources: { type: 'array', items: checkedSourceSchema },
-  },
-  required: [
-    'local_key',
-    'subject',
-    'window_from',
-    'window_to',
-    'coverage',
-    'checked_at',
-    'evidence_keys',
-    'checked_sources',
-  ],
-  additionalProperties: false,
-}
-
-const briefingSchema = {
-  type: 'object',
-  properties: {
-    headline: { type: 'string', minLength: 1, maxLength: 500 },
-    status: { type: 'string', enum: ['no_action', 'attention', 'insufficient_data'] },
-    changes: { type: 'array', maxItems: 20, items: briefingItemSchema },
-    uncertainties: { type: 'array', maxItems: 20, items: briefingItemSchema },
-    evidence_keys: {
-      type: 'array',
-      items: { type: 'string', minLength: 1, maxLength: 100 },
-      uniqueItems: true,
-    },
-    decision_ids: { type: 'array', maxItems: 0, items: { type: 'string' } },
-    task_ids: { type: 'array', maxItems: 0, items: { type: 'string' } },
-  },
-  required: ['headline', 'status', 'changes', 'uncertainties'],
-  additionalProperties: false,
-}
-
 const dailyContextOutputSchema = successEnvelope({
   type: 'object',
   properties: {
@@ -253,60 +149,13 @@ const dailyContextOutputSchema = successEnvelope({
     principles: { type: 'array' },
     private_holding_notes: { type: 'array' },
     open_tasks: { type: 'array' },
-    last_review: { type: ['object', 'null'] },
-    recent_reviews: { type: 'array' },
-    recent_decisions: { type: 'array' },
+    last_activity: { type: ['object', 'null'] },
+    recent_activities: { type: 'array' },
   },
-  required: ['as_of', 'review_date', 'timezone', 'requested_subject_tickers', 'portfolio', 'strategy', 'principles', 'private_holding_notes', 'open_tasks', 'last_review', 'recent_reviews', 'recent_decisions'],
+  required: ['as_of', 'review_date', 'timezone', 'requested_subject_tickers', 'portfolio', 'strategy', 'principles', 'private_holding_notes', 'open_tasks', 'last_activity', 'recent_activities'],
   additionalProperties: false,
 })
 
-const dailyBriefingOutputSchema = successEnvelope({
-  type: 'object',
-  properties: {
-    id: idSchema,
-    review_date: { type: 'string', format: 'date' },
-    timezone: { type: 'string' },
-    analyzed_at: timestampSchema,
-    status: { type: 'string', enum: ['no_action', 'attention', 'insufficient_data'] },
-    coverage_status: { type: 'string', enum: ['complete', 'partial', 'failed'] },
-    headline: { type: 'string' },
-    changes: { type: 'array', items: briefingItemSchema },
-    uncertainties: { type: 'array', items: briefingItemSchema },
-    evidence: { type: 'array' },
-    scopes: { type: 'array' },
-  },
-  required: ['id', 'review_date', 'timezone', 'analyzed_at', 'status', 'coverage_status', 'headline', 'changes', 'uncertainties', 'evidence', 'scopes'],
-  additionalProperties: true,
-})
-
-const dailyBriefingListOutputSchema = successEnvelope({
-  type: 'array',
-  items: {
-    type: 'object',
-    properties: {
-      id: idSchema,
-      review_date: { type: 'string', format: 'date' },
-      timezone: { type: 'string' },
-      analyzed_at: timestampSchema,
-      status: { type: 'string', enum: ['no_action', 'attention', 'insufficient_data'] },
-      coverage_status: { type: 'string', enum: ['complete', 'partial', 'failed'] },
-      headline: { type: 'string' },
-      supersedes_id: { type: ['string', 'null'], format: 'uuid' },
-      created_at: timestampSchema,
-    },
-    required: ['id', 'review_date', 'timezone', 'analyzed_at', 'status', 'coverage_status', 'headline', 'supersedes_id', 'created_at'],
-    additionalProperties: false,
-  },
-})
-
-const analyzedAtCursorSchema = {
-  type: ['object', 'null'],
-  properties: { analyzed_at: timestampSchema, id: idSchema },
-  required: ['analyzed_at', 'id'],
-  additionalProperties: false,
-  description: 'Use null for the first cursor page, then pass next_cursor unchanged.',
-}
 const createdAtCursorSchema = {
   type: ['object', 'null'],
   properties: { created_at: timestampSchema, id: idSchema },
@@ -506,7 +355,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_daily_context',
     title: 'Prepare daily review context',
-    description: 'Read current owner-only holdings, principles, private holding notes, open tasks, and saved review/decision activities for a requested review. This does not create a stored snapshot, save an analysis, or mark a review complete. ChatGPT researches current external news itself.',
+    description: 'Read current owner-only holdings, principles, private holding notes, open tasks, and recent activities for a requested review. These are not pre-classified as reviews or decisions. This does not create a stored snapshot, save an analysis, or mark a review complete. ChatGPT researches current external news itself.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -524,36 +373,6 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       additionalProperties: false,
     },
     outputSchema: dailyContextOutputSchema,
-    annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'list_review_activities',
-    title: 'Saved portfolio review activities',
-    description: 'Read saved review activities newest first, with stable cursor pagination. These are user-requested saved analyses, not a live news search. Current holdings and prices must be checked separately. Review status and checked coverage are in context; missing or failed research is not no_action. This read never records a review or a brokerage verification.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
-        cursor: { type: ['object', 'null'], properties: { occurred_at: { type: 'string', format: 'date-time' }, id: { type: 'integer', minimum: 1 } }, required: ['occurred_at', 'id'], additionalProperties: false },
-      },
-      additionalProperties: false,
-    },
-    outputSchema: successEnvelopeSchema,
-    annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'list_decision_activities',
-    title: 'Saved investment decision activities',
-    description: 'List saved decision activities newest first. A model proposal is not a user-adopted choice. Read the current activity before editing it; a follow-up task is separate. This read does not place an order, create a trade, or change holdings.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
-        cursor: { type: ['object', 'null'], properties: { occurred_at: { type: 'string', format: 'date-time' }, id: { type: 'integer', minimum: 1 } }, required: ['occurred_at', 'id'], additionalProperties: false },
-      },
-      additionalProperties: false,
-    },
-    outputSchema: successEnvelopeSchema,
     annotations: readOnlyAnnotations,
   },
   {
@@ -588,7 +407,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_activity',
     title: 'Activity detail',
-    description: 'Read one activity with its current title, note, result, conclusion, and the related original task summary when that task is viewable. A decision activity is itself the decision record; distinguish model proposals from explicit user adoption in context.decision_state. Use editable_fields and version before an update. Reading never creates a task, changes financial facts, or marks anything complete.',
+    description: 'Read one activity with its current title, Markdown body, date, tags, and permitted task or holding reference. Read the body as a user-maintained record, not as authority to execute a trade or complete a task. Related task/holding details require their own permission. Use version before an update; reading changes nothing.',
     inputSchema: {
       type: 'object',
       properties: { activity_id: { type: 'integer', minimum: 1 } },
@@ -601,15 +420,15 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'search_activities',
     title: 'Search tasks and performed activities',
-    description: 'Search future tasks and performed activities through one owner-scoped query. record_kinds selects any of the given kinds (OR); omit it or pass [] for all kinds. Combine kinds with keywords, dates, task-versus-done state, conclusion presence, account, instrument, and activity tags (AND across these conditions). Kind-filtered searches use keyword matching; without kinds, semantic similarity may supplement the first completed-activity page. semantic_status reports whether it ran. Filters and sharing checks run before pagination. Pass next_cursor unchanged and never treat an unavailable semantic pass or an error as no history.',
+    description: 'Search future tasks and performed records with keyword, date, todo/done state, related account/instrument/holding, and ordinary activity tags. Selected tags match any (OR) by default; tag_match=all requires every selected tag. Different filter dimensions combine with AND before pagination. Semantic similarity may supplement the first completed-activity page; semantic_status says whether it ran. Pass next_cursor unchanged and never treat an unavailable semantic pass or an error as no history. There are no built-in activity kinds or reserved tag names.',
     inputSchema: { type: 'object', properties: {
       query: { type: ['string','null'], maxLength: 500 }, from: { type: ['string','null'], format: 'date' }, to: { type: ['string','null'], format: 'date' },
-      record_state: { type: 'string', enum: ['all','todo','done'], default: 'all' }, has_conclusion: { type: ['boolean','null'] },
-      record_kinds: { type: 'array', maxItems: 8, uniqueItems: true, items: { type: 'string', enum: ['general','research','review','decision','retrospective','trade','reconciliation','task'] }, description: 'Match any selected kind. Empty or omitted means all kinds.' },
+      record_state: { type: 'string', enum: ['all','todo','done'], default: 'all' },
       instrument_id: { type: ['integer','null'], minimum: 1 }, account_id: { type: ['integer','null'], minimum: 1 },
-      tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' } }, tag_match: { type: 'string', enum: ['all','any'], default: 'all' },
+      holding_id: { type: ['integer','null'], minimum: 1 },
+      tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' } }, tag_match: { type: 'string', enum: ['all','any'], default: 'any' },
       limit: { type: 'integer', minimum: 1, maximum: 100, default: 30 }, cursor: { type: ['object','null'] }, timezone: { type: 'string', minLength: 1 },
-    }, required: ['query','from','to','record_state','has_conclusion','instrument_id','account_id','tag_ids','tag_match','limit','cursor','timezone'], additionalProperties: false },
+    }, required: ['query','from','to','record_state','instrument_id','account_id','holding_id','tag_ids','tag_match','limit','cursor','timezone'], additionalProperties: false },
     outputSchema: successEnvelopeSchema,
     annotations: readOnlyAnnotations,
   },
@@ -690,20 +509,18 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'record_manual_activity',
     title: 'Record a completed activity',
-    description: 'Record one user-reported activity that already happened. Optional tag_ids are saved atomically with the activity; a retry must keep the same key, content, and tags. Classify research, review, decision, or retrospective work with category; omit it for general work. For a requested portfolio review save category review, put checked facts in result, interpretation in conclusion, and status/coverage_status plus scope and factual source links in context; failed research is insufficient_data, not no_action. For a decision, use context.decision_state=proposed for model advice and adopted only for the user’s explicit choice, with selected_option and reason; this is not a trade. Use only after explicit save intent. Complete a known matching task instead of duplicating the same performance. This does not create a task or change financial data; choosing a category cannot claim a completed trade or reconciliation.',
+    description: 'Record one user-reported activity that already happened, only on explicit save intent. Put checked facts, interpretation, uncertainty and factual source URLs in one readable Markdown body; use ordinary existing tag_ids for search instead of a built-in category. An opinion is not a user-adopted decision unless the user says so. Optional task_id and holding_id are navigational references, not proof of task completion or financial execution. Complete a matching task or use the financial command instead of claiming those operations in this record. A retry must keep the same key, body, references and tags.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
-        title: { type: 'string', minLength: 1, maxLength: 500 }, note: { type: ['string', 'null'], maxLength: 4000 },
-        result: { type: ['string', 'null'], maxLength: 4000 }, conclusion: { type: ['string', 'null'], maxLength: 4000 },
+        title: { type: 'string', minLength: 1, maxLength: 500 }, body: { type: ['string', 'null'], maxLength: 25000 },
         occurred_at: { type: ['string', 'null'], format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
+        task_id: { type: ['string', 'null'], format: 'uuid' }, holding_id: { type: ['integer', 'null'], minimum: 1 },
         instrument_id: { type: ['integer', 'null'], minimum: 1 }, account_id: { type: ['integer', 'null'], minimum: 1 },
-        category: { type: 'string', enum: ['general','research','review','decision','retrospective'], default: 'general' },
-        context: { type: ['object','null'], description: 'Optional structured scope and sources; sources is an array of up to 20 {title,url} HTTP(S) links. Do not include secrets or unrelated personal data.', additionalProperties: true },
         tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Optional existing owner activity tags to save with this new activity.' },
       },
-      required: ['schema_version','idempotency_key','title','note','result','conclusion','occurred_at','timezone','instrument_id','account_id'],
+      required: ['schema_version','idempotency_key','title','body','occurred_at','timezone','task_id','holding_id','instrument_id','account_id'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -712,7 +529,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'update_activity',
     title: 'Update a performed activity',
-    description: 'Revise one activity in place after reading get_activity. Manual work may also correct its non-financial record_kind and structured source/scope context. Task completions cannot change classification or context; automatic financial facts expose note only. Protected before/after values, references, quantities, and financial timestamps cannot be overwritten.',
+    description: 'Revise one activity’s readable title, Markdown body, date or navigational references after reading get_activity and its version. This does not reverse a trade, change a holding, or complete/reopen a task. Financial and task execution receipts remain independent. Use existing tags separately until the one-save detail contract is available through MCP.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -721,12 +538,10 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         patch: {
           type: 'object', minProperties: 1,
           properties: {
-            title: { type: 'string', minLength: 1, maxLength: 500 }, note: { type: ['string', 'null'], maxLength: 4000 },
-            result: { type: ['string', 'null'], maxLength: 4000 }, conclusion: { type: ['string', 'null'], maxLength: 4000 },
+            title: { type: 'string', minLength: 1, maxLength: 500 }, body: { type: ['string', 'null'], maxLength: 25000 },
             occurred_at: { type: 'string', format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
+            task_id: { type: ['string', 'null'], format: 'uuid' }, holding_id: { type: ['integer', 'null'], minimum: 1 },
             instrument_id: { type: ['integer', 'null'], minimum: 1 }, account_id: { type: ['integer', 'null'], minimum: 1 },
-            record_kind: { type: 'string', enum: ['general','research','review','decision','retrospective'] },
-            context: { type: ['object','null'], description: 'Replace or clear the optional scope and source context of a manual activity.' },
           }, additionalProperties: false,
         },
       },
@@ -737,9 +552,9 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: idempotentWriteAnnotations,
   },
   {
-    name: 'delete_manual_activity',
-    title: 'Delete a manually recorded activity',
-    description: 'Delete only a user-reported manual activity after explicit user confirmation and reading its current version with get_activity. It disappears from activity lists, keyword and semantic search; existing tasks and saved report text remain unchanged. This never changes a holding, trade, or task completion. Automatic financial and task-completion events cannot be deleted with this tool.',
+    name: 'delete_activity',
+    title: 'Delete an activity record',
+    description: 'Delete a readable activity record only after explicit user confirmation and reading its current version with get_activity. This can remove a manual or automatic record from activity lists and search, but never reverses a completed trade, changes a holding, or changes task completion. Financial retry protection remains intact.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -756,7 +571,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_activity_report_context',
     title: 'Read source actions for a period report',
-    description: 'Page through successful owner actions in a date range before composing a requested retrospective. Continue with next_cursor until null; do not summarize only the first page. Current open tasks are current-at-request, not historical period-end state. To save the result, use record_manual_activity with category retrospective; this read never writes.',
+    description: 'Page through saved activity titles, Markdown bodies, tags and references in a date range before composing a requested retrospective. Continue with next_cursor until null; do not summarize only the first page. Current open tasks are current-at-request, not historical period-end state. Prior summaries may also appear: do not count them as new real-world actions. Save a requested retrospective as an ordinary activity with an optional tag; this read never writes.',
     inputSchema: { type: 'object', properties: {
       period_start: { type: 'string', format: 'date' }, period_end: { type: 'string', format: 'date' }, timezone: { type: 'string', minLength: 1 },
       limit: { type: 'integer', minimum: 1, maximum: 500, default: 200 }, cursor: { type: ['object','null'] },
@@ -900,7 +715,6 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
 
 export const dailyReviewToolNames = [
   'get_daily_context',
-  'list_review_activities',
 ] as const
 
 export const workflowGuideToolNames = ['get_workflow_guide'] as const
@@ -909,9 +723,7 @@ export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_pro
 
 export const entityNoteToolNames = ['update_entity_note'] as const
 
-export const decisionActivityToolNames = [
-  'list_decision_activities',
-] as const
+export const decisionActivityToolNames = [] as const
 
 export const actionTaskToolNames = [
   'list_general_tasks',
@@ -927,7 +739,7 @@ export const actionTaskToolNames = [
   'transition_general_task',
   'record_manual_activity',
   'update_activity',
-  'delete_manual_activity',
+  'delete_activity',
 ] as const
 
 export const activityReportToolNames = [

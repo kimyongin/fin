@@ -23,8 +23,9 @@ const mutationCount = assertMutationRpcSignatures(await schemaResponse.json())
 
 const rpcChecks = [
   ['app_get_daily_context', { input_subject_tickers: null, input_timezone: 'Asia/Seoul' }],
-  ['app_list_narrative_activities', { input_cursor: null, input_kind: 'review', input_limit: 1, input_owner_user_id: null }],
-  ['app_list_narrative_activities', { input_cursor: null, input_kind: 'decision', input_limit: 1, input_owner_user_id: null }],
+  ['app_search_activities', { input_owner_user_id: null, input_query: null, input_from: null, input_to: null,
+    input_record_state: 'done', input_instrument_id: null, input_account_id: null, input_holding_id: null,
+    input_tag_ids: [], input_tag_match: 'any', input_limit: 1, input_cursor: null, input_timezone: 'Asia/Seoul' }],
   ['app_list_general_task_page', { input_cursor: null, input_filter: 'active', input_limit: 1 }],
   ['app_list_transaction_page', { input_account_id: null, input_cursor: null, input_instrument_id: null, input_limit: 1 }],
   ['app_list_my_product_feedback', { input_cursor: null, input_limit: 1 }],
@@ -63,8 +64,8 @@ const listed = await mcp('tools/list')
 const toolNames = new Set((listed?.tools ?? []).map((tool) => tool.name))
 for (const requiredTool of [
   'get_daily_context',
-  'list_review_activities',
-  'list_decision_activities',
+  'search_activities',
+  'delete_activity',
   'list_transactions',
   'verify_holdings',
   'list_principles',

@@ -6,14 +6,6 @@ async function rpc(supabase, name, params) {
   return data
 }
 
-export async function fetchDecisionActivities(supabase, { cursor = null, limit = 20, ownerUserId = null } = {}) {
-  const data = await rpc(supabase, 'app_list_narrative_activities', {
-    input_kind: 'decision', input_owner_user_id: ownerUserId,
-    input_limit: limit, input_cursor: cursor,
-  })
-  return normalizePage(data)
-}
-
 export async function fetchPortfolioTask(supabase, taskId, ownerUserId = null) {
   const data = await rpc(supabase, ownerUserId ? 'app_get_general_task_for_owner' : 'app_get_general_task', {
     ...(ownerUserId ? { input_owner_user_id: ownerUserId } : {}),
@@ -108,6 +100,7 @@ export async function searchActivities(supabase, {
   accountId = null,
   cursor = null,
   from = null,
+  holdingId = null,
   instrumentId = null,
   limit = 30,
   ownerUserId = null,
@@ -126,6 +119,7 @@ export async function searchActivities(supabase, {
     record_state: state,
     instrument_id: instrumentId,
     account_id: accountId,
+    holding_id: holdingId,
     tag_ids: tagIds,
     tag_match: tagMatch,
     limit,
@@ -142,10 +136,9 @@ export async function searchActivities(supabase, {
     input_from: from || null,
     input_to: to || null,
     input_record_state: state,
-    input_record_kinds: [],
-    input_has_conclusion: null,
     input_instrument_id: instrumentId,
     input_account_id: accountId,
+    input_holding_id: holdingId,
     input_tag_ids: tagIds,
     input_tag_match: tagMatch,
     input_limit: limit,
@@ -192,11 +185,11 @@ export async function recordManualActivity(supabase, activity) {
     input_tag_ids: activity.tagIds ?? [],
     input_payload: {
       title: activity.title.trim(),
-      note: activity.note?.trim() || null,
-      result: activity.result?.trim() || null,
-      conclusion: activity.conclusion?.trim() || null,
+      body: activity.body?.trim() || null,
       occurred_at: activity.occurredAt || null,
       timezone: activity.timezone ?? 'Asia/Seoul',
+      task_id: activity.taskId ?? null,
+      holding_id: activity.holdingId ?? null,
       instrument_id: activity.instrumentId ?? null,
       account_id: activity.accountId ?? null,
       authored_via: 'app',
@@ -225,8 +218,8 @@ export async function saveActivityDetail(supabase, activity, patch, tagIds, idem
   })
 }
 
-export async function deleteManualActivity(supabase, activity) {
-  return rpc(supabase, 'app_delete_manual_activity', {
+export async function deleteActivity(supabase, activity) {
+  return rpc(supabase, 'app_delete_activity', {
     input_activity_id: activity.id,
     input_expected_version: activity.version,
   })

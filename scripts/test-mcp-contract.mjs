@@ -120,11 +120,11 @@ try {
   assert(reportContext.body?.result?.structuredContent?.data?.next_cursor === null, 'Activity report context contract failed')
   const reportSaved = await call(session.access_token, 'tools/call', { name: 'record_manual_activity', arguments: {
     schema_version: 1, idempotency_key: crypto.randomUUID(), title: 'Contract activity retrospective',
-    note: `Period: ${reportDate}`, result: 'Reviewed the complete period source.', conclusion: null,
-    occurred_at: null, timezone: 'Asia/Seoul', instrument_id: null, account_id: null,
-    category: 'retrospective', context: { scope: `${reportDate} ~ ${reportDate}` },
+    body: `Period: ${reportDate}\n\nReviewed the complete period source.`,
+    occurred_at: null, timezone: 'Asia/Seoul', task_id: null, holding_id: null,
+    instrument_id: null, account_id: null, tag_ids: [],
   } })
-  assert(reportSaved.body?.result?.structuredContent?.data?.record_kind === 'retrospective', 'Retrospective activity save contract failed')
+  assert(reportSaved.body?.result?.structuredContent?.data?.body?.includes(reportDate), 'Retrospective activity save contract failed')
 
   const feedbackArgs = {
     schema_version: 1,
@@ -218,7 +218,7 @@ try {
   })
   const contextData = context.body?.result?.structuredContent?.data
   assert(context.body?.result?.isError === false && contextData?.as_of && !contextData?.context_id, 'Read-only daily context contract failed')
-  assert(Array.isArray(contextData?.recent_reviews) && Array.isArray(contextData?.recent_decisions), 'Daily context activity lists contract failed')
+  assert(Array.isArray(contextData?.recent_activities), 'Daily context activity list contract failed')
   assert(contextData?.open_tasks?.some((item) => item.id === savedTask.id), 'Daily context unified task contract failed')
 
   const saved = await call(session.access_token, 'tools/call', {
@@ -226,19 +226,18 @@ try {
     arguments: {
       schema_version: 1,
       idempotency_key: crypto.randomUUID(),
-      title: 'Contract test review', note: 'External research was intentionally omitted.',
-      result: 'No researched change was asserted.', conclusion: 'Insufficient data.',
-      occurred_at: null, timezone: 'Asia/Seoul', instrument_id: null, account_id: null,
-      category: 'review', context: { status: 'insufficient_data', coverage_status: 'failed', scope: 'portfolio' },
+      title: 'Contract test review', body: 'External research was intentionally omitted. Insufficient data.',
+      occurred_at: null, timezone: 'Asia/Seoul', task_id: null, holding_id: null,
+      instrument_id: null, account_id: null, tag_ids: [],
     },
   })
   const savedData = saved.body?.result?.structuredContent?.data
-  assert(saved.body?.result?.isError === false && savedData?.id && savedData?.record_kind === 'review', `Review activity save contract failed: ${JSON.stringify(saved.body?.result?.structuredContent?.error ?? savedData)}`)
+  assert(saved.body?.result?.isError === false && savedData?.id && savedData?.body?.includes('Insufficient data.'), `Activity save contract failed: ${JSON.stringify(saved.body?.result?.structuredContent?.error ?? savedData)}`)
 
   const briefingPage = await call(session.access_token, 'tools/call', {
-    name: 'list_review_activities', arguments: { limit: 1, cursor: null },
+    name: 'search_activities', arguments: { query: 'Contract test review', from: null, to: null, record_state: 'done', instrument_id: null, account_id: null, holding_id: null, tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul' },
   })
-  assert(briefingPage.body?.result?.structuredContent?.data?.items?.[0]?.id === savedData.id, 'Saved review activity cursor page contract failed')
+  assert(briefingPage.body?.result?.structuredContent?.data?.items?.[0]?.activity_id === savedData.id, 'Saved activity search contract failed')
   const tradePage = await call(session.access_token, 'tools/call', {
     name: 'list_transactions', arguments: { limit: 1, cursor: null },
   })

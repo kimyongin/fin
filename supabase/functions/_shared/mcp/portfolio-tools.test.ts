@@ -44,13 +44,12 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('save_general_task').description).toContain('intent only')
     expect(tool('transition_general_task').description).toContain('linked action event')
     expect(tool('record_manual_activity').description).toContain('already happened')
-    expect(tool('record_manual_activity').description).toContain('does not create a task')
+    expect(tool('record_manual_activity').description).toContain('not proof of task completion')
     expect((tool('transition_general_task').inputSchema as any).properties.action.enum).toEqual(['complete','reopen','cancel'])
-    expect((tool('record_manual_activity').inputSchema as any).properties.category.enum).toEqual(['general','research','review','decision','retrospective'])
-    expect((tool('record_manual_activity').inputSchema as any).properties.context.type).toContain('object')
-    expect(tool('delete_manual_activity').description).toContain('existing tasks')
-    expect(tool('delete_manual_activity').description).toContain('never changes a holding')
-    expect((tool('delete_manual_activity').inputSchema as any).required).toEqual(['schema_version', 'activity_id', 'expected_version'])
+    expect((tool('record_manual_activity').inputSchema as any).properties).not.toHaveProperty('category')
+    expect((tool('record_manual_activity').inputSchema as any).properties).toHaveProperty('body')
+    expect(tool('delete_activity').description).toContain('never reverses a completed trade')
+    expect((tool('delete_activity').inputSchema as any).required).toEqual(['schema_version', 'activity_id', 'expected_version'])
     expect((tool('save_general_task').inputSchema as any).properties.recurrence_kind.enum).toEqual(['none', 'daily'])
   })
 
@@ -105,15 +104,15 @@ describe('portfolio MCP tool definitions', () => {
   })
 
   it('uses the activity contract for saved reviews', () => {
-    expect(dailyReviewToolNames).toEqual(['get_daily_context', 'list_review_activities'])
-    expect(tool('list_review_activities').annotations.readOnlyHint).toBe(true)
+    expect(dailyReviewToolNames).toEqual(['get_daily_context'])
+    expect(tool('search_activities').annotations.readOnlyHint).toBe(true)
     expect(tool('record_manual_activity').annotations.idempotentHint).toBe(true)
-    expect(tool('record_manual_activity').description).toContain('failed research is insufficient_data')
+    expect(tool('record_manual_activity').description).toContain('Markdown body')
     expect(tool('get_portfolio_integrity').annotations.readOnlyHint).toBe(true)
   })
 
   it('uses activities and independent tasks for decisions', () => {
-    expect(tool('list_decision_activities').annotations.readOnlyHint).toBe(true)
+    expect(tool('search_activities').annotations.readOnlyHint).toBe(true)
     expect(tool('record_manual_activity').annotations.idempotentHint).toBe(true)
     expect((tool('save_general_task').inputSchema as any).properties).not.toHaveProperty('origin_activity_id')
     expect(getWorkflowGuide('decision_followup')?.steps.map((step) => step.tools).flat()).toContain('record_manual_activity')
@@ -121,7 +120,7 @@ describe('portfolio MCP tool definitions', () => {
   })
 
   it('keeps decision and general task reads read-only', () => {
-    for (const name of ['list_decision_activities', 'list_general_tasks', 'get_general_task']) {
+    for (const name of ['search_activities', 'list_general_tasks', 'get_general_task']) {
       expect(tool(name).annotations.readOnlyHint).toBe(true)
     }
   })

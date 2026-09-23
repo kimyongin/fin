@@ -69,8 +69,8 @@ select extensions.is(public.app_record_completed_trade(9701,9703,'buy',2,40,curr
   '40.0000000000000000','first purchase creates the current holding');
 select extensions.hasnt_function('public','app_log_completed_trade',array['uuid','uuid','text'],
   'old preview-id confirmer is retired');
-select extensions.is((select record_kind from public.activity_events where action_type='log_completed_trade' and instrument_id=9703),
-  'trade','automatic activity is classified as a trade');
+select extensions.ok((select body like '매수 2주%' from public.activity_events where action_type='log_completed_trade' and instrument_id=9703),
+  'automatic trade stores a readable execution-time body');
 select extensions.is(jsonb_array_length(public.app_list_transaction_page(9703,9701,10,null)->'items'),1,
   'transaction page applies account and instrument filters');
 select extensions.hasnt_table('public','trade_entries','parallel trade ledger is retired');

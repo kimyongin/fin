@@ -11,7 +11,7 @@ set local role authenticated;
 
 select extensions.is(
   public.app_create_activity('19111111-1111-4111-8111-111111111111',jsonb_build_object(
-    'title','실적 자료 확인','result','보유 유지','conclusion','다음 실적까지 관찰',
+    'title','실적 자료 확인','body','보유 유지. 다음 실적까지 관찰',
     'occurred_at',(clock_timestamp()-interval '1 hour')::text,'timezone','Asia/Seoul','authored_via','app'
   ))->>'title',
   '실적 자료 확인',
@@ -21,7 +21,7 @@ select extensions.is((select count(*) from activity_events where title='실적 �
 select extensions.is((select version from activity_events where title='실적 자료 확인'),1,'new activity starts at version one');
 select extensions.is(
   public.app_create_activity('19111111-1111-4111-8111-111111111111',jsonb_build_object(
-    'title','실적 자료 확인','result','보유 유지','conclusion','다음 실적까지 관찰',
+    'title','실적 자료 확인','body','보유 유지. 다음 실적까지 관찰',
     'occurred_at',(select occurred_at::text from activity_events where title='실적 자료 확인'),'timezone','Asia/Seoul','authored_via','app'
   ))->>'title',
   '실적 자료 확인',
@@ -33,16 +33,16 @@ select extensions.is(
   public.app_update_activity(
     (select id from activity_events where title='실적 자료 확인'),1,
     '19222222-2222-4222-8222-222222222222',
-    jsonb_build_object('result','보유 유지, 다음 달 재확인','note','컨퍼런스콜 확인 필요'),'app'
-  )->>'result',
-  '보유 유지, 다음 달 재확인',
-  'updates the current result on the same activity'
+    jsonb_build_object('body','보유 유지, 다음 달 재확인. 컨퍼런스콜 확인 필요'),'app'
+  )->>'body',
+  '보유 유지, 다음 달 재확인. 컨퍼런스콜 확인 필요',
+  'updates the current body on the same activity'
 );
 select extensions.is((select version from activity_events where title='실적 자료 확인'),2,'editing advances only the current activity version');
 select extensions.is((select count(*) from activity_events where title='실적 자료 확인'),1::bigint,'editing does not add another activity');
 select extensions.throws_ok(
   $$select public.app_update_activity((select id from activity_events where title='실적 자료 확인'),1,
-    '19333333-3333-4333-8333-333333333333','{"result":"stale"}'::jsonb,'agent')$$,
+    '19333333-3333-4333-8333-333333333333','{"body":"stale"}'::jsonb,'agent')$$,
   'P0001','Activity version conflict','stale activity edits fail closed'
 );
 
@@ -54,14 +54,13 @@ select extensions.is(
   '자동 변경 만들기',
   'existing task write remains compatible'
 );
-select extensions.throws_ok(
-  $$select public.app_update_activity((select id from activity_events where action_type='create_general_task'),1,
-    '19555555-5555-4555-8555-555555555555','{"title":"바꾸면 안 됨"}'::jsonb,'app')$$,
-  'P0001','Activity field is protected: title','automatic event title is protected'
-);
+select extensions.is(public.app_update_activity(
+    (select id from activity_events where action_type='create_general_task'),1,
+    '19555555-5555-4555-8555-555555555555','{"title":"자동 기록 제목 정정"}'::jsonb,'app')->>'title',
+  '자동 기록 제목 정정','automatic record title is editable without changing the task');
 select extensions.is(
-  public.app_update_activity((select id from activity_events where action_type='create_general_task'),1,
-    '19666666-6666-4666-8666-666666666666','{"note":"자동 기록 설명"}'::jsonb,'app')->>'note',
+  public.app_update_activity((select id from activity_events where action_type='create_general_task'),2,
+    '19666666-6666-4666-8666-666666666666','{"body":"자동 기록 설명"}'::jsonb,'app')->>'body',
   '자동 기록 설명',
   'automatic event note remains editable'
 );

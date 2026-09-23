@@ -343,7 +343,7 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   const initialPolicy = await callRpc(ownerPage, 'app_get_sharing_policy')
   const enabledPolicy = await callRpc(ownerPage, 'app_update_sharing_policy', {
     input_expected_version: initialPolicy.body.version,
-    input_grants: { briefings: true, decisions: true, tasks: true },
+    input_grants: { activity: true, tasks: true },
   })
   expect(enabledPolicy.status).toBe(200)
 
@@ -431,16 +431,16 @@ test('adds a friend and grants only that user shared portfolio access', async ({
 
   expect((await callRpc(ownerPage, 'app_update_sharing_policy', {
     input_expected_version: enabledPolicy.body.version,
-    input_grants: { briefings: false, decisions: false, tasks: false },
+    input_grants: { activity: false, tasks: false },
   })).status).toBe(200)
   expect((await callRpc(friendPage, 'app_list_action_timeline', {
     input_cursor: null, input_filter: 'all', input_limit: 20,
     input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
     input_from: null, input_to: null, input_timezone: 'Asia/Seoul',
   })).body.pending).toEqual([])
-  expect((await callRpc(friendPage, 'app_list_narrative_activities', {
-    input_cursor: null, input_kind: 'decision', input_limit: 20,
+  expect((await callRpc(friendPage, 'app_search_activities', {
     input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
+    input_query: '점검', input_limit: 20,
   })).body.items).toEqual([])
 
   const outsiderPage = await browser.newPage()

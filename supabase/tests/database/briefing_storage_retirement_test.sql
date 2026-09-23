@@ -16,7 +16,7 @@ select extensions.hasnt_function('public','app_get_daily_briefing',array['uuid']
 select extensions.hasnt_function('public','app_list_daily_briefing_page',array['uuid','integer','jsonb'],'old briefing page retired');
 select extensions.hasnt_function('public','app_list_briefing_related_tasks',array['uuid','uuid','integer'],'old relation read retired');
 select extensions.has_function('public','app_get_daily_context',array['text','text[]'],'read-only current context remains');
-select extensions.has_function('public','app_list_narrative_activities',array['text','uuid','integer','jsonb'],'saved review activity read remains');
+select extensions.hasnt_function('public','app_list_narrative_activities',array['text','uuid','integer','jsonb'],'kind-specific review page is retired');
 
 select * from extensions.finish();
 rollback;

@@ -37,7 +37,7 @@ describe('fetchSharedFeatureAccess', () => {
   it('reads fail-closed effective features for a selected owner', async () => {
     const supabase = {
       rpc: vi.fn(async () => ({
-        data: { owner_user_id: 'owner-1', relationship_access: true, features: { assets: true, briefings: false } },
+        data: { owner_user_id: 'owner-1', relationship_access: true, features: { assets: true, activity: false } },
         error: null,
       })),
     }
@@ -45,7 +45,7 @@ describe('fetchSharedFeatureAccess', () => {
     await expect(fetchSharedFeatureAccess(supabase, 'owner-1')).resolves.toEqual({
       ownerUserId: 'owner-1',
       relationshipAccess: true,
-      features: { assets: true, briefings: false },
+      features: { assets: true, activity: false },
     })
     expect(supabase.rpc).toHaveBeenCalledWith('app_get_shared_feature_access', {
       input_owner_user_id: 'owner-1',

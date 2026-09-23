@@ -44,10 +44,10 @@ function AppHeader({
   const primaryTabs = [
     availableIds.has('overview') && { id: 'overview', label: '자산' },
     availableIds.has('allocation') && { id: 'allocation', label: '배분' },
-    (availableIds.has('tasks') || availableIds.has('decisions') || availableIds.has('activity')) && {
-      id: availableIds.has('tasks') ? 'tasks' : availableIds.has('decisions') ? 'decisions' : 'activity',
+    availableIds.has('tasks') && {
+      id: 'tasks',
       label: '활동',
-      activeIds: ['tasks', 'decisions', 'activity'],
+      activeIds: ['tasks'],
     },
     availableIds.has('strategy') && { id: 'strategy', label: '원칙' },
   ].filter(Boolean)

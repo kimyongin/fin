@@ -104,10 +104,8 @@ test('finds a saved review by activity text on a mobile-sized screen', async ({ 
   const saved = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
     input_payload: {
-      title: headline, category: 'review', authored_via: 'app',
-      result: '확인이 필요한 변화입니다.',
-      note: '외부 조사는 테스트에서 생략했습니다.',
-      context: { status: 'insufficient_data', coverage_status: 'failed', scope: '전체 포트폴리오', sources: [{ title: '공식 자료', url: 'https://example.com/review' }] },
+      title: headline, authored_via: 'app',
+      body: '확인이 필요한 변화입니다. 외부 조사는 테스트에서 생략했습니다. 공식 자료: https://example.com/review',
     },
   })
   expect(saved.status, JSON.stringify(saved.body)).toBe(200)
@@ -122,8 +120,8 @@ test('finds a saved review by activity text on a mobile-sized screen', async ({ 
   await expect(page.getByText(headline).first()).toBeVisible()
   await page.getByRole('button', { name: headline }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
-  await expect(page.getByText('확인이 필요한 변화입니다.').last()).toBeVisible()
-  await expect(page.getByRole('dialog').getByRole('link', { name: '공식 자료' })).toHaveAttribute('href', 'https://example.com/review')
+  await expect(page.getByRole('dialog').getByText(/확인이 필요한 변화입니다/)).toBeVisible()
+  await expect(page.getByRole('dialog').getByText(/https:\/\/example.com\/review/)).toBeVisible()
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
@@ -135,9 +133,7 @@ test('finds an old review through activity search', async ({ page }) => {
     id: 100,
     title: `당시 기준으로 유지하되 다음 확인 조건을 기다립니다 ${'긴 제목 '.repeat(18)}`,
     occurred_at: '2020-01-02T03:00:00Z',
-    result: '중요 변화 3',
-    conclusion: '다음 조건을 기다립니다.',
-    context: { status: 'no_action', coverage_status: 'partial' },
+    body: '중요 변화 3. 다음 조건을 기다립니다.',
   }
   await signInAs(page, 'e2e-owner@example.com')
   await page.route('**/functions/v1/activity-search', (route) => route.fulfill({
@@ -151,7 +147,7 @@ test('finds an old review through activity search', async ({ page }) => {
   await page.getByRole('textbox', { name: '활동 검색' }).fill('당시 기준')
   await page.getByRole('button', { name: '검색', exact: true }).click()
   await expect(page.getByText(oldReview.title)).toBeVisible()
-  await expect(page.getByText(oldReview.conclusion)).toBeVisible()
+  await expect(page.getByText(oldReview.body)).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
@@ -163,18 +159,17 @@ test('shows a saved decision activity as a choice rather than a trade', async ({
   const saved = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
     input_payload: {
-      title, category: 'decision', authored_via: 'app',
-      result: '공시에서 확인한 사실', conclusion: '현재는 유지',
-      context: { decision_state: 'adopted', selected_option: '유지', reason: '다음 실적에서 재검토', sources: [{ title: '실적 자료', url: 'https://example.com/earnings' }] },
+      title, authored_via: 'app',
+      body: '공시에서 확인한 사실. 내가 채택한 선택: 현재는 유지. 다음 실적에서 재검토. 실적 자료: https://example.com/earnings',
     },
   })
   expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-  await page.goto('/#decisions')
+  await page.goto('/#tasks')
+  await page.reload()
   await expect(page.getByText(title)).toBeVisible()
   await page.getByRole('button', { name: new RegExp(title) }).click()
-  await expect(page.getByText('내가 채택함').last()).toBeVisible()
-  await expect(page.getByText('다음 실적에서 재검토')).toBeVisible()
-  await expect(page.getByRole('dialog', { name: '판단 상세' }).getByRole('link', { name: '실적 자료' })).toHaveAttribute('href', 'https://example.com/earnings')
+  await expect(page.getByRole('dialog', { name: '기록 상세' }).getByText(/내가 채택한 선택: 현재는 유지/)).toBeVisible()
+  await expect(page.getByRole('dialog', { name: '기록 상세' }).getByText(/다음 실적에서 재검토/)).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
@@ -189,9 +184,7 @@ test('keeps a decision and an independent future task without implying a trade',
   const recorded = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
     input_payload: {
-      title: question, category: 'decision', result: '공식 실적에서 확인할 지표를 정했다.',
-      conclusion: '현재는 유지',
-      context: { decision_state: 'adopted', selected_option: '유지', reason: '다음 실적에서 핵심 가설을 다시 확인합니다.' },
+      title: question, body: '공식 실적에서 확인할 지표를 정했다. 현재는 유지. 다음 실적에서 핵심 가설을 다시 확인합니다.',
       authored_via: 'app',
     },
   })
@@ -227,7 +220,7 @@ test('keeps a decision and an independent future task without implying a trade',
   await expect(page.getByRole('heading', { name: '기록 상세' })).toBeVisible()
   await expect(page.getByRole('dialog', { name: '기록 상세' }).getByText('현재는 유지')).toBeVisible()
   await expect(page.getByRole('dialog', { name: '기록 상세' }).getByRole('button', { name: '후속 할 일 추가' })).toHaveCount(0)
-  await page.getByRole('button', { name: '닫기' }).click()
+  await page.getByRole('dialog', { name: '기록 상세' }).getByRole('button', { name: '닫기' }).first().click()
   await expect(page).toHaveURL(/#tasks$/)
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })

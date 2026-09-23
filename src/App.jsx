@@ -450,7 +450,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'overview' ? '자산' : activeTab === 'allocation' ? '배분' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? '활동' : activeTab === 'strategy' ? '원칙' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
+  const pageTitle = activeTab === 'overview' ? '자산' : activeTab === 'allocation' ? '배분' : activeTab === 'tasks' ? '활동' : activeTab === 'strategy' ? '원칙' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
     <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6">
@@ -476,9 +476,8 @@ function App() {
           </div>
         )}
 
-        {(['decisions', 'tasks', 'activity'].includes(activeTab)) && (
+        {activeTab === 'tasks' && (
           <LifecyclePageView
-            canViewReviews={canEdit || Boolean(sharedFeatureAccess?.features?.briefings)}
             canViewTimeline={canEdit || Boolean(sharedFeatureAccess?.features?.tasks || sharedFeatureAccess?.features?.activity)}
             initialSelection={lifecycleSelection}
             mode={activeTab}

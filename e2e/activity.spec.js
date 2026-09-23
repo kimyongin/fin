@@ -82,7 +82,7 @@ test('creates and completes a general task while keeping manual work as activity
   await taskRow.getByRole('button', { name: '완료', exact: true }).click()
   const pendingSection = page.locator('section').filter({ has: page.getByRole('heading', { name: '할 일' }) }).first()
   await expect(pendingSection.getByText(taskTitle, { exact: true })).toHaveCount(0)
-  await expect(page.getByText(taskTitle, { exact: true })).toBeVisible()
+  await expect(page.getByText(taskTitle, { exact: true }).first()).toBeVisible()
 
   const activityTitle = `E2E 앱 밖 행동 ${Date.now()}`
   await page.getByRole('button', { name: '활동 추가', exact: true }).click()
@@ -106,7 +106,7 @@ test('creates and completes a general task while keeping manual work as activity
   const manualEvent = events.body.find((event) => event.action_type === 'record_manual_activity' && event.after_data?.title === activityTitle)
   const detail = await callRpc(page, 'app_get_activity', { input_activity_id: manualEvent.id, input_owner_user_id: null })
   expect(detail.status, JSON.stringify(detail.body)).toBe(200)
-  expect(detail.body.result).toContain('https://example.com/disclosure')
+  expect(detail.body.body).toContain('https://example.com/disclosure')
   await page.getByRole('button', { name: activityTitle, exact: true }).click()
   await expect(page.getByRole('dialog', { name: '기록 상세' }).getByText(/공식 공시: https:\/\/example.com\/disclosure/)).toBeVisible()
   await page.getByRole('dialog', { name: '기록 상세' }).getByRole('button', { name: '닫기' }).first().click()
@@ -163,26 +163,59 @@ test('edits a task title, schedule, and tags in one detail save', async ({ page 
   expect(unchanged.body).toMatchObject({ title: `${title} 수정`, version: saved.body.version })
 })
 
-test('deletes a manual activity without offering deletion for automatic events', async ({ page }) => {
+test('deletes a record without changing its related work', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#tasks')
   const title = `E2E 삭제할 조사 ${Date.now()}`
   const created = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
-    input_payload: { title, category: 'research', authored_via: 'app', timezone: 'Asia/Seoul' },
+    input_payload: { title, body: '조사 결과', authored_via: 'app', timezone: 'Asia/Seoul' },
   })
   expect(created.status, JSON.stringify(created.body)).toBe(200)
   await page.reload()
   await page.getByRole('button', { name: title, exact: true }).click()
   const detail = page.getByRole('dialog', { name: '기록 상세' })
   await detail.getByRole('button', { name: '기록 삭제' }).click()
-  await expect(detail.getByText('관련 할 일의 상태는 바뀌지 않습니다.')).toBeVisible()
+  await expect(detail.getByText('기록을 삭제해도 관련 할 일이나 실제 잔고는 바뀌지 않습니다.')).toBeVisible()
   await detail.getByRole('button', { name: '삭제 확인' }).click()
   await expect(detail).toBeHidden()
   await expect(page.getByRole('button', { name: title, exact: true })).toHaveCount(0)
   const deleted = await callRpc(page, 'app_get_activity', { input_activity_id: created.body.id, input_owner_user_id: null })
   expect(deleted.status).toBe(200)
   expect(deleted.body).toBeNull()
+})
+
+test('links a record to an owned task and account-specific holding', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const taskTitle = `E2E 연결 할 일 ${Date.now()}`
+  await page.getByRole('button', { name: '활동 추가', exact: true }).click()
+  let editor = page.getByRole('dialog', { name: '활동 추가' })
+  await editor.getByRole('textbox', { name: '할 일 제목' }).fill(taskTitle)
+  await editor.getByRole('button', { name: '저장', exact: true }).click()
+  const holdings = await callRpc(page, 'app_find_holdings', { input_query: 'E2EAPL' })
+  expect(holdings.status).toBe(200)
+  const holdingId = holdings.body[0].holding_id
+  const title = `E2E 연결 기록 ${Date.now()}`
+  await page.getByRole('button', { name: '활동 추가', exact: true }).click()
+  editor = page.getByRole('dialog', { name: '활동 추가' })
+  await editor.getByLabel('이미 했음').check()
+  await editor.getByRole('textbox', { name: '기록 제목' }).fill(title)
+  await editor.getByLabel('관련 할 일').selectOption({ label: taskTitle })
+  await editor.getByRole('combobox', { name: '관련 보유', exact: true }).selectOption(String(holdingId))
+  await editor.getByRole('button', { name: '저장', exact: true }).click()
+  await page.getByRole('button', { name: title, exact: true }).click()
+  const detail = page.getByRole('dialog', { name: '기록 상세' })
+  await expect(detail.getByLabel('관련 할 일')).toHaveValue(/.+/)
+  await expect(detail.getByRole('combobox', { name: '관련 보유', exact: true })).toHaveValue(String(holdingId))
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(detail).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await detail.getByRole('combobox', { name: '관련 보유', exact: true }).selectOption('')
+  await detail.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(detail.getByRole('combobox', { name: '관련 보유', exact: true })).toHaveValue('')
 })
 
 test('guards activity drafts and detail edits on close, Escape, and browser back', async ({ page }) => {

@@ -13,14 +13,13 @@ export default function SharingPolicyPanel({ disabled = false, supabase }) {
     })
     return () => { active = false }
   }, [supabase])
-  const reviewsEnabled = Boolean(policy?.grants?.briefings && policy?.grants?.decisions && policy?.grants?.tasks)
-  async function toggleReviews() {
+  async function toggleGrant(featureKey) {
     setSaving(true); setError('')
-    const next = !reviewsEnabled
+    const next = !policy.grants[featureKey]
     try {
       const { data, error: nextError } = await supabase.rpc('app_update_sharing_policy', {
         input_expected_version: policy.version,
-        input_grants: { briefings: next, decisions: next, tasks: next },
+        input_grants: { [featureKey]: next },
       })
       if (nextError) throw nextError
       setPolicy(data)
@@ -30,10 +29,13 @@ export default function SharingPolicyPanel({ disabled = false, supabase }) {
   if (!policy && !error) return <p className="text-sm text-[var(--muted-ink)]">공유 범위를 불러오는 중입니다.</p>
   return <div className="grid gap-3">
     <label className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
-      <div><p className="text-sm font-semibold text-[var(--ink)]">투자 점검 기록도 공유</p><p className="mt-1 text-sm leading-6 text-[var(--muted-ink)]">저장된 브리핑·판단·할 일의 읽기 권한을 함께 설정합니다. 개인 투자 기준, 보유 이유와 내부 근거는 포함하지 않습니다.</p></div>
-      <button aria-label="투자 점검 기록도 공유" aria-pressed={reviewsEnabled} className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition ${reviewsEnabled ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line)] bg-[var(--surface-3)]'}`} disabled={disabled || saving || !policy} onClick={toggleReviews} type="button"><span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${reviewsEnabled ? 'left-6' : 'left-1'}`} /></button>
+      <div><p className="text-sm font-semibold text-[var(--ink)]">활동 공유</p><p className="mt-1 text-sm leading-6 text-[var(--muted-ink)]">켜면 기존 및 앞으로 작성하는 기록의 제목·날짜·본문·태그를 친구에게 보여줍니다. 예전 공유 허용은 새 범위로 승계되지 않아 직접 다시 켜야 합니다. 보유 이유와 증권사 확인 메모는 포함하지 않습니다.</p></div>
+      <button aria-label="활동 공유" aria-pressed={Boolean(policy?.grants?.activity)} className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition ${policy?.grants?.activity ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line)] bg-[var(--surface-3)]'}`} disabled={disabled || saving || !policy} onClick={() => toggleGrant('activity')} type="button"><span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${policy?.grants?.activity ? 'left-6' : 'left-1'}`} /></button>
     </label>
-    <p className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-xs leading-5 text-[var(--muted-ink)]">내부적으로는 자산·전략·뉴스·활동·브리핑·판단·할 일·개인 기준·보유 이유·근거를 각각 분리해 저장합니다. 지금 화면은 자주 쓰는 묶음만 간단히 제공합니다.</p>
+    <label className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
+      <div><p className="text-sm font-semibold text-[var(--ink)]">할 일 공유</p><p className="mt-1 text-sm leading-6 text-[var(--muted-ink)]">앞으로 할 일의 제목과 일정을 친구에게 보여줍니다. 활동 공유만으로 할 일 상세를 볼 수는 없습니다.</p></div>
+      <button aria-label="할 일 공유" aria-pressed={Boolean(policy?.grants?.tasks)} className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition ${policy?.grants?.tasks ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line)] bg-[var(--surface-3)]'}`} disabled={disabled || saving || !policy} onClick={() => toggleGrant('tasks')} type="button"><span aria-hidden="true" className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${policy?.grants?.tasks ? 'left-6' : 'left-1'}`} /></button>
+    </label>
     {error && <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">{error}</p>}
   </div>
 }

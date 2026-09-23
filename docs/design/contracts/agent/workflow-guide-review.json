@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "Align allocation workflow with per-tag targets and retired strategy modes",
+  "review_reason": "Reviewed all nine workflow topics against kindless activity body, ordinary tags, owner-validated references, separate execution writes and independent sharing; removed unused legacy briefing schemas without changing current tool behavior.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:bf7fa033",
-      "contract_digest": "a5c96b4c47947f7cbdb9925f6009cd40b5ddcd1cebc27a56d77ea1f1dac7d4e4"
+      "contract_digest": "db28a43c6c804acf1c13cf44d14fa3c77aa026f4517f963221b6d80a8be503ee"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "a37a0b8ca5ec1bd25952b6dce15998026e4572e640df1068a5ff3632e35dbb0b"
+      "contract_digest": "82f755cdd3bce4b97a2cc6f43353142d47c613905b74e978991b0a2b4a291725"
     },
     "daily_review": {
-      "revision": "fnv1a32:1743d26a",
-      "contract_digest": "4c55ed397acc4e4ee72bd682c29e88ac5201734fb41b845d3ff53b3d0d6df7df"
+      "revision": "fnv1a32:bc21370c",
+      "contract_digest": "34c859063c47878c2f6c438a84f148c1ee9ba778f69972bb03a8646c7221acf5"
     },
     "decision_followup": {
-      "revision": "fnv1a32:15dd89f5",
-      "contract_digest": "c722ff29c5fb449f7d8147f168160f9966e109a6665f39694a8c4dfc17712ad1"
+      "revision": "fnv1a32:65135e00",
+      "contract_digest": "36513c8670b3c911a2376a3cd0e6485ce6e2613fc3df8a267cb2d79cce1c4f37"
     },
     "trade_entry": {
       "revision": "fnv1a32:497bf056",
-      "contract_digest": "990060f4aa5322e375c40e28b5711988562b967105e759322b4c042a01fef7ee"
+      "contract_digest": "d52032cc86ee5a92fda61367e2f83e46a11423f56cf98ad7ec0f5999349580a8"
     },
     "reconciliation": {
       "revision": "fnv1a32:29ac55b9",
-      "contract_digest": "fa8e1cc98b8687a9cd6a8062a52f596fcd80795403c0871665c2e1b6b0d65581"
+      "contract_digest": "9c78b2aab9af943db9e2e37f465442ef1c6d890f7506c0528ef4b912e573b75d"
     },
     "todo": {
-      "revision": "fnv1a32:cb88cb0b",
-      "contract_digest": "d3a30ed29ea181a37957f25bb7005d30f22dce465862246e2a9eb62946b6da96"
+      "revision": "fnv1a32:555eaf3d",
+      "contract_digest": "69c9464e0e0cc3862828a65fd8fbb040fe7774917441f421b13c658aa4e1c07f"
     },
     "activity_report": {
-      "revision": "fnv1a32:f0d9274f",
-      "contract_digest": "2929856b701ba4c8a390c02886cc5c425272b249d43f1d54c72463b2a1bbac75"
+      "revision": "fnv1a32:8adf4a69",
+      "contract_digest": "89aabf2f8dff6e96af05527d226bf35d9b4f58c93225daac30cf9094864ef0bc"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "567a6c8aedd8fb94cdc045dc9ed905bbda20106f57cb7c53ded23b4f9748b117"
+      "contract_digest": "96c790a6b75d1e42759fdf72c094c4b554bd7e304e4548a4db5f416df55f0622"
     }
   }
 }

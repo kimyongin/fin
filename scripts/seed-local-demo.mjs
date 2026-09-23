@@ -216,7 +216,7 @@ for (const [title, dueDate, recurrenceKind, triggerText, tagName] of taskFixture
 }
 for (const title of ['데모 · 현금 여력 점검 완료 예시', '데모 · 매매 기록 완료 예시']) {
   const task = taskByTitle[title]
-  const completed = await rows('activity_events', `user_id=eq.${owner.id}&task_id=eq.${task.id}&record_kind=eq.task`)
+  const completed = await rows('activity_events', `user_id=eq.${owner.id}&task_id=eq.${task.id}&action_type=eq.complete_general_task`)
   if (completed.length) continue
   await rpc('app_transition_general_task', {
     input_task_id: task.id, input_expected_version: task.version,
@@ -228,42 +228,35 @@ for (const title of ['데모 · 현금 여력 점검 완료 예시', '데모 · 
 console.log('Demo strategy, principles, private note, activity tags, and tasks saved through web RPCs.')
 
 const activityFixtures = [
-  ['데모 · 아침 포트폴리오 점검', 'review', 0, '데모 점검', '보유 종목과 가격 기준일을 확인했습니다.', '큰 변화 없음', '005930.KS'],
-  ['데모 · 반도체 업황 자료 조사', 'research', 1, '데모 실적', '실제 뉴스가 아닌 예시 조사 기록입니다.', '다음 공시에서 확인할 항목 정리', '000660.KS'],
-  ['데모 · 삼성전자 보유 판단', 'decision', 2, '데모 실적', '가상의 실적 확인 예시입니다.', '추가 매매 없이 보유', '005930.KS'],
-  ['데모 · 연금 계좌 비중 확인', 'review', 3, '데모 점검', '해외 지수 ETF와 국내 ETF 비중을 비교했습니다.', '다음 월간 점검에서 재확인', '360750.KS'],
-  ['데모 · 환율 영향 점검', 'research', 4, '데모 리스크', '환율 변화가 해외 지수 상품에 미치는 영향을 정리했습니다.', '환율 한 가지로 매매하지 않음', '379800.KS'],
-  ['데모 · 거래 전 현금 확인', 'general', 5, '데모 매매', '예수금과 예정 거래액을 비교했습니다.', '매매하지 않음', null],
-  ['데모 · 금리 변화 판단', 'decision', 6, '데모 리스크', '채권 가격 민감도를 예시로 확인했습니다.', '채권 비중 유지', '148070.KS'],
-  ['데모 · 주간 투자 회고', 'retrospective', 7, '데모 회고', '체결보다 확인과 기록이 많았던 주입니다.', '다음 주에도 확인 후 판단', null],
-  ['데모 · 가격 기준일 확인', 'review', 8, '데모 점검', '가격이 최신인지 상품별로 비교했습니다.', '오래된 가격은 별도 확인', '069500.KS'],
-  ['데모 · 2차전지 리스크 조사', 'research', 9, '데모 리스크', '가상의 위험 시나리오를 정리했습니다.', '비중 확대 보류', '305540.KS'],
-  ['데모 · 목표 배분 검토', 'general', 10, '데모 점검', '현재 비중과 목표 비중 차이를 보았습니다.', '즉시 리밸런싱 불필요', null],
-  ['데모 · 실적 발표 전 확인 항목', 'research', 11, '데모 실적', '매출·이익·전망을 확인할 목록을 작성했습니다.', '공식 자료 발표를 기다림', '005930.KS'],
-  ['데모 · 장기 투자 원칙 재확인', 'decision', 12, '데모 회고', '단기 변동과 원칙을 비교했습니다.', '원칙 유지', null],
-  ['데모 · 현금성 자산 점검', 'review', 13, '데모 점검', '대기 자금과 투자 예산을 분리했습니다.', '대기 자금 유지', null],
-  ['데모 · 월간 활동 요약', 'retrospective', 14, '데모 회고', '한 달간의 점검·판단·할 일을 훑어본 예시입니다.', '미완료 과제에 집중', null],
+  ['데모 · 아침 포트폴리오 점검', 0, '데모 점검', '보유 종목과 가격 기준일을 확인했습니다.', '큰 변화 없음', '005930.KS'],
+  ['데모 · 반도체 업황 자료 조사', 1, '데모 실적', '실제 뉴스가 아닌 예시 조사 기록입니다.', '다음 공시에서 확인할 항목 정리', '000660.KS'],
+  ['데모 · 삼성전자 보유 판단', 2, '데모 실적', '가상의 실적 확인 예시입니다.', '추가 매매 없이 보유', '005930.KS'],
+  ['데모 · 연금 계좌 비중 확인', 3, '데모 점검', '해외 지수 ETF와 국내 ETF 비중을 비교했습니다.', '다음 월간 점검에서 재확인', '360750.KS'],
+  ['데모 · 환율 영향 점검', 4, '데모 리스크', '환율 변화가 해외 지수 상품에 미치는 영향을 정리했습니다.', '환율 한 가지로 매매하지 않음', '379800.KS'],
+  ['데모 · 거래 전 현금 확인', 5, '데모 매매', '예수금과 예정 거래액을 비교했습니다.', '매매하지 않음', null],
+  ['데모 · 금리 변화 판단', 6, '데모 리스크', '채권 가격 민감도를 예시로 확인했습니다.', '채권 비중 유지', '148070.KS'],
+  ['데모 · 주간 투자 회고', 7, '데모 회고', '체결보다 확인과 기록이 많았던 주입니다.', '다음 주에도 확인 후 판단', null],
+  ['데모 · 가격 기준일 확인', 8, '데모 점검', '가격이 최신인지 상품별로 비교했습니다.', '오래된 가격은 별도 확인', '069500.KS'],
+  ['데모 · 2차전지 리스크 조사', 9, '데모 리스크', '가상의 위험 시나리오를 정리했습니다.', '비중 확대 보류', '305540.KS'],
+  ['데모 · 목표 배분 검토', 10, '데모 점검', '현재 비중과 목표 비중 차이를 보았습니다.', '즉시 리밸런싱 불필요', null],
+  ['데모 · 실적 발표 전 확인 항목', 11, '데모 실적', '매출·이익·전망을 확인할 목록을 작성했습니다.', '공식 자료 발표를 기다림', '005930.KS'],
+  ['데모 · 장기 투자 원칙 재확인', 12, '데모 회고', '단기 변동과 원칙을 비교했습니다.', '원칙 유지', null],
+  ['데모 · 현금성 자산 점검', 13, '데모 점검', '대기 자금과 투자 예산을 분리했습니다.', '대기 자금 유지', null],
+  ['데모 · 월간 활동 요약', 14, '데모 회고', '한 달간의 점검·판단·할 일을 훑어본 예시입니다.', '미완료 과제에 집중', null],
 ]
 const existingEvents = await rows('activity_events', `user_id=eq.${owner.id}`)
 const existingTitles = new Set(existingEvents.map((item) => item.title))
-for (const [title, category, daysAgo, tagName, result, conclusion, ticker] of activityFixtures) {
+for (const [title, daysAgo, tagName, result, conclusion, ticker] of activityFixtures) {
   if (existingTitles.has(title)) continue
   const occurredAt = new Date(Date.now() - daysAgo * 86400000).toISOString()
-  const context = category === 'review'
-    ? { status: 'no_action', coverage_status: 'partial', scope: '데모 보유 종목' }
-    : category === 'decision'
-      ? { decision_state: 'proposed', selected_option: null, reason: '데모 예시이며 사용자 채택 판단이 아닙니다.' }
-      : category === 'research'
-        ? { scope: '데모 조사 범위' }
-        : null
   await rpc('app_create_activity_with_tags', {
     input_idempotency_key: randomUUID(), input_tag_ids: [activityTags[tagName]],
     input_payload: {
-      title, note: '데모 데이터입니다. 실제 뉴스·투자 조언이 아닙니다.',
-      result, conclusion, occurred_at: occurredAt, timezone: 'Asia/Seoul',
+      title, body: `데모 데이터입니다. 실제 뉴스·투자 조언이 아닙니다.\n\n${result}\n\n${conclusion}`,
+      occurred_at: occurredAt, timezone: 'Asia/Seoul',
       instrument_id: ticker ? instrumentIds[ticker] : null,
       account_id: ticker ? accountIds['데모 · 장기 투자'] : null,
-      category, context, authored_via: 'app',
+      authored_via: 'app',
     },
   })
 }

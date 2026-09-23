@@ -15,7 +15,7 @@ select extensions.hasnt_function('public','app_transition_investment_decision',a
 select extensions.hasnt_function('public','app_save_execution_task',array['integer','uuid','jsonb'],'quantity-plan writer retired');
 select extensions.hasnt_function('public','app_list_portfolio_task_page',array['uuid','text','integer','jsonb'],'old task page retired');
 select extensions.has_function('public','app_get_general_task',array['uuid'],'current general task detail remains');
-select extensions.has_function('public','app_list_narrative_activities',array['text','uuid','integer','jsonb'],'decision activity page remains');
+select extensions.hasnt_function('public','app_list_narrative_activities',array['text','uuid','integer','jsonb'],'kind-specific decision page is retired');
 select extensions.ok((select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.portfolio_tasks'::regclass and conname='portfolio_tasks_kind_check') like '%kind = ''general''%','new tasks can only be general');
 select extensions.ok((select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.portfolio_tasks'::regclass and conname='portfolio_tasks_control_state_check') like '%cancelled%','only active/cancelled control states remain');
 select extensions.is((select count(*) from public.portfolio_tasks where kind <> 'general'),0::bigint,'retired task rows are absent');

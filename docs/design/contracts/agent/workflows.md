@@ -2,14 +2,14 @@
 
 런타임 제공: [MCP 작업 가이드 제공 설계](./workflow-guide-design.md), #63~#65. 구조화된 문구의 단일 원본은 `workflow-guides.ts`이며 이 문서는 시나리오 의도와 매핑을 설명한다. 로컬 구현·자동 계약 검증 상태이며 운영 배포와 실제 모델 평가는 남아 있다.
 
-revision 5 · observed-local 도구와 배포 후 검증이 필요한 흐름을 포함하는 개발용 문서. prompts/resources는 선택적 보조 수단이고 필수 규칙은 instructions와 도구 설명만으로 유지한다. [S01~S24](../scenario-api-model-matrix.md)의 투자 데이터 효과는 복제하지 않고 참조한다. 여기서는 선택·순서·복구를 다룬다.
+revision 6 · observed-local 도구와 배포 후 검증이 필요한 흐름을 포함하는 개발용 문서. prompts/resources는 선택적 보조 수단이고 필수 규칙은 instructions와 도구 설명만으로 유지한다. [S01~S24](../scenario-api-model-matrix.md)의 투자 데이터 효과는 복제하지 않고 참조한다. 여기서는 선택·순서·복구를 다룬다.
 
 ## W01 — 일일 점검 (S05~S09, R01~R04)
 
 1. 요청이 분석만인지 저장 포함인지 구분한다. get_daily_context로 당시 기준·가격 품질·대상 범위·이전 실패 구간을 읽는다.
-2. ChatGPT의 검색 수단으로 조사한다. 최신 자료에 접근할 수 없으면 한계를 알리고 ‘변화 없음’으로 꾸미지 않는다. 과거 점검은 list_review_activities로 확인한다. 별도 get_research_history 도구는 현재 제공하지 않는다.
+2. ChatGPT의 검색 수단으로 조사한다. 최신 자료에 접근할 수 없으면 한계를 알리고 ‘변화 없음’으로 꾸미지 않는다. 과거 기록은 search_activities의 날짜·키워드·일반 태그로 확인한다.
 3. 사실/해석/불확실성과 종목별 조사 상태를 구분한다. 입력이 없는 성향·보유 이유를 만들어 넣지 않는다.
-4. 저장 요청이 있을 때만 record_manual_activity(category=review). title에 제목, result에 확인한 사실, conclusion에 해석, context에 status·coverage_status·조사 범위·출처를 넣는다. 판단·질문 변경은 점검 기록에 포함하지 않고 각각 지원되는 목적별 도구로 저장한다. 조사 실패는 insufficient_data이지 no_action이 아니다.
+4. 저장 요청이 있을 때만 record_manual_activity. title에 제목, body에 확인한 사실·해석·불확실성·조사 범위·출처를 마크다운으로 남긴다. 필요하면 일반 태그를 붙이되 예약된 종류 태그는 없다. 조사 실패를 변화 없음으로 꾸미지 않는다.
 5. 한 줄 결론, 중요 변화 최대3개, 다음 할 일0~3개와 저장 성공/실패를 설명한다. 저장 기능이 없으면 대화 분석만 제공했다고 명시한다.
 
 ## W02 — 투자 기준·보유 이유 (S02~S04)
@@ -18,7 +18,7 @@ revision 5 · observed-local 도구와 배포 후 검증이 필요한 흐름을 
 
 ## W03 — 제안·채택·대체 (S10,S13,S14)
 
-제안은 proposed, 사용자의 명확한 선택만 adopted다. 판단은 `record_manual_activity(category=decision)`로 기록하고 같은 판단의 정정·채택은 `get_activity` 뒤 `update_activity`로 수정한다. ‘유지하고 다음 실적에 확인’은 판단 활동과 선택적 일반 할 일을 각각 저장한다. 새 제안만으로 과거 채택 판단을 자동 변경하지 않는다. 계획은 체결이 아니다.
+모델 제안과 사용자가 채택한 선택을 본문에서 명확히 구분한다. 판단은 일반 `record_manual_activity`로 기록하고 같은 판단의 정정·채택은 `get_activity` 뒤 `update_activity`로 수정한다. ‘유지하고 다음 실적에 확인’은 판단 기록과 선택적 일반 할 일을 각각 저장한다. 새 제안만으로 과거 채택 판단을 자동 변경하지 않는다. 계획은 체결이 아니다.
 
 ## W04 — 조사 질문·정정 자료 (S11,S12)
 

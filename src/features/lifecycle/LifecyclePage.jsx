@@ -2,13 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 
 import ActivityDetailModal from './ActivityDetailModal'
 import ActionTimeline from './ActionTimeline'
-import DecisionActivitiesPage from './DecisionActivitiesPage'
 import { createRequestGate } from '../../lib/requestGate'
 import { activityNoon, businessDate } from '../../lib/businessDate'
 import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import GeneralActionModal from './GeneralActionModal'
 import GeneralTaskDetail from './GeneralTaskDetail'
-import ReviewHistoryPage from '../review/ReviewHistoryPage'
 import {
   fetchActivity,
   fetchActivityTags,
@@ -18,7 +16,7 @@ import {
   transitionGeneralTask,
 } from './data'
 
-function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, initialSelection = null, mode, onSelectionHandled, ownerUserId = null, supabase }) {
+function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, mode, onSelectionHandled, ownerUserId = null, supabase }) {
   const [error, setError] = useState('')
   const [detail, setDetail] = useState(null)
   const [detailHistory, setDetailHistory] = useState([])
@@ -229,7 +227,7 @@ function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, ini
           ownerUserId={ownerUserId}
           refreshKey={actionRefreshKey}
           supabase={supabase}
-        /> : canViewReviews ? <ReviewHistoryPage ownerUserId={ownerUserId} supabase={supabase} /> : null}
+        /> : null}
       </div>
       {detail && <GeneralTaskDetail availableTags={activityTags} entry={detail} historyGuardRef={taskHistoryGuard} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onEndGeneralTask={ownerUserId ? null : endGeneralTask} onRetryTags={reloadActivityTags} onSaveTask={ownerUserId ? null : saveTaskDetail} onTagsChanged={updateActivityTags} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
       {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} onTagsChanged={updateActivityTags} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
@@ -239,7 +237,5 @@ function LifecycleWorkbench({ canViewReviews = true, canViewTimeline = true, ini
 }
 
 export default function LifecyclePage(props) {
-  return props.mode === 'decisions'
-    ? <DecisionActivitiesPage ownerUserId={props.ownerUserId} supabase={props.supabase} />
-    : <LifecycleWorkbench {...props} />
+  return <LifecycleWorkbench {...props} />
 }
