@@ -7,14 +7,14 @@ function tabFromHash(fallback = 'today') {
   if (typeof window === 'undefined') return fallback
   const hash = window.location.hash.replace(/^#/, '').trim()
   if (hash === 'news') return 'tasks'
-  if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'allocation') return 'overview'
+  if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'allocation' || hash === 'tags') return 'overview'
   return tabIds.has(hash) ? hash : fallback
 }
 
 function assetViewFromHash() {
-  if (typeof window === 'undefined') return 'tags'
+  if (typeof window === 'undefined') return 'holdings'
   const hash = window.location.hash.replace(/^#/, '').trim()
-  return hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'allocation' ? hash : 'tags'
+  return hash === 'sheet' || hash === 'allocation' ? hash : 'holdings'
 }
 
 export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canSubmitFeedback = canEdit) {
@@ -42,9 +42,14 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
     const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#/, '').trim()
       const nextTab = tabFromHash(canEdit ? 'today' : 'overview')
-      if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'allocation') {
-        setAssetView(hash)
+      if (hash === 'accounts' || hash === 'instruments' || hash === 'tags' || hash === 'overview') {
+        setAssetView('holdings')
+        if (hash !== 'overview') window.history.replaceState(null, '', '#overview')
       }
+      if (hash === 'sheet' && !canEdit) {
+        setAssetView('holdings')
+        window.history.replaceState(null, '', '#overview')
+      } else if (hash === 'sheet' || hash === 'allocation') setAssetView(hash)
       setActiveTab((current) => (current === nextTab ? current : nextTab))
     }
 
@@ -57,7 +62,7 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
   }, [canEdit])
 
   useEffect(() => {
-    const nextHash = activeTab === 'overview' && assetView !== 'tags' ? `#${assetView}` : `#${activeTab}`
+    const nextHash = activeTab === 'overview' && assetView !== 'holdings' ? `#${assetView}` : `#${activeTab}`
     if (window.location.hash !== nextHash) {
       window.history.replaceState(null, '', nextHash)
     }

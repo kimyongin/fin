@@ -1,14 +1,11 @@
 import { useMemo } from "react";
 import {
   effectiveKrwValue,
-  matchesTagFilter,
   nativeToKrw,
   resolvePositionValuation,
 } from "../../lib/portfolioMath";
 
 export function usePortfolioDerivedData({
-  accountTagFilter,
-  instrumentTagFilter,
   latestPriceByTicker,
   state,
 }) {
@@ -176,52 +173,6 @@ export function usePortfolioDerivedData({
     return new Map(state.accounts.map((account) => [account.id, account]));
   }, [state.accounts]);
 
-  const accountCards = useMemo(() => {
-    return state.accounts
-      .map((account) => {
-        const rows = computedPositions.filter(
-          (pos) => pos.account_id === account.id,
-        );
-        const marketValueKrw = rows.reduce(
-          (sum, row) =>
-            sum +
-            (Number.isFinite(row.market_value_krw) ? row.market_value_krw : 0),
-          0,
-        );
-        const costBasisKrw = rows.reduce(
-          (sum, row) =>
-            sum +
-            (Number.isFinite(row.cost_basis_krw) ? row.cost_basis_krw : 0),
-          0,
-        );
-        const unknownCount = rows.filter(
-          (row) => row.valuation_status === "missing",
-        ).length;
-        return {
-          ...account,
-          count: rows.length,
-          cost_basis_krw: costBasisKrw,
-          market_value_krw: marketValueKrw,
-          unknownCount,
-          returnPercent:
-            unknownCount === 0 && costBasisKrw > 0
-              ? ((marketValueKrw - costBasisKrw) / costBasisKrw) * 100
-              : null,
-        };
-      })
-      .sort((a, b) => b.market_value_krw - a.market_value_krw);
-  }, [state.accounts, computedPositions, latestPriceByTicker]);
-
-  const filteredAccountCards = useMemo(() => {
-    if (accountTagFilter === "all") return accountCards;
-    return accountCards.filter((account) => {
-      const holdings = holdingsByAccountId.get(account.id) ?? [];
-      return holdings.some((holding) =>
-        matchesTagFilter(holding.ticker, accountTagFilter, tagMapByTicker),
-      );
-    });
-  }, [accountCards, accountTagFilter, holdingsByAccountId, tagMapByTicker]);
-
   const instrumentRows = useMemo(() => {
     const aggregated = new Map();
     for (const pos of computedPositions) {
@@ -305,22 +256,6 @@ export function usePortfolioDerivedData({
     tagMapByTicker,
   ]);
 
-  const filteredInstrumentRows = useMemo(() => {
-    if (instrumentTagFilter === "all") return instrumentRows;
-    if (instrumentTagFilter === "untagged") {
-      return instrumentRows.filter((instrument) =>
-        matchesTagFilter(
-          instrument.ticker,
-          instrumentTagFilter,
-          tagMapByTicker,
-        ),
-      );
-    }
-    return instrumentRows.filter((instrument) =>
-      matchesTagFilter(instrument.ticker, instrumentTagFilter, tagMapByTicker),
-    );
-  }, [instrumentRows, instrumentTagFilter, tagMapByTicker]);
-
   const tagCards = useMemo(() => {
     const rows = instrumentRows.filter((row) => row.accountCount > 0);
     const byTag = new Map();
@@ -365,8 +300,6 @@ export function usePortfolioDerivedData({
   return {
     accountById,
     computedPositions,
-    filteredAccountCards,
-    filteredInstrumentRows,
     holdingsByAccountId,
     holdingsByTicker,
     instrumentRows,

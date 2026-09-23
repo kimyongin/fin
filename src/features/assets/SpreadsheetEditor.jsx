@@ -43,7 +43,7 @@ function SpreadsheetTable({ errorsById, onChange, onExpand, onPaste, onResetRow,
   )
 }
 
-export default function SpreadsheetEditor({ accounts, canSave = true, holdings, instrumentTags, instruments, onSave, saving, tags }) {
+export default function SpreadsheetEditor({ accounts, canSave = true, holdings, instrumentTags, instruments, onBack, onDirtyChange, onSave, saving, tags }) {
   const source = { accounts, holdings, instrumentTags, instruments }
   const [rows, setRows] = useState(() => createSpreadsheetRows(source))
   const [originalRows, setOriginalRows] = useState(() => createSpreadsheetRows(source))
@@ -59,6 +59,14 @@ export default function SpreadsheetEditor({ accounts, canSave = true, holdings, 
     const original = originalRows[index]
     return !original || spreadsheetColumns.some(([field]) => String(row[field] ?? '') !== String(original[field] ?? ''))
   }), [originalRows, rows])
+  useEffect(() => { onDirtyChange?.(hasChanges) }, [hasChanges, onDirtyChange])
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange])
+  useEffect(() => {
+    if (!hasChanges) return undefined
+    const warn = (event) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [hasChanges])
   const accountNames = useMemo(() => [...new Set(rows.map((row) => row.account_name.trim()).filter(Boolean))].sort(), [rows])
   const visibleRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -114,6 +122,7 @@ export default function SpreadsheetEditor({ accounts, canSave = true, holdings, 
 
   return (
     <section className="grid gap-4">
+      {onBack && <button className="min-h-11 justify-self-start rounded-xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={() => { if (!hasChanges || window.confirm('저장하지 않은 표 변경을 버리고 자산으로 돌아갈까요?')) onBack() }} type="button">← 자산으로 돌아가기</button>}
       <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3"><div><h2 className="text-base font-semibold">표 편집</h2><p className="mt-1 text-sm text-[var(--muted-ink)]">엑셀에서 복사한 행을 표 안에 붙여넣고 한 번에 저장할 수 있습니다.</p></div>{filters}</div>
       {table}
       <div className="flex flex-wrap items-center justify-between gap-3">{status}{actions}</div>

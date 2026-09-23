@@ -29,7 +29,7 @@ test('handles mocked ticker-lookup Edge Function success and failure in the hold
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await openMenuTab(page, '자산')
-  await page.getByRole('tab').nth(2).click()
+  await page.getByText('추가 ▾').click()
   await page.getByRole('button', { name: '보유 추가' }).first().click()
   const tickerInput = page.locator('input[placeholder*="AAPL"]')
   let calls = 0
@@ -48,31 +48,74 @@ test('handles mocked ticker-lookup Edge Function success and failure in the hold
   await expect.poll(() => calls).toBe(2)
 })
 
-test('copies the visible portfolio as CSV from the asset toolbar', async ({ context, page }) => {
+test('copies saved portfolio CSV only from the spreadsheet', async ({ context, page }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await openMenuTab(page, '자산')
-  await page.getByRole('button', { name: 'CSV 복사' }).click()
+  await expect(page.getByRole('button', { name: '저장된 자산 CSV 복사' })).toHaveCount(0)
+  await page.getByRole('button', { name: '표 편집' }).click()
+  await page.getByRole('button', { name: '저장된 자산 CSV 복사' }).click()
   await expect(page.getByRole('status').getByText('CSV를 복사했어요')).toBeVisible()
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('티커')
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('E2EAPL')
-  await page.getByRole('button', { name: '목표와 비교' }).click()
-  await expect(page.getByRole('button', { name: 'CSV 복사' })).toBeVisible()
+  await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+  await expect(page.getByRole('button', { name: '저장된 자산 CSV 복사' })).toHaveCount(0)
 })
 
-test('renders saved data in every asset view', async ({ page }) => {
+test('renders saved holdings, account scope, allocation and spreadsheet', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await openMenuTab(page, '자산')
-  const tabs = page.getByRole('tab')
-  await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true')
-  await tabs.nth(1).click()
-  await expect(page.getByText('E2E Account')).toBeVisible()
-  await tabs.nth(2).click()
-  await expect(page.getByText('E2E Apple')).toBeVisible()
-  await tabs.nth(3).click()
+  await expect(page.getByRole('button', { name: /E2E Apple/ })).toBeVisible()
+  await page.getByRole('combobox', { name: '계좌 선택' }).selectOption({ label: 'E2E Account' })
+  await expect(page.getByRole('button', { name: '계좌 수정' })).toBeVisible()
+  await page.getByRole('button', { name: '전체 배분 보기' }).click()
+  await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
+  await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+  await page.getByRole('button', { name: '표 편집' }).click()
   await expect(page.locator('input[value="E2E Apple"]')).toBeVisible()
+})
+
+test('aggregates one ticker across accounts and preserves the chosen scope after detail and allocation', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#overview')
+  const before = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
+  const existing = before.body.holdings.filter((item) => item.ticker === 'E2EAPL')
+  const expectedQuantity = existing.reduce((sum, item) => sum + Number(item.quantity), 2)
+  const expectedAverage = (existing.reduce((sum, item) => sum + Number(item.quantity) * Number(item.avg_price), 0) + 400) / expectedQuantity
+  const account = await callRpc(page, 'app_save_account', {
+    input_account_id: null, input_broker: 'E2E Broker', input_name: 'E2E Second Account',
+    input_note: null, input_request: 'E2E account scope', input_source: 'user',
+  })
+  expect(account.status).toBe(200)
+  const holding = await callRpc(page, 'app_save_holding', {
+    input_account_id: account.body[0].account_id, input_avg_price: 200,
+    input_holding_id: null, input_note: null, input_quantity: 2,
+    input_request: 'E2E weighted average', input_source: 'user', input_ticker: 'E2EAPL',
+  })
+  expect(holding.status).toBe(200)
+  await page.reload()
+  const apple = page.getByRole('button', { name: /E2E Apple/ })
+  await expect(apple).toContainText(`수량 ${expectedQuantity}`)
+  await expect(apple).toContainText(`$${expectedAverage.toFixed(2)} USD`)
+  await apple.click()
+  const detail = page.getByRole('dialog', { name: 'E2E Apple' })
+  await expect(detail.getByText('E2E Account')).toBeVisible()
+  await expect(detail.getByText('E2E Second Account')).toBeVisible()
+  await detail.getByRole('button', { name: '닫기' }).click()
+  await page.getByRole('combobox', { name: '계좌 선택' }).selectOption({ label: 'E2E Second Account' })
+  await page.getByRole('searchbox', { name: '종목 검색' }).fill('apple')
+  await expect(apple).toContainText('$200.00 USD')
+  await apple.click()
+  await expect(page.getByRole('dialog', { name: 'E2E Apple' }).getByText('E2E Account')).toHaveCount(0)
+  await page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button', { name: '닫기' }).click()
+  await expect(page.getByRole('searchbox', { name: '종목 검색' })).toHaveValue('apple')
+  await page.getByRole('button', { name: '전체 배분 보기' }).click()
+  await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
+  await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+  await expect(page.getByRole('combobox', { name: '계좌 선택' })).toHaveValue(String(account.body[0].account_id))
+  await expect(page.getByRole('searchbox', { name: '종목 검색' })).toHaveValue('apple')
 })
 
 test('unlocks a seeded shared portfolio through Supabase', async ({ page }) => {

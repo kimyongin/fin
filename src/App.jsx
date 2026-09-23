@@ -74,8 +74,9 @@ function App() {
   const [friendSaving, setFriendSaving] = useState(false)
   const [viewContext, setViewContext] = useState(() => createOwnerViewContext())
   const [sharedFeatureAccess, setSharedFeatureAccess] = useState(null)
-  const [accountTagFilter, setAccountTagFilter] = useState('all')
-  const [instrumentTagFilter, setInstrumentTagFilter] = useState('all')
+  const [assetAccountId, setAssetAccountId] = useState('all')
+  const [assetQuery, setAssetQuery] = useState('')
+  const [sheetDirty, setSheetDirty] = useState(false)
   const [spreadsheetSaving, setSpreadsheetSaving] = useState(false)
   const [state, setState] = useState(() => createEmptyPortfolioState())
   const [loadError, setLoadError] = useState('')
@@ -94,11 +95,12 @@ function App() {
   const [feedbackSourcePage, setFeedbackSourcePage] = useState('')
 
   const handleTabChange = useCallback((nextTab) => {
+    if (activeTab === 'overview' && assetView === 'sheet' && nextTab !== 'overview' && sheetDirty && !window.confirm('저장하지 않은 표 변경을 버리고 이동할까요?')) return
     if (nextTab === 'feedback' && activeTab !== 'feedback') {
-      setFeedbackSourcePage(activeTab === 'overview' && assetView !== 'tags' ? assetView : activeTab)
+      setFeedbackSourcePage(activeTab === 'overview' && assetView !== 'holdings' ? assetView : activeTab)
     }
     setActiveTab(nextTab)
-  }, [activeTab, assetView, setActiveTab])
+  }, [activeTab, assetView, setActiveTab, sheetDirty])
   const {
     createToken: handleCreateAgentToken,
     dismissIssuedToken: handleDismissIssuedAgentToken,
@@ -288,8 +290,7 @@ function App() {
   const {
     accountById,
     computedPositions,
-    filteredAccountCards,
-    filteredInstrumentRows,
+    instrumentRows,
     holdingsByAccountId,
     holdingsByTicker,
     tagCards,
@@ -297,8 +298,6 @@ function App() {
     totalValue,
     valuationQuality,
   } = usePortfolioDerivedData({
-    accountTagFilter,
-    instrumentTagFilter,
     latestPriceByTicker,
     state,
   })
@@ -503,30 +502,28 @@ function App() {
 
         {activeTab === 'overview' && assetView !== 'allocation' && (
           <AssetsPageView
-            accountTagFilter={accountTagFilter}
             accountById={accountById}
-            accounts={filteredAccountCards}
+            accounts={state.accounts}
             assetView={assetView}
+            selectedAccountId={assetAccountId}
+            onSelectedAccountIdChange={setAssetAccountId}
+            query={assetQuery}
+            onQueryChange={setAssetQuery}
             canEdit={canEdit}
             csvCopied={copied}
-            holdingsByAccountId={holdingsByAccountId}
             holdingsByTicker={holdingsByTicker}
-            instrumentTagFilter={instrumentTagFilter}
-            instruments={filteredInstrumentRows}
+            instruments={instrumentRows}
+            latestPriceByTicker={latestPriceByTicker}
             onAssetViewChange={setAssetView}
             onCopyCsv={handleCopyCsv}
             onCreateAccount={() => openAccountModal()}
             onCreateHolding={(ticker) => openHoldingModal({ ticker })}
-            onCreateInstrument={() => openInstrumentModal()}
-            onCreateTag={() => openTagModal()}
             onCreateHoldingForAccount={(accountId) => openHoldingModal({ accountId })}
             onEditAccount={(account) => openAccountModal(account)}
             onEditHolding={(holding) => openHoldingModal({ holding })}
             onEditInstrument={(instrument) => openInstrumentModal(instrument)}
-            onEditTag={(tag) => openTagModal(tag)}
-            onAccountTagFilterChange={setAccountTagFilter}
-            onInstrumentTagFilterChange={setInstrumentTagFilter}
             onSpreadsheetSave={handleSpreadsheetSave}
+            onSheetDirtyChange={setSheetDirty}
             onSyncPrices={handleSyncPrices}
             syncingPrices={editor.syncingPrices}
             syncMessage={editor.syncMessage}
@@ -534,12 +531,10 @@ function App() {
             sheetAccounts={state.accounts}
             sheetInstruments={state.instruments}
             holdings={state.holdings}
+            computedPositions={computedPositions}
             instrumentTags={state.instrumentTags}
-            tagCards={tagCards}
             tagMapByTicker={tagMapByTicker}
             tags={state.tags}
-            totalValue={totalValue}
-            valuationQuality={valuationQuality}
             supabase={supabase}
             onTradeSaved={() => refreshState()}
           />
@@ -556,6 +551,7 @@ function App() {
             onAssetViewChange={setAssetView}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             section="allocation"
+            showStrategy={canEdit || Boolean(sharedFeatureAccess?.features?.strategy)}
             supabase={supabase}
             tagCards={tagCards}
             tags={state.tags}

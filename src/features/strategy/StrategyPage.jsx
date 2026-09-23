@@ -21,7 +21,6 @@ const emptyPrinciples = {
   max_trade_amount: 1000000,
   monthly_trade_limit: 2000000,
   contribution_repair_months: 3,
-  mode_change_max_percentage: 5,
 };
 
 function createDraft(strategyState) {
@@ -414,11 +413,6 @@ function PrinciplesModal({ draft, onClose, onSave, saving }) {
           {field("max_trade_amount", "단일 거래 최대금액")}
           {field("monthly_trade_limit", "월간 누적 거래 한도")}
           {field("contribution_repair_months", "적립금 우선 보정 기간", "개월")}
-          {field(
-            "mode_change_max_percentage",
-            "모드 변경 1회 최대 조정폭",
-            "%p",
-          )}
         </div>
         <div className="flex justify-end gap-2">
           <button
@@ -441,8 +435,6 @@ function PrinciplesModal({ draft, onClose, onSave, saving }) {
                   Number(principles.monthly_trade_limit) || 0,
                 contribution_repair_months:
                   Number(principles.contribution_repair_months) || 0,
-                mode_change_max_percentage:
-                  Number(principles.mode_change_max_percentage) || 0,
               });
             }}
             type="button"
@@ -544,13 +536,6 @@ function StrategyDashboard({
           <p>
             적립금 우선 보정{" "}
             <strong>{principles.contribution_repair_months}개월</strong>
-          </p>
-          <p>
-            모드 변경 조정폭{" "}
-            <strong>
-              최대{" "}
-              {formatPercent(Number(principles.mode_change_max_percentage))}p
-            </strong>
           </p>
         </div>
       </article>
@@ -692,9 +677,7 @@ function StrategyDashboard({
 }
 
 function AllocationPage({
-  assetView,
   canEdit,
-  csvCopied,
   ownerUserId = null,
   supabase,
   tagCards,
@@ -702,13 +685,10 @@ function AllocationPage({
   totalValue,
   valuationQuality,
   section = "all",
+  showStrategy = true,
   onAssetViewChange,
-  onCopyCsv,
   onCreateTag,
   onEditTag,
-  onSyncPrices,
-  syncingPrices,
-  syncMessage,
 }) {
   const [strategyState, setStrategyState] = useState(
     createEmptyStrategyState(),
@@ -722,6 +702,7 @@ function AllocationPage({
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     let active = true;
+    if (!showStrategy) { setLoading(false); return () => { active = false; }; }
     setLoading(true);
     fetchStrategyState(supabase, ownerUserId)
       .then((next) => {
@@ -739,7 +720,7 @@ function AllocationPage({
     return () => {
       active = false;
     };
-  }, [ownerUserId, supabase]);
+  }, [ownerUserId, showStrategy, supabase]);
   async function persist(nextDraft, afterSave) {
     setSaving(true);
     setError("");
@@ -754,14 +735,20 @@ function AllocationPage({
       setSaving(false);
     }
   }
-  const assetToolbar = section === "allocation" && <AssetViewToolbar canEdit={canEdit} copied={csvCopied} onCopyCsv={onCopyCsv} onCreateTag={onCreateTag} onEditTag={onEditTag} onSyncPrices={onSyncPrices} onViewChange={onAssetViewChange} syncMessage={syncMessage} syncingPrices={syncingPrices} tags={tags} value={assetView} />;
+  const assetToolbar = section === "allocation" && <AssetViewToolbar canEdit={canEdit} onCreateTag={onCreateTag} onEditTag={onEditTag} onViewChange={onAssetViewChange} tags={tags} />;
+  const currentComposition = section === "allocation" && <section className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4" aria-label="전체 계좌의 태그별 현재 비중">
+    <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="text-lg font-semibold">전체 계좌 · 태그별 현재 비중</h2><span className="text-sm text-[var(--muted-ink)]">확인 가능한 평가액 {formatKrw(totalValue)}</span></div>
+    {!tagCards.length ? <p className="mt-3 text-sm text-[var(--muted-ink)]">보유 종목이 없어 현재 구성을 표시할 수 없습니다.</p> : <div className="mt-3 divide-y divide-[var(--line)]">{tagCards.map((card) => <div className="flex items-center justify-between gap-3 py-2 text-sm" key={card.id}><span>{card.name === 'Untagged' ? '미분류' : card.name}</span><span>{formatKrw(card.value)} · {formatPercent(totalValue > 0 ? card.value / totalValue * 100 : NaN)}</span></div>)}</div>}
+    <p className="mt-3 text-xs text-[var(--muted-ink)]">아래 목표 버킷은 여러 태그를 묶을 수 있어 이 목록과 항목이 일치하지 않을 수 있습니다.</p>
+  </section>;
+  if (!showStrategy) return <div className="grid gap-5">{assetToolbar}{currentComposition}<p className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)]">목표 배분은 공유되지 않았습니다. 현재 태그별 구성만 볼 수 있습니다.</p></div>;
   if (loading)
     return (
-      <div className="grid gap-5">{assetToolbar}<p className="text-sm text-[var(--muted-ink)]">원칙을 불러오는 중입니다.</p></div>
+      <div className="grid gap-5">{assetToolbar}{currentComposition}<p className="text-sm text-[var(--muted-ink)]">배분 설정을 불러오는 중입니다.</p></div>
     );
   if (!strategyState.strategy && !canEdit)
     return (
-      <div className="grid gap-5">{assetToolbar}<p className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)]">공유된 전략이 아직 없습니다.</p></div>
+      <div className="grid gap-5">{assetToolbar}{currentComposition}<p className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted-ink)]">공유된 전략이 아직 없습니다.</p></div>
     );
   if (editing)
     return (
@@ -788,6 +775,7 @@ function AllocationPage({
   return (
     <div className="grid gap-5">
       {assetToolbar}
+      {currentComposition}
       {error && (
         <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
           {error}
@@ -814,13 +802,13 @@ function AllocationPage({
           <p className="mt-2 text-sm text-[var(--muted-ink)]">
             개인 기준과 별도로 목표 비중·적립금·운용 모드를 설정할 수 있습니다.
           </p>
-          <button
+          {canEdit && <button
             className="mt-4 min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold"
             onClick={() => setEditing(true)}
             type="button"
           >
             배분 설정 만들기
-          </button>
+          </button>}
         </article>
       )}
       {editingMode && (

@@ -10,13 +10,6 @@ export const allTabs = [
   { id: 'guide', label: '가이드' },
 ]
 
-export const assetViewOptions = [
-  { id: 'tags', label: '태그 기준' },
-  { id: 'accounts', label: '계좌 기준' },
-  { id: 'instruments', label: '종목 기준' },
-  { id: 'sheet', label: '표 편집' },
-]
-
 export const editableInstrumentTypeOptions = [
   { value: 'market', label: '시장형 투자' },
   { value: 'valuation', label: '평가형 투자' },

@@ -1,5 +1,11 @@
 # MCP-first Portfolio: 매일 점검하고 쉽게 기록하는 앱
 
+## 로컬 구현 — 보유 확인 중심의 자산 UX (#113)
+
+[#113 자산을 보유 확인·잔고 수정 중심으로 단순화](https://github.com/kimyongin/fin/issues/113) · [로컬 명세](./ui-06-assets-holdings-first.md)
+
+보기 탭 선택 없이 보유 목록을 기본 표시하고 계좌 선택·종목 상세로 확인/수정한다. 배분과 표 편집은 별도 목적의 상세 화면이며 CSV는 표 편집에만 둔다. #112의 기능 이동은 재사용하고 네 보기 탭·공통 도구줄 배치는 대체했다. DB/API 변경이나 운영 배포는 없다. 검증·잔여 조건은 로컬 명세에 기록한다.
+
 ## 로컬 구현 — 자산 관리 기능 재배치 (#112)
 
 [#112 가격 갱신·종목 태그·배분 설정을 자산으로 모으기](https://github.com/kimyongin/fin/issues/112) · [로컬 명세](./ui-05-asset-management-placement.md)

@@ -85,7 +85,7 @@ test('keeps the four primary page controls readable across viewport widths', asy
     ]) {
       await page.goto(`/#${hash}`)
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
-      if (hash === 'overview') await expect(page.getByRole('tablist', { name: '자산 보기 전환' })).toBeVisible()
+      if (hash === 'overview') await expect(page.getByRole('region', { name: '보유 종목' })).toBeVisible()
       if (hash === 'tasks') {
         await expect(page.getByRole('textbox', { name: '활동 검색' })).toBeVisible()
         await expect(page.getByRole('heading', { name: '지금 할 일' })).toBeVisible()
@@ -109,7 +109,7 @@ test('keeps the saved strategy visible when opening allocation', async ({ page }
   await expect(page.getByText('E2E Display Strategy')).toHaveCount(0)
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toHaveCount(0)
   await openMenuTab(page, '자산')
-  await page.getByRole('button', { name: '목표와 비교' }).click()
+  await page.getByRole('button', { name: '전체 배분 보기' }).click()
   await expect(page.getByText('E2E Display Strategy')).toBeVisible()
   await expect(page.getByRole('button', { name: '배분 설정', exact: true })).toBeVisible()
   await expect(page).toHaveURL(/#allocation$/)
@@ -132,8 +132,8 @@ test('manages instrument tags from the asset toolbar', async ({ page }) => {
     await expect(page.getByRole('button', { name: '가격 갱신' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
-  await page.getByText('더보기', { exact: true }).click()
-  await page.getByRole('button', { name: '종목 태그 관리' }).click()
+  await page.getByRole('button', { name: '전체 배분 보기' }).click()
+  await page.getByRole('button', { name: '태그 관리' }).click()
   const manager = page.getByRole('dialog', { name: '종목 태그 관리' })
   await expect(manager).toBeVisible()
   await manager.getByRole('button', { name: '태그 추가' }).click()
@@ -143,8 +143,7 @@ test('manages instrument tags from the asset toolbar', async ({ page }) => {
   await editor.getByRole('textbox', { name: '태그명' }).fill(tagName)
   await editor.getByRole('button', { name: '저장' }).click()
   await expect(editor).toHaveCount(0)
-  await page.getByText('더보기', { exact: true }).click()
-  await page.getByRole('button', { name: '종목 태그 관리' }).click()
+  await page.getByRole('button', { name: '태그 관리' }).click()
   await expect(page.getByRole('dialog', { name: '종목 태그 관리' }).getByRole('button', { name: new RegExp(tagName) })).toBeVisible()
 })
 
@@ -183,7 +182,7 @@ test('shows incomplete valuation explicitly and suppresses allocation amounts', 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
 
-  await page.getByRole('button', { name: '목표와 비교' }).click()
+  await page.getByRole('button', { name: '전체 배분 보기' }).click()
   await expect(page.getByText('비중 계산을 잠시 멈췄습니다.')).toBeVisible()
   await expect(page.getByRole('heading', { name: '이번 달 적립금 배분' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '리밸런싱 제안' })).toHaveCount(0)
@@ -228,12 +227,8 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#overview')
 
-  const accountTab = page.getByRole('tab', { name: '계좌 기준', exact: true })
-  await accountTab.focus()
-  await page.keyboard.press('ArrowRight')
-  await expect(page.getByRole('tab', { name: '종목 기준', exact: true })).toHaveAttribute('aria-selected', 'true')
-  await page.keyboard.press('End')
-  await expect(page.getByRole('tab', { name: '표 편집', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await page.getByRole('button', { name: '표 편집' }).click()
+  await expect(page).toHaveURL(/#sheet$/)
 
   await page.getByRole('button', { name: '전체 화면으로 표 편집' }).click()
   const spreadsheet = page.getByRole('dialog', { name: '표 편집' })
@@ -249,7 +244,9 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
   await spreadsheet.getByRole('button', { name: '닫기', exact: true }).click()
   await expect(page.getByLabel('계좌명').first()).toHaveValue(`${initialAccountName} 임시`)
 
-  await page.getByRole('tab', { name: '계좌 기준', exact: true }).click()
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+  await page.getByText('추가 ▾').click()
   await page.getByRole('button', { name: '계좌 추가' }).click()
   const accountEditor = page.getByRole('dialog', { name: '계좌 추가' })
   await accountEditor.getByLabel('계좌명').fill('저장 전 계좌')
@@ -279,5 +276,40 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
       await page.setViewportSize({ width, height: 900 })
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     }
+  }
+})
+
+test('keeps legacy asset links pointed at their new purpose', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  for (const hash of ['accounts', 'instruments', 'tags']) {
+    await page.goto(`/#${hash}`)
+    await expect(page.getByRole('region', { name: '보유 종목' })).toBeVisible()
+    await expect(page).toHaveURL(/#overview$/)
+  }
+  await page.goto('/#sheet')
+  await expect(page.getByRole('heading', { name: '표 편집' })).toBeVisible()
+  await page.goto('/#allocation')
+  await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
+})
+
+test('keeps holdings, instrument detail, allocation and spreadsheet within supported widths', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#overview')
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(page.getByRole('region', { name: '보유 종목' })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.getByRole('button', { name: /E2E Apple/ }).click()
+    await expect(page.getByRole('dialog', { name: 'E2E Apple' })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button', { name: '닫기' }).click()
+    await page.getByRole('button', { name: '전체 배분 보기' }).click()
+    await expect(page.getByRole('heading', { name: /전체 계좌 · 태그별 현재 비중/ })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
+    await page.getByRole('button', { name: '표 편집' }).click()
+    await expect(page.getByRole('heading', { name: '표 편집' })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.getByRole('button', { name: '자산으로 돌아가기' }).click()
   }
 })
