@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { allTabs } from '../../constants/portfolio'
 
-const tabIds = new Set([...allTabs.map((tab) => tab.id), 'news'])
+const tabIds = new Set(allTabs.map((tab) => tab.id))
 
 function tabFromHash(fallback = 'today') {
   if (typeof window === 'undefined') return fallback
   const hash = window.location.hash.replace(/^#/, '').trim()
+  if (hash === 'news') return 'tasks'
   if (hash === 'accounts' || hash === 'instruments' || hash === 'sheet' || hash === 'allocation') return 'overview'
   return tabIds.has(hash) ? hash : fallback
 }
@@ -29,7 +30,6 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
       decisions: features.decisions,
       tasks: features.tasks,
       strategy: features.strategy,
-      news: features.news,
       activity: features.activity,
       feedback: canSubmitFeedback,
       settings: false,
@@ -64,8 +64,7 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
   }, [activeTab, assetView])
 
   useEffect(() => {
-    const legacyNewsAllowed = activeTab === 'news' && (canEdit || sharedFeatureAccess?.features?.news)
-    if (!tabs.some((tab) => tab.id === activeTab) && !legacyNewsAllowed) {
+    if (!tabs.some((tab) => tab.id === activeTab)) {
       setActiveTab(!canEdit && sharedFeatureAccess === null ? 'overview' : (tabs[0]?.id ?? 'guide'))
     }
   }, [activeTab, canEdit, sharedFeatureAccess, tabs])

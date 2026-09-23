@@ -3,7 +3,6 @@ import AppHeader from './components/AppHeader'
 import AssetsPageView from './features/assets/AssetsPage'
 import GuidePageView from './features/guide/GuidePage'
 import FeedbackPageView from './features/feedback/FeedbackPage'
-import NewsPageView from './features/news/NewsPage'
 import DailyReviewPageView from './features/review/DailyReviewPage'
 import LifecyclePageView from './features/lifecycle/LifecyclePage'
 import {
@@ -472,7 +471,7 @@ function App() {
 
   
 
-  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? '활동' : activeTab === 'strategy' ? '원칙' : activeTab === 'news' ? '자료' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
+  const pageTitle = activeTab === 'today' ? '오늘' : activeTab === 'overview' ? '자산' : ['decisions', 'tasks', 'activity'].includes(activeTab) ? '활동' : activeTab === 'strategy' ? '원칙' : activeTab === 'feedback' ? '피드백' : activeTab === 'guide' ? '가이드' : '설정'
 
   return (
     <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6">
@@ -631,13 +630,6 @@ function App() {
             tags={state.tags}
             totalValue={totalValue}
             valuationQuality={valuationQuality}
-          />
-        )}
-        {activeTab === 'news' && (
-          <NewsPageView
-            canEdit={canEdit}
-            ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
-            supabase={supabase}
           />
         )}
         {activeTab === 'feedback' && (

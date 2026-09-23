@@ -293,21 +293,6 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
   },
 
-  async get_news_state({ supabase, tokenHash }) {
-    return rpcResult(supabase, 'mcp_get_news_state', {
-      input_token_hash: tokenHash,
-    })
-  },
-
-  async save_news_record({ args, supabase, tokenHash }) {
-    return rpcResult(supabase, 'mcp_save_news_record', {
-      input_token_hash: tokenHash,
-      input_country_code: stringArg(args, 'country_code'),
-      input_fact: stringArg(args, 'fact'),
-      input_opinion: nullableStringArg(args, 'opinion'),
-    })
-  },
-
   async find_holdings({ args, supabase, tokenHash }) {
     return rpcResult(
       supabase,
@@ -500,27 +485,6 @@ function toolDefinitions() {
           },
         },
         required: ['name', 'buckets'],
-      },
-    },
-    {
-      name: 'get_news_state',
-      description: 'Read all country-scoped news facts and their single saved opinions for the connected portfolio owner.',
-      inputSchema: {
-        type: 'object',
-        properties: {},
-      },
-    },
-    {
-      name: 'save_news_record',
-      description: 'Save one Markdown news fact and optional Markdown opinion. Use country_code KR or US.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          country_code: { type: 'string', description: 'KR for Korea or US for the United States.' },
-          fact: { type: 'string', description: 'Markdown factual record without investment opinion.' },
-          opinion: { type: 'string', description: 'Optional Markdown market signal or strategy opinion.' },
-        },
-        required: ['country_code', 'fact'],
       },
     },
     {

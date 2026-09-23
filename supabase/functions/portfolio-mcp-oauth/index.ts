@@ -36,7 +36,6 @@ const dailyReviewResourceUri = 'portfolio://guide/daily-review'
 const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
 // New agent sessions see only the current principle, private-note, and activity paths.
 const hiddenLegacyToolNames = new Set([
-  'get_news_state',
 ])
 const toolDefinitions = portfolioToolDefinitions.filter((definition) => !hiddenLegacyToolNames.has(definition.name)).map((definition) => ({
   ...definition,
@@ -372,9 +371,6 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async get_strategy_state(supabase) {
     return await rpc(supabase, 'app_get_strategy_state', { input_owner_user_id: null })
-  },
-  async get_news_state(supabase) {
-    return await rpc(supabase, 'app_get_news_state', { input_owner_user_id: null })
   },
   async list_recent_activity(supabase, args) {
     const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100)

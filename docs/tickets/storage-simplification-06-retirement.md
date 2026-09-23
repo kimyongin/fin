@@ -21,6 +21,7 @@ GitHub: https://github.com/kimyongin/fin/issues/91
 - 개인 정책 정리: 구 profile/history/receipt 3개 테이블과 전용 DB/MCP CRUD를 제거한다. 기존 서술형 필드는 선행 원칙 migration에서 복사했고, 현재 `restrictions` 배열의 각 승인 문구는 삭제 migration에서 `preference`/`prohibition` 원칙 행으로 복사한다. 구 snapshot에 개별 제한 항목의 안정 ID가 없어 항목별 과거 이력은 추정하지 않는다. 점검 문맥의 구 `investment_policy` 복사본도 제거하고 `principles.items`를 정본으로 유지한다. 격리/운영 적용 상태는 검증 기록과 구분한다.
 - 사용되지 않는 구 출력 정리: 2026-09-23 조사에서 운영 0건·로컬 부재였고 현재 코드 소비자가 없는 `transactions`, `portfolio_snapshots`, `daily_reports`, `rebalance_suggestions` 4개 테이블을 조건부 제거한다. 적용 당시 행이 하나라도 생겼으면 migration 전체를 실패시켜 별도 대조한다. `sync_runs` 등 실제 소비자가 있는 운영 기록은 유지한다. 격리 DB 36개 파일/519개 assertion, MCP 계약, Chromium 34개 시나리오 통과. 일반 로컬/운영 미적용.
 - 이전 게이트 해소: 기존 뉴스 2건 및 금융 원장/검증 기록은 사용자가 삭제를 허용했으므로 내용 이관은 요구하지 않는다. 다만 `#news` 등 구 화면과 DB/Edge 소비자는 새 활동 경로로 이전하고 새 데이터의 소유권·공유 경계는 검증한다.
+- 자료 정리 슬라이스: 구 뉴스 팩트/의견 2개 테이블과 쓰기 RPC·토큰 MCP를 제거했다. `#news`는 활동으로 이동한다. 일일 문맥 기저 함수의 빈 `saved_news` 호환 응답은 이후 점검 구조 단순화에서 제거한다. 격리 DB·OAuth/토큰 MCP 계약·Chromium 34개 시나리오·unit/build 통과. 일반 로컬/운영 미적용.
 - 개발 환경 게이트: `npm run check:edge`는 이 PC에 `deno` 실행 파일이 없어 시작하지 못했다. 독립 E2E의 실제 Edge 호출과 웹 테스트는 별도로 통과했지만 타입 검증을 통과했다고 표시하지 않는다.
 
 - 앱의 구 개인 정책/운영 규칙/보유 이유 UI 데이터 어댑터와 새 자료 등록 경로를 제거했다. 새 OAuth MCP 목록에서는 구 정책·보유 이유·뉴스 조회 및 매매 취소 도구를 숨겼다. 기존 핸들러와 DB RPC는 이전 세션/데이터 이관 전 호환을 위해 남아 있다.

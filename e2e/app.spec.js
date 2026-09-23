@@ -887,41 +887,21 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await expect(page.getByText('현재 자산을 입력하고, ChatGPT에서 첫 점검을 저장하세요')).toBeVisible()
 })
 
-test('keeps legacy news records accessible while new research belongs in activity', async ({ page }) => {
+test('routes old news links to the research activity flow', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#news')
-
-  const suffix = Date.now()
-  const originalFact = `E2E 뉴스 팩트 ${suffix}`
-  const editedFact = `${originalFact} 수정`
-  const opinion = `E2E 의견 ${suffix}`
-  const created = await callRpc(page, 'app_save_news_fact', {
-    input_fact_date: new Date().toISOString().slice(0, 10), input_country_code: 'US',
-    input_axis: 'general', input_title: originalFact, input_source_name: '',
-    input_source_url: '', input_body: originalFact,
+  await expect(page.getByRole('heading', { level: 1, name: '활동' })).toBeVisible()
+  await expect(page).toHaveURL(/#tasks$/)
+  const title = `E2E 조사 활동 ${Date.now()}`
+  const created = await callRpc(page, 'app_create_activity', {
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: { title, category: 'research', note: '공식 자료 확인', authored_via: 'app', timezone: 'Asia/Seoul' },
   })
-  expect(created.status).toBe(200)
-  const factId = Array.isArray(created.body) ? created.body[0].id : created.body.id
-  expect((await callRpc(page, 'app_save_news_fact_annotation', { input_fact_id: factId, input_signal: 'observe', input_body: opinion })).status).toBe(200)
+  expect(created.status, JSON.stringify(created.body)).toBe(200)
   await page.reload()
-  await expect(page.getByText('새 조사는 활동에서 기록하세요.')).toBeVisible()
-  await expect(page.getByRole('button', { name: '뉴스 추가' })).toHaveCount(0)
-  await expect(page.getByText(originalFact, { exact: true })).toBeVisible()
-  await expect(page.getByText(opinion, { exact: true })).toBeVisible()
-
-  const record = page.getByText(originalFact, { exact: true }).locator('xpath=ancestor::li')
-  await record.getByRole('button', { name: '뉴스 기록 편집' }).click()
-  const editDialog = page.getByRole('dialog', { name: '뉴스 기록 편집' })
-  await editDialog.getByLabel('팩트').fill(editedFact)
-  await editDialog.getByRole('button', { name: '저장', exact: true }).click()
-  await expect(page.getByText(editedFact, { exact: true })).toBeVisible()
-
-  await page.getByText(editedFact, { exact: true }).locator('xpath=ancestor::li').getByRole('button', { name: '뉴스 기록 편집' }).click()
-  const deleteButton = page.getByRole('dialog', { name: '뉴스 기록 편집' }).getByRole('button', { name: '기록 삭제' })
-  await deleteButton.click()
-  await expect(page.getByText('삭제 확인')).toBeVisible()
-  await deleteButton.click()
-  await expect(page.getByText(editedFact, { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: title, exact: true })).toBeVisible()
+  const detail = await callRpc(page, 'app_get_activity', { input_activity_id: created.body.id, input_owner_user_id: null })
+  expect(detail.body.record_kind).toBe('research')
 })
 
 test('guides a new user from empty assets through OAuth setup and first review', async ({ page }) => {
@@ -1085,7 +1065,6 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
     ['decisions', '활동'],
     ['tasks', '활동'],
     ['strategy', '원칙'],
-    ['news', '자료'],
     ['activity', '활동'],
     ['feedback', '피드백'],
     ['settings', '설정'],

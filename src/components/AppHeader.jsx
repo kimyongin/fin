@@ -57,7 +57,7 @@ function AppHeader({
     },
     availableIds.has('strategy') && { id: 'strategy', label: '원칙' },
   ].filter(Boolean)
-  const secondaryTabs = tabs.filter((tab) => ['news', 'feedback', 'settings', 'guide'].includes(tab.id))
+  const secondaryTabs = tabs.filter((tab) => ['feedback', 'settings', 'guide'].includes(tab.id))
 
   function PrimaryNavigation() {
     return (

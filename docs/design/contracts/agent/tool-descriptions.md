@@ -20,7 +20,6 @@ revision 11 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | find_holdings / observed-local | 티커·종목명·계좌명으로 본인의 보유 후보를 찾습니다. 여러 결과가 나오면 변경 전에 대상을 확인하세요. | W05,W06 |
 | update_entity_note / local | 현재 메모를 먼저 읽고 계좌·종목·보유 항목의 기존 메모만 충돌 방지 방식으로 수정합니다. 수량·원가·검증 상태는 바꾸지 않습니다. 여러 세션에 공통 적용할 데이터 관리 규칙 저장에는 사용하지 않습니다. | 대상별 메모 |
 | get_strategy_state / observed-local | 저장된 운용 전략·목표 버킷·태그 연결을 읽습니다. 운용 모드를 개인 성향으로 추정하지 않습니다. | W01,W02 |
-| get_news_state / legacy-hidden | 이전 `news_facts` 자료의 호환 조회만 남깁니다. 새 세션에서는 조사 결과를 활동으로 기록·검색하고 최신 뉴스는 ChatGPT가 직접 조사합니다. 기존 자료는 일일 문맥에 남아 있습니다. | W01,W04 |
 | list_recent_activity / observed-local | 본인의 최근 데이터 변경을 조회합니다. 활동 기록을 투자 결정이나 실제 증권사 체결 증명으로 해석하지 않습니다. | W06,W08 |
 | submit_product_feedback / observed-local | 사용자가 명시적으로 요청했거나 에이전트의 한 번의 요약 제안에 동의한 Portfolio 제품 피드백을 비공개로 저장합니다. 대화 전문·투자 데이터·인증정보·추정 원인을 첨부하거나 GitHub에 공개하지 않습니다. | W09 |
 | list_my_product_feedback / observed-local | 본인이 남긴 제품 피드백의 상태·운영자 답변·연결 이슈만 조회합니다. 타인의 접수나 관리자 큐를 노출하지 않습니다. | W09 |

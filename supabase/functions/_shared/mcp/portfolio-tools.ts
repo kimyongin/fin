@@ -485,13 +485,6 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: readOnlyAnnotations,
   },
   {
-    name: 'get_news_state',
-    title: 'Saved market news',
-    description: 'Read market news facts and opinions saved by the authenticated user.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    annotations: readOnlyAnnotations,
-  },
-  {
     name: 'list_recent_activity',
     title: 'Recent portfolio activity',
     description: 'List recent portfolio changes for the authenticated user.',
@@ -548,7 +541,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_daily_context',
     title: 'Prepare daily review context',
-    description: 'Start a daily review by creating one short-lived owner-only snapshot. It includes current principles and private_holding_notes. Use the snapshot instead of separately reading portfolio, strategy, saved news, and activity for the same review. It does not save an analysis, mark a review complete, or fetch public news.',
+    description: 'Start a daily review by creating one short-lived owner-only snapshot. It includes current principles, private_holding_notes, and recent activities. Saved news facts are retired; ChatGPT researches current external news itself. It does not save an analysis or mark a review complete.',
     inputSchema: {
       type: 'object',
       properties: {
