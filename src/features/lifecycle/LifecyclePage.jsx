@@ -118,7 +118,7 @@ function Detail({ entry, loading, onBack, onClose, onEndGeneralTask }) {
   )
 }
 
-function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, onSelectionHandled, ownerUserId = null, supabase }) {
+function LifecycleWorkbench({ initialSelection = null, mode, onSelectionHandled, ownerUserId = null, supabase }) {
   const [error, setError] = useState('')
   const [detail, setDetail] = useState(null)
   const [detailHistory, setDetailHistory] = useState([])
@@ -153,7 +153,6 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
           ? activityNoon(draft.occurredOn)
           : null
         await recordManualActivity(supabase, { ...draft, occurredAt, idempotencyKey })
-        onRefreshActivity?.()
       }
       createAttempt.current = null
       setActionRefreshKey((value) => value + 1)
@@ -173,14 +172,12 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
     try {
       await transitionGeneralTask(supabase, task, 'complete', { occurrenceOn: task.occurrence_on })
       setActionRefreshKey((value) => value + 1)
-      onRefreshActivity?.()
     } catch (nextError) { setError(nextError.message ?? '할 일을 완료하지 못했습니다.') }
   }
 
   async function endGeneralTask(task) {
     await transitionGeneralTask(supabase, task, 'cancel', { reason: '사용자가 반복 종료' })
     setActionRefreshKey((value) => value + 1)
-    onRefreshActivity?.()
     dismissDetail()
   }
 
@@ -203,7 +200,6 @@ function LifecycleWorkbench({ initialSelection = null, mode, onRefreshActivity, 
 
   async function refreshActivityDetail(saved, options = {}) {
     setActionRefreshKey((value) => value + 1)
-    onRefreshActivity?.()
     if (activeActivityId.current !== saved?.id) return
     const request = activityRequestGate.current.begin()
     setActivityDetail(saved)

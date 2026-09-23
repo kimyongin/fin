@@ -4,9 +4,9 @@ import {
   actionTaskToolNames,
   activityReportToolNames,
   dailyReviewToolNames,
-  decisionTaskToolNames,
+  decisionActivityToolNames,
   entityNoteToolNames,
-  holdingThesisToolNames,
+  holdingNotesToolNames,
   holdingIntegrityToolNames,
   investmentPolicyToolNames,
   portfolioToolDefinitions,
@@ -27,12 +27,12 @@ describe('portfolio MCP tool definitions', () => {
     const names = portfolioToolDefinitions.map((definition) => definition.name)
     expect(new Set(names).size).toBe(names.length)
     expect(dailyReviewToolNames.every((name) => names.includes(name))).toBe(true)
-    expect(decisionTaskToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(decisionActivityToolNames.every((name) => names.includes(name))).toBe(true)
     expect(actionTaskToolNames.every((name) => names.includes(name))).toBe(true)
     expect(activityReportToolNames.every((name) => names.includes(name))).toBe(true)
     expect(entityNoteToolNames.every((name) => names.includes(name))).toBe(true)
     expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
-    expect(holdingThesisToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(holdingNotesToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
     expect(productFeedbackToolNames.every((name) => names.includes(name))).toBe(true)

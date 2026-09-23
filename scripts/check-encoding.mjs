@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const textExtensions = new Set([
   '.css', '.cjs', '.html', '.js', '.json', '.jsx', '.md', '.mjs', '.svg',
@@ -14,6 +14,7 @@ const repositoryFiles = execFileSync(
   .toString('utf8')
   .split('\0')
   .filter(Boolean)
+  .filter((file) => existsSync(file))
   .filter((file) => textExtensions.has(file.slice(file.lastIndexOf('.')).toLowerCase()));
 
 const decoder = new TextDecoder('utf-8', { fatal: true });

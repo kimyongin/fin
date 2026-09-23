@@ -3,7 +3,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
 import {
-  actionTaskToolNames, activityReportToolNames, dailyReviewToolNames, decisionTaskToolNames, entityNoteToolNames, holdingIntegrityToolNames, holdingThesisToolNames,
+  actionTaskToolNames, activityReportToolNames, dailyReviewToolNames, decisionActivityToolNames, entityNoteToolNames, holdingIntegrityToolNames, holdingNotesToolNames,
   investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames,
   productFeedbackToolNames, workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
@@ -546,11 +546,11 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   productFeedback: productFeedbackToolNames,
   entityNotes: entityNoteToolNames,
   dailyReview: dailyReviewToolNames,
-  decisionsAndTasks: decisionTaskToolNames,
+  decisionActivities: decisionActivityToolNames,
   actionTasks: actionTaskToolNames,
   activityReports: activityReportToolNames,
   investmentPolicy: investmentPolicyToolNames,
-  holdingThesis: holdingThesisToolNames,
+  holdingNotes: holdingNotesToolNames,
   tradeEntry: tradeEntryToolNames,
   holdingIntegrity: holdingIntegrityToolNames,
 })

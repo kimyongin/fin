@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-23",
-  "review_reason": "New activity and standalone task creation save selected tags atomically and document same-key retries",
+  "review_reason": "Removed unused legacy UI and renamed internal MCP tool groups without public contract change",
   "topics": {
     "policy": {
       "revision": "fnv1a32:8a78544b",
-      "contract_digest": "d6dacce334ca0ad035f3a96c1026ce7bb83107d162c8ba11b9eea1045f696c0f"
+      "contract_digest": "fa4975270798167df02ac853f6ea48d846b8787b53d6ac6989b7f1271f20e017"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "ec740db0489856a0bf23fe973a7c79f2bf6e26cf0b877a217f0a02ba25e4a7c6"
+      "contract_digest": "a227167eee30b6dbb44f0a9301bfbed09f0171b927093cf68e0934cf6f9535be"
     },
     "daily_review": {
       "revision": "fnv1a32:1743d26a",
-      "contract_digest": "2b9943c3192f67ef475524239d3290f32fc9f91f509f72c6cc3efb33d15ec6f6"
+      "contract_digest": "11ec078aed3c31509f0b0ca773b009fa8793b639149cb6b473ebee6f541b14c3"
     },
     "decision_followup": {
       "revision": "fnv1a32:55c68510",
-      "contract_digest": "b3e0e4c99413ffc39145f04a1434dcd0f327846c1ad72f655d7857093add0a1c"
+      "contract_digest": "f653b4c0227e619fe0e03683d192ebfad28b9bd46a88fe21d56fc354f06d8d5f"
     },
     "trade_entry": {
       "revision": "fnv1a32:497bf056",
-      "contract_digest": "5cbf07b4298d288ce55e7bcd958c2ec35afd9397360ecb349d2153c6e9b5d104"
+      "contract_digest": "f49b48d11bd54c445d383a8c78c49b80234e82379a704e27443ba2b84282c21f"
     },
     "reconciliation": {
       "revision": "fnv1a32:1fa0dea4",
-      "contract_digest": "7c03904458d59278a8394fbcd1c084949d26863542ed60db86879319bb0526a4"
+      "contract_digest": "5c84ae44bf0fa827a958f07b760ae081e08ea88e7d3c089d31f4494aa270ff55"
     },
     "todo": {
       "revision": "fnv1a32:96683428",
-      "contract_digest": "fa1d4e358ea73c6428e5ff95602be7c0ad7984347a5a798585b9638737e57e6d"
+      "contract_digest": "62e0825076c867f93c10f940c8112b57ecb871339b3e7b32bc402c88d716c667"
     },
     "activity_report": {
       "revision": "fnv1a32:f0d9274f",
-      "contract_digest": "b0a4f332c8652039c3e8b66dce4f44ec7777ef8434538b48c36ebdd08907cc9a"
+      "contract_digest": "cab8ebcd30fbbbc4972e33d7795dc368a5ee4cd5d6949fb4bfc1f34d86fbf1b0"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "33cb0cef416d26665ccf621cd0b36806cb36594c4666f4940fa89d8d6501c969"
+      "contract_digest": "e72bb47c52f67366e039f93c43bf00b10e7628b59b7f43f9a8481ee322cd2d30"
     }
   }
 }

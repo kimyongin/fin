@@ -99,13 +99,9 @@ function App() {
     setActiveTab(nextTab)
   }, [activeTab, assetView, setActiveTab])
   const {
-    actions: agentActions,
-    actionsError: agentActionsError,
-    actionsLoading: agentActionsLoading,
     createToken: handleCreateAgentToken,
     dismissIssuedToken: handleDismissIssuedAgentToken,
     issuedToken: issuedAgentToken,
-    loadActions: loadAgentActions,
     revokeToken: handleRevokeAgentToken,
     tokenError: agentTokenError,
     tokenSaving: agentTokenSaving,
@@ -114,8 +110,6 @@ function App() {
   } = useAgentControls({
     activeTab,
     isAnonymousSession,
-    isSchemaMissingError: isViewerSchemaMissingError,
-    ownerUserId: viewContext.mode === 'shared' ? viewContext.ownerUserId : null,
     session,
     supabase,
   })
@@ -515,13 +509,9 @@ function App() {
 
         {(['decisions', 'tasks', 'activity'].includes(activeTab)) && (
           <LifecyclePageView
-            actions={agentActions}
-            activityError={agentActionsError}
-            activityLoading={agentActionsLoading}
             initialSelection={lifecycleSelection}
             mode={activeTab}
             onModeChange={setActiveTab}
-            onRefreshActivity={loadAgentActions}
             onSelectionHandled={() => setLifecycleSelection(null)}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             supabase={supabase}

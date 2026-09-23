@@ -909,7 +909,7 @@ export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_pro
 
 export const entityNoteToolNames = ['update_entity_note'] as const
 
-export const decisionTaskToolNames = [
+export const decisionActivityToolNames = [
   'list_decision_activities',
 ] as const
 
@@ -939,7 +939,7 @@ export const investmentPolicyToolNames = [
   'save_principle',
 ] as const
 
-export const holdingThesisToolNames = [
+export const holdingNotesToolNames = [
   'list_private_holding_notes',
   'save_private_holding_note',
 ] as const

@@ -3,7 +3,6 @@ import { sha256Hex } from '../../lib/viewerAccess'
 import {
   createAgentToken,
   fetchAgentTokens,
-  fetchRecentAgentActions,
   revokeAgentToken,
 } from './data'
 
@@ -20,41 +19,14 @@ function generateAgentToken() {
 export function useAgentControls({
   activeTab,
   isAnonymousSession,
-  isSchemaMissingError,
-  ownerUserId,
   session,
   supabase,
 }) {
-  const [actions, setActions] = useState([])
-  const [actionsLoading, setActionsLoading] = useState(false)
-  const [actionsError, setActionsError] = useState('')
   const [tokens, setTokens] = useState([])
   const [tokensLoading, setTokensLoading] = useState(false)
   const [tokenSaving, setTokenSaving] = useState(false)
   const [tokenError, setTokenError] = useState('')
   const [issuedToken, setIssuedToken] = useState('')
-
-  const loadActions = useCallback(async () => {
-    if (!session || (isAnonymousSession && !ownerUserId)) {
-      setActions([])
-      setActionsError('')
-      return
-    }
-
-    setActionsLoading(true)
-    setActionsError('')
-    try {
-      setActions(await fetchRecentAgentActions(supabase, 30, ownerUserId))
-    } catch (error) {
-      if (isSchemaMissingError(error)) {
-        setActions([])
-        return
-      }
-      setActionsError(error.message ?? 'Agent activity could not be loaded.')
-    } finally {
-      setActionsLoading(false)
-    }
-  }, [isAnonymousSession, isSchemaMissingError, ownerUserId, session, supabase])
 
   const loadTokens = useCallback(async () => {
     if (!session || isAnonymousSession) {
@@ -75,9 +47,8 @@ export function useAgentControls({
   }, [isAnonymousSession, session, supabase])
 
   useEffect(() => {
-    if (activeTab === 'activity') loadActions()
     if (activeTab === 'settings') loadTokens()
-  }, [activeTab, loadActions, loadTokens])
+  }, [activeTab, loadTokens])
 
   const createToken = useCallback(async () => {
     if (!session || isAnonymousSession) return
@@ -117,13 +88,9 @@ export function useAgentControls({
   }, [loadTokens, supabase])
 
   return {
-    actions,
-    actionsError,
-    actionsLoading,
     createToken,
     dismissIssuedToken: () => setIssuedToken(''),
     issuedToken,
-    loadActions,
     revokeToken,
     tokenError,
     tokenSaving,

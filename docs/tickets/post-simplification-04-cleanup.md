@@ -1,6 +1,6 @@
 # [후속 정리] 미사용 화면·활동 조회·구 명칭 제거
 
-우선순위: P2 · 상태: 티켓 작성, 구현 전 · 2026-09-23
+우선순위: P2 · 상태: 로컬 구현·검증 완료, 운영 배포 전 · 2026-09-23
 관련: #91, #57 · 기준 코드: 8cb943f
 
 ## 문제와 근거
@@ -17,10 +17,17 @@ HoldingThesisModal.jsx/ActivityPage.jsx 및 lifecycle/data.js의 일부 조회 �
 
 ## 완료 조건
 
-- [ ] 제거 대상과 참조 확인 근거를 기록하고 import/build/관련 테스트가 통과한다.
-- [ ] 활동 등록·완료·편집 이후 불필요한 최근 활동 요청이 발생하지 않으며 목록은 갱신된다.
-- [ ] 토큰 발급/해지, 공유 보기, 기존 hash 진입 등 유효한 소비 흐름이 유지된다.
-- [ ] MCP 도구 목록/계약/가이드 검사를 통과하고 내부 명칭 변경의 영향 없음 또는 변경 사항을 기록한다.
+- [x] 참조 검색으로 소비자가 없는 `HoldingThesisModal`, `ActivityPage`, 옛 task 조회 adapter를 확인해 제거했다. `npm test`, `npm run build` 통과.
+- [x] 화면에서 소비하지 않던 `agentActions` 상태·최근 활동 fetch·저장 후 재요청을 제거하고, 실제 목록 갱신 키는 유지했다.
+- [x] 유효한 토큰/공유/hash 경로는 삭제하지 않았다. 최종 E2E 회귀 검증 결과는 아래에 기록한다.
+- [x] 공개 MCP 도구 이름은 그대로 두고 내부 그룹 이름만 현재 용어로 바꿨다. Deno check 및 workflow-guide manifest 검사를 통과했다.
+
+## 구현·검증 기록
+
+- `rg`로 import/호출자를 재확인한 뒤 미사용 파일과 adapter를 삭제했다. 삭제된 추적 파일 때문에 인코딩 검사가 실패하지 않도록 검사 대상의 실제 존재 여부를 확인하게 했다.
+- `npm test`: 20 파일/96 테스트 통과. `npm run build`: 성공. OAuth Edge handler Deno check: 성공.
+- 공개 MCP 계약·설명 변경은 없다. 내부 소스 hash 변화에 대한 workflow-guide review manifest 사유를 기록했다.
+- 운영 배포와 실제 ChatGPT 웹·모바일 평가는 이 로컬 정리 범위 밖이다.
 
 ## 진행 규칙
 
@@ -28,4 +35,3 @@ HoldingThesisModal.jsx/ActivityPage.jsx 및 lifecycle/data.js의 일부 조회 �
 - 최소 변경으로 수직 구현·검증한다. 새 테이블/이력/범용 프레임워크를 기본 해법으로 삼지 않는다.
 - 관련 코드·계약·MCP 설명/가이드 영향과 실제 검사 결과를 함께 기록한다. DB 변경 시 schema/OVERVIEW.md를 갱신한다.
 - 사용자 로컬 설정을 보존한다. 로컬 완료와 운영 배포/실제 ChatGPT 검증을 구분한다.
-

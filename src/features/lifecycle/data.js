@@ -30,14 +30,6 @@ function normalizePage(data) {
   }
 }
 
-export async function fetchGeneralTaskPage(supabase, { cursor = null, filter = 'active', limit = 20 } = {}) {
-  return normalizePage(await rpc(supabase, 'app_list_general_task_page', {
-    input_filter: filter,
-    input_limit: limit,
-    input_cursor: cursor,
-  }))
-}
-
 export async function fetchActionTimeline(supabase, {
   cursor = null,
   filter = 'all',
@@ -162,12 +154,6 @@ export async function searchActivities(supabase, {
     input_timezone: timezone,
   })
   return { ...normalizePage(data), semanticStatus: 'unavailable' }
-}
-
-export async function fetchGeneralTask(supabase, taskId) {
-  const data = await rpc(supabase, 'app_get_general_task', { input_task_id: taskId })
-  if (!data) throw new Error('일반 할 일을 찾을 수 없거나 접근할 수 없습니다.')
-  return data
 }
 
 export async function saveGeneralTask(supabase, task) {

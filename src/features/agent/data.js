@@ -1,13 +1,3 @@
-export async function fetchRecentAgentActions(supabase, limit = 10, ownerUserId = null) {
-  const { data, error } = await supabase.rpc('app_list_recent_activity', {
-    limit_count: limit,
-    input_owner_user_id: ownerUserId,
-  })
-
-  if (error) throw error
-  return data ?? []
-}
-
 export async function recordUserActivity(
   supabase,
   { actionType, targetTable = null, targetId = null, beforeData = null, afterData = null },

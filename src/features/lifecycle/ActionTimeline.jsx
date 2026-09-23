@@ -16,9 +16,7 @@ function formatDay(value) {
 }
 
 function statusLabel(task) {
-  if (task.kind === 'general') return task.recurrence_kind === 'daily' ? '매일 반복' : '할 일'
-  if (task.kind === 'research') return task.status === 'waiting' ? '자료 대기' : '확인 필요'
-  return task.status === 'partial' ? '일부 체결' : '실행 예정'
+  return task.recurrence_kind === 'daily' ? '매일 반복' : '할 일'
 }
 
 export default function ActionTimeline({ onAdd, onCompleteGeneralTask, onOpenActivity, onOpenTask, ownerUserId, refreshKey = 0, supabase }) {
