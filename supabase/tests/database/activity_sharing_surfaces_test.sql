@@ -40,7 +40,7 @@ select extensions.is(public.app_get_activity((select id from activity_target),
   '00000000-0000-0000-0000-000000001971')->>'after_data',null::text,'internal payload is hidden');
 select extensions.is(jsonb_array_length(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_query=>'정기 점검')->'items'),1,
   'explicit grant exposes keyword search');
-select extensions.is(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_query=>'정기 점검')->'items'->0->>'holding_id',null::text,
+select extensions.is(public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_query=>'정기 점검')->'items'->0->>'instrument_id',null::text,
   'search hides asset reference');
 select extensions.throws_ok($$select public.app_search_activities(input_owner_user_id=>'00000000-0000-0000-0000-000000001971',input_instrument_id=>9971)$$,
   'P0001','Asset access required for target filters','private asset filter cannot be used as a side channel');

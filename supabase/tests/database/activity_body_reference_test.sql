@@ -14,7 +14,7 @@ insert into public.holdings(id,user_id,account_id,ticker,quantity,avg_price)
 values(9971,'00000000-0000-0000-0000-000000000971',9971,'REF971',1,100);
 insert into public.activity_events(user_id,source,action_type,target_table,target_id,note,result,status)
 values('00000000-0000-0000-0000-000000000971','user','update_holding','holdings','9971','Note','Result','succeeded');
-select extensions.is((select holding_id from public.activity_events where target_id='9971' and action_type='update_holding'),9971::bigint,'holding target is linked on insert');
+select extensions.is((select instrument_id from public.activity_events where target_id='9971' and action_type='update_holding'),9971::bigint,'holding target links its instrument on insert');
 select extensions.is((select body from public.activity_events where target_id='9971' and action_type='update_holding'),'기록','automatic records do not publish private notes or result payloads');
 insert into public.activity_events(user_id,source,action_type,target_table,target_id,title,before_data,after_data,status)
 values('00000000-0000-0000-0000-000000000971','user','log_completed_trade','holdings','9971','Referenced instrument 매수',
@@ -26,11 +26,11 @@ set local role authenticated;
 select extensions.is(public.app_get_activity((select id from public.activity_events where action_type='log_completed_trade' and target_id='9971'),null)
   ->'instrument_summary'->>'display_name','Referenced instrument','owner detail links an automatic holding action to the common instrument');
 set local role postgres;
-select extensions.throws_ok($$insert into public.activity_events(user_id,source,action_type,target_table,target_id,holding_id,status)
+select extensions.throws_ok($$insert into public.activity_events(user_id,source,action_type,target_table,target_id,instrument_id,status)
 values('00000000-0000-0000-0000-000000000972','user','record_manual_activity','manual_activities',null,9971,'succeeded')$$,
-  'P0001','Holding reference not found for activity owner','other owner cannot point at private holding');
+  'P0001','Instrument reference not found for activity owner','other owner cannot point at private instrument');
 delete from public.holdings where id=9971;
-select extensions.is((select holding_id from public.activity_events where target_id='9971' and action_type='update_holding'),null::bigint,'deleting holding clears reference');
+select extensions.is((select instrument_id from public.activity_events where target_id='9971' and action_type='update_holding'),9971::bigint,'deleting holding preserves instrument reference');
 select extensions.is((select count(*) from public.activity_events where target_id='9971' and action_type='update_holding'),1::bigint,'deleting holding preserves historical activity');
 select * from extensions.finish();
 rollback;

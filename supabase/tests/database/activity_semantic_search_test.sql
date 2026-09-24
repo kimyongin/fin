@@ -31,14 +31,14 @@ select extensions.is(jsonb_array_length(public.app_list_activity_embedding_jobs(
 select extensions.is(
   public.app_search_activity_semantic(
     ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector,
-    null,null,null,null,null,null,null,'any',10,'Asia/Seoul'
+    input_limit=>10
   )#>>'{items,0,title}',
   '손실 위험 줄이기',
   'semantic search orders the nearest current activity first'
 );
 select extensions.ok((public.app_search_activity_semantic(
     ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector,
-    null,null,null,null,null,null,null,'any',10,'Asia/Seoul'
+    input_limit=>10
   )#>>'{items,0,semantic_score}')::numeric > 0.99,'semantic search returns a similarity score');
 
 select public.app_update_activity((select id from activity_events where title='손실 위험 줄이기'),1,
@@ -46,7 +46,7 @@ select public.app_update_activity((select id from activity_events where title='�
 select extensions.is(jsonb_array_length(public.app_list_activity_embedding_jobs(20)),1,'editing current content makes only that embedding stale');
 select extensions.is(jsonb_array_length(public.app_search_activity_semantic(
     ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector,
-    null,null,null,null,null,null,null,'any',10,'Asia/Seoul'
+    input_limit=>10
   )->'items'),1,'stale embeddings are excluded instead of serving old content');
 select extensions.throws_ok(
   $$select public.app_upsert_activity_embedding(
@@ -57,7 +57,7 @@ select extensions.throws_ok(
 
 select extensions.is(jsonb_array_length(public.app_search_activity_semantic(
     ('['||array_to_string(array_fill(0.0::real,array[383])||array[1.0::real],',')||']')::extensions.vector,
-    null,null,null,999999,null,null,null,'any',10,'Asia/Seoul'
+    input_instrument_id=>999999,input_limit=>10
   )->'items'),0,'structured filters are applied before semantic results');
 select extensions.is((select count(*) from activity_embeddings),2::bigint,'derived embeddings are stored once per activity');
 
@@ -65,7 +65,7 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001922'
 select extensions.is(jsonb_array_length(public.app_list_activity_embedding_jobs(20)),0,'pending jobs are owner isolated');
 select extensions.is(jsonb_array_length(public.app_search_activity_semantic(
     ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector,
-    null,null,null,null,null,null,null,'any',10,'Asia/Seoul'
+    input_limit=>10
   )->'items'),0,'semantic results are owner isolated');
 
 select * from extensions.finish();
