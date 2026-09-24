@@ -11,8 +11,8 @@ describe('buildBulkSnapshotCsv', () => {
     })
 
     expect(csv.split('\r\n')).toEqual([
-      '계좌명,증권사,종목명,티커,자산구분,수량,통화,평균매수가,매입금액,평가금액,태그,메모',
-      'ISA,Mirae,Apple,AAPL,market,4,USD,120,,,7,Core',
+      '계좌명,증권사,종목명,티커,자산구분,수량,통화,평균매수가,매입금액,평가금액,태그',
+      'ISA,Mirae,Apple,AAPL,market,4,USD,120,,,7',
     ])
   })
 })

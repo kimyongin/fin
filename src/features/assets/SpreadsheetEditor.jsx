@@ -68,7 +68,7 @@ export default function SpreadsheetEditor({ accounts, canSave = true, csvCopied,
   const accountNames = useMemo(() => [...new Set(rows.map((row) => row.account_name.trim()).filter(Boolean))].sort(), [rows])
   const visibleRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    return rows.filter((row) => (accountFilter === 'all' || row.account_name === accountFilter) && (tagFilter === 'all' || row.tag_id === tagFilter) && (!normalizedQuery || [row.ticker, row.display_name, row.note].some((value) => value.toLowerCase().includes(normalizedQuery))))
+    return rows.filter((row) => (accountFilter === 'all' || row.account_name === accountFilter) && (tagFilter === 'all' || row.tag_id === tagFilter) && (!normalizedQuery || [row.ticker, row.display_name].some((value) => value.toLowerCase().includes(normalizedQuery))))
   }, [accountFilter, query, rows, tagFilter])
 
   useEffect(() => {

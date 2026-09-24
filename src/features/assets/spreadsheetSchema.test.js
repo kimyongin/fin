@@ -10,7 +10,7 @@ describe('spreadsheetSchema', () => {
   it('parses a header-based CSV export into editable fields', () => {
     const csv = [
       spreadsheetCsvHeaders.join(','),
-      'ISA,Mirae,Apple,AAPL,market,4,USD,120,,,7,Core',
+      'ISA,Mirae,Apple,AAPL,market,4,USD,120,,,7',
     ].join('\r\n')
 
     expect(parseSpreadsheetPaste(csv)).toEqual({
@@ -21,7 +21,6 @@ describe('spreadsheetSchema', () => {
         currency: 'USD',
         display_name: 'Apple',
         instrument_type: 'market',
-        note: 'Core',
         quantity: '4',
         tag_id: '7',
         ticker: 'AAPL',

@@ -12,7 +12,6 @@ export const spreadsheetColumns = [
   ['purchase_amount', '매입금액', 'number'],
   ['valuation_amount', '평가금액', 'number'],
   ['tag_id', '태그', 'select'],
-  ['note', '메모', 'text'],
 ]
 
 export const spreadsheetCsvHeaders = spreadsheetColumns.map(([, label]) => label)

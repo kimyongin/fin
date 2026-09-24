@@ -185,7 +185,7 @@ test('deletes a record without changing its related work', async ({ page }) => {
   expect(deleted.body).toBeNull()
 })
 
-test('links a record to an owned task and account-specific holding', async ({ page }) => {
+test('links a record to an owned task and instrument', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#tasks')
   const taskTitle = `E2E 연결 할 일 ${Date.now()}`
@@ -193,29 +193,35 @@ test('links a record to an owned task and account-specific holding', async ({ pa
   let editor = page.getByRole('dialog', { name: '활동 추가' })
   await editor.getByRole('textbox', { name: '할 일 제목' }).fill(taskTitle)
   await editor.getByRole('button', { name: '저장', exact: true }).click()
-  const holdings = await callRpc(page, 'app_find_holdings', { input_query: 'E2EAPL' })
-  expect(holdings.status).toBe(200)
-  const holdingId = holdings.body[0].holding_id
+  const instruments = await callRpc(page, 'app_search_activity_references', { input_kind: 'instrument', input_query: 'E2EAPL', input_offset: 0, input_limit: 20 })
+  expect(instruments.status).toBe(200)
+  const instrumentId = instruments.body.items[0].id
   const title = `E2E 연결 기록 ${Date.now()}`
   await page.getByRole('button', { name: '활동 추가', exact: true }).click()
   editor = page.getByRole('dialog', { name: '활동 추가' })
   await editor.getByLabel('이미 했음').check()
   await editor.getByRole('textbox', { name: '기록 제목' }).fill(title)
-  await editor.getByLabel('관련 할 일').selectOption({ label: taskTitle })
-  await editor.getByRole('combobox', { name: '관련 보유', exact: true }).selectOption(String(holdingId))
+  await editor.getByRole('combobox', { name: '관련 할 일' }).fill(taskTitle)
+  await editor.getByRole('option', { name: taskTitle }).click()
+  await editor.getByRole('combobox', { name: '관련 종목' }).fill('E2EAPL')
+  await editor.getByRole('option', { name: /E2EAPL/ }).click()
+  const creationResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_create_activity_with_tags'))
   await editor.getByRole('button', { name: '저장', exact: true }).click()
+  const createdRecord = await (await creationResponse).json()
   await page.getByRole('button', { name: title, exact: true }).click()
   const detail = page.getByRole('dialog', { name: '기록 상세' })
-  await expect(detail.getByLabel('관련 할 일')).toHaveValue(/.+/)
-  await expect(detail.getByRole('combobox', { name: '관련 보유', exact: true })).toHaveValue(String(holdingId))
+  await expect(detail.getByText(taskTitle)).toBeVisible()
+  await expect(detail.getByLabel('관련 종목 연결 해제')).toBeVisible()
+  const saved = await callRpc(page, 'app_get_activity', { input_activity_id: createdRecord.id, input_owner_user_id: null })
+  expect(saved.body.instrument_id).toBe(instrumentId)
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await expect(detail).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
-  await detail.getByRole('combobox', { name: '관련 보유', exact: true }).selectOption('')
+  await detail.getByLabel('관련 종목 연결 해제').click()
   await detail.getByRole('button', { name: '저장', exact: true }).click()
-  await expect(detail.getByRole('combobox', { name: '관련 보유', exact: true })).toHaveValue('')
+  await expect(detail.getByLabel('관련 종목 연결 해제')).toHaveCount(0)
 })
 
 test('guards activity drafts and detail edits on close, Escape, and browser back', async ({ page }) => {
@@ -290,10 +296,9 @@ test('shares newly created and renamed activity tags with search filters immedia
   await page.reload()
   await page.getByRole('button', { name: title, exact: true }).click()
   const detail = page.getByRole('dialog', { name: '기록 상세' })
-  await detail.getByRole('button', { name: '태그', exact: true }).click()
   await detail.getByPlaceholder('새 태그').fill(tagName)
   await detail.getByPlaceholder('새 태그').locator('..').getByRole('button', { name: '추가', exact: true }).click()
-  await expect(detail.getByLabel(tagName, { exact: true })).toBeChecked()
+  await expect(detail.getByRole('button', { name: `${tagName} 태그 해제` })).toBeVisible()
   await detail.getByRole('textbox', { name: '기록 제목' }).fill(`${title} 초안`)
   const saveResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_save_activity_detail'))
   await detail.getByRole('button', { name: '저장', exact: true }).click()
@@ -315,7 +320,7 @@ test('shares newly created and renamed activity tags with search filters immedia
   const tagRow = detail.getByRole('textbox', { name: `${tagName} 이름 변경` }).locator('..')
   await tagRow.getByRole('textbox').fill(renamed)
   await tagRow.getByRole('button', { name: '변경' }).click()
-  await expect(detail.getByLabel(renamed, { exact: true })).toBeChecked()
+  await expect(detail.getByRole('button', { name: `${renamed} 태그 해제` })).toBeVisible()
   await detail.getByRole('button', { name: '닫기' }).first().click()
   const filters = page.locator('details').filter({ hasText: '상세 필터' })
   await filters.locator('summary').click()

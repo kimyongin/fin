@@ -310,7 +310,7 @@ const toolHandlers: Record<string, ToolHandler> = {
       record_state: (optionalString(args.record_state) ?? 'all') as 'all' | 'todo' | 'done',
       instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
       account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
-      holding_id: args.holding_id == null ? null : requirePositiveInteger(args.holding_id, 'holding_id'),
+      holding_id: null,
       tag_ids: Array.isArray(args.tag_ids) ? args.tag_ids.map((value,index) => requireUuid(value, `tag_ids[${index}]`)) : [],
       tag_match: (optionalString(args.tag_match) ?? 'any') as 'all' | 'any',
       limit: args.limit == null ? 30 : requirePositiveInteger(args.limit, 'limit'),
@@ -367,9 +367,9 @@ const toolHandlers: Record<string, ToolHandler> = {
         occurred_at: optionalString(args.occurred_at) ?? null,
         timezone: requireString(args.timezone, 'timezone'),
         task_id: args.task_id == null ? null : requireUuid(args.task_id, 'task_id'),
-        holding_id: args.holding_id == null ? null : requirePositiveInteger(args.holding_id, 'holding_id'),
+        holding_id: null,
         instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
-        account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
+        account_id: null,
         authored_via: 'agent',
       },
     })
@@ -378,7 +378,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   async update_activity(supabase, args) {
     requireSchemaVersion(args)
     const patch = requireRecord(args.patch, 'patch')
-    const allowed = new Set(['title', 'body', 'occurred_at', 'timezone', 'task_id', 'holding_id', 'instrument_id', 'account_id'])
+    const allowed = new Set(['title', 'body', 'occurred_at', 'timezone', 'task_id', 'instrument_id'])
     for (const key of Object.keys(patch)) if (!allowed.has(key)) throw new ToolInputError(`patch.${key} is not editable`)
     const data = await rpc(supabase, 'app_update_activity', {
       input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),

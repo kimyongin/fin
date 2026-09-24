@@ -46,7 +46,7 @@ test('saves one asset detail across accounts atomically and retries after a reje
   }
 
   let rejectOnce = true
-  await page.route('**/rest/v1/rpc/app_save_asset_detail', async (route) => {
+  await page.route('**/rest/v1/rpc/app_save_asset_detail_current', async (route) => {
     if (!rejectOnce) return route.continue()
     rejectOnce = false
     const payload = route.request().postDataJSON()
@@ -54,11 +54,19 @@ test('saves one asset detail across accounts atomically and retries after a reje
     await route.continue({ postData: JSON.stringify(payload) })
   })
   await editor.getByRole('button', { name: '저장', exact: true }).click()
-  await expect(editor.getByRole('alert')).toBeVisible()
+  const confirmation = page.getByRole('dialog', { name: '보유값 변경 확인' })
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 })
+    await expect(confirmation).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await confirmation.getByLabel('변경 사유 (선택)').fill('계좌별 현재값 확인')
+  await confirmation.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(confirmation.getByRole('alert')).toBeVisible()
   const rolledBack = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(rolledBack.body.instruments.find((item) => item.ticker === ticker).display_name).toBe(`Detail ${suffix}`)
   expect(rolledBack.body.holdings.filter((item) => item.ticker === ticker)).toHaveLength(1)
-  await editor.getByRole('button', { name: '저장', exact: true }).click()
+  await confirmation.getByRole('button', { name: '저장', exact: true }).click()
   await expect(page.getByRole('dialog').getByText('저장되었습니다.')).toBeVisible()
   const saved = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(saved.body.instruments.find((item) => item.ticker === ticker).display_name).toBe(`Updated ${suffix}`)
@@ -71,10 +79,10 @@ test('saves one asset detail across accounts atomically and retries after a reje
   await expect(page.getByRole('dialog', { name: `Updated ${suffix}` })).toBeVisible()
   const afterDelete = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(afterDelete.body.holdings.filter((item) => item.ticker === ticker)).toHaveLength(1)
-  await page.unroute('**/rest/v1/rpc/app_save_asset_detail')
+  await page.unroute('**/rest/v1/rpc/app_save_asset_detail_current')
 })
 
-test('saves a private holding reason without exposing it in the shared portfolio DTO', async ({ page }) => {
+test('edits only the shared instrument memo in the asset detail', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
@@ -86,106 +94,40 @@ test('saves a private holding reason without exposing it in the shared portfolio
   await openMenuTab(page, '자산')
   await page.getByRole('button', { name: /E2E Apple/ }).click()
   const editor = page.getByRole('dialog', { name: 'E2E Apple' })
-  await editor.getByLabel('보유 이유 · 나만 보기').first().fill('장기 서비스 성장성을 보고 보유한다.')
+  await expect(editor.getByLabel('보유 이유 · 나만 보기')).toHaveCount(0)
+  await expect(editor.getByLabel('계좌 메모 · 공유 가능')).toHaveCount(0)
+  await editor.getByLabel('메모', { exact: true }).fill('장기 서비스 성장성을 보고 보유한다.')
   await editor.getByRole('button', { name: '저장', exact: true }).click()
-  await expect(editor.getByLabel('보유 이유 · 나만 보기').first()).toHaveValue('장기 서비스 성장성을 보고 보유한다.')
-  const notes = await callRpc(page, 'app_list_private_holding_notes')
-  expect(notes.status, JSON.stringify(notes.body)).toBe(200)
-  expect(notes.body.items).toContainEqual(expect.objectContaining({
-    instrument_id: instrument.id, account_id: null, note: '장기 서비스 성장성을 보고 보유한다.',
-  }))
+  await expect(page.getByText('저장되었습니다.')).toBeVisible()
   const publicState = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
-  expect(JSON.stringify(publicState.body)).not.toContain('장기 서비스 성장성을 보고 보유한다.')
-
-  const context = await callRpc(page, 'app_get_daily_context', {
-    input_subject_tickers: null,
-    input_timezone: 'Asia/Seoul',
-  })
-  expect(context.status, JSON.stringify(context.body)).toBe(200)
-  expect(context.body.private_holding_notes).toContainEqual(expect.objectContaining({
-    instrument_id: instrument.id,
-    note: '장기 서비스 성장성을 보고 보유한다.',
-  }))
+  expect(publicState.body.instruments.find((item) => item.id === instrument.id).note).toBe('장기 서비스 성장성을 보고 보유한다.')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('previews and records a completed trade on mobile', async ({ page }) => {
+test('edits current holdings in place without claiming a brokerage verification', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await openMenuTab(page, '자산')
   await page.getByRole('button', { name: /E2E Apple/ }).click()
-  let tradeButton = page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button', { name: '매매 기록' })
-  await tradeButton.click()
-  const tradeDialog = page.getByRole('dialog', { name: 'E2E Apple 매매 기록' })
-  await expect(tradeDialog).toBeVisible()
-  await expect.poll(() => tradeDialog.evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true)
-  await expect.poll(() => page.locator('[inert]').count()).toBeGreaterThan(0)
-  for (const width of [360, 390, 768, 1024, 1440]) {
-    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 })
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-    await expect.poll(() => tradeDialog.evaluate((dialog) => {
-      const bounds = dialog.getBoundingClientRect()
-      return bounds.left >= 0 && bounds.right <= window.innerWidth
-    })).toBe(true)
-  }
-  await page.keyboard.press('Shift+Tab')
-  await expect.poll(() => tradeDialog.evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true)
-  await page.keyboard.press('Escape')
-  await expect(tradeDialog).toBeHidden()
-  tradeButton = page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button', { name: '매매 기록' })
-  await tradeButton.click()
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.getByLabel('체결 수량').fill('1')
-  await page.getByLabel(/체결 단가/).fill('200')
-  await page.getByRole('button', { name: '변경 미리보기' }).click()
-  await expect(page.getByText('2 → 3')).toBeVisible()
-  let dropFirstConfirmationResponse = true
-  await page.route('**/rest/v1/rpc/app_record_completed_trade', async (route) => {
-    if (!dropFirstConfirmationResponse) return route.continue()
-    dropFirstConfirmationResponse = false
-    await route.fetch()
-    await route.abort('connectionreset')
-  })
-  await page.getByRole('button', { name: '체결 기록 확정' }).click()
-  await expect(page.getByText(/같은 요청으로 다시 시도/)).toBeVisible()
-  await page.getByRole('button', { name: '체결 기록 확정' }).click()
-  await expect(page.getByRole('heading', { name: 'E2E Apple 매매 기록' })).toBeHidden()
-  await page.unroute('**/rest/v1/rpc/app_record_completed_trade')
-
-  const transactions = await callRpc(page, 'app_list_transactions', { input_limit: 10, input_before: null })
-  expect(transactions.status, JSON.stringify(transactions.body)).toBe(200)
-  expect(transactions.body.filter((item) => item.ticker === 'E2EAPL' && item.side === 'buy' && Number(item.quantity) === 1)).toHaveLength(1)
-  const state = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
-  expect(state.body.holdings.find((item) => item.ticker === 'E2EAPL')).toMatchObject({ quantity: 3 })
-
-  await page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button', { name: '매매 기록' }).click()
-  await expect(page.getByRole('button', { name: '기록 취소' })).toHaveCount(0)
-  await expect(page.getByText(/증권사에서 확인한 현재 수량·평균가로 보정/)).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-})
-
-test('reconciles and verifies one holding without broadening the checked fields', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
-  await signInAs(page, 'e2e-owner@example.com')
-  await page.goto('/')
-  await openMenuTab(page, '자산')
-  await page.getByRole('button', { name: /E2E Apple/ }).click()
-  await page.getByRole('dialog', { name: 'E2E Apple' }).getByRole('button',{name:'증권사 확인·보정'}).click()
-  await page.getByRole('textbox',{name:'수량'}).fill('4')
-  await page.getByRole('textbox',{name:'평균가'}).fill('125')
-  await page.getByRole('checkbox',{name:'수량'}).check()
-  await page.getByLabel('보정 이유').fill('증권사 수량과 평균가로 현재값을 맞춥니다.')
-  await page.getByRole('button',{name:'보정 미리보기'}).click()
-  await expect(page.getByText(/수량: .* → 4/)).toBeVisible()
-  await page.getByRole('button',{name:'보정 확정'}).click()
-  await expect(page.getByRole('heading',{name:'E2E Apple 잔고 맞추기'})).toBeHidden()
+  const editor = page.getByRole('dialog', { name: 'E2E Apple' })
+  await expect(editor.getByRole('button', { name: '매매 기록' })).toHaveCount(0)
+  await expect(editor.getByRole('button', { name: '증권사 확인·보정' })).toHaveCount(0)
+  await expect(editor.getByLabel('현재가')).toBeVisible()
+  await expect(editor.getByLabel('가격 기준일')).toBeVisible()
+  await editor.getByLabel('수량').first().fill('4')
+  await editor.getByLabel('평균가').first().fill('125')
+  await editor.getByRole('button', { name: '저장', exact: true }).click()
+  const confirmation = page.getByRole('dialog', { name: '보유값 변경 확인' })
+  await expect(confirmation.getByText(/수량:/)).toBeVisible()
+  await confirmation.getByLabel('변경 사유 (선택)').fill('증권사 현재값 확인')
+  await confirmation.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(page.getByText('저장되었습니다.')).toBeVisible()
   const state=await callRpc(page,'app_get_portfolio_state',{input_owner_user_id:null})
   const holding=state.body.holdings.find((item)=>item.ticker==='E2EAPL')
   expect(holding).toMatchObject({quantity:4,avg_price:125})
   const integrity=await callRpc(page,'app_get_holding_integrity',{input_holding_id:holding.id})
-  expect(integrity.body.last_verification.verified_fields).toEqual(['quantity'])
-  expect(integrity.body.last_verification.changed_since).toBe(false)
+  expect(integrity.body.last_verification?.verified_fields ?? []).toEqual([])
 })
 
 test('starts the Google OAuth authorization redirect without using a Google account', async ({ page }) => {

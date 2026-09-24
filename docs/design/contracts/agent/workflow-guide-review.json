@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-23",
-  "review_reason": "Reviewed all nine workflow topics against kindless activity body, ordinary tags, owner-validated references, separate execution writes and independent sharing; removed unused legacy briefing schemas without changing current tool behavior.",
+  "reviewed_at": "2026-09-24",
+  "review_reason": "Reviewed #124/#125: manual activities use optional instrument/task references; financial commands still address holdings; account filters apply only to recorded account context. Other workflow procedures remain valid.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:bf7fa033",
-      "contract_digest": "db28a43c6c804acf1c13cf44d14fa3c77aa026f4517f963221b6d80a8be503ee"
+      "contract_digest": "e73d471d574066ac5f508bb8e366424dee5c602199eca929acbcf0647579e074"
     },
     "holding_thesis": {
       "revision": "fnv1a32:920959cf",
-      "contract_digest": "82f755cdd3bce4b97a2cc6f43353142d47c613905b74e978991b0a2b4a291725"
+      "contract_digest": "4f933b38e2748de61075d53c5921366634f6bcf61c53a1f416d5703523cea4e6"
     },
     "daily_review": {
       "revision": "fnv1a32:bc21370c",
-      "contract_digest": "34c859063c47878c2f6c438a84f148c1ee9ba778f69972bb03a8646c7221acf5"
+      "contract_digest": "18f0e29164a87ff1f337434c3971f404ee5ef0a7397dcb11940c3111720de7f6"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "36513c8670b3c911a2376a3cd0e6485ce6e2613fc3df8a267cb2d79cce1c4f37"
+      "contract_digest": "77c93ec8c2dec21311a3f15c0545262be8a27ebb287d019ef64a1c96c6ea46cf"
     },
     "trade_entry": {
       "revision": "fnv1a32:497bf056",
-      "contract_digest": "d52032cc86ee5a92fda61367e2f83e46a11423f56cf98ad7ec0f5999349580a8"
+      "contract_digest": "93fdae44eccb87eb2d8e2e16474b9cc3f3c53c4ebe77a61e8b45abbc4d4a1601"
     },
     "reconciliation": {
       "revision": "fnv1a32:29ac55b9",
-      "contract_digest": "9c78b2aab9af943db9e2e37f465442ef1c6d890f7506c0528ef4b912e573b75d"
+      "contract_digest": "3cebaa16eaf2a2b5b3ad340f84dc4c7ac451a59a9a45678bb6ea3e4f284c1a3d"
     },
     "todo": {
-      "revision": "fnv1a32:555eaf3d",
-      "contract_digest": "69c9464e0e0cc3862828a65fd8fbb040fe7774917441f421b13c658aa4e1c07f"
+      "revision": "fnv1a32:53e7ef11",
+      "contract_digest": "b44dacec42970515330e59e36d3f9ce699cac00ee78a07dcfca0facede13e056"
     },
     "activity_report": {
       "revision": "fnv1a32:8adf4a69",
-      "contract_digest": "89aabf2f8dff6e96af05527d226bf35d9b4f58c93225daac30cf9094864ef0bc"
+      "contract_digest": "bc93dc20d53a2915acf990548ee1b8a5b1d90b76704d74d46e1e534436f38f19"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "96c790a6b75d1e42759fdf72c094c4b554bd7e304e4548a4db5f416df55f0622"
+      "contract_digest": "2910e71a2940f926d7f76d9404a7203148914fac6189c1870d23d4224d47a65c"
     }
   }
 }

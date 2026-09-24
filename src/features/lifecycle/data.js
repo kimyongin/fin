@@ -189,7 +189,7 @@ export async function recordManualActivity(supabase, activity) {
       occurred_at: activity.occurredAt || null,
       timezone: activity.timezone ?? 'Asia/Seoul',
       task_id: activity.taskId ?? null,
-      holding_id: activity.holdingId ?? null,
+      holding_id: null,
       instrument_id: activity.instrumentId ?? null,
       account_id: activity.accountId ?? null,
       authored_via: 'app',

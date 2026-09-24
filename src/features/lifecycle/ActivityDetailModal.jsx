@@ -18,11 +18,10 @@ function formatDateTime(value) {
 
 
 export default function ActivityDetailModal({ activity, availableTags = [], historyGuardRef, loading, onClose, onDeleted, onRetryTags, onSaved, onTagsChanged, ownerUserId, supabase, tagsError = '', tagsLoading = false }) {
-  const [tagsExpanded, setTagsExpanded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [draft, setDraft] = useState({ title: '', body: '', occurredOn: '', taskId: null, holdingId: null })
+  const [draft, setDraft] = useState({ title: '', body: '', occurredOn: '', taskId: null, instrumentId: null })
   const previousActivityId = useRef(null)
   const previousActivityVersion = useRef(null)
   const previousLoading = useRef(false)
@@ -33,7 +32,7 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
   const editingDirty = editing && activity && (
     draft.title !== (activity.title ?? '') || draft.body !== (activity.body ?? '') ||
     draft.occurredOn !== localDate(activity.occurred_at) ||
-    draft.taskId !== (activity.task_id ?? null) || draft.holdingId !== (activity.holding_id ?? null)
+    draft.taskId !== (activity.task_id ?? null) || draft.instrumentId !== (activity.instrument_id ?? null)
   )
   const availableTagIds = new Set(availableTags.map((tag) => tag.id))
   const tagsDirty = !ownerUserId && !tagsLoading && !tagsError && JSON.stringify([...selectedTagIds].sort()) !== JSON.stringify([...(activity?.tags ?? []).map((tag) => tag.id).filter((id) => availableTagIds.has(id))].sort())
@@ -51,10 +50,9 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       body: activity.body ?? '',
       occurredOn: localDate(activity.occurred_at),
       taskId: activity.task_id ?? null,
-      holdingId: activity.holding_id ?? null,
+      instrumentId: activity.instrument_id ?? null,
     })
     if (changedActivity) {
-      setTagsExpanded(false)
       setConfirmDelete(false)
       setError('')
     }
@@ -74,7 +72,8 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
         patch.timezone = 'Asia/Seoul'
       }
       if (editable.has('task_id') && draft.taskId !== (activity.task_id ?? null)) patch.task_id = draft.taskId
-      if (editable.has('holding_id') && draft.holdingId !== (activity.holding_id ?? null)) patch.holding_id = draft.holdingId
+      if (editable.has('instrument_id') && draft.instrumentId !== (activity.instrument_id ?? null)) patch.instrument_id = draft.instrumentId
+      if (activity.holding_id != null) patch.holding_id = null
       const fingerprint = JSON.stringify({ id: activity.id, version: activity.version, patch, selectedTagIds })
       if (saveAttempt.current?.fingerprint !== fingerprint) saveAttempt.current = { fingerprint, key: crypto.randomUUID() }
       const saved = await saveActivityDetail(supabase, activity, patch, selectedTagIds, saveAttempt.current.key)
@@ -118,19 +117,19 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       <section className="grid gap-3">
         {editing && editable.has('title') ? <label className="grid gap-2 text-xs font-semibold text-[var(--muted-ink)]">기록 제목<input autoFocus className="min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base font-normal text-[var(--ink)] outline-none focus:border-[var(--accent)]" maxLength={500} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label> : <h3 className="break-words text-xl font-semibold leading-8">{activity.title || activity.after_data?.title || activity.action_type}</h3>}
         <p className="text-xs text-[var(--muted-ink)]">{formatDateTime(activity.occurred_at)} · {activity.source === 'agent' ? 'ChatGPT' : '앱'}</p>
-        {(activity.tags?.length ?? 0) > 0 && <div className="flex flex-wrap gap-1">{activity.tags.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--muted-ink)]" key={tag.id}>{tag.name}</span>)}</div>}
+        {ownerUserId && (activity.tags?.length ?? 0) > 0 && <div className="flex flex-wrap gap-1">{activity.tags.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--muted-ink)]" key={tag.id}>{tag.name}</span>)}</div>}
       </section>
 
       {editing && editable.has('occurred_at') && <label className="grid gap-2 text-xs font-semibold text-[var(--muted-ink)]">수행일<input className="min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base font-normal text-[var(--ink)] outline-none focus:border-[var(--accent)]" max={businessDate()} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
-      {activity.origin_task && <section className="rounded-2xl bg-[var(--surface-2)] p-4"><h4 className="text-xs font-semibold text-[var(--muted-ink)]">관련 할 일</h4><p className="mt-2 break-words text-sm font-semibold">{activity.origin_task.title}</p>{activity.origin_task.trigger_text && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{activity.origin_task.trigger_text}</p>}{(activity.origin_task.due_date || activity.origin_task.recurrence_kind === 'daily') && <p className="mt-2 text-xs text-[var(--muted-ink)]">{activity.origin_task.recurrence_kind === 'daily' ? '매일 반복' : `예정일 ${activity.origin_task.due_date}`}</p>}</section>}
+      {!editing && activity.origin_task && <section className="rounded-2xl bg-[var(--surface-2)] p-4"><h4 className="text-xs font-semibold text-[var(--muted-ink)]">관련 할 일</h4><p className="mt-2 break-words text-sm font-semibold">{activity.origin_task.title}</p>{activity.origin_task.trigger_text && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{activity.origin_task.trigger_text}</p>}{(activity.origin_task.due_date || activity.origin_task.recurrence_kind === 'daily') && <p className="mt-2 text-xs text-[var(--muted-ink)]">{activity.origin_task.recurrence_kind === 'daily' ? '매일 반복' : `예정일 ${activity.origin_task.due_date}`}</p>}</section>}
       {(editing || activity.body) && <label className="grid gap-2"><span className="text-sm font-semibold">기록 내용</span>{editing && editable.has('body') ? <textarea className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base outline-none focus:border-[var(--accent)]" maxLength={25000} onChange={(event) => setDraft({ ...draft, body: event.target.value })} rows={8} value={draft.body} /> : <p className="whitespace-pre-wrap break-words text-sm leading-6">{activity.body}</p>}</label>}
 
-      {editing && <ActivityReferences disabled={saving} holdingId={draft.holdingId} holdingSummary={activity.holding_summary} onHoldingChange={(holdingId) => setDraft((current) => ({ ...current, holdingId }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} taskSummary={activity.origin_task} />}
-      {!editing && activity.holding_summary && <p className="text-xs text-[var(--muted-ink)]">관련 보유 · {activity.holding_summary.account_name} · {activity.holding_summary.display_name}</p>}
+      {editing && <ActivityReferences disabled={saving} instrumentId={draft.instrumentId} instrumentSummary={activity.instrument_summary} onInstrumentChange={(instrumentId) => setDraft((current) => ({ ...current, instrumentId }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} taskSummary={activity.origin_task} />}
+      {!editing && activity.instrument_summary && <p className="text-xs text-[var(--muted-ink)]">관련 종목 · {activity.instrument_summary.display_name} · {activity.instrument_summary.ticker}</p>}
 
 
 
-      {!ownerUserId && <section className="rounded-2xl border border-[var(--line)] p-4"><button aria-expanded={tagsExpanded} className="min-h-11 w-full text-left text-sm font-semibold" onClick={() => setTagsExpanded(!tagsExpanded)} type="button">태그{selectedTagIds.length > 0 ? ` · ${selectedTagIds.length}개` : ''}<span aria-hidden="true" className="float-right">{tagsExpanded ? '−' : '+'}</span></button>{tagsExpanded && <div className="mt-3">{tagsLoading && <p className="mb-2 text-xs text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="mb-2 flex items-center gap-3 text-xs text-red-200"><span>{tagsError}</span><button className="rounded-lg border border-red-400/40 px-3 py-2" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker disabled={saving || tagsLoading || Boolean(tagsError)} onChange={setSelectedTagIds} onTagsChanged={(tags, ids) => { onTagsChanged(tags); setSelectedTagIds(ids) }} selectedIds={selectedTagIds} supabase={supabase} tags={availableTags} /></div>}</section>}
+      {!ownerUserId && <section className="border-t border-[var(--line)] pt-4">{tagsLoading && <p className="mb-2 text-xs text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="mb-2 flex items-center gap-3 text-xs text-red-200"><span>{tagsError}</span><button className="min-h-11 rounded-lg border border-red-400/40 px-3" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker compact disabled={saving || tagsLoading || Boolean(tagsError)} onChange={setSelectedTagIds} onTagsChanged={(tags, ids) => { onTagsChanged(tags); setSelectedTagIds(ids) }} selectedIds={selectedTagIds} supabase={supabase} tags={availableTags} /></section>}
 
     </div>}
     </fieldset>

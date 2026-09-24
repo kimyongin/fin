@@ -8,8 +8,7 @@ import ActivityReferences from './ActivityReferences'
 
 export default function GeneralActionModal({ kind, onClose, onKindChange, onRetryTags, onSave, onTagsChanged, saving, supabase, tags, tagsError = '', tagsLoading = false }) {
   const today = businessDate()
-  const [draft, setDraft] = useState({ title: '', body: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', tagIds: [], taskId: null, holdingId: null })
-  const [tagsExpanded, setTagsExpanded] = useState(false)
+  const [draft, setDraft] = useState({ title: '', body: '', scheduleDate: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', tagIds: [], taskId: null, instrumentId: null })
   const initialDraft = useRef(draft)
   const isTask = kind === 'task'
   const dirty = JSON.stringify(draft) !== JSON.stringify(initialDraft.current) || !isTask
@@ -47,8 +46,8 @@ export default function GeneralActionModal({ kind, onClose, onKindChange, onRetr
       </fieldset>
       {isTask && <label className={labelClass}>{draft.recurrenceKind === 'daily' ? '반복 시작일' : '예정일'}<input className={inputClass} onChange={(event) => setDraft({ ...draft, scheduleDate: event.target.value })} type="date" value={draft.recurrenceKind === 'daily' ? (draft.scheduleDate || today) : draft.scheduleDate} /></label>}
       {!isTask && <label className={labelClass}>수행일<input className={inputClass} max={today} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} type="date" value={draft.occurredOn} /></label>}
-      {!isTask && <ActivityReferences disabled={saving} holdingId={draft.holdingId} onHoldingChange={(holdingId) => setDraft((current) => ({ ...current, holdingId }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} />}
-      <section className="border-t border-[var(--line)] pt-3"><button aria-expanded={tagsExpanded || Boolean(tagsError)} className="flex min-h-11 w-full items-center justify-between text-left text-sm font-semibold" onClick={() => setTagsExpanded((open) => !open)} type="button">태그{draft.tagIds.length ? ` · ${draft.tagIds.map((id) => tags.find((tag) => tag.id === id)?.name).filter(Boolean).join(', ')}` : ''}<span aria-hidden="true">{tagsExpanded ? '−' : '+'}</span></button>{(tagsExpanded || tagsError) && <div className="mt-3">{tagsLoading && <p className="text-sm text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="flex items-center gap-3 text-sm text-red-200"><span>{tagsError}</span><button className="min-h-11 rounded-2xl border border-red-400/40 px-3" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker disabled={saving || tagsLoading || Boolean(tagsError)} onChange={(tagIds) => setDraft({ ...draft, tagIds })} onTagsChanged={(nextTags, tagIds) => { onTagsChanged(nextTags); setDraft((current) => ({ ...current, tagIds })) }} selectedIds={draft.tagIds} supabase={supabase} tags={tags} /></div>}</section>
+      {!isTask && <ActivityReferences disabled={saving} instrumentId={draft.instrumentId} onInstrumentChange={(instrumentId) => setDraft((current) => ({ ...current, instrumentId }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} />}
+      <section className="border-t border-[var(--line)] pt-3">{tagsLoading && <p className="text-sm text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="flex items-center gap-3 text-sm text-red-200"><span>{tagsError}</span><button className="min-h-11 rounded-2xl border border-red-400/40 px-3" onClick={onRetryTags} type="button">다시 시도</button></div>}<ActivityTagPicker compact={!isTask} disabled={saving || tagsLoading || Boolean(tagsError)} onChange={(tagIds) => setDraft({ ...draft, tagIds })} onTagsChanged={(nextTags, tagIds) => { onTagsChanged(nextTags); setDraft((current) => ({ ...current, tagIds })) }} selectedIds={draft.tagIds} supabase={supabase} tags={tags} /></section>
     </fieldset>
   </ModalShell>
 }

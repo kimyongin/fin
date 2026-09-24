@@ -36,7 +36,7 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | record_manual_activity / observed-local | 이미 수행한 일을 제목·마크다운 본문·날짜·일반 태그·선택적 대상 참조로 기록합니다. 태그나 참조만으로 잔고·체결·할 일 완료 사실을 만들 수 없습니다. | A03,W01,W03 |
 | update_activity / observed-local | 같은 기록의 제목·본문·날짜·참조를 정정합니다. 수동/자동 기록 모두 실제 금융·할 일 상태와 독립입니다. | A03 |
 | delete_activity / local | 명시적으로 확인받은 기록을 목록·검색에서 제거합니다. 자동 기록도 삭제 가능하지만 실제 잔고·체결·할 일 완료와 금융 재시도 영수증은 유지합니다. | A03 |
-| search_activities / observed-local | 할 일과 기록을 기간·상태·종목·계좌·보유·활동 태그·키워드로 함께 검색합니다. 복수 태그는 기본 OR, 선택적 AND이며 다른 조건과는 AND입니다. 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 알려줍니다. 활동 공유만으로 관련 할 일/보유 상세를 노출하지 않습니다. | A03,A06 |
+| search_activities / observed-local | 할 일과 기록을 기간·상태·종목·계좌·활동 태그·키워드로 함께 검색합니다. 종목 참조는 계좌를 가로지르며, 계좌 필터는 당시 계좌 맥락이 저장된 기록에만 적용됩니다. 복수 태그는 기본 OR, 선택적 AND이며 다른 조건과는 AND입니다. 첫 완료 활동 페이지는 가능한 경우 의미 유사도를 보완하고 `semantic_status`로 알려줍니다. 활동 공유만으로 관련 할 일/자산 상세를 노출하지 않습니다. | A03,A06 |
 | list_activity_tags, save_activity_tag, delete_activity_tag / observed-local | 자산 배분과 분리된 사용자 활동 태그 사전을 조회·추가·이름 변경·삭제합니다. | A03 |
 | set_activity_tags, set_general_task_tags / observed-local | 활동 또는 일반 할 일의 태그 집합을 교체합니다. 완료 시 현재 태그만 복사되고 과거 회차는 바뀌지 않습니다. | A03 |
 | get_activity_report_context / observed-local | 지정 기간 활동의 최신 현재 내용과 태그를 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |
