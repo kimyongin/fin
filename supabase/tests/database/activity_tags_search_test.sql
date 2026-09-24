@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(29);
+select extensions.plan(30);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001911','authenticated','authenticated','activity-search-owner@example.com','',now(),now(),now()),
@@ -30,6 +30,10 @@ select extensions.is((public.app_get_activity((select id from activity_events wh
 select public.app_save_general_task(null,null,'20666666-6666-4666-8666-666666666666',jsonb_build_object(
   'title','매일 시세 확인','subject',jsonb_build_object('kind','portfolio'),'timezone','Asia/Seoul',
   'recurrence_kind','daily','recurrence_start_on',(clock_timestamp() at time zone 'Asia/Seoul')::date::text,'authored_via','app'));
+set local role postgres;
+update public.portfolio_tasks set subject=jsonb_build_object('kind','portfolio','instrument_id','not-a-number') where title='매일 시세 확인';
+set local role authenticated;
+select extensions.lives_ok($$select public.app_search_activities()$$,'free-form task subject does not break instrument navigation');
 select extensions.is(public.app_set_general_task_tags(
   (select id from portfolio_tasks where title='매일 시세 확인'),1,
   array[(select id from activity_tags where name='확인')],

@@ -9,8 +9,8 @@ set local role postgres;
 insert into public.accounts(id,user_id,name) values(8901,'00000000-0000-0000-0000-000000008901','계좌');
 insert into public.instruments(id,user_id,ticker,display_name,instrument_type,currency,note)
 values(8901,'00000000-0000-0000-0000-000000008901','PRIV','Asset','market','KRW','공통 메모');
-insert into public.holdings(id,user_id,account_id,ticker,quantity,avg_price,note)
-values(8901,'00000000-0000-0000-0000-000000008901',8901,'PRIV',2,100,'퇴역 보유 메모');
+insert into public.holdings(id,user_id,account_id,ticker,quantity,avg_price)
+values(8901,'00000000-0000-0000-0000-000000008901',8901,'PRIV',2,100);
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000008901',true);
 set local role authenticated;
 

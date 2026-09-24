@@ -34,7 +34,7 @@
 | A06 | 일/주/월 행동 회고를 요청해 저장 | get_activity_report_context → save/list_activity_report | reports/revisions + 원본 ID | 자동 생성, 일간 요약만으로 주・월간 생성 | #78 |
 | S20 | 보정 전 과거 매수를 취소 | preview/reverse_trade_entry | 과거 reversal, 관련 계획 진행도 | 최신 절대 checkpoint 잔고 덮어쓰기 | #38 |
 | S21 | 증권사와 수량만 비교했는데 맞음 | verify_holdings(fields=[quantity]) | verification item+해당 version/value | 평균가까지 확인, 수량/원가 변경 | #42 |
-| T01 | 계좌·종목·보유 메모만 수정 | update_entity_note(expected_note) | 기존 entity.note, receipt, 활동 1건 | 수량·원가·holding state/version·검증 상태 | #69 |
+| T01 | 계좌 또는 종목 공통 메모만 수정 | update_entity_note(expected_note) | 기존 entity.note, receipt, 활동 1건 | 수량·원가·holding state/version·검증 상태. 보유별 메모는 없음 | #69, #124 |
 | T02 | 확인 메모 저장 후 다시 조회 | verify_holdings → get_holding_integrity | verification note/source | 잔고·원가·거래 | #69 |
 | S22 | 표에서 메모만 수정 / 일부 잔고 수정 | 기존 app_bulk_save_portfolio_rows 통합 서비스 | 메모만→metadata, 잔고→checkpoint/stream, 공통audit | 무변경행 checkpoint, 필터 밖 삭제 | #38 |
 | S23 | 친구에게 점검 기록도 공유 / 철회 | 앱 preview/update_sharing_policy → 공유 조회 | feature grants+policy version | 개인 기준/근거 자동 공개, 공유자의 편집 | #43/#39 |

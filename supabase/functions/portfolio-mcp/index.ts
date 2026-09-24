@@ -376,7 +376,6 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_avg_price: nullableNumberArg(args, 'avg_price'),
       input_purchase_amount: nullableNumberArg(args, 'purchase_amount'),
       input_valuation_amount: nullableNumberArg(args, 'valuation_amount'),
-      input_note: nullableStringArg(args, 'note'),
       input_request: nullableStringArg(args, 'request'),
     })
   },
@@ -560,7 +559,7 @@ function toolDefinitions() {
     },
     {
       name: 'save_holding',
-      description: 'Create or update a holding. Market investments use quantity and avg_price; valuation investments use purchase_amount and valuation_amount; cash uses valuation_amount only.',
+      description: 'Create or update an account holding. Market investments use quantity and avg_price; valuation investments use purchase_amount and valuation_amount; cash uses valuation_amount only. The common instrument note is edited separately, never on a holding.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -571,7 +570,6 @@ function toolDefinitions() {
           avg_price: { type: 'number', description: 'Average price. Must be zero or greater.' },
           purchase_amount: { type: 'number', description: 'Purchase amount for a valuation investment.' },
           valuation_amount: { type: 'number', description: 'Current valuation amount for a valuation investment or cash balance.' },
-          note: { type: 'string', description: 'Optional note.' },
           request: { type: 'string', description: 'Original user request for the activity log.' },
         },
         required: ['account_id', 'ticker'],

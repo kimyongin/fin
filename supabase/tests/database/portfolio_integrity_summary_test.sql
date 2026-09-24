@@ -7,7 +7,7 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001201'
 select extensions.is((public.app_get_portfolio_integrity()->>'never_verified_count')::integer,2,'starts with two never-verified holdings');
 select extensions.lives_ok($$select public.app_verify_holding((select id from holdings where ticker='I1'),1,array['quantity'],current_date,null,'11111111-1111-4111-8111-111111111111','app')$$,'verifies one holding');
 select extensions.is((public.app_get_portfolio_integrity()->>'verified_count')::integer,1,'summary counts one verified holding');
-select * from public.app_save_holding((select id from holdings where ticker='I1'),9921,'I1',2,10,null,'user','changed after verification');
+select * from public.app_save_holding((select id from holdings where ticker='I1'),9921,'I1',2,10,'user','changed after verification');
 select extensions.is((public.app_get_portfolio_integrity()->>'changed_count')::integer,1,'summary reports changed since verification');
 select extensions.is(jsonb_array_length(public.app_get_portfolio_integrity()->'accounts'),2,'summary groups by account');
 select * from extensions.finish(); rollback;

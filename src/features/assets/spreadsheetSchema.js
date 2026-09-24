@@ -19,7 +19,7 @@ export const spreadsheetCsvHeaders = spreadsheetColumns.map(([, label]) => label
 export function createBlankSpreadsheetRow() {
   return {
     id: crypto.randomUUID(), account_name: '', broker: '', ticker: '', display_name: '', currency: 'KRW',
-    instrument_type: 'market', quantity: '', avg_price: '', purchase_amount: '', valuation_amount: '', tag_id: '', note: '',
+    instrument_type: 'market', quantity: '', avg_price: '', purchase_amount: '', valuation_amount: '', tag_id: '',
   }
 }
 
@@ -43,7 +43,6 @@ export function createSpreadsheetRows({ accounts, holdings, instrumentTags, inst
       purchase_amount: holding.purchase_amount ?? '',
       valuation_amount: holding.valuation_amount ?? '',
       tag_id: tagByTicker.get(holding.ticker) ? String(tagByTicker.get(holding.ticker)) : '',
-      note: holding.note ?? '',
     }
   })
   return rows.length ? rows : [createBlankSpreadsheetRow()]

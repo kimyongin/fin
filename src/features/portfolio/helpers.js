@@ -103,7 +103,6 @@ export function createHoldingModalDraft({
       avg_price: holding?.avg_price?.toString?.() ?? '',
       purchase_amount: holding?.purchase_amount?.toString?.() ?? '',
       valuation_amount: holding?.valuation_amount?.toString?.() ?? '',
-      note: holding?.note ?? '',
     },
     lookupResult: createHoldingLookupResult({
       instrument: initialInstrument,

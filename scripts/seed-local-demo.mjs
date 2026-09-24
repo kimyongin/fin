@@ -113,20 +113,18 @@ for (const [accountName, ticker, quantity, average] of holdings) {
   await rpc('app_save_holding', {
     input_holding_id: null, input_account_id: accountIds[accountName], input_ticker: ticker,
     input_quantity: quantity, input_avg_price: average,
-    input_note: '데모 보유: 수량·평균가는 임의 값입니다.',
     input_source: 'user', input_request: null,
   })
 }
 await rpc('app_save_valuation_holding', {
   input_holding_id: null, input_account_id: accountIds['데모 · 장기 투자'],
   input_ticker: 'DEMO:PRIVATE', input_purchase_amount: 1200000,
-  input_valuation_amount: 1350000, input_note: '데모 평가자산: 수동 평가값입니다.',
+  input_valuation_amount: 1350000,
   input_source: 'user', input_request: null,
 })
 await rpc('app_save_cash_holding', {
   input_holding_id: null, input_account_id: accountIds['데모 · 현금·대기'],
   input_ticker: 'KRW', input_balance: 2800000,
-  input_note: '데모 대기 자금: 실제 예수금이 아닙니다.',
   input_source: 'user', input_request: null,
 })
 console.log('Demo accounts, allocation tags, instruments, prices, and holdings saved through owner web RPCs.')

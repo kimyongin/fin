@@ -24,7 +24,7 @@ test('saves one asset detail across accounts atomically and retries after a reje
   })).status).toBe(200)
   expect((await callRpc(page, 'app_save_holding', {
     input_account_id: first.body[0].account_id, input_avg_price: 8, input_holding_id: null,
-    input_note: null, input_quantity: 2, input_request: null, input_source: 'user', input_ticker: ticker,
+    input_quantity: 2, input_request: null, input_source: 'user', input_ticker: ticker,
   })).status).toBe(200)
   await page.reload()
   await openMenuTab(page, '자산')
@@ -188,7 +188,6 @@ test('creates portfolio entities and records the owner activity', async ({ page 
     input_account_id: accountId,
     input_avg_price: 150,
     input_holding_id: null,
-    input_note: 'Created by Playwright',
     input_quantity: 3,
     input_request: 'E2E holding create',
     input_source: 'user',
@@ -223,7 +222,7 @@ test('edits and deletes portfolio entities while enforcing holding dependencies'
   })
   const instrumentId = instrument.body[0].instrument_id
   const holding = await callRpc(page, 'app_save_holding', {
-    input_account_id: accountId, input_avg_price: 100, input_holding_id: null, input_note: null, input_quantity: 1, input_request: null, input_source: 'user', input_ticker: 'E2ELIFE',
+    input_account_id: accountId, input_avg_price: 100, input_holding_id: null, input_quantity: 1, input_request: null, input_source: 'user', input_ticker: 'E2ELIFE',
   })
   const holdingId = holding.body[0].holding_id
 
@@ -241,7 +240,7 @@ test('edits and deletes portfolio entities while enforcing holding dependencies'
   })
   expect(updatedInstrument.body[0]).toMatchObject({ instrument_id: instrumentId, display_name: 'E2E Lifecycle Instrument Updated' })
   const updatedHolding = await callRpc(page, 'app_save_holding', {
-    input_account_id: accountId, input_avg_price: 105, input_holding_id: holdingId, input_note: 'Updated holding', input_quantity: 2, input_request: null, input_source: 'user', input_ticker: 'E2ELIFE',
+    input_account_id: accountId, input_avg_price: 105, input_holding_id: holdingId, input_quantity: 2, input_request: null, input_source: 'user', input_ticker: 'E2ELIFE',
   })
   expect(updatedHolding.body[0]).toMatchObject({ holding_id: holdingId, quantity: 2 })
 
@@ -461,18 +460,18 @@ test('saves valuation and cash holdings, then bulk imports market rows', async (
   }
 
   const valuation = await callRpc(page, 'app_save_valuation_holding', {
-    input_account_id: accountId, input_holding_id: null, input_note: 'E2E valuation', input_purchase_amount: 100000, input_request: null, input_source: 'user', input_ticker: valuationTicker, input_valuation_amount: 125000,
+    input_account_id: accountId, input_holding_id: null, input_purchase_amount: 100000, input_request: null, input_source: 'user', input_ticker: valuationTicker, input_valuation_amount: 125000,
   })
   expect(valuation.status, JSON.stringify(valuation.body)).toBe(200)
   expect(valuation.body[0]).toMatchObject({ purchase_amount: 100000, valuation_amount: 125000 })
   const cash = await callRpc(page, 'app_save_cash_holding', {
-    input_account_id: accountId, input_balance: 50000, input_holding_id: null, input_note: 'E2E cash', input_request: null, input_source: 'user', input_ticker: cashTicker,
+    input_account_id: accountId, input_balance: 50000, input_holding_id: null, input_request: null, input_source: 'user', input_ticker: cashTicker,
   })
   expect(cash.body[0]).toMatchObject({ valuation_amount: 50000 })
 
   const bulk = await callRpc(page, 'app_bulk_save_portfolio_rows', {
     input_rows: [{
-      account_name: `E2E Bulk ${suffix}`, avg_price: 10, broker: 'E2E', currency: 'USD', display_name: 'E2E Bulk Market', instrument_type: 'market', note: 'Bulk imported', quantity: 2, ticker: `E2EB${suffix}`,
+      account_name: `E2E Bulk ${suffix}`, avg_price: 10, broker: 'E2E', currency: 'USD', display_name: 'E2E Bulk Market', instrument_type: 'market', quantity: 2, ticker: `E2EB${suffix}`,
     }],
   })
   expect(bulk.status).toBe(200)

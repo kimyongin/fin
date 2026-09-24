@@ -68,7 +68,6 @@ export function createHoldingActions({
     const payload = {
       accountId: Number(holdingModal.account_id),
       avgPrice: Number(holdingModal.avg_price),
-      note: holdingModal.note.trim() || null,
       quantity: Number(holdingModal.quantity),
       ticker,
     }
@@ -104,7 +103,6 @@ export function createHoldingActions({
       const common = {
         input_account_id: payload.accountId,
         input_holding_id: draftId(holdingModal),
-        input_note: payload.note,
         input_request: null,
         input_source: 'user',
         input_ticker: payload.ticker,

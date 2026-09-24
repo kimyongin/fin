@@ -167,7 +167,6 @@ describe('createPortfolioActions', () => {
         ticker: ' msft ',
         quantity: '3.5',
         avg_price: '100',
-        note: ' long term ',
       },
       state: {
         accounts: [],
@@ -186,7 +185,6 @@ describe('createPortfolioActions', () => {
       input_ticker: 'MSFT',
       input_quantity: 3.5,
       input_avg_price: 100,
-      input_note: 'long term',
       input_source: 'user',
       input_request: null,
     })
@@ -205,7 +203,6 @@ describe('createPortfolioActions', () => {
         avg_price: '',
         purchase_amount: '17914440',
         valuation_amount: '19319396',
-        note: ' short bond ',
       },
       state: {
         accounts: [], holdings: [],
@@ -223,7 +220,6 @@ describe('createPortfolioActions', () => {
       input_ticker: 'VALUATION:BOND',
       input_purchase_amount: 17914440,
       input_valuation_amount: 19319396,
-      input_note: 'short bond',
       input_source: 'user',
       input_request: null,
     })
@@ -231,7 +227,7 @@ describe('createPortfolioActions', () => {
 
   it('saves a cash holding as a balance without average price', async () => {
     const params = createParams({
-      holdingModal: { id: null, account_id: '2', ticker: 'KRW', quantity: '', avg_price: '', valuation_amount: '3000000', note: '' },
+      holdingModal: { id: null, account_id: '2', ticker: 'KRW', quantity: '', avg_price: '', valuation_amount: '3000000' },
       state: {
         accounts: [], holdings: [],
         instruments: [{ ticker: 'KRW', display_name: '예수금', currency: 'KRW', instrument_type: 'cash' }],
@@ -247,7 +243,6 @@ describe('createPortfolioActions', () => {
       input_account_id: 2,
       input_ticker: 'KRW',
       input_balance: 3000000,
-      input_note: null,
       input_source: 'user',
       input_request: null,
     })

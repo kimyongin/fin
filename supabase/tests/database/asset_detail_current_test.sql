@@ -10,8 +10,8 @@ insert into public.accounts(id,user_id,name) values
 (9992,'00000000-0000-0000-0000-000000000991','Second');
 insert into public.instruments(id,user_id,ticker,display_name,currency,instrument_type,note)
 values(9991,'00000000-0000-0000-0000-000000000991','CURRENT','Original','KRW','market','public note');
-insert into public.holdings(user_id,account_id,ticker,quantity,avg_price,note)
-values('00000000-0000-0000-0000-000000000991',9991,'CURRENT',2,100,'old note');
+insert into public.holdings(user_id,account_id,ticker,quantity,avg_price)
+values('00000000-0000-0000-0000-000000000991',9991,'CURRENT',2,100);
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000991',true);
 set local role authenticated;
 create temp table current_fixture(expected jsonb,instrument jsonb,holdings jsonb,response jsonb) on commit drop;

@@ -324,7 +324,6 @@ function App() {
           purchase_amount: row.purchase_amount === '' ? null : Number(row.purchase_amount),
           valuation_amount: row.valuation_amount === '' ? null : Number(row.valuation_amount),
           tag_id: row.tag_id || null,
-          note: row.note.trim(),
         })),
       })
       if (error) throw error

@@ -103,7 +103,6 @@ describe('portfolio helpers', () => {
         avg_price: '',
         purchase_amount: '',
         valuation_amount: '',
-        note: '',
       },
       lookupResult: {
         ticker: 'AAPL',

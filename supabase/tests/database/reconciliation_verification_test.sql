@@ -39,7 +39,7 @@ select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_
 select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_date,'수량만 확인','80000000-0000-0000-0000-000000000002','app')->>'source','app','verification save returns its source');
 select extensions.is(public.app_get_holding_integrity(9801)#>>'{last_verification,note}','수량만 확인','integrity read returns the latest note');
 select extensions.is(public.app_get_holding_integrity(9801)#>>'{last_verification,source}','app','integrity read returns the latest source');
-select * from public.app_save_holding(9801,9801,'INTM',26,68000,null,'user','change after verification');
+select * from public.app_save_holding(9801,9801,'INTM',26,68000,'user','change after verification');
 select extensions.is((public.app_get_holding_integrity(9801)#>>'{last_verification,changed_since}')::boolean,true,'later holding change marks verification as changed since');
 select extensions.is(public.app_verify_holding(9801,2,array['quantity'],current_date,'수량만 확인','80000000-0000-0000-0000-000000000002','app')->>'holding_state_version','2','lost verification response retry returns the original success after a later holding change');
 select extensions.is((select last_verification->>'note' from public.holdings where id=9801),'수량만 확인','latest verification is stored on the current holding');

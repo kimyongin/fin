@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select extensions.plan(25);
+select extensions.plan(26);
 
 create temp table test_context (
   user_id uuid not null
@@ -153,7 +153,6 @@ select extensions.is(
       ' aapl ',
       3.5,
       100,
-      ' core ',
       'user',
       'create holding'
     )
@@ -169,9 +168,9 @@ select extensions.is(
 );
 
 select extensions.is(
-  (select note from public.holdings where user_id = auth.uid() and ticker = 'AAPL'),
-  'core',
-  'app_save_holding trims note'
+  (select count(*) from information_schema.columns where table_schema='public' and table_name='holdings' and column_name='note'),
+  0::bigint,
+  'holding note column is retired'
 );
 
 select extensions.is(
@@ -189,7 +188,6 @@ select extensions.is(
       'AAPL',
       4,
       120,
-      null,
       'agent',
       'rebalance'
     )
@@ -212,7 +210,6 @@ select extensions.throws_like(
       'AAPL',
       -1,
       120,
-      null,
       'user',
       null
     )
@@ -242,13 +239,18 @@ select extensions.is(
         'avg_price', 120,
         'purchase_amount', null,
         'valuation_amount', null,
-        'tag_id', (select id from public.tags where user_id = auth.uid() and name = 'Growth'),
-        'note', 'snapshot test'
+        'tag_id', (select id from public.tags where user_id = auth.uid() and name = 'Growth')
       ))
     )
   ),
   1,
   'app_bulk_save_portfolio_rows saves the submitted row'
+);
+
+select extensions.throws_ok(
+  $$select * from public.app_bulk_save_portfolio_rows('[{"account_name":"Test Account","display_name":"Apple","ticker":"AAPL","quantity":4,"avg_price":120,"note":"old holding memo"}]'::jsonb)$$,
+  'P0001','Legacy holding note field is no longer accepted',
+  'bulk save rejects the retired holding-note contract'
 );
 
 select extensions.ok(
