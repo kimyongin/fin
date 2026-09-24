@@ -309,8 +309,6 @@ const toolHandlers: Record<string, ToolHandler> = {
       to: optionalString(args.to) ?? null,
       record_state: (optionalString(args.record_state) ?? 'all') as 'all' | 'todo' | 'done',
       instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
-      account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
-      holding_id: null,
       tag_ids: Array.isArray(args.tag_ids) ? args.tag_ids.map((value,index) => requireUuid(value, `tag_ids[${index}]`)) : [],
       tag_match: (optionalString(args.tag_match) ?? 'any') as 'all' | 'any',
       limit: args.limit == null ? 30 : requirePositiveInteger(args.limit, 'limit'),
@@ -367,9 +365,7 @@ const toolHandlers: Record<string, ToolHandler> = {
         occurred_at: optionalString(args.occurred_at) ?? null,
         timezone: requireString(args.timezone, 'timezone'),
         task_id: args.task_id == null ? null : requireUuid(args.task_id, 'task_id'),
-        holding_id: null,
         instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
-        account_id: null,
         authored_via: 'agent',
       },
     })

@@ -120,7 +120,7 @@ try {
     schema_version: 1, idempotency_key: crypto.randomUUID(), title: 'Contract activity retrospective',
     body: `Period: ${reportDate}\n\nReviewed the complete period source.`,
     occurred_at: null, timezone: 'Asia/Seoul', task_id: null,
-    instrument_id: null, account_id: null, tag_ids: [],
+    instrument_id: null, tag_ids: [],
   } })
   assert(reportSaved.body?.result?.structuredContent?.data?.body?.includes(reportDate), 'Retrospective activity save contract failed')
 
@@ -226,14 +226,14 @@ try {
       idempotency_key: crypto.randomUUID(),
       title: 'Contract test review', body: 'External research was intentionally omitted. Insufficient data.',
       occurred_at: null, timezone: 'Asia/Seoul', task_id: null,
-      instrument_id: null, account_id: null, tag_ids: [],
+      instrument_id: null, tag_ids: [],
     },
   })
   const savedData = saved.body?.result?.structuredContent?.data
   assert(saved.body?.result?.isError === false && savedData?.id && savedData?.body?.includes('Insufficient data.'), `Activity save contract failed: ${JSON.stringify(saved.body?.result?.structuredContent?.error ?? savedData)}`)
 
   const briefingPage = await call(session.access_token, 'tools/call', {
-    name: 'search_activities', arguments: { query: 'Contract test review', from: null, to: null, record_state: 'done', instrument_id: null, account_id: null, tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul' },
+    name: 'search_activities', arguments: { query: 'Contract test review', from: null, to: null, record_state: 'done', instrument_id: null, tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul' },
   })
   assert(briefingPage.body?.result?.structuredContent?.data?.items?.[0]?.activity_id === savedData.id, 'Saved activity search contract failed')
   const tradePage = await call(session.access_token, 'tools/call', {

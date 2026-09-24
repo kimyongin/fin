@@ -50,7 +50,7 @@ describe('decision and task data adapters', () => {
       input_tag_ids: [],
       input_payload: {
         title: '실적 확인', body: '보유\n\n유지', occurred_at: null,
-        timezone: 'Asia/Seoul', task_id: null, holding_id: null, instrument_id: null, account_id: null, authored_via: 'app',
+        timezone: 'Asia/Seoul', task_id: null, instrument_id: null, authored_via: 'app',
       },
     }])
     expect(supabase.rpc.mock.calls[1]).toEqual(['app_get_activity', { input_activity_id: 7, input_owner_user_id: null }])
@@ -70,7 +70,7 @@ describe('decision and task data adapters', () => {
     expect(supabase.rpc.mock.calls[1][1]).toMatchObject({ input_activity_id: 5, input_expected_version: 2, input_tag_ids: [tagId] })
     expect(supabase.rpc.mock.calls[2]).toEqual(['app_search_activities', {
       input_owner_user_id: null, input_query: '보유 유지', input_from: null, input_to: null,
-      input_record_state: 'done', input_instrument_id: null, input_account_id: null, input_holding_id: null,
+      input_record_state: 'done', input_instrument_id: null,
       input_tag_ids: [tagId], input_tag_match: 'any', input_limit: 30, input_cursor: null, input_timezone: 'Asia/Seoul',
     }])
   })

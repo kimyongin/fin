@@ -24,7 +24,7 @@ select extensions.is((select body from public.activity_events where target_id='9
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000971',true);
 set local role authenticated;
 select extensions.is(public.app_get_activity((select id from public.activity_events where action_type='log_completed_trade' and target_id='9971'),null)
-  ->'holding_summary'->>'account_name','Referenced account','owner detail names the precise account-specific holding');
+  ->'instrument_summary'->>'display_name','Referenced instrument','owner detail links an automatic holding action to the common instrument');
 set local role postgres;
 select extensions.throws_ok($$insert into public.activity_events(user_id,source,action_type,target_table,target_id,holding_id,status)
 values('00000000-0000-0000-0000-000000000972','user','record_manual_activity','manual_activities',null,9971,'succeeded')$$,

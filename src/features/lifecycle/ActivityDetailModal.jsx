@@ -73,7 +73,6 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       }
       if (editable.has('task_id') && draft.taskId !== (activity.task_id ?? null)) patch.task_id = draft.taskId
       if (editable.has('instrument_id') && draft.instrumentId !== (activity.instrument_id ?? null)) patch.instrument_id = draft.instrumentId
-      if (activity.holding_id != null) patch.holding_id = null
       const fingerprint = JSON.stringify({ id: activity.id, version: activity.version, patch, selectedTagIds })
       if (saveAttempt.current?.fingerprint !== fingerprint) saveAttempt.current = { fingerprint, key: crypto.randomUUID() }
       const saved = await saveActivityDetail(supabase, activity, patch, selectedTagIds, saveAttempt.current.key)

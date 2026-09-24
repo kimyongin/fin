@@ -24,7 +24,7 @@ const mutationCount = assertMutationRpcSignatures(await schemaResponse.json())
 const rpcChecks = [
   ['app_get_daily_context', { input_subject_tickers: null, input_timezone: 'Asia/Seoul' }],
   ['app_search_activities', { input_owner_user_id: null, input_query: null, input_from: null, input_to: null,
-    input_record_state: 'done', input_instrument_id: null, input_account_id: null, input_holding_id: null,
+    input_record_state: 'done', input_instrument_id: null,
     input_tag_ids: [], input_tag_match: 'any', input_limit: 1, input_cursor: null, input_timezone: 'Asia/Seoul' }],
   ['app_list_general_task_page', { input_cursor: null, input_filter: 'active', input_limit: 1 }],
   ['app_list_transaction_page', { input_account_id: null, input_cursor: null, input_instrument_id: null, input_limit: 1 }],

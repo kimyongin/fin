@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-24",
-  "review_reason": "Retire private holding-note tools and align the holding-thesis guide with the common instrument note",
+  "review_reason": "Search and detail now expose stock-level activity references only; reviewed all nine guides, whose steps remain correct while financial execution continues to use holding IDs.",
   "topics": {
     "policy": {
       "revision": "fnv1a32:bf7fa033",
-      "contract_digest": "480e536a7b2c6f29260fb20f2f7f2d9abb482908929eb00af539b905a84d2a1c"
+      "contract_digest": "81a7b41a00acb6fc055367d43976911da4e1ae59b6b6cfe0c7026c1a500cadd5"
     },
     "holding_thesis": {
       "revision": "fnv1a32:d819b455",
-      "contract_digest": "6b06e8f082d6d76b48fee7c7ff3d32fcea6e79aa7a0d3f21d4b9988391fe2baf"
+      "contract_digest": "fc77b90dc95c01818416d3aa227474783495c13d3220701809c98b2f2e440320"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "4ab159aa37bd696c0a7e7b759f0a2da0c6de42474411e57c4cad81b494327494"
+      "contract_digest": "ed11a51d4d5d4faa21a27c028e6ceb3acb4fdc8ef10d760af87ff4ef44bc7db2"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "1b1839686e4793e9f3658599127de153287d4a5c9939d2dbbfa1b4f3bc3a0753"
+      "contract_digest": "431c2252288957716f272280e6668cc631741e11f5b556860c887646fb9c0477"
     },
     "trade_entry": {
       "revision": "fnv1a32:497bf056",
-      "contract_digest": "888ce97e3a61c3c9a102b9d58b7967ad2dcb8e880817c96e9f54d7c9e7b74012"
+      "contract_digest": "143cfc33c6b9d97ff06728bf6dcc5b4afe442c8d5959346bd6391d78e845a878"
     },
     "reconciliation": {
       "revision": "fnv1a32:29ac55b9",
-      "contract_digest": "79b2108425a04afd74337eafe8fc7655556b8cdddd193ad679233552539f1350"
+      "contract_digest": "34c92fb38eac04d0cf45eea30d268fb1622fe94fd628c4f4bb951fd270d8ad3f"
     },
     "todo": {
       "revision": "fnv1a32:53e7ef11",
-      "contract_digest": "f4e7bcc6a233274a9a97afce69c8756fa248f9ecd21dafdf00f39ec118256747"
+      "contract_digest": "1be05350260224d1807c7164f54196e0eb9926435cf6aa960480b16264b4c247"
     },
     "activity_report": {
       "revision": "fnv1a32:8adf4a69",
-      "contract_digest": "6c21aa0a712eaeacd729c1cc8621ea228d0b7b8951b01e41983a7b35ffede58e"
+      "contract_digest": "e727b2b5b1fe19bcd9a49cb993976e83f59071e9c5910f65d56d6037ad3b1b07"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "c8db2302ccec86e0d9c99c28fc92bfac1dc9980fe127a9d1e21413ac92035dd4"
+      "contract_digest": "e5c4bde58e9d3bc9ee553053c50162629cfc167f3270cadbc1a85c66aaf7ad98"
     }
   }
 }

@@ -97,10 +97,8 @@ export async function setGeneralTaskTags(supabase, task, tagIds) {
 }
 
 export async function searchActivities(supabase, {
-  accountId = null,
   cursor = null,
   from = null,
-  holdingId = null,
   instrumentId = null,
   limit = 30,
   ownerUserId = null,
@@ -118,8 +116,6 @@ export async function searchActivities(supabase, {
     to: to || null,
     record_state: state,
     instrument_id: instrumentId,
-    account_id: accountId,
-    holding_id: holdingId,
     tag_ids: tagIds,
     tag_match: tagMatch,
     limit,
@@ -137,8 +133,6 @@ export async function searchActivities(supabase, {
     input_to: to || null,
     input_record_state: state,
     input_instrument_id: instrumentId,
-    input_account_id: accountId,
-    input_holding_id: holdingId,
     input_tag_ids: tagIds,
     input_tag_match: tagMatch,
     input_limit: limit,
@@ -189,9 +183,7 @@ export async function recordManualActivity(supabase, activity) {
       occurred_at: activity.occurredAt || null,
       timezone: activity.timezone ?? 'Asia/Seoul',
       task_id: activity.taskId ?? null,
-      holding_id: null,
       instrument_id: activity.instrumentId ?? null,
-      account_id: activity.accountId ?? null,
       authored_via: 'app',
     },
   })

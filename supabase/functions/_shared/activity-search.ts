@@ -17,8 +17,6 @@ type SearchArgs = {
   to?: string | null
   record_state?: 'all' | 'todo' | 'done'
   instrument_id?: number | null
-  account_id?: number | null
-  holding_id?: number | null
   tag_ids?: string[]
   tag_match?: 'all' | 'any'
   limit?: number
@@ -41,8 +39,6 @@ function rpcParams(args: SearchArgs) {
     input_to: args.to || null,
     input_record_state: args.record_state ?? 'all',
     input_instrument_id: args.instrument_id ?? null,
-    input_account_id: args.account_id ?? null,
-    input_holding_id: args.holding_id ?? null,
     input_tag_ids: args.tag_ids ?? [],
     input_tag_match: args.tag_match ?? 'any',
     input_limit: Math.min(Math.max(args.limit ?? 30, 1), 100),
@@ -101,8 +97,6 @@ export async function hybridSearchActivities(client: SupabaseClientLike, args: S
       input_from: args.from || null,
       input_to: args.to || null,
       input_instrument_id: args.instrument_id ?? null,
-      input_account_id: args.account_id ?? null,
-      input_holding_id: args.holding_id ?? null,
       input_tag_ids: args.tag_ids ?? [],
       input_tag_match: args.tag_match ?? 'any',
       input_limit: Math.min(Math.max(args.limit ?? 30, 1), 100),
