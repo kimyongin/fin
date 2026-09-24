@@ -6,7 +6,6 @@ import {
   dailyReviewToolNames,
   decisionActivityToolNames,
   entityNoteToolNames,
-  holdingNotesToolNames,
   holdingIntegrityToolNames,
   investmentPolicyToolNames,
   portfolioToolDefinitions,
@@ -32,7 +31,6 @@ describe('portfolio MCP tool definitions', () => {
     expect(activityReportToolNames.every((name) => names.includes(name))).toBe(true)
     expect(entityNoteToolNames.every((name) => names.includes(name))).toBe(true)
     expect(investmentPolicyToolNames.every((name) => names.includes(name))).toBe(true)
-    expect(holdingNotesToolNames.every((name) => names.includes(name))).toBe(true)
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
     expect(productFeedbackToolNames.every((name) => names.includes(name))).toBe(true)
@@ -184,14 +182,11 @@ describe('portfolio MCP tool definitions', () => {
     expect(names).not.toContain('link_task_to_holding_thesis')
   })
 
-  it('advertises the direct private holding-note path without financial writes', () => {
-    const read = tool('list_private_holding_notes')
-    const save = tool('save_private_holding_note')
-    expect(read.annotations.readOnlyHint).toBe(true)
-    expect(save.annotations.idempotentHint).toBe(true)
-    expect((save.inputSchema as any).properties).not.toHaveProperty('quantity')
-    expect((save.inputSchema as any).properties.expected_note.type).toEqual(['string', 'null'])
-    expect(getWorkflowGuide('holding_thesis')?.related_tools).toContain('save_private_holding_note')
+  it('uses the existing common instrument note instead of private holding-note tools', () => {
+    const names = portfolioToolDefinitions.map((definition) => definition.name)
+    expect(names).not.toContain('list_private_holding_notes')
+    expect(names).not.toContain('save_private_holding_note')
+    expect(getWorkflowGuide('holding_thesis')?.related_tools).toContain('update_entity_note')
   })
 
   it('separates trade preview, confirmation, and brokerage actions', () => {
@@ -213,7 +208,7 @@ describe('portfolio MCP tool definitions', () => {
     const definition = tool('update_entity_note')
     expect(definition.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
     expect((definition.inputSchema as any).required).toEqual(expect.arrayContaining(['entity_type', 'entity_id', 'expected_note', 'note', 'idempotency_key']))
-    expect((definition.inputSchema as any).properties.entity_type.enum).toEqual(['account', 'instrument', 'holding'])
+    expect((definition.inputSchema as any).properties.entity_type.enum).toEqual(['account', 'instrument'])
     expect(definition.description).toContain('does not change quantities')
   })
 

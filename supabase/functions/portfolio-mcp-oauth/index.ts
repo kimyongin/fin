@@ -3,7 +3,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
 import {
-  actionTaskToolNames, activityReportToolNames, dailyReviewToolNames, decisionActivityToolNames, entityNoteToolNames, holdingIntegrityToolNames, holdingNotesToolNames,
+  actionTaskToolNames, activityReportToolNames, dailyReviewToolNames, decisionActivityToolNames, entityNoteToolNames, holdingIntegrityToolNames,
   investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames,
   productFeedbackToolNames, workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
@@ -182,7 +182,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   async update_entity_note(supabase, args) {
     requireSchemaVersion(args)
     const entityType = requireString(args.entity_type, 'entity_type')
-    if (!['account', 'instrument', 'holding'].includes(entityType)) throw new ToolInputError('entity_type must be account, instrument, or holding')
+    if (!['account', 'instrument'].includes(entityType)) throw new ToolInputError('entity_type must be account or instrument')
     return { ok: true, data: await rpc(supabase, 'app_update_entity_note', {
       input_entity_type: entityType,
       input_entity_id: requirePositiveInteger(args.entity_id, 'entity_id'),
@@ -424,20 +424,6 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
-  async list_private_holding_notes(supabase) {
-    const data = await rpc(supabase, 'app_list_private_holding_notes')
-    return { ok: true, data }
-  },
-  async save_private_holding_note(supabase, args) {
-    requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_save_private_holding_note', {
-      input_instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
-      input_account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
-      input_expected_note: args.expected_note == null ? null : requireString(args.expected_note, 'expected_note'),
-      input_note: args.note == null ? null : requireString(args.note, 'note'),
-    })
-    return { ok: true, data }
-  },
   async preview_trade_entry(supabase, args) {
     const data = await rpc(supabase, 'app_preview_trade_entry', {
       input_account_id: requirePositiveInteger(args.account_id, 'account_id'),
@@ -523,7 +509,6 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   actionTasks: actionTaskToolNames,
   activityReports: activityReportToolNames,
   investmentPolicy: investmentPolicyToolNames,
-  holdingNotes: holdingNotesToolNames,
   tradeEntry: tradeEntryToolNames,
   holdingIntegrity: holdingIntegrityToolNames,
 })

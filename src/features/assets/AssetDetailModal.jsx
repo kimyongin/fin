@@ -5,34 +5,30 @@ import { formatUnitPrice } from '../../lib/format'
 
 const input = 'min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 text-base outline-none focus:border-[var(--accent)]'
 
-function makeDraft(instrument, holdings, notes, selectedAccountId) {
-  const privateNote = (accountId) => notes.find((item) => Number(item.instrument_id) === Number(instrument.id) && (accountId == null ? item.account_id == null : Number(item.account_id) === Number(accountId)))?.note ?? ''
+function makeDraft(instrument, holdings, selectedAccountId) {
   return {
     instrument: {
       display_name: instrument.display_name ?? '', currency: instrument.currency ?? 'KRW',
       instrument_type: instrument.instrument_type, tag_id: instrument.tagId ?? '',
-      note: instrument.note ?? '', private_note: privateNote(null),
+      note: instrument.note ?? '',
       price: instrument.latestPrice == null ? '' : String(instrument.latestPrice),
       price_date: instrument.latestPriceDate ?? '',
     },
     holdings: [...holdings].sort((a, b) => Number(String(b.account_id) === String(selectedAccountId)) - Number(String(a.account_id) === String(selectedAccountId))).map((holding) => ({
       id: holding.id, account_id: String(holding.account_id), expected_account_id: holding.account_id,
-      expected_state_version: holding.state_version, expected_note: holding.note ?? null,
-      expected_private_note: privateNote(holding.account_id) || null,
+      expected_state_version: holding.state_version,
       quantity: holding.quantity == null ? '' : String(holding.quantity),
       avg_price: holding.avg_price == null ? '' : String(holding.avg_price),
       purchase_amount: holding.purchase_amount == null ? '' : String(holding.purchase_amount),
       valuation_amount: holding.valuation_amount == null ? '' : String(holding.valuation_amount),
-      note: holding.note ?? '', private_note: privateNote(holding.account_id),
     })),
   }
 }
 
-function expectedInstrument(instrument, draft) {
+function expectedInstrument(instrument) {
   return {
     display_name: instrument.display_name, currency: instrument.currency,
     instrument_type: instrument.instrument_type, note: instrument.note ?? null,
-    private_note: draft.instrument.private_note.trim() || null,
     tag_id: instrument.tagId ? Number(instrument.tagId) : null,
   }
 }
@@ -41,9 +37,9 @@ function field(label, value, change, props = {}) {
   return <label className="grid gap-2"><span className="text-xs font-semibold text-[var(--muted-ink)]">{label}</span><input className={input} onChange={(event) => change(event.target.value)} value={value} {...props} /></label>
 }
 
-export default function AssetDetailModal({ accounts, canEdit, holdings, instrument, notes, notesStatus, onClose, onRefresh, refreshRevision, selectedAccountId, supabase, tags }) {
-  const initial = useRef(makeDraft(instrument, holdings, notes, selectedAccountId))
-  const expected = useRef(expectedInstrument(instrument, initial.current))
+export default function AssetDetailModal({ accounts, canEdit, holdings, instrument, onClose, onRefresh, refreshRevision, selectedAccountId, supabase, tags }) {
+  const initial = useRef(makeDraft(instrument, holdings, selectedAccountId))
+  const expected = useRef(expectedInstrument(instrument))
   const [draft, setDraft] = useState(initial.current)
   const [stage, setStage] = useState(null)
   const [confirming, setConfirming] = useState(false)
@@ -62,10 +58,10 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
   })
 
   useEffect(() => {
-    if (!refreshRevision || notesStatus !== 'ready' || dirty || confirming) return
-    const next = makeDraft(instrument, holdings, notes, selectedAccountId)
+    if (!refreshRevision || dirty || confirming) return
+    const next = makeDraft(instrument, holdings, selectedAccountId)
     initial.current = next
-    expected.current = expectedInstrument(instrument, next)
+    expected.current = expectedInstrument(instrument)
     setDraft(next)
     retryKey.current = null
   }, [refreshRevision]) // Refresh is explicit; background price/list updates never discard a draft.
@@ -85,12 +81,11 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
     retryKey.current = null
     setDraft((current) => ({ ...current, holdings: [...current.holdings, {
       id: null, account_id: '', expected_account_id: null, expected_state_version: null,
-      expected_note: null, expected_private_note: null, quantity: '', avg_price: '',
-      purchase_amount: '', valuation_amount: '', note: '', private_note: '',
+      quantity: '', avg_price: '', purchase_amount: '', valuation_amount: '',
     }] }))
   }
   async function save() {
-    if (!dirty || saving || notesStatus !== 'ready') return true
+    if (!dirty || saving) return true
     if (!draft.instrument.display_name.trim()) { setError('종목명을 입력해 주세요.'); return false }
     setSaving(true)
     setError('')
@@ -110,8 +105,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
         input_instrument_id: instrument.id, input_expected: expected.current,
         input_instrument: instrumentPayload, input_holdings: draft.holdings.map((holding) => ({
           id: holding.id, account_id: holding.account_id, expected_account_id: holding.expected_account_id,
-          expected_state_version: holding.expected_state_version, expected_note: holding.expected_note,
-          expected_private_note: holding.expected_private_note, quantity: holding.quantity,
+          expected_state_version: holding.expected_state_version, quantity: holding.quantity,
           avg_price: holding.avg_price, purchase_amount: holding.purchase_amount,
           valuation_amount: holding.valuation_amount,
         })), input_reason: reason.trim() || null,
@@ -122,19 +116,17 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
         instrument: { ...draft.instrument },
         holdings: data.holdings.map((item) => ({
           ...item, account_id: String(item.account_id), expected_account_id: item.account_id,
-          expected_state_version: item.state_version, expected_note: item.note,
-          expected_private_note: item.private_note, quantity: item.quantity == null ? '' : String(item.quantity),
+          expected_state_version: item.state_version, quantity: item.quantity == null ? '' : String(item.quantity),
           avg_price: item.avg_price == null ? '' : String(item.avg_price),
           purchase_amount: item.purchase_amount == null ? '' : String(item.purchase_amount),
           valuation_amount: item.valuation_amount == null ? '' : String(item.valuation_amount),
-          note: item.note ?? '', private_note: item.private_note ?? '',
         })),
       }
       initial.current = next
       expected.current = {
         display_name: data.instrument.display_name, currency: data.instrument.currency,
         instrument_type: data.instrument.instrument_type, note: data.instrument.note,
-        private_note: data.instrument.private_note, tag_id: data.instrument.tag_id,
+        tag_id: data.instrument.tag_id,
       }
       setDraft(next)
       retryKey.current = null
@@ -166,7 +158,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
   function openStage(next) { if (dirty) setPendingStage(next); else setStage(next) }
   function discardAndContinue() { setDraft(initial.current); retryKey.current = null; setPendingStage(null); setStage(pendingStage) }
   async function saveAndContinue() { if (await save()) { setStage(pendingStage); setPendingStage(null) } }
-  if (stage?.kind === 'deleteHolding') return <ModalShell closeDisabled={saving} footer={<div className="flex justify-end gap-2"><button className="min-h-11 rounded-xl border border-[var(--line)] px-4" disabled={saving} onClick={() => { setStage(null); setError('') }} type="button">취소</button><button className="min-h-11 rounded-xl bg-red-700 px-4 font-semibold text-white" disabled={saving} onClick={() => deleteHolding(stage.holding.id)} type="button">보유 삭제</button></div>} onClose={() => { setStage(null); setError('') }} title="보유 삭제"><p>{accounts.find((account) => Number(account.id) === Number(stage.holding.account_id))?.name}의 {instrument.display_name} 보유를 삭제할까요? 이 계좌의 현재 수량·메모가 제거됩니다.</p>{error && <p role="alert" className="mt-3 text-red-200">{error}</p>}</ModalShell>
+  if (stage?.kind === 'deleteHolding') return <ModalShell closeDisabled={saving} footer={<div className="flex justify-end gap-2"><button className="min-h-11 rounded-xl border border-[var(--line)] px-4" disabled={saving} onClick={() => { setStage(null); setError('') }} type="button">취소</button><button className="min-h-11 rounded-xl bg-red-700 px-4 font-semibold text-white" disabled={saving} onClick={() => deleteHolding(stage.holding.id)} type="button">보유 삭제</button></div>} onClose={() => { setStage(null); setError('') }} title="보유 삭제"><p>{accounts.find((account) => Number(account.id) === Number(stage.holding.account_id))?.name}의 {instrument.display_name} 보유를 삭제할까요? 이 계좌의 현재 보유값이 제거됩니다.</p>{error && <p role="alert" className="mt-3 text-red-200">{error}</p>}</ModalShell>
   if (confirming) return <ModalShell closeDisabled={saving} compact footer={<div className="flex justify-end gap-2"><button className="min-h-11 rounded-xl border border-[var(--line)] px-4" disabled={saving} onClick={() => setConfirming(false)} type="button">계속 편집</button><button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 font-semibold text-white" disabled={saving} onClick={save} type="button">{saving ? '저장 중' : '저장'}</button></div>} onClose={() => setConfirming(false)} title="보유값 변경 확인">
     <div className="grid gap-4 text-sm"><p>현재 보유값을 다음과 같이 바꿉니다. 매매나 증권사 확인 완료로 자동 분류하지 않습니다.</p>
       {financialChanges.map(({ holding, before, keys }, index) => <div className="rounded-xl border border-[var(--line)] p-3" key={holding.id ?? `new-${index}`}><strong>{accounts.find((account) => String(account.id) === String(holding.account_id))?.name ?? '계좌'}</strong>{keys.map((key) => <p className="mt-1" key={key}>{({ quantity: '수량', avg_price: '평균가', purchase_amount: '매입금액', valuation_amount: '평가금액/잔액' })[key]}: {before?.[key] || '—'} → {holding[key] || '—'}</p>)}</div>)}
@@ -176,11 +168,9 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
   </ModalShell>
 
   const setInstrument = (key) => (value) => changeInstrument(key, value)
-  return <ModalShell closeDisabled={saving} dirty={dirty} footer={(requestClose) => pendingStage ? <div className="grid gap-3" role="alert"><p className="text-sm">저장하지 않은 변경이 있습니다. 어떻게 할까요?</p><div className="flex flex-wrap gap-2"><button className={input} onClick={() => setPendingStage(null)} type="button">계속 편집</button><button className={input} onClick={discardAndContinue} type="button">버리고 계속</button>{financialChanges.length === 0 && <button className={input} disabled={saving} onClick={saveAndContinue} type="button">저장 후 계속</button>}</div></div> : <ModalActions disabled={saving} onClose={requestClose} onSave={() => financialChanges.length ? setConfirming(true) : save()} saveDisabled={!dirty || notesStatus !== 'ready'} saveLabel={saving ? '저장 중' : '저장'} />} onClose={onClose} title={instrument.display_name ?? instrument.ticker}>
+  return <ModalShell closeDisabled={saving} dirty={dirty} footer={(requestClose) => pendingStage ? <div className="grid gap-3" role="alert"><p className="text-sm">저장하지 않은 변경이 있습니다. 어떻게 할까요?</p><div className="flex flex-wrap gap-2"><button className={input} onClick={() => setPendingStage(null)} type="button">계속 편집</button><button className={input} onClick={discardAndContinue} type="button">버리고 계속</button>{financialChanges.length === 0 && <button className={input} disabled={saving} onClick={saveAndContinue} type="button">저장 후 계속</button>}</div></div> : <ModalActions disabled={saving} onClose={requestClose} onSave={() => financialChanges.length ? setConfirming(true) : save()} saveDisabled={!dirty} saveLabel={saving ? '저장 중' : '저장'} />} onClose={onClose} title={instrument.display_name ?? instrument.ticker}>
     <div className="grid gap-6 text-sm">
       <p className="text-[var(--muted-ink)]">{instrument.ticker} · 자동 시세 {instrument.latestPrice == null ? '없음' : formatUnitPrice(instrument.latestPrice, instrument.currency)}{instrument.latestPriceDate ? ` · ${instrument.latestPriceDate}` : ''}</p>
-      {notesStatus === 'loading' && canEdit && <p>비공개 메모를 불러오는 중입니다.</p>}
-      {notesStatus === 'error' && canEdit && <p className="text-red-200">비공개 메모를 읽지 못해 편집을 막았습니다. 다시 열어 주세요.</p>}
       {canEdit ? <>
         <section className="grid gap-4"><h3 className="font-semibold">종목 공통 정보</h3>
           {field('종목명',draft.instrument.display_name,setInstrument('display_name'))}

@@ -18,12 +18,12 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_profile / observed-local | 인증된 Portfolio 계정 프로필을 읽습니다. 투자 성향이나 투자 원칙 조회가 아닙니다. | W01 |
 | get_portfolio_state / observed-local | 본인의 계좌·보유·종목·태그·저장 시세를 읽습니다. 증권사 실시간 잔고나 확인 완료를 뜻하지 않습니다. | W01,W05 |
 | find_holdings / observed-local | 티커·종목명·계좌명으로 본인의 보유 후보를 찾습니다. 여러 결과가 나오면 변경 전에 대상을 확인하세요. | W05,W06 |
-| update_entity_note / local | 현재 메모를 먼저 읽고 계좌·종목·보유 항목의 기존 메모만 충돌 방지 방식으로 수정합니다. 수량·원가·검증 상태는 바꾸지 않습니다. 여러 세션에 공통 적용할 데이터 관리 규칙 저장에는 사용하지 않습니다. | 대상별 메모 |
+| update_entity_note / local | 현재 메모를 먼저 읽고 계좌·종목의 기존 메모만 충돌 방지 방식으로 수정합니다. 종목 메모는 기존 자산 공유 범위를 따르므로 민감한 내용을 자동 이전하지 않습니다. 수량·원가·검증 상태는 바꾸지 않습니다. | 대상별 메모 |
 | get_strategy_state / observed-local | 자산 태그별 목표 비중을 읽습니다. 목표가 없으면 미설정이며, 목표 숫자를 개인 성향으로 추정하지 않습니다. | W01,W02 |
 | list_recent_activity / observed-local | 본인의 최근 데이터 변경을 조회합니다. 활동 기록을 투자 결정이나 실제 증권사 체결 증명으로 해석하지 않습니다. | W06,W08 |
 | submit_product_feedback / observed-local | 사용자가 명시적으로 요청했거나 에이전트의 한 번의 요약 제안에 동의한 Portfolio 제품 피드백을 비공개로 저장합니다. 대화 전문·투자 데이터·인증정보·추정 원인을 첨부하거나 GitHub에 공개하지 않습니다. | W09 |
 | list_my_product_feedback / observed-local | 본인이 남긴 제품 피드백의 상태·운영자 답변·연결 이슈만 조회합니다. 타인의 접수나 관리자 큐를 노출하지 않습니다. | W09 |
-| get_daily_context / local | 현재 보유·원칙·개인 보유 메모·열린 할 일·최근 활동을 저장 없이 읽습니다. 최근 활동은 점검/판단 종류로 분류되지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
+| get_daily_context / local | 현재 보유·종목 공통 메모·원칙·열린 할 일·최근 활동을 저장 없이 읽습니다. 최근 활동은 점검/판단 종류로 분류되지 않으며 인터넷 뉴스도 검색하지 않습니다. | W01 |
 | get_activity, update_activity / local | 활동 제목·마크다운 본문·날짜·허용된 대상 참조를 조회·정정합니다. 자동 활동의 본문 정정도 실제 잔고나 할 일 상태를 바꾸지 않습니다. | W03 |
 | list_operating_rules / removed | 별도 운영 규칙 조회를 제거했다. `list_principles`의 현재 마크다운 본문에서 관련 규칙과 적용 맥락을 읽습니다. | W06 |
 | save_operating_rule / removed | 별도 운영 규칙 저장을 제거했다. 사용자가 승인한 규칙은 `save_principle`로 저장합니다. | W06 |
@@ -42,8 +42,8 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_activity_report_context / observed-local | 지정 기간 활동의 최신 현재 내용과 태그를 안정 커서로 끝까지 조회합니다. 현재 미완료 과제는 과거 시점 복원이 아니라 요청 당시 snapshot임을 명시합니다. | A06 |
 | search_activities + get_activity / observed-local | 저장된 회고를 날짜·키워드·선택적 일반 태그로 다른 활동과 함께 찾고 읽습니다. 별도 리포트 목록/재생성 상태는 없습니다. | A06 |
 | record_manual_activity / observed-local | 사용자가 저장을 요청한 기간 회고를 일반 활동 본문으로 기록합니다. 실제 거래나 할 일을 만들지 않습니다. | A06 |
-| get_holding_thesis / removed | 구 보유 이유 조회 도구와 DB RPC를 제거했다. `list_private_holding_notes`를 사용합니다. | W02 |
-| save_holding_thesis / removed | 구 보유 이유 저장 도구와 DB RPC를 제거했다. `save_private_holding_note`를 사용합니다. | W02 |
+| get_holding_thesis / removed | 구 보유 이유 조회 도구와 DB RPC를 제거했다. 현재 종목 공통 메모는 `get_portfolio_state`에서 확인합니다. | W02 |
+| save_holding_thesis / removed | 구 보유 이유 저장 도구와 DB RPC를 제거했다. 사용자가 공개 범위를 이해하고 승인한 종목 메모만 `update_entity_note`로 저장합니다. | W02 |
 | link_task_to_holding_thesis / removed | 구 보유 이유-할 일 연결 도구와 DB RPC를 제거했다. 필요한 후속 할 일은 직접 등록합니다. | W02,W04 |
 | preview_trade_entry / observed-local | 이미 체결된 시장형 매매 입력이 현재 수량·평균가를 어떻게 바꾸는지 서버에서 저장 없이 계산하고 보유 ID/버전을 돌려줍니다. 주문·현금 이동·잔고 확인은 하지 않습니다. | W05 |
 | log_completed_trade / observed-local | 사용자가 요청한 완료 매매의 동일 입력과 미리 본 보유 ID/버전을 전달하면 서버가 잠금 후 재계산·검증하고 멱등 저장합니다. 현재값과 자동 활동을 갱신하지만 증권사 주문이나 잔고 확인은 하지 않습니다. | W05 |

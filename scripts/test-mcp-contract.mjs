@@ -78,10 +78,10 @@ try {
   const listed = await call(session.access_token, 'tools/list')
   assert(listed.response.ok && listed.body?.result?.tools?.some((tool) => tool.name === 'get_profile'), 'MCP tools/list contract failed')
   const discoveredNames = new Set(listed.body.result.tools.map((tool) => tool.name))
-  for (const currentTool of ['list_principles','save_principle','list_private_holding_notes','save_private_holding_note']) {
+  for (const currentTool of ['list_principles','save_principle','get_portfolio_state','update_entity_note']) {
     assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
   }
-  for (const legacyTool of ['get_news_state','get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis']) {
+  for (const legacyTool of ['get_news_state','get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis','list_private_holding_notes','save_private_holding_note']) {
     assert(!discoveredNames.has(legacyTool), `${legacyTool} remained in new-session discovery`)
   }
   for (const retiredTool of ['preview_trade_reversal','reverse_trade_entry']) {
@@ -111,8 +111,6 @@ try {
   assert(savedPrinciple.body?.result?.structuredContent?.data?.body === principleArgs.body, 'MCP principle save failed')
   const listedPrinciples = await call(session.access_token, 'tools/call', { name: 'list_principles', arguments: {} })
   assert(listedPrinciples.body?.result?.structuredContent?.data?.items?.some((item) => item.principle_id === principleArgs.principle_id), 'MCP principle readback failed')
-  const privateNotes = await call(session.access_token, 'tools/call', { name: 'list_private_holding_notes', arguments: {} })
-  assert(privateNotes.body?.result?.structuredContent?.data?.items?.length === 0, 'New MCP user unexpectedly has private holding notes')
 
   const reportDateParts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()).map((part) => [part.type, part.value]))
   const reportDate = `${reportDateParts.year}-${reportDateParts.month}-${reportDateParts.day}`
@@ -121,7 +119,7 @@ try {
   const reportSaved = await call(session.access_token, 'tools/call', { name: 'record_manual_activity', arguments: {
     schema_version: 1, idempotency_key: crypto.randomUUID(), title: 'Contract activity retrospective',
     body: `Period: ${reportDate}\n\nReviewed the complete period source.`,
-    occurred_at: null, timezone: 'Asia/Seoul', task_id: null, holding_id: null,
+    occurred_at: null, timezone: 'Asia/Seoul', task_id: null,
     instrument_id: null, account_id: null, tag_ids: [],
   } })
   assert(reportSaved.body?.result?.structuredContent?.data?.body?.includes(reportDate), 'Retrospective activity save contract failed')
@@ -227,7 +225,7 @@ try {
       schema_version: 1,
       idempotency_key: crypto.randomUUID(),
       title: 'Contract test review', body: 'External research was intentionally omitted. Insufficient data.',
-      occurred_at: null, timezone: 'Asia/Seoul', task_id: null, holding_id: null,
+      occurred_at: null, timezone: 'Asia/Seoul', task_id: null,
       instrument_id: null, account_id: null, tag_ids: [],
     },
   })
@@ -235,7 +233,7 @@ try {
   assert(saved.body?.result?.isError === false && savedData?.id && savedData?.body?.includes('Insufficient data.'), `Activity save contract failed: ${JSON.stringify(saved.body?.result?.structuredContent?.error ?? savedData)}`)
 
   const briefingPage = await call(session.access_token, 'tools/call', {
-    name: 'search_activities', arguments: { query: 'Contract test review', from: null, to: null, record_state: 'done', instrument_id: null, account_id: null, holding_id: null, tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul' },
+    name: 'search_activities', arguments: { query: 'Contract test review', from: null, to: null, record_state: 'done', instrument_id: null, account_id: null, tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul' },
   })
   assert(briefingPage.body?.result?.structuredContent?.data?.items?.[0]?.activity_id === savedData.id, 'Saved activity search contract failed')
   const tradePage = await call(session.access_token, 'tools/call', {
@@ -251,11 +249,11 @@ try {
     user_id: userId, account_id: account.id, ticker: instrument.ticker, quantity: 1, avg_price: 100,
   })
   const noteKey = crypto.randomUUID()
-  const noteArgs = { schema_version: 1, entity_type: 'holding', entity_id: holding.id, expected_note: null, note: 'Contract note', idempotency_key: noteKey }
+  const noteArgs = { schema_version: 1, entity_type: 'instrument', entity_id: instrument.id, expected_note: null, note: 'Contract note', idempotency_key: noteKey }
   const noteSaved = await call(session.access_token, 'tools/call', { name: 'update_entity_note', arguments: noteArgs })
-  assert(noteSaved.body?.result?.structuredContent?.data?.note === 'Contract note', 'Holding note update contract failed')
+  assert(noteSaved.body?.result?.structuredContent?.data?.note === 'Contract note', 'Instrument note update contract failed')
   const noteRetry = await call(session.access_token, 'tools/call', { name: 'update_entity_note', arguments: noteArgs })
-  assert(noteRetry.body?.result?.structuredContent?.data?.note === 'Contract note', 'Holding note retry contract failed')
+  assert(noteRetry.body?.result?.structuredContent?.data?.note === 'Contract note', 'Instrument note retry contract failed')
   const correctionPreview = await call(session.access_token, 'tools/call', {
     name: 'preview_holding_reconciliation',
     arguments: { holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10), confirmed_fields: [] },

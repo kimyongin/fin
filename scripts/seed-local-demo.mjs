@@ -167,13 +167,13 @@ for (const body of principleFixtures) {
 }
 
 const demoInstrument = instrumentIds['005930.KS']
-const currentNotes = await rpc('app_list_private_holding_notes')
-const existingNote = currentNotes.items?.find((item) => item.instrument_id === demoInstrument && item.account_id == null)
-if (!existingNote?.note) {
-  await rpc('app_save_private_holding_note', {
-    input_instrument_id: demoInstrument, input_account_id: null,
-    input_expected_note: existingNote?.note ?? null,
-    input_note: '데모 보유 이유: 장기 실적과 현금흐름을 확인한다. 실제 투자 판단이 아닙니다.',
+const demoInstrumentRow = portfolio.instruments.find((item) => item.id === demoInstrument)
+if (!demoInstrumentRow?.note) {
+  await rpc('app_update_entity_note', {
+    input_entity_type: 'instrument', input_entity_id: demoInstrument,
+    input_expected_note: demoInstrumentRow?.note ?? null,
+    input_note: '데모 종목 메모: 장기 실적과 현금흐름을 확인한다. 실제 투자 판단이 아닙니다.',
+    input_idempotency_key: randomUUID(), input_source: 'app',
   })
 }
 

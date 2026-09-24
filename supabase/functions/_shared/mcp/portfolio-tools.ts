@@ -65,7 +65,7 @@ const successEnvelopeSchema = successEnvelope()
 const entityNoteOutputSchema = successEnvelope({
   type: 'object',
   properties: {
-    entity_type: { type: 'string', enum: ['account', 'instrument', 'holding'] },
+    entity_type: { type: 'string', enum: ['account', 'instrument'] },
     entity_id: { type: 'integer', minimum: 1 },
     note: { type: ['string', 'null'] },
   },
@@ -147,12 +147,11 @@ const dailyContextOutputSchema = successEnvelope({
     portfolio: { type: 'object' },
     strategy: { type: 'object' },
     principles: { type: 'array' },
-    private_holding_notes: { type: 'array' },
     open_tasks: { type: 'array' },
     last_activity: { type: ['object', 'null'] },
     recent_activities: { type: 'array' },
   },
-  required: ['as_of', 'review_date', 'timezone', 'requested_subject_tickers', 'portfolio', 'strategy', 'principles', 'private_holding_notes', 'open_tasks', 'last_activity', 'recent_activities'],
+  required: ['as_of', 'review_date', 'timezone', 'requested_subject_tickers', 'portfolio', 'strategy', 'principles', 'open_tasks', 'last_activity', 'recent_activities'],
   additionalProperties: false,
 })
 
@@ -274,12 +273,12 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'update_entity_note',
     title: 'Update an existing portfolio entity note',
-    description: 'Update only the note attached to one existing account, instrument, or holding after the user explicitly asks to remember, revise, or clear target-specific information. Read get_portfolio_state or find_holdings first and pass the exact current note as expected_note; use null for an empty note. A conflict means the note changed after it was read, so re-read instead of overwriting it. This does not change quantities, costs, prices, tags, strategy, holding theses, verification status, or activity outside the note audit event. Do not force a portfolio-wide instruction into an arbitrary entity note.',
+    description: 'Update only the note attached to one existing account or instrument after the user explicitly asks to remember, revise, or clear target-specific information. Read get_portfolio_state first and pass the exact current note as expected_note; use null for an empty note. A conflict means the note changed after it was read, so re-read instead of overwriting it. This does not change quantities, costs, prices, tags, strategy, verification status, or activity outside the note audit event. Do not force a portfolio-wide instruction into an arbitrary entity note.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 },
-        entity_type: { type: 'string', enum: ['account', 'instrument', 'holding'] },
+        entity_type: { type: 'string', enum: ['account', 'instrument'] },
         entity_id: { type: 'integer', minimum: 1 },
         expected_note: { type: ['string', 'null'], maxLength: 4000 },
         note: { type: ['string', 'null'], maxLength: 4000 },
@@ -355,7 +354,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_daily_context',
     title: 'Prepare daily review context',
-    description: 'Read current owner-only holdings, principles, private holding notes, open tasks, and recent activities for a requested review. These are not pre-classified as reviews or decisions. This does not create a stored snapshot, save an analysis, or mark a review complete. ChatGPT researches current external news itself.',
+    description: 'Read current owner-only holdings, common instrument notes, principles, open tasks, and recent activities for a requested review. These are not pre-classified as reviews or decisions. This does not create a stored snapshot, save an analysis, or mark a review complete. ChatGPT researches current external news itself.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -595,25 +594,6 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
   {
-    name: 'list_private_holding_notes',
-    title: 'Read private holding reasons',
-    description: 'Read the owner-only current reasons stored on instruments and account holdings. An account note overrides the instrument-wide reason for that account; a missing note means no reason was saved. These notes are not included in shared portfolio reads. Do not infer a reason from price or holdings.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'save_private_holding_note',
-    title: 'Save one private holding reason',
-    description: 'Save or clear an explicitly approved owner-only reason directly on an existing instrument or account holding. Read current notes first and provide the current expected_note to avoid overwriting a concurrent edit. Omit account_id for the instrument-wide note; use account_id for an existing holding. This never changes quantity, average cost, a trade, or public notes.',
-    inputSchema: { type: 'object', properties: {
-      schema_version: { const: 1 }, instrument_id: { type: 'integer', minimum: 1 },
-      account_id: { type: ['integer','null'], minimum: 1 },
-      expected_note: { type: ['string','null'], maxLength: 25000 },
-      note: { type: ['string','null'], maxLength: 25000 },
-    }, required: ['schema_version','instrument_id','account_id','expected_note','note'], additionalProperties: false },
-    outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
-  },
-  {
     name: 'preview_trade_entry',
     title: 'Preview a completed trade entry',
     description: 'Calculate a read-only, unsaved estimate for a user-reported completed market buy or sell. Use decimal strings for quantity and execution price. Return the holding id/version with the estimate; recording rechecks that version and recalculates under a server lock. This does not place an order, move cash, save a trade, or verify the brokerage balance.',
@@ -746,11 +726,6 @@ export const activityReportToolNames = [
 export const investmentPolicyToolNames = [
   'list_principles',
   'save_principle',
-] as const
-
-export const holdingNotesToolNames = [
-  'list_private_holding_notes',
-  'save_private_holding_note',
 ] as const
 
 export const tradeEntryToolNames = [

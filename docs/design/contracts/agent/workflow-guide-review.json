@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-24",
-  "review_reason": "Reviewed #124/#125: manual activities use optional instrument/task references; financial commands still address holdings; account filters apply only to recorded account context. Other workflow procedures remain valid.",
+  "review_reason": "Retire private holding-note tools and align the holding-thesis guide with the common instrument note",
   "topics": {
     "policy": {
       "revision": "fnv1a32:bf7fa033",
-      "contract_digest": "e73d471d574066ac5f508bb8e366424dee5c602199eca929acbcf0647579e074"
+      "contract_digest": "480e536a7b2c6f29260fb20f2f7f2d9abb482908929eb00af539b905a84d2a1c"
     },
     "holding_thesis": {
-      "revision": "fnv1a32:920959cf",
-      "contract_digest": "4f933b38e2748de61075d53c5921366634f6bcf61c53a1f416d5703523cea4e6"
+      "revision": "fnv1a32:d819b455",
+      "contract_digest": "6b06e8f082d6d76b48fee7c7ff3d32fcea6e79aa7a0d3f21d4b9988391fe2baf"
     },
     "daily_review": {
-      "revision": "fnv1a32:bc21370c",
-      "contract_digest": "18f0e29164a87ff1f337434c3971f404ee5ef0a7397dcb11940c3111720de7f6"
+      "revision": "fnv1a32:ba92b9d4",
+      "contract_digest": "4ab159aa37bd696c0a7e7b759f0a2da0c6de42474411e57c4cad81b494327494"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "77c93ec8c2dec21311a3f15c0545262be8a27ebb287d019ef64a1c96c6ea46cf"
+      "contract_digest": "1b1839686e4793e9f3658599127de153287d4a5c9939d2dbbfa1b4f3bc3a0753"
     },
     "trade_entry": {
       "revision": "fnv1a32:497bf056",
-      "contract_digest": "93fdae44eccb87eb2d8e2e16474b9cc3f3c53c4ebe77a61e8b45abbc4d4a1601"
+      "contract_digest": "888ce97e3a61c3c9a102b9d58b7967ad2dcb8e880817c96e9f54d7c9e7b74012"
     },
     "reconciliation": {
       "revision": "fnv1a32:29ac55b9",
-      "contract_digest": "3cebaa16eaf2a2b5b3ad340f84dc4c7ac451a59a9a45678bb6ea3e4f284c1a3d"
+      "contract_digest": "79b2108425a04afd74337eafe8fc7655556b8cdddd193ad679233552539f1350"
     },
     "todo": {
       "revision": "fnv1a32:53e7ef11",
-      "contract_digest": "b44dacec42970515330e59e36d3f9ce699cac00ee78a07dcfca0facede13e056"
+      "contract_digest": "f4e7bcc6a233274a9a97afce69c8756fa248f9ecd21dafdf00f39ec118256747"
     },
     "activity_report": {
       "revision": "fnv1a32:8adf4a69",
-      "contract_digest": "bc93dc20d53a2915acf990548ee1b8a5b1d90b76704d74d46e1e534436f38f19"
+      "contract_digest": "6c21aa0a712eaeacd729c1cc8621ea228d0b7b8951b01e41983a7b35ffede58e"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "2910e71a2940f926d7f76d9404a7203148914fac6189c1870d23d4224d47a65c"
+      "contract_digest": "c8db2302ccec86e0d9c99c28fc92bfac1dc9980fe127a9d1e21413ac92035dd4"
     }
   }
 }

@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import ModalShell from '../../components/ModalShell'
+import { useMemo, useState } from 'react'
 import { formatKrw, formatNumber, formatPercent, formatUnitPrice, formattedValueWithConversion } from '../../lib/format'
 import { effectiveKrwValue } from '../../lib/portfolioMath'
 import SpreadsheetEditor from './SpreadsheetEditor'
 import AssetDetailModal from './AssetDetailModal'
-import { fetchPrivateHoldingNotes } from './privateHoldingNotesData'
 import PortfolioIntegritySummary from '../review/PortfolioIntegritySummary'
 
 const control = 'min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 text-sm'
@@ -43,8 +41,6 @@ export default function AssetsPage({
 }) {
   const [selectedTicker, setSelectedTicker] = useState(null)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [privateNotes, setPrivateNotes] = useState([])
-  const [privateNotesStatus, setPrivateNotesStatus] = useState('loading')
   const [detailRefreshRevision, setDetailRefreshRevision] = useState(0)
   const [syncRequestedAt, setSyncRequestedAt] = useState('')
   const latestQuoteDate = useMemo(() => [...latestPriceByTicker.values()].map((row) => row.price_date).filter(Boolean).sort().at(-1), [latestPriceByTicker])
@@ -68,24 +64,8 @@ export default function AssetsPage({
     }
     return [...byTag].sort((a, b) => b[1] - a[1]).slice(0, 3)
   }, [scopedPositions, latestPriceByTicker, tagMapByTicker])
-  useEffect(() => {
-    if (!canEdit || !supabase) return undefined
-    let active = true
-    fetchPrivateHoldingNotes(supabase).then((items) => { if (active) { setPrivateNotes(items); setPrivateNotesStatus('ready') } }).catch(() => { if (active) setPrivateNotesStatus('error') })
-    return () => { active = false }
-  }, [canEdit, supabase])
-  async function retryPrivateNotes() {
-    setPrivateNotesStatus('loading')
-    try {
-      setPrivateNotes(await fetchPrivateHoldingNotes(supabase))
-      setPrivateNotesStatus('ready')
-    } catch {
-      setPrivateNotesStatus('error')
-    }
-  }
   async function refreshDetail() {
     await onTradeSaved()
-    if (canEdit) setPrivateNotes(await fetchPrivateHoldingNotes(supabase))
     setDetailRefreshRevision((value) => value + 1)
   }
   const selectedInstrument = instruments.find((item) => item.ticker === selectedTicker)
@@ -126,8 +106,6 @@ export default function AssetsPage({
       </section>
       {canEdit && <PortfolioIntegritySummary supabase={supabase} />}
     {sheetOpen && canEdit && <SpreadsheetEditor accounts={sheetAccounts} canSave={canEdit} csvCopied={csvCopied} holdings={holdings} instrumentTags={instrumentTags} instruments={sheetInstruments} onClose={() => setSheetOpen(false)} onCopyCsv={onCopyCsv} onDirtyChange={onSheetDirtyChange} onSave={onSpreadsheetSave} saving={spreadsheetSaving} tags={tags} />}
-    {selectedInstrument && canEdit && privateNotesStatus === 'loading' ? <ModalShell onClose={() => setSelectedTicker(null)} title="자산 상세"><p>비공개 메모를 불러오는 중입니다.</p></ModalShell> : null}
-    {selectedInstrument && canEdit && privateNotesStatus === 'error' ? <ModalShell onClose={() => setSelectedTicker(null)} title="자산 상세"><div className="grid gap-4"><p role="alert">비공개 메모를 읽지 못해 편집을 시작할 수 없습니다.</p><button className={control} onClick={retryPrivateNotes} type="button">다시 시도</button></div></ModalShell> : null}
-    {selectedInstrument && (!canEdit || privateNotesStatus === 'ready') && <AssetDetailModal accounts={accounts} canEdit={canEdit} holdings={linkedHoldings} instrument={selectedInstrument} key={selectedInstrument.id} notes={privateNotes} notesStatus={privateNotesStatus} onClose={() => setSelectedTicker(null)} onRefresh={refreshDetail} refreshRevision={detailRefreshRevision} selectedAccountId={accountId} supabase={supabase} tags={tags} />}
+    {selectedInstrument && <AssetDetailModal accounts={accounts} canEdit={canEdit} holdings={linkedHoldings} instrument={selectedInstrument} key={selectedInstrument.id} onClose={() => setSelectedTicker(null)} onRefresh={refreshDetail} refreshRevision={detailRefreshRevision} selectedAccountId={accountId} supabase={supabase} tags={tags} />}
   </section>
 }

@@ -15,8 +15,8 @@ select extensions.ok(to_regprocedure('public.app_link_task_to_holding_thesis(uui
 select extensions.ok(not exists (
     select 1 from pg_trigger where tgname = 'deactivate_theses_after_position_close_trigger' and not tgisinternal
 ), 'position-close thesis trigger is removed');
-select extensions.ok(to_regprocedure('public.app_list_private_holding_notes()') is not null,
-    'owner-only holding note read path remains');
+select extensions.ok(to_regprocedure('public.app_list_private_holding_notes()') is null,
+    'private holding-note read path is retired');
 
 select * from extensions.finish();
 rollback;
