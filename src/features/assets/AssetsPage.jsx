@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import { formatKrw, formatNumber, formatPercent, formatUnitPrice, formattedValueWithConversion } from '../../lib/format'
+import { formatKrw, formatMoney, formatNumber, formatSignedPercent, formatUnitPrice, returnToneClass } from '../../lib/format'
 import { effectiveKrwValue } from '../../lib/portfolioMath'
 import SpreadsheetEditor from './SpreadsheetEditor'
 import AssetDetailModal from './AssetDetailModal'
 import PortfolioIntegritySummary from '../review/PortfolioIntegritySummary'
 
 const control = 'min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 text-sm'
+const holdingColumns = 'grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-2 sm:gap-x-4'
 
 function scopedRows(positions, instruments, accountId, latestPriceByTicker) {
   if (accountId === 'all') return instruments.filter((row) => row.accountCount > 0)
@@ -26,10 +27,13 @@ function scopedRows(positions, instruments, accountId, latestPriceByTicker) {
 
 function PositionValue({ row }) {
   const missing = row.valuation_status === 'missing' || row.unknownCount > 0
-  return <div className="text-right">
-    <strong className="block text-sm">{missing ? '평가 불가' : formattedValueWithConversion(row.market_value_native, row.currency, row.market_value_krw)}</strong>
+  const converted = !missing && row.currency !== 'KRW' && Number.isFinite(row.market_value_native) && Number.isFinite(row.market_value_krw)
+  return <span className="min-w-0 text-right">
+    <strong className="block break-words text-sm"><span className="sr-only">평가금액 </span>{missing ? '평가 불가' : formatMoney(row.market_value_native, row.currency)}</strong>
+    {converted && <span className="block break-words text-xs text-[var(--muted-ink)]">({formatKrw(row.market_value_krw)} 환산)</span>}
+    {row.instrument_type === 'market' && <span className={`block break-words text-xs ${returnToneClass(row.priceChangePercent)}`}><span className="sr-only">평균가 대비 가격 수익률 </span>{row.priceChangePercent == null ? '—' : formatSignedPercent(row.priceChangePercent)}</span>}
     {row.valuation_status === 'stale' || row.staleCount > 0 ? <span className="text-xs text-amber-300">오래된 시세·환율 포함</span> : null}
-  </div>
+  </span>
 }
 
 export default function AssetsPage({
@@ -55,15 +59,6 @@ export default function AssetsPage({
   }, 0)
   const unknownCount = scopedPositions.filter((row) => row.valuation_status === 'missing').length
   const staleCount = scopedPositions.filter((row) => row.valuation_status === 'stale').length
-  const tagSummary = useMemo(() => {
-    const byTag = new Map()
-    for (const row of scopedPositions) {
-      const value = effectiveKrwValue(row, latestPriceByTicker)
-      const tag = tagMapByTicker.get(row.ticker)?.name ?? '미분류'
-      byTag.set(tag, (byTag.get(tag) ?? 0) + (Number.isFinite(value) ? value : 0))
-    }
-    return [...byTag].sort((a, b) => b[1] - a[1]).slice(0, 3)
-  }, [scopedPositions, latestPriceByTicker, tagMapByTicker])
   async function refreshDetail() {
     await onTradeSaved()
     setDetailRefreshRevision((value) => value + 1)
@@ -79,9 +74,6 @@ export default function AssetsPage({
         <p className="mt-2 text-xs text-[var(--muted-ink)]">{latestQuoteDate ? `가장 최근 시세 기준일 ${latestQuoteDate}` : '시세 기준일 없음'}{syncRequestedAt ? ` · 갱신 요청 ${syncRequestedAt}` : ''}</p>
         {(unknownCount > 0 || staleCount > 0) && <p className="mt-2 text-sm text-amber-300">{unknownCount > 0 ? `평가 불가 ${unknownCount}개 제외` : ''}{unknownCount > 0 && staleCount > 0 ? ' · ' : ''}{staleCount > 0 ? `오래된 시세·환율 ${staleCount}개 포함` : ''}</p>}
         {syncMessage && <p aria-live="polite" className="mt-2 text-sm" role="status">{syncMessage}</p>}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--line)] pt-3 text-xs text-[var(--muted-ink)]">
-          <span>{tagSummary.length ? tagSummary.map(([tag, value]) => `${tag} ${formatPercent(totalValue > 0 ? value / totalValue * 100 : NaN)}`).join(' · ') : '구성 정보가 없습니다.'}</span>
-        </div>
       </section>
       <div className="grid gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto]">
         <label><span className="sr-only">계좌 선택</span><select className={`${control} w-full`} onChange={(event) => onSelectedAccountIdChange(event.target.value)} value={accountId}><option value="all">전체 계좌</option>{accounts.map((account) => <option key={account.id} value={String(account.id)}>{account.name}</option>)}</select></label>
@@ -96,13 +88,21 @@ export default function AssetsPage({
         {!accounts.length && !rows.length ? <div className="grid gap-3 p-5 text-sm"><p>계좌를 만든 다음 보유 종목을 추가해 주세요.</p>{canEdit && <button className={control} onClick={onCreateAccount} type="button">계좌 추가</button>}</div>
           : !rows.length ? <div className="grid gap-2 p-5 text-sm text-[var(--muted-ink)]"><p>{selectedAccount ? '이 계좌에' : '아직'} 보유 종목이 없습니다.</p>{canEdit && <button className={control} onClick={() => selectedAccount ? onCreateHoldingForAccount(accountId) : onCreateHolding()} type="button">보유 추가</button>}</div>
           : !visibleRows.length ? <p className="p-5 text-sm text-[var(--muted-ink)]">검색 결과가 없습니다.</p>
-          : <div className="divide-y divide-[var(--line)]">{visibleRows.map((row) => <button className="grid min-h-16 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4 text-left hover:bg-[var(--surface-2)] sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_auto]" key={row.ticker} onClick={() => setSelectedTicker(row.ticker)} type="button">
-            <span className="min-w-0"><strong className="block break-words text-sm">{row.display_name ?? row.ticker}</strong><span className="text-xs text-[var(--muted-ink)]">{row.ticker}{accountId === 'all' && row.accountCount > 1 ? ` · ${row.accountCount}개 계좌` : ''}</span></span>
-            <span className="hidden text-sm sm:block">{row.instrument_type === 'market' ? `수량 ${formatNumber(row.quantity)}` : row.instrument_type === 'valuation' ? '평가형' : '현금성'}</span>
-            <span className="hidden text-sm sm:block">{row.instrument_type === 'market' ? `평균가 ${row.avgCost == null ? '-' : formatUnitPrice(row.avgCost, row.currency)}` : row.instrument_type === 'valuation' ? `매입 ${formatUnitPrice(row.cost_basis_native, row.currency)}` : ''}</span>
-            <PositionValue row={row} />
-            {row.instrument_type === 'market' && <span className="col-span-2 text-xs text-[var(--muted-ink)] sm:hidden">수량 {formatNumber(row.quantity)} · 평균가 {row.avgCost == null ? '-' : formatUnitPrice(row.avgCost, row.currency)}</span>}
-          </button>)}</div>}
+          : <div className="divide-y divide-[var(--line)]">
+            <div className={`${holdingColumns} px-3 py-2 text-xs font-semibold text-[var(--muted-ink)] sm:px-4`}>
+              <span>종목</span><span className="text-right">보유</span><span className="text-right">평가</span>
+            </div>
+            {visibleRows.map((row) => <button className={`${holdingColumns} min-h-16 w-full items-start px-3 py-3 text-left hover:bg-[var(--surface-2)] sm:px-4`} key={row.ticker} onClick={() => setSelectedTicker(row.ticker)} type="button">
+              <span className="min-w-0"><strong className="block break-words text-sm">{row.display_name ?? row.ticker}</strong><span className="block break-words text-xs text-[var(--muted-ink)]">{row.ticker}{tagMapByTicker.get(row.ticker)?.name ? ` · ${tagMapByTicker.get(row.ticker).name}` : ''}{accountId === 'all' && row.accountCount > 1 ? ` · ${row.accountCount}개 계좌` : ''}</span></span>
+              <span className="min-w-0 text-right">{row.instrument_type === 'market' ? <>
+                <strong className="block break-words text-sm"><span className="sr-only">수량 </span>{formatNumber(row.quantity)}</strong>
+                <span className="block break-words text-xs text-[var(--muted-ink)]">평균가 {formatUnitPrice(row.avgCost, row.currency)}</span>
+                <span className="block break-words text-xs text-[var(--muted-ink)]">현재가 {formatUnitPrice(row.latestPrice, row.currency)}</span>
+              </> : <><strong className="block text-sm">{row.instrument_type === 'valuation' ? '평가형' : '현금성'}</strong>{row.instrument_type === 'valuation' && <span className="block break-words text-xs text-[var(--muted-ink)]">매입 {formatUnitPrice(row.cost_basis_native, row.currency)}</span>}</>}</span>
+              <PositionValue row={row} />
+            </button>)}
+            {visibleRows.some((row) => row.instrument_type === 'market') && <p className="px-3 py-3 text-xs text-[var(--muted-ink)] sm:px-4">수익률은 평균가 대비 현재가 기준이며 수수료·세금·배당·환율 변동은 반영하지 않습니다.</p>}
+          </div>}
       </section>
       {canEdit && <PortfolioIntegritySummary supabase={supabase} />}
     {sheetOpen && canEdit && <SpreadsheetEditor accounts={sheetAccounts} canSave={canEdit} csvCopied={csvCopied} holdings={holdings} instrumentTags={instrumentTags} instruments={sheetInstruments} onClose={() => setSheetOpen(false)} onCopyCsv={onCopyCsv} onDirtyChange={onSheetDirtyChange} onSave={onSpreadsheetSave} saving={spreadsheetSaving} tags={tags} />}
