@@ -51,11 +51,40 @@ describe('portfolioMath', () => {
       currency: 'USD', quantity: 2, latestPrice: prices.get('OLD'), latestPriceByTicker: prices, asOf: new Date('2026-09-21T00:00:00Z'),
     })).toMatchObject({ marketValueNative: 300, marketValueKrw: null, status: 'missing', issues: ['missing_fx', 'stale_price'] })
     expect(resolvePositionValuation({
+      currency: 'USD', quantity: 2, latestPrice: null, latestPriceByTicker: prices,
+    })).toMatchObject({ marketValueNative: null, status: 'missing', issues: ['missing_price'] })
+    expect(resolvePositionValuation({
       currency: 'KRW', quantity: 0, latestPrice: null, latestPriceByTicker: prices,
     })).toMatchObject({ marketValueNative: 0, marketValueKrw: 0, status: 'complete', issues: [] })
     expect(resolvePositionValuation({
       instrumentType: 'valuation', currency: 'JPY', valuationAmount: 1000, latestPriceByTicker: prices,
     })).toMatchObject({ marketValueNative: 1000, marketValueKrw: null, status: 'missing', issues: ['missing_fx'] })
+  })
+
+  it('ignores old ticker quotes for directly valued and cash holdings', () => {
+    const prices = new Map([['DIRECT', { close_price: 100, price_date: '2026-09-01' }]])
+    const asOf = new Date('2026-09-26T00:00:00Z')
+
+    for (const instrumentType of ['valuation', 'cash']) {
+      expect(resolvePositionValuation({
+        instrumentType, currency: 'KRW', valuationAmount: 1000,
+        latestPrice: prices.get('DIRECT'), latestPriceByTicker: prices, asOf,
+      })).toMatchObject({ marketValueNative: 1000, status: 'complete', issues: [] })
+    }
+  })
+
+  it('warns on a stale exchange rate only when a foreign value needs conversion', () => {
+    const prices = new Map([['USDKRW=X', { close_price: 1400, price_date: '2026-09-01' }]])
+    const asOf = new Date('2026-09-26T00:00:00Z')
+
+    expect(resolvePositionValuation({
+      instrumentType: 'cash', currency: 'USD', valuationAmount: 100,
+      latestPriceByTicker: prices, asOf,
+    })).toMatchObject({ status: 'stale', issues: ['stale_fx'] })
+    expect(resolvePositionValuation({
+      instrumentType: 'cash', currency: 'USD', valuationAmount: 0,
+      latestPriceByTicker: prices, asOf,
+    })).toMatchObject({ status: 'complete', issues: [] })
   })
 
   it('prefers explicit KRW market value when present', () => {

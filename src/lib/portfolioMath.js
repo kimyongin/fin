@@ -81,9 +81,10 @@ export function resolvePositionValuation({
   const issues = []
   if (isMarket && quantity !== 0 && !hasMarketPrice) issues.push('missing_price')
   if (!isMarket && !Number.isFinite(valuationAmount)) issues.push('missing_valuation')
-  if (marketValueNative !== 0 && !hasFxRate) issues.push('missing_fx')
-  if (hasMarketPrice && isPriceStale(latestPrice.price_date, asOf)) issues.push('stale_price')
-  if (fxTicker && hasFxRate && isPriceStale(fxPrice.price_date, asOf)) issues.push('stale_fx')
+  const needsFxConversion = Number.isFinite(marketValueNative) && marketValueNative !== 0 && Boolean(fxTicker)
+  if (needsFxConversion && !hasFxRate) issues.push('missing_fx')
+  if (isMarket && quantity !== 0 && hasMarketPrice && isPriceStale(latestPrice.price_date, asOf)) issues.push('stale_price')
+  if (needsFxConversion && hasFxRate && isPriceStale(fxPrice.price_date, asOf)) issues.push('stale_fx')
   const missing = issues.some((issue) => issue.startsWith('missing_'))
   const stale = issues.some((issue) => issue.startsWith('stale_'))
   return {
