@@ -54,6 +54,13 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-26 직접평가·현금성 경고 수정
+
+- 앱 commit: `41a8ef7`. 평가형·현금성에 남은 과거 종목 가격이 `stale_price`로 표시되던 화면 계산을 서버 판정과 일치시켰다. 실제 환산에 필요한 오래된 외화 환율 경고는 유지한다.
+- [검증·Pages 배포](https://github.com/kimyongin/fin/actions/runs/36240338697)와 후속 [Pages 게시](https://github.com/kimyongin/fin/actions/runs/36240584588) 성공. 공개 <https://kimyongin.github.io/fin/> HTTP 200, 새 번들 `/fin/assets/index-BqcMFgZZ.js` HTTP 200 확인.
+- 로컬 전체 단위 테스트 21파일/107건과 빌드·인코딩·diff 검사 통과. CI의 unit·가이드·Edge 타입·인증된 운영 RPC 호환성·격리 DB/브라우저 및 빌드도 통과했다. 실제 사용자 자산의 경고 해제와 Google/ChatGPT 웹·모바일 수동 사용은 별도로 확인해야 한다.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`: 새 migration·Edge 변경 없음. 아래 9dd16d1 릴리스의 DB·Edge 적용 상태를 유지하며 재배포하지 않았다. 이전 공개 앱 비교 기준은 `05c156f`; DB와 함께 되돌릴 호환성은 별도 확인 대상이다.
+
 ### 2026-09-26 리팩토링·문서 릴리스
 
 - 앱 commit: `05c156f` (#147/#148/#150 로컬 리팩토링과 #149 문서 정리 포함). [검증·Pages 배포](https://github.com/kimyongin/fin/actions/runs/36237408755)가 같은 commit에서 성공했고, 뒤따른 [Pages build/deployment](https://github.com/kimyongin/fin/actions/runs/36237693835)도 성공했다.
