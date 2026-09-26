@@ -42,13 +42,37 @@ export async function fetchPrincipleChanges(supabase, { cursor = null, limit = 2
   return { items: data?.items ?? [], nextCursor: data?.next_cursor ?? null }
 }
 
-export async function savePrinciple(supabase, { principleId, expectedRowId = null, body, changeNote = null, end = false }) {
-  const { data, error } = await supabase.rpc('app_save_principle', {
+export async function savePrinciple(supabase, { principleId, expectedRowId = null, expectedBody = null, expectedChangeNote = null, body, changeNote = null }) {
+  const { data, error } = await supabase.rpc('app_save_principle_checked', {
     input_principle_id: principleId,
     input_expected_row_id: expectedRowId,
+    input_expected_body: expectedBody,
+    input_expected_change_note: expectedChangeNote,
     input_body: body,
     input_change_note: changeNote?.trim() || null,
-    input_end: end,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function correctPrincipleRow(supabase, { rowId, expectedBody, expectedChangeNote, body, changeNote }) {
+  const { data, error } = await supabase.rpc('app_correct_principle_row', {
+    input_row_id: rowId,
+    input_expected_body: expectedBody,
+    input_expected_change_note: expectedChangeNote,
+    input_body: body,
+    input_change_note: changeNote?.trim() || null,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function deletePrincipleRow(supabase, { rowId, expectedBody, expectedChangeNote, expectedCurrentRowId }) {
+  const { data, error } = await supabase.rpc('app_delete_principle_row', {
+    input_row_id: rowId,
+    input_expected_body: expectedBody,
+    input_expected_change_note: expectedChangeNote,
+    input_expected_current_row_id: expectedCurrentRowId,
   })
   if (error) throw error
   return data

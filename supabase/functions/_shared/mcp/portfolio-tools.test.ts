@@ -59,7 +59,7 @@ describe('portfolio MCP tool definitions', () => {
     const guide = getWorkflowGuide('policy')!
     expect(guide.revision).toMatch(/^fnv1a32:[0-9a-f]{8}$/)
     expect(guide.steps[0].tools).toEqual(['list_principles'])
-    expect(guide.steps.at(-1)?.tools).toEqual(['list_principles'])
+    expect(guide.steps.at(-1)?.tools).toContain('delete_principle_row')
     expect(guide.boundaries.join(' ')).toContain('never changes allocation targets')
     expect(guide).not.toHaveProperty('source_paths')
     expect(validateWorkflowGuides(portfolioToolDefinitions.map((item) => item.name))).toBeTruthy()

@@ -420,12 +420,52 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async save_principle(supabase, args) {
     requireSchemaVersion(args)
-    const data = await rpc(supabase, 'app_save_principle', {
+    if (args.expected_body !== null && typeof args.expected_body !== 'string') throw new ToolInputError('expected_body must be a string or null')
+    if (args.expected_change_note !== null && typeof args.expected_change_note !== 'string') throw new ToolInputError('expected_change_note must be a string or null')
+    const data = await rpc(supabase, 'app_save_principle_checked', {
       input_principle_id: requireUuid(args.principle_id, 'principle_id'),
       input_expected_row_id: args.expected_row_id == null ? null : requirePositiveInteger(args.expected_row_id, 'expected_row_id'),
+      input_expected_body: args.expected_body,
+      input_expected_change_note: args.expected_change_note,
       input_body: requireString(args.body, 'body'),
       input_change_note: args.change_note == null ? null : requireString(args.change_note, 'change_note'),
-      input_end: false,
+    })
+    return { ok: true, data }
+  },
+  async list_principle_changes(supabase, args) {
+    const data = await rpc(supabase, 'app_list_principle_changes', {
+      input_limit: args.limit == null ? 20 : requirePositiveInteger(args.limit, 'limit'),
+      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
+      input_owner_user_id: null,
+    })
+    return { ok: true, data }
+  },
+  async get_principle_row(supabase, args) {
+    const data = await rpc(supabase, 'app_get_principle_row', { input_row_id: requirePositiveInteger(args.row_id, 'row_id') })
+    return { ok: true, data }
+  },
+  async correct_principle_row(supabase, args) {
+    requireSchemaVersion(args)
+    if (typeof args.expected_body !== 'string') throw new ToolInputError('expected_body must be a string')
+    if (args.expected_change_note !== null && typeof args.expected_change_note !== 'string') throw new ToolInputError('expected_change_note must be a string or null')
+    const data = await rpc(supabase, 'app_correct_principle_row', {
+      input_row_id: requirePositiveInteger(args.row_id, 'row_id'),
+      input_expected_body: args.expected_body,
+      input_expected_change_note: args.expected_change_note,
+      input_body: requireString(args.body, 'body'),
+      input_change_note: args.change_note == null ? null : requireString(args.change_note, 'change_note'),
+    })
+    return { ok: true, data }
+  },
+  async delete_principle_row(supabase, args) {
+    requireSchemaVersion(args)
+    if (typeof args.expected_body !== 'string') throw new ToolInputError('expected_body must be a string')
+    if (args.expected_change_note !== null && typeof args.expected_change_note !== 'string') throw new ToolInputError('expected_change_note must be a string or null')
+    const data = await rpc(supabase, 'app_delete_principle_row', {
+      input_row_id: requirePositiveInteger(args.row_id, 'row_id'),
+      input_expected_body: args.expected_body,
+      input_expected_change_note: args.expected_change_note,
+      input_expected_current_row_id: requirePositiveInteger(args.expected_current_row_id, 'expected_current_row_id'),
     })
     return { ok: true, data }
   },

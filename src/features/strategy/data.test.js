@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { fetchPrincipleChanges, fetchPrinciples, saveAllocationTargets, savePrinciple } from './data'
+import { correctPrincipleRow, deletePrincipleRow, fetchPrincipleChanges, fetchPrinciples, saveAllocationTargets, savePrinciple } from './data'
 
 describe('principle revision data adapter', () => {
   it('pages real changes using the server cursor', async () => {
@@ -21,10 +21,24 @@ describe('principle revision data adapter', () => {
 
   it('appends one approved revision with a stable ID and expected row', async () => {
     const supabase = { rpc: vi.fn().mockResolvedValue({ data: { id: 3 }, error: null }) }
-    await expect(savePrinciple(supabase, { principleId: 'stable-id', expectedRowId: 2, body: ' 손실 제한 ', changeNote: ' 변경 ' })).resolves.toEqual({ id: 3 })
-    expect(supabase.rpc).toHaveBeenCalledWith('app_save_principle', {
+    await expect(savePrinciple(supabase, { principleId: 'stable-id', expectedRowId: 2, expectedBody: '현금 유지', expectedChangeNote: '첫 작성', body: ' 손실 제한 ', changeNote: ' 변경 ' })).resolves.toEqual({ id: 3 })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_save_principle_checked', {
       input_principle_id: 'stable-id', input_expected_row_id: 2,
-      input_body: ' 손실 제한 ', input_change_note: '변경', input_end: false,
+      input_expected_body: '현금 유지', input_expected_change_note: '첫 작성',
+      input_body: ' 손실 제한 ', input_change_note: '변경',
+    })
+  })
+
+  it('sends the exact selected history row for correction and deletion', async () => {
+    const supabase = { rpc: vi.fn().mockResolvedValue({ data: { id: 2 }, error: null }) }
+    await correctPrincipleRow(supabase, { rowId: 2, expectedBody: '이전 본문', expectedChangeNote: null, body: '고친 본문', changeNote: '정정' })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_correct_principle_row', {
+      input_row_id: 2, input_expected_body: '이전 본문', input_expected_change_note: null,
+      input_body: '고친 본문', input_change_note: '정정',
+    })
+    await deletePrincipleRow(supabase, { rowId: 2, expectedBody: '고친 본문', expectedChangeNote: '정정', expectedCurrentRowId: 3 })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_delete_principle_row', {
+      input_row_id: 2, input_expected_body: '고친 본문', input_expected_change_note: '정정', input_expected_current_row_id: 3,
     })
   })
 })

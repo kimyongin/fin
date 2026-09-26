@@ -36,6 +36,13 @@ const idempotentWriteAnnotations = {
   openWorldHint: false,
 }
 
+const destructiveWriteAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: false,
+  openWorldHint: false,
+}
+
 const profileOutputSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   type: 'object',
@@ -592,12 +599,46 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'save_principle',
     title: 'Save the approved principles document',
-    description: 'Save one complete owner-only Markdown document only after explicit user approval. Read list_principles first. For the initial document generate one UUID and use null expected_row_id; for edits reuse the current principle_id and latest row id. This replaces the current full body and appends an in-table history row. Preserve unrelated rules. Optional change_note explains the edit in history but is not part of the policy. Never save model suggestions as user-approved rules. Does not alter holdings, allocation targets, or trades.',
+    description: 'Save one complete owner-only Markdown document only after explicit user approval. Read list_principles first. For the initial document generate one UUID and use null expected_row_id, expected_body, and expected_change_note; for edits reuse current principle_id, row id, exact body and change note. This appends an in-table history row. Preserve unrelated rules. Optional change_note explains the edit in history but is not part of policy. Never save model suggestions as user-approved rules. Does not alter holdings, allocation targets, or trades.',
     inputSchema: { type: 'object', properties: {
       schema_version: { const: 1 }, principle_id: { type: 'string', format: 'uuid' }, expected_row_id: { type: ['integer','null'], minimum: 1 },
+      expected_body: { type: ['string','null'] }, expected_change_note: { type: ['string','null'] },
       body: { type: 'string', minLength: 1, maxLength: 10000 }, change_note: { type: ['string','null'], maxLength: 1000 },
-    }, required: ['schema_version','principle_id','expected_row_id','body'], additionalProperties: false },
+    }, required: ['schema_version','principle_id','expected_row_id','expected_body','expected_change_note','body'], additionalProperties: false },
     outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'list_principle_changes', title: 'Page through principles history',
+    description: 'Read owner-only dated revisions with full Markdown bodies and change notes. Continue with next_cursor until null. Reading never changes the current document.',
+    inputSchema: { type: 'object', properties: {
+      limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 }, cursor: { type: ['object','null'] },
+    }, additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'get_principle_row', title: 'Read one principles revision',
+    description: 'Read one owner-only history row by its numeric row ID before correcting or deleting it. A principle_id identifies the document and is not a history row ID.',
+    inputSchema: { type: 'object', properties: { row_id: { type: 'integer', minimum: 1 } },
+      required: ['row_id'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'correct_principle_row', title: 'Correct a saved principles revision',
+    description: 'Correct only the Markdown body and change note of one incorrectly saved revision after explicit user request. Read that exact row first and pass its body and change note as expected values. The effective date stays unchanged. An actual change in current policy should use save_principle to append a new revision.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, row_id: { type: 'integer', minimum: 1 },
+      expected_body: { type: 'string' }, expected_change_note: { type: ['string','null'] },
+      body: { type: 'string', minLength: 1, maxLength: 10000 }, change_note: { type: ['string','null'], maxLength: 1000 },
+    }, required: ['schema_version','row_id','expected_body','expected_change_note','body'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'delete_principle_row', title: 'Delete a principles revision',
+    description: 'Delete one owner-only history row only on explicit user request after reading it and the current document. Pass exact expected body, change note, and current row ID. If the newest row is deleted, the preceding row becomes current; if it was the last row, no current document remains. This does not change holdings or activities.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, row_id: { type: 'integer', minimum: 1 },
+      expected_body: { type: 'string' }, expected_change_note: { type: ['string','null'] },
+      expected_current_row_id: { type: 'integer', minimum: 1 },
+    }, required: ['schema_version','row_id','expected_body','expected_change_note','expected_current_row_id'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
   },
   {
     name: 'preview_trade_entry',
@@ -716,6 +757,10 @@ export const activityReportToolNames = [
 export const investmentPolicyToolNames = [
   'list_principles',
   'save_principle',
+  'list_principle_changes',
+  'get_principle_row',
+  'correct_principle_row',
+  'delete_principle_row',
 ] as const
 
 export const tradeEntryToolNames = [

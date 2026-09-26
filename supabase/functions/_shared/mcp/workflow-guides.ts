@@ -41,7 +41,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     guide_id: 'portfolio.policy-interview',
     purpose: 'Interview only missing preferences, show a reviewable Markdown draft, and save explicitly approved principles with simple revision history.',
     scenario_ids: ['W02', 'S02', 'S03', 'S04'],
-    related_tools: ['list_principles', 'save_principle'],
+    related_tools: ['list_principles', 'save_principle', 'list_principle_changes', 'get_principle_row', 'correct_principle_row', 'delete_principle_row'],
     source_paths: [
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
@@ -50,6 +50,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/migrations/20260923173731_simplify_principles_markdown.sql',
       'supabase/migrations/20260924174000_single_current_principle.sql',
       'supabase/migrations/20260926045349_whole_portfolio_sharing.sql',
+      'supabase/migrations/20260926130343_principle_history_crud.sql',
       'src/features/strategy/data.js',
     ],
     steps: [
@@ -80,7 +81,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       {
         id: 'save-patch',
         title: 'Save the approved text',
-        instruction: 'Call save_principle for the complete approved Markdown document. For an edit, reuse its stable principle_id and latest row id and preserve unrelated text. For the first document, generate one UUID and keep it for any retry; use a null expected_row_id. Add a short optional change_note only from the user-stated reason, never invent one. Retry a lost response only after reading current state.',
+        instruction: 'Call save_principle for the complete approved Markdown document. For an edit, reuse its stable principle_id, latest row id, exact current body and change note as expected values, and preserve unrelated text. For the first document, generate one UUID and keep it for any retry; use null expected values. Add a short optional change_note only from the user-stated reason, never invent one. Retry a lost response only after reading current state.',
         tools: ['save_principle'],
       },
       {
@@ -89,12 +90,19 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
         instruction: 'After saving, call list_principles and report the current saved text. If only this read-back fails, do not claim the save failed or create another save.',
         tools: ['list_principles'],
       },
+      {
+        id: 'repair-history-if-requested',
+        title: 'Correct or delete a mistaken saved revision',
+        instruction: 'Only on an explicit correction or deletion request, page list_principle_changes to find the exact dated row and read get_principle_row. Use correct_principle_row to repair its body/change note without changing the saved date. For deletion, read the current document and warn that deleting its latest row exposes the preceding row (or leaves no current document); then use delete_principle_row with expected values. Actual changes in policy use save_principle and append a dated row.',
+        tools: ['list_principle_changes', 'get_principle_row', 'list_principles', 'correct_principle_row', 'delete_principle_row'],
+      },
     ],
     boundaries: [
       'Do not store the full interview transcript or unnecessary sensitive information.',
       'Do not infer missing goals, risk tolerance, restrictions, or holding reasons from the portfolio or allocation targets.',
       'Saving a personal policy never changes allocation targets, holdings, decisions, tasks, or trades.',
       'There is one current principles document per user. It may contain several related approved rules; do not split by headings or save model speculation as user policy.',
+      'History correction is for an incorrectly saved row; it does not rewrite its effective timestamp. Deleting the current row may reactivate the preceding document. Neither action changes holdings or activity.',
       'A user who enables whole-portfolio sharing also shares the current principles document, change notes, and historical bodies with connected readers. MCP remains owner-only and cannot change sharing.',
     ],
     recovery: [

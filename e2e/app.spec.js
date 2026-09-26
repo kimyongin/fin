@@ -62,6 +62,44 @@ test('pages principle changes and opens the exact historical Markdown row', asyn
   await expect(page.getByRole('dialog', { name: earlierTitle }).getByRole('heading', { name: '첫 내용' })).toBeVisible()
 })
 
+test('corrects and deletes one principles revision without losing the previous document', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#strategy')
+  const first = `E2E 이전 원칙 ${Date.now()}`
+  const mistaken = `E2E 잘못 저장한 원칙 ${Date.now()}`
+  await clickPageAction(page, '현재 원칙', /^(원칙 작성|수정)$/)
+  let editor = page.getByRole('dialog', { name: /원칙 (작성|수정)/ })
+  await editor.getByLabel('내용 (마크다운)').fill(first)
+  await editor.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByRole('region', { name: '현재 원칙' }).getByText(first)).toBeVisible()
+  await clickPageAction(page, '현재 원칙', '수정')
+  editor = page.getByRole('dialog', { name: '원칙 수정' })
+  await editor.getByLabel('내용 (마크다운)').fill(mistaken)
+  await editor.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByRole('region', { name: '현재 원칙' }).getByText(mistaken)).toBeVisible()
+  await page.getByRole('button', { name: '당시 원칙 보기' }).first().click()
+  await page.getByRole('button', { name: '잘못된 내용 정정' }).click()
+  const correction = page.getByRole('dialog', { name: '원칙 이력 정정' })
+  await correction.getByLabel('내용 (마크다운)').fill(`${mistaken} 정정`)
+  await correction.getByRole('button', { name: '정정 저장' }).click()
+  await expect(page.getByRole('region', { name: '현재 원칙' }).getByText(`${mistaken} 정정`)).toBeVisible()
+  await page.getByRole('button', { name: '당시 원칙 보기' }).first().click()
+  await page.getByRole('button', { name: '이력 삭제' }).click()
+  const confirmation = page.getByRole('dialog', { name: '원칙 이력 삭제' })
+  await expect(confirmation).toContainText('이전 원칙이 다시 현재 원칙이 됩니다')
+  await confirmation.getByRole('button', { name: '취소' }).click()
+  await expect(page.getByRole('region', { name: '현재 원칙' }).getByText(`${mistaken} 정정`)).toBeVisible()
+  await page.getByRole('button', { name: '이력 삭제' }).click()
+  await confirmation.getByRole('button', { name: '이력 삭제' }).click()
+  await expect(page.getByRole('region', { name: '현재 원칙' }).getByText(first)).toBeVisible()
+  const current = await callRpc(page, 'app_list_principles', {
+    input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: false,
+  })
+  expect(current.body.items[0].body).toBe(first)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
 test('read-only deployment check sees every required mutation RPC signature', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#tasks')
@@ -342,7 +380,7 @@ test('retries a principle after a lost save response without creating a second r
   const body = `E2E 재시도 원칙 ${Date.now()}`
   await editor.getByLabel('내용 (마크다운)').fill(body)
   let loseResponse = true
-  await page.route('**/rest/v1/rpc/app_save_principle', async (route) => {
+  await page.route('**/rest/v1/rpc/app_save_principle_checked', async (route) => {
     if (!loseResponse) return route.continue()
     loseResponse = false
     await route.fetch()
@@ -367,7 +405,7 @@ test('retries only the principle list after a successful save and failed refresh
   await editor.getByLabel('내용 (마크다운)').fill(body)
   let failList = true
   let saveCalls = 0
-  await page.route('**/rest/v1/rpc/app_save_principle', async (route) => { saveCalls += 1; await route.continue() })
+  await page.route('**/rest/v1/rpc/app_save_principle_checked', async (route) => { saveCalls += 1; await route.continue() })
   await page.route('**/rest/v1/rpc/app_list_principles', async (route) => {
     if (!failList) return route.continue()
     failList = false

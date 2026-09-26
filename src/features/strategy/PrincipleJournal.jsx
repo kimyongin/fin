@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import ModalShell from '../../components/ModalShell'
+import ModalShell, { ConfirmDialog } from '../../components/ModalShell'
 import { createRequestGate } from '../../lib/requestGate'
 import { businessDate } from '../../lib/businessDate'
 import MarkdownContent from '../../components/MarkdownContent'
 import { PagePanel, pagePanelActionClass } from '../../components/PageControls'
 import { TimelineDayCard, TimelineEntry } from '../../components/Timeline'
-import { fetchPrincipleChanges, fetchPrinciples, savePrinciple } from './data'
+import { correctPrincipleRow, deletePrincipleRow, fetchPrincipleChanges, fetchPrinciples, savePrinciple } from './data'
 
 const changeLabel = { added: '추가', updated: '수정', ended: '적용 종료' }
 const inputClass = 'form-control'
@@ -22,6 +22,8 @@ export default function PrincipleJournal({ canEdit = true, onSharedViewReady, ow
   const [currentError, setCurrentError] = useState('')
   const [changesError, setChangesError] = useState('')
   const [selectedChange, setSelectedChange] = useState(null)
+  const [correcting, setCorrecting] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [collapsedDays, setCollapsedDays] = useState(new Set())
   const [editing, setEditing] = useState(undefined)
   const [draft, setDraft] = useState({ principleId: null, body: '', changeNote: '' })
@@ -91,6 +93,8 @@ export default function PrincipleJournal({ canEdit = true, onSharedViewReady, ow
       await savePrinciple(supabase, {
         principleId: draft.principleId,
         expectedRowId: editing?.id ?? null,
+        expectedBody: editing?.body ?? null,
+        expectedChangeNote: editing?.change_note ?? null,
         ...draft,
         body: draft.body,
       })
@@ -101,6 +105,44 @@ export default function PrincipleJournal({ canEdit = true, onSharedViewReady, ow
     } finally {
       setBusy(false)
     }
+  }
+
+  async function persistCorrection() {
+    if (!correcting?.body.trim()) { setFormError('내용을 입력해 주세요.'); return }
+    setBusy(true)
+    setFormError('')
+    try {
+      await correctPrincipleRow(supabase, {
+        rowId: correcting.row.id,
+        expectedBody: correcting.row.body,
+        expectedChangeNote: correcting.row.change_note,
+        body: correcting.body,
+        changeNote: correcting.changeNote,
+      })
+      setCorrecting(null)
+      await Promise.all([loadCurrent(), loadChanges()])
+    } catch (cause) {
+      setFormError(cause.message ?? '이력 정정에 실패했습니다.')
+    } finally { setBusy(false) }
+  }
+
+  async function removeChange() {
+    if (!selectedChange || !changes[0]) return
+    setBusy(true)
+    setFormError('')
+    try {
+      await deletePrincipleRow(supabase, {
+        rowId: selectedChange.id,
+        expectedBody: selectedChange.body,
+        expectedChangeNote: selectedChange.change_note,
+        expectedCurrentRowId: changes[0].id,
+      })
+      setConfirmDelete(false)
+      setSelectedChange(null)
+      await Promise.all([loadCurrent(), loadChanges()])
+    } catch (cause) {
+      setFormError(cause.message ?? '이력을 삭제하지 못했습니다.')
+    } finally { setBusy(false) }
   }
 
   const changeDays = []
@@ -141,9 +183,28 @@ export default function PrincipleJournal({ canEdit = true, onSharedViewReady, ow
         <label className={labelClass}>변경 메모 (선택)<input className={inputClass} maxLength={1000} value={draft.changeNote} onChange={(event) => setDraft({ ...draft, changeNote: event.target.value })} /></label>
       </fieldset>
     </ModalShell>}
-    {selectedChange && <ModalShell title={formatDateTime(selectedChange.effective_at)} onClose={() => setSelectedChange(null)} footer={(requestClose) => <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm" onClick={requestClose} type="button">닫기</button>}>
+    {selectedChange && <ModalShell title={formatDateTime(selectedChange.effective_at)} onClose={() => { setSelectedChange(null); setFormError('') }} footer={(requestClose) => <div className="flex flex-wrap justify-end gap-2">
+      {canEdit && <button className="type-action min-h-11 rounded-2xl border border-red-400/40 px-4 text-red-200" onClick={() => { setFormError(''); setConfirmDelete(true) }} type="button">이력 삭제</button>}
+      {canEdit && <button className="type-action min-h-11 rounded-2xl border border-[var(--line)] px-4" onClick={() => { setCorrecting({ row: selectedChange, body: selectedChange.body, changeNote: selectedChange.change_note ?? '' }); setSelectedChange(null); setFormError('') }} type="button">잘못된 내용 정정</button>}
+      <button className="type-action min-h-11 rounded-2xl border border-[var(--line)] px-4" onClick={requestClose} type="button">닫기</button>
+    </div>}>
       {selectedChange.change_note && <p className="type-body type-long-body">{selectedChange.change_note}</p>}
       <MarkdownContent className="mt-4 break-words" content={selectedChange.body} />
     </ModalShell>}
+    {canEdit && correcting && <ModalShell closeDisabled={busy} dirty={correcting.body !== correcting.row.body || correcting.changeNote !== (correcting.row.change_note ?? '')} title="원칙 이력 정정" onClose={() => setCorrecting(null)} footer={(requestClose) => <div className="flex justify-end gap-2">
+      <button className="type-action min-h-11 rounded-2xl border border-[var(--line)] px-4" disabled={busy} onClick={requestClose} type="button">닫기</button>
+      <button className="type-action min-h-11 rounded-2xl bg-[var(--accent)] px-4 text-white" disabled={busy} onClick={persistCorrection} type="button">{busy ? '저장 중…' : '정정 저장'}</button>
+    </div>}>
+      <div className="grid gap-4 p-1">
+        <p className="type-secondary text-[var(--muted-ink)]">{formatDateTime(correcting.row.effective_at)}에 저장된 내용만 바로잡습니다. 원칙이 실제로 바뀐 경우에는 현재 원칙의 수정으로 새 이력을 남겨 주세요.</p>
+        {formError && <p className="type-secondary rounded-xl border border-red-400/40 p-3 text-red-100" role="alert">{formError}</p>}
+        <label className={labelClass}>내용 (마크다운)<textarea className={`${inputClass} min-h-64`} disabled={busy} maxLength={10000} value={correcting.body} onChange={(event) => setCorrecting({ ...correcting, body: event.target.value })} /></label>
+        <label className={labelClass}>변경 메모 (선택)<input className={inputClass} disabled={busy} maxLength={1000} value={correcting.changeNote} onChange={(event) => setCorrecting({ ...correcting, changeNote: event.target.value })} /></label>
+      </div>
+    </ModalShell>}
+    {confirmDelete && selectedChange && <ConfirmDialog title="원칙 이력 삭제" description={selectedChange.id === changes[0]?.id
+      ? `선택한 ${formatDateTime(selectedChange.effective_at)} 원칙을 삭제하면 ${changes[1]?.ended ? '이전 기록이 적용 종료 상태라 현재 원칙이 비게 됩니다.' : changes.length > 1 || nextCursor ? '이전 원칙이 다시 현재 원칙이 됩니다.' : '현재 원칙이 비게 됩니다.'}`
+      : `${formatDateTime(selectedChange.effective_at)}에 저장된 이력만 삭제합니다. 현재 원칙은 유지됩니다.`}
+      confirmLabel="이력 삭제" danger pending={busy} error={formError} onCancel={() => { setConfirmDelete(false); setFormError('') }} onConfirm={removeChange} />}
   </section>
 }

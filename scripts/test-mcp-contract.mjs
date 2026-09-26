@@ -71,7 +71,7 @@ try {
   assert(discoveredNames.has('list_due_general_tasks'), 'Due task tool was not discovered')
   const dueTasks = await call(session.access_token, 'tools/call', { name: 'list_due_general_tasks', arguments: { limit: 10, offset: 0 } })
   assert(dueTasks.body?.result?.isError === false && Array.isArray(dueTasks.body?.result?.structuredContent?.data?.items), 'Due task MCP read failed')
-  for (const currentTool of ['list_principles','save_principle','get_portfolio_state','update_entity_note']) {
+  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','update_entity_note']) {
     assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
   }
   for (const legacyTool of ['get_news_state','get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis','list_private_holding_notes','save_private_holding_note']) {
@@ -98,6 +98,7 @@ try {
   assert(initialPrinciples.body?.result?.structuredContent?.data?.items?.length === 0, 'New MCP user unexpectedly has principles')
   const principleArgs = {
     schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
+    expected_body: null, expected_change_note: null,
     body: '## Long-term rule\nContract-approved long-term rule', change_note: 'Initial rule',
   }
   const savedPrinciple = await call(session.access_token, 'tools/call', { name: 'save_principle', arguments: principleArgs })
@@ -146,6 +147,7 @@ try {
   const policyPrincipleArgs = {
     schema_version: 1, principle_id: principleArgs.principle_id,
     expected_row_id: savedPrinciple.body.result.structuredContent.data.id,
+    expected_body: principleArgs.body, expected_change_note: principleArgs.change_note,
     body: `${principleArgs.body}\n\nDo not infer missing preferences.`, change_note: 'Preference clarification',
   }
   const policySaved = await call(session.access_token, 'tools/call', {
@@ -162,6 +164,7 @@ try {
   const operationPrincipleArgs = {
     schema_version: 1, principle_id: principleArgs.principle_id,
     expected_row_id: policySaved.body.result.structuredContent.data.id,
+    expected_body: policyPrincipleArgs.body, expected_change_note: policyPrincipleArgs.change_note,
     change_note: 'Reconciliation rule',
     body: `${policyPrincipleArgs.body}\n\n## Reconciliation\nFor this brokerage export, distinguish acquisition and valuation amounts.`,
   }
@@ -176,6 +179,31 @@ try {
   assert(operationAfter.body?.result?.structuredContent?.data?.items?.some((item) =>
     item.principle_id === operationPrincipleArgs.principle_id && item.body === operationPrincipleArgs.body),
   'Operating principle could not be read back')
+
+  const principleHistory = await call(session.access_token, 'tools/call', {
+    name: 'list_principle_changes', arguments: { limit: 2, cursor: null },
+  })
+  const historyData = principleHistory.body?.result?.structuredContent?.data
+  assert(historyData?.items?.length === 2 && historyData?.next_cursor, 'Principle history pagination failed')
+  const previousPage = await call(session.access_token, 'tools/call', {
+    name: 'list_principle_changes', arguments: { limit: 2, cursor: historyData.next_cursor },
+  })
+  const firstRow = previousPage.body?.result?.structuredContent?.data?.items?.[0]
+  assert(firstRow?.body === principleArgs.body, 'Older principle revision was not found')
+  const oneRow = await call(session.access_token, 'tools/call', { name: 'get_principle_row', arguments: { row_id: firstRow.id } })
+  assert(oneRow.body?.result?.structuredContent?.data?.body === principleArgs.body, 'Principle row lookup failed')
+  const correctedRow = await call(session.access_token, 'tools/call', { name: 'correct_principle_row', arguments: {
+    schema_version: 1, row_id: firstRow.id, expected_body: firstRow.body,
+    expected_change_note: firstRow.change_note, body: 'Corrected initial rule', change_note: 'Correct typo',
+  } })
+  assert(correctedRow.body?.result?.structuredContent?.data?.body === 'Corrected initial rule', 'Principle row correction failed')
+  const deletedRow = await call(session.access_token, 'tools/call', { name: 'delete_principle_row', arguments: {
+    schema_version: 1, row_id: firstRow.id, expected_body: 'Corrected initial rule',
+    expected_change_note: 'Correct typo', expected_current_row_id: operationSaved.body.result.structuredContent.data.id,
+  } })
+  assert(deletedRow.body?.result?.structuredContent?.data?.deleted_row_id === firstRow.id, 'Principle row deletion failed')
+  const missingRow = await call(session.access_token, 'tools/call', { name: 'get_principle_row', arguments: { row_id: firstRow.id } })
+  assert(missingRow.body?.result?.isError === true, 'Deleted principle row remained readable')
 
   const taskArgs = {
     schema_version: 1, task_id: null, expected_version: null, idempotency_key: crypto.randomUUID(),
