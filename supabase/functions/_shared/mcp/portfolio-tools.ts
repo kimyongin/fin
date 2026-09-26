@@ -260,9 +260,16 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_portfolio_state',
     title: 'Portfolio state',
-    description: 'Read current accounts, holdings, registered instruments (including those with no holding yet), tags, latest prices, and valuation_quality. A registered instrument is not evidence of ownership; use holdings for quantities and allocation. Treat missing prices as unknown, never zero, and do not make definitive allocation claims when valuation_quality.is_complete is false. This read does not register a ticker, save a holding, or refresh prices.',
+    description: 'Read current accounts, holdings, registered instruments (including those with no holding yet), tags, latest prices with source/date, and valuation_quality. FX tickers such as USDKRW=X quote KRW per one unit of the foreign currency; do not invert the rate. A registered instrument is not evidence of ownership; use holdings for quantities and allocation. Treat missing or stale prices/FX as uncertain, never zero, and do not make definitive allocation claims when valuation_quality.is_complete is false. This read does not register a ticker, save a holding, or refresh prices.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'sync_prices', title: 'Refresh market prices and exchange rates',
+    description: 'On explicit request, run the same owner-scoped price refresh as the web app for registered market instruments, including zero-holding tickers and needed foreign-exchange rates. Valuation and cash instruments are excluded. No arbitrary price, exchange-rate, date, or ticker input is accepted. Return per-ticker successes and failures; partial or failed status is not full success. Re-read get_portfolio_state for current dates and valuation quality. This calls an external market-data provider and records a sync run; it never executes a trade.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 } }, required: ['schema_version'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
   {
     name: 'find_holdings',
@@ -840,7 +847,7 @@ export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_pro
 
 export const entityNoteToolNames = ['update_entity_note'] as const
 
-export const assetCrudToolNames = ['save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets'] as const
+export const assetCrudToolNames = ['save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','sync_prices'] as const
 
 export const decisionActivityToolNames = [] as const
 

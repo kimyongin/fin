@@ -55,6 +55,13 @@ Deno.serve(async (req: Request) => {
     return new Response("Unauthorized", { status: 401, headers: CORS_HEADERS });
   }
 
+  // Only this authenticated server route receives the service key. Client RPCs
+  // cannot submit arbitrary provider prices or sync-run outcomes.
+  const syncWriter = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
   const body: SyncBody = req.headers.get("content-type")?.includes("application/json")
     ? await req.json()
     : {};
@@ -121,7 +128,8 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      const { error: upsertError } = await supabase.rpc("app_upsert_price_rows", {
+      const { error: upsertError } = await syncWriter.rpc("app_sync_upsert_price_rows", {
+        input_owner_user_id: user.id,
         input_ticker: ticker,
         input_source_symbol: symbol,
         input_prices: prices,
@@ -142,7 +150,8 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const { error: runError } = await supabase.rpc("app_record_price_sync_run", {
+  const { error: runError } = await syncWriter.rpc("app_sync_record_price_run", {
+    input_owner_user_id: user.id,
     input_total_count: tickers.length,
     input_synced_count: synced.length,
     input_failed: failed,

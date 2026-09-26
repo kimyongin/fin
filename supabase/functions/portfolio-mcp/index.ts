@@ -1,5 +1,4 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { fetchYahooPrices as fetchYahooPricesWithFallback } from '../_shared/yahoo-finance.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -188,84 +187,6 @@ async function lookupTicker(ticker: string) {
   throw new Error('No ticker data found.')
 }
 
-async function syncPrices({ args, supabase, tokenHash }: ToolHandlerContext) {
-  const today = new Date()
-  const dateTo = nullableDateArg(args, 'date_to') ? new Date(String(args.date_to)) : today
-  const dateFrom = nullableDateArg(args, 'date_from')
-    ? new Date(String(args.date_from))
-    : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-  const tickers = Array.isArray(args.tickers)
-    ? args.tickers.map((ticker) => normalizeTickerInput(ticker)).filter(Boolean)
-    : null
-  const targets = (await rpcResult(
-    supabase,
-    'mcp_get_price_sync_targets',
-    {
-      input_token_hash: tokenHash,
-      input_tickers: tickers,
-    },
-    [],
-  )) as Record<string, unknown>[]
-
-  const synced: { ticker: string; rows: number }[] = []
-  const failed: { ticker: string; error: string }[] = []
-
-  for (const [index, target] of targets.entries()) {
-    const ticker = String(target.ticker)
-    try {
-      const lastDate = target.last_price_date ? new Date(String(target.last_price_date)) : null
-      let fetchFrom: Date
-      let fetchTo: Date
-
-      if (!lastDate) {
-        fetchFrom = dateFrom
-        fetchTo = dateTo
-      } else {
-        const nextDay = new Date(lastDate.getTime() + 86400000)
-        if (nextDay <= dateTo) {
-          fetchFrom = nextDay
-          fetchTo = dateTo
-        } else {
-          synced.push({ ticker, rows: 0 })
-          continue
-        }
-      }
-
-      if (fetchFrom > fetchTo) {
-        synced.push({ ticker, rows: 0 })
-        continue
-      }
-
-      const { prices } = await fetchYahooPricesWithFallback(
-        ticker,
-        target.source_symbol ? String(target.source_symbol) : null,
-        fetchFrom,
-        fetchTo,
-      )
-      await rpcResult(supabase, 'mcp_upsert_price_rows', {
-        input_token_hash: tokenHash,
-        input_ticker: ticker,
-        input_prices: prices,
-        input_holidays: [],
-      })
-      synced.push({ ticker, rows: prices.length })
-    } catch (error) {
-      failed.push({ ticker, error: error instanceof Error ? error.message : 'Sync failed' })
-    } finally {
-      if (index < targets.length - 1) await new Promise((resolve) => setTimeout(resolve, 150))
-    }
-  }
-
-  const syncRunId = await rpcResult(supabase, 'mcp_record_sync_run', {
-    input_token_hash: tokenHash,
-    input_total_count: targets.length,
-    input_synced_count: synced.length,
-    input_failed: failed,
-  })
-
-  return { sync_run_id: syncRunId, synced, failed }
-}
-
 const toolHandlers: Record<string, ToolHandler> = {
   async get_portfolio_state({ supabase, tokenHash }) {
     return rpcResult(supabase, 'mcp_get_portfolio_state', {
@@ -330,8 +251,8 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_display_name: lookupResult.display_name,
       input_currency: lookupResult.currency,
       input_instrument_type: lookupResult.instrument_type,
-      input_price: lookupResult.price,
-      input_price_date: lookupResult.price_date,
+      input_price: null,
+      input_price_date: null,
       input_tag_id: nullableIntegerArg(args, 'tag_id'),
       input_request: nullableStringArg(args, 'request') ?? `Ticker lookup: ${ticker}`,
       input_price_source: 'lookup',
@@ -414,8 +335,6 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_request: nullableStringArg(args, 'request'),
     })
   },
-
-  sync_prices: syncPrices,
 
   async list_recent_activity({ args, supabase, tokenHash }) {
     return rpcResult(
@@ -633,22 +552,6 @@ function toolDefinitions() {
           },
         },
         required: ['holding_id', 'avg_price'],
-      },
-    },
-    {
-      name: 'sync_prices',
-      description: 'Sync latest Yahoo Finance prices for portfolio holdings and FX instruments.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          date_from: { type: 'string', description: 'Optional start date in YYYY-MM-DD format.' },
-          date_to: { type: 'string', description: 'Optional end date in YYYY-MM-DD format.' },
-          tickers: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Optional list of tickers to sync.',
-          },
-        },
       },
     },
     {

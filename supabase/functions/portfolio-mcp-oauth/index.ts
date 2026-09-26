@@ -176,6 +176,12 @@ const toolHandlers: Record<string, ToolHandler> = {
   async get_portfolio_state(supabase) {
     return await rpc(supabase, 'app_get_portfolio_state', { input_owner_user_id: null })
   },
+  async sync_prices(supabase, args) {
+    requireSchemaVersion(args)
+    const { data, error } = await supabase.functions.invoke('sync-prices', { body: {} })
+    if (error) throw new PortfolioRpcError({ message: error.message })
+    return { ok: true, data }
+  },
   async find_holdings(supabase, args) {
     return await rpc(supabase, 'app_find_holdings', { input_query: String(args.query ?? '') })
   },

@@ -68,10 +68,14 @@ try {
   const listed = await call(session.access_token, 'tools/list')
   assert(listed.response.ok && listed.body?.result?.tools?.some((tool) => tool.name === 'get_profile'), 'MCP tools/list contract failed')
   const discoveredNames = new Set(listed.body.result.tools.map((tool) => tool.name))
+  const priceSyncTool = listed.body.result.tools.find((tool) => tool.name === 'sync_prices')
+  assert(priceSyncTool?.annotations?.openWorldHint === true &&
+    !Object.keys(priceSyncTool.inputSchema.properties).some((key) => ['price','close','rate','ticker','date_from','date_to'].includes(key)),
+  'OAuth price sync must not accept arbitrary quote or date inputs')
   assert(discoveredNames.has('list_due_general_tasks'), 'Due task tool was not discovered')
   const dueTasks = await call(session.access_token, 'tools/call', { name: 'list_due_general_tasks', arguments: { limit: 10, offset: 0 } })
   assert(dueTasks.body?.result?.isError === false && Array.isArray(dueTasks.body?.result?.structuredContent?.data?.items), 'Due task MCP read failed')
-  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','update_entity_note','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','get_my_product_feedback','update_my_product_feedback','delete_my_product_feedback','list_product_feedback_admin','update_product_feedback_admin']) {
+  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','sync_prices','update_entity_note','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','get_my_product_feedback','update_my_product_feedback','delete_my_product_feedback','list_product_feedback_admin','update_product_feedback_admin']) {
     assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
   }
   for (const legacyTool of ['get_news_state','get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis','list_private_holding_notes','save_private_holding_note']) {
@@ -93,6 +97,8 @@ try {
 
   const profile = await call(session.access_token, 'tools/call', { name: 'get_profile', arguments: {} })
   assert(profile.response.ok && profile.body?.result?.isError === false, 'Authenticated MCP tools/call failed')
+  const emptyPriceSync = await call(session.access_token, 'tools/call', { name: 'sync_prices', arguments: { schema_version: 1 } })
+  assert(emptyPriceSync.body?.result?.structuredContent?.data?.status === 'success' && emptyPriceSync.body.result.structuredContent.data.total_count === 0, 'OAuth price sync did not match empty web refresh')
 
   const initialPrinciples = await call(session.access_token, 'tools/call', { name: 'list_principles', arguments: {} })
   assert(initialPrinciples.body?.result?.structuredContent?.data?.items?.length === 0, 'New MCP user unexpectedly has principles')

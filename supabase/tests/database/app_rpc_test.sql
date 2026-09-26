@@ -85,8 +85,8 @@ select extensions.is(
       ' Apple ',
       'USD',
       'market',
-      210.5,
-      date '2026-07-12',
+      null,
+      null,
       (select id from public.tags where user_id = auth.uid() and name = 'Growth'),
       'user',
       'create instrument',
@@ -98,10 +98,10 @@ select extensions.is(
   'app_save_instrument uppercases ticker'
 );
 
-select extensions.is(
-  (select close_price::numeric from public.holding_prices_daily where user_id = auth.uid() and ticker = 'AAPL' and price_date = date '2026-07-12'),
-  210.5::numeric,
-  'app_save_instrument upserts manual price'
+select extensions.throws_like(
+  $$select * from public.app_save_instrument(null,'AAPL','Apple','USD','market',210.5,date '2026-07-12',null,'user',null,'manual')$$,
+  '%Manual prices are not supported%',
+  'app_save_instrument rejects manual prices'
 );
 
 select extensions.is(

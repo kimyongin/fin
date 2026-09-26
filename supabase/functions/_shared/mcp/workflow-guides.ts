@@ -41,7 +41,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     topic: 'assets', guide_id: 'portfolio.asset-management',
     purpose: 'Manage owner accounts, registered instruments, and account holdings without changing prices or claiming brokerage execution.',
     scenario_ids: ['A01', 'A02', 'A03'],
-    related_tools: ['get_portfolio_state','get_strategy_state','find_holdings','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets'],
+    related_tools: ['get_portfolio_state','get_strategy_state','find_holdings','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','sync_prices'],
     source_paths: [
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
@@ -57,6 +57,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       { id: 'detail', title: 'Save current holdings and common fields', instruction: 'For an approved change, provide the exact current instrument expected fields and every edited holding’s account ID and state version to save_asset_detail. Show numeric before/after values and retain the same idempotency key for retries. Use delete_holding separately for explicit removal of one account row.', tools: ['get_portfolio_state','save_asset_detail','delete_holding'] },
       { id: 'tags', title: 'Manage representative asset tags', instruction: 'Read current tags before creating or renaming with save_asset_tag. Link one representative tag to an instrument through save_asset_detail. Confirm delete_asset_tag because it unlinks instruments; a positive allocation target blocks deletion.', tools: ['get_portfolio_state','save_asset_tag','save_asset_detail','delete_asset_tag'] },
       { id: 'allocation', title: 'Set or clear target percentages', instruction: 'Read get_strategy_state. Save the complete owned-tag target set totaling 100.00 with save_allocation_targets and exact expected_targets. An explicit empty targets array clears configuration; it never changes assets or tags.', tools: ['get_strategy_state','save_allocation_targets'] },
+      { id: 'quotes', title: 'Refresh market quotes and FX rates', instruction: 'On explicit request, call sync_prices with no custom ticker/date/price payload. It uses the same owner-scoped refresh as the web app. Inspect per-target failures and re-read get_portfolio_state; a partial result is not full success. Never write guessed prices or FX rates.', tools: ['sync_prices','get_portfolio_state'] },
       { id: 'verify', title: 'Read back the result', instruction: 'Read get_portfolio_state again. Report account, instrument, and holding changes distinctly. A saved current value is not a completed brokerage order or live market quote.', tools: ['get_portfolio_state'] },
     ],
     boundaries: ['Do not write a manual price or FX rate; use price sync.', 'A zero-quantity holding still blocks account or instrument deletion until its row is deleted.', 'Never infer that a saved absolute value is a brokerage-confirmed trade.', 'Asset tags, activity tags, and allocation targets are different concepts; clearing targets does not delete tags.'],

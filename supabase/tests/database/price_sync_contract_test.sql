@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select extensions.plan(17);
+select extensions.plan(21);
 
 insert into auth.users(id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values
@@ -37,36 +37,52 @@ select extensions.ok(not exists(select 1 from public.app_get_price_sync_targets(
 select extensions.is((select count(*)::integer from public.app_get_price_sync_targets(array['VALUATION:PRIVATE'])), 0, 'explicit requests cannot bypass the eligible instrument types');
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000001402', true);
-select extensions.throws_ok(
-  $$select public.app_upsert_price_rows('360750', '360750.KS', '[{"date":"2026-09-21","close":20000}]'::jsonb)$$,
-  'P0001',
-  'Market or FX instrument not found',
-  'another user cannot write prices for the owner instrument'
-);
+select extensions.is(has_function_privilege('authenticated','public.app_upsert_price_rows(text,text,jsonb)','EXECUTE'),false,
+  'authenticated clients cannot directly write provider prices');
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000001401', true);
+select extensions.is(has_function_privilege('authenticated','public.app_record_price_sync_run(integer,integer,jsonb)','EXECUTE'),false,
+  'owner cannot forge a sync run');
+select extensions.is(has_function_privilege('authenticated','public.app_sync_upsert_price_rows(uuid,text,text,jsonb)','EXECUTE'),false,
+  'owner cannot call the service-only price writer');
+select extensions.is(has_function_privilege('authenticated','public.app_sync_record_price_run(uuid,integer,integer,jsonb)','EXECUTE'),false,
+  'owner cannot call the service-only run writer');
+select extensions.is(has_function_privilege('authenticated','public.mcp_upsert_price_rows(text,text,jsonb,jsonb)','EXECUTE'),false,
+  'retired token price upsert cannot bypass sync');
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
 
 select extensions.is(
-  public.app_upsert_price_rows('360750', '360750.KS', jsonb_build_array(jsonb_build_object('date', current_date::text, 'close', 21000))),
+  public.app_sync_upsert_price_rows('00000000-0000-0000-0000-000000001401', '360750', '360750.KS', jsonb_build_array(jsonb_build_object('date', current_date::text, 'close', 21000))),
   1,
-  'the app RPC stores one validated price row'
+  'the service-only sync RPC stores one validated price row'
 );
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select extensions.is((select close_price from public.holding_prices_daily where user_id = auth.uid() and ticker = '360750' and price_date = current_date), 21000::real, 'stored price is readable through RLS');
 select extensions.is((select source_symbol from public.instruments where user_id = auth.uid() and ticker = '360750'), '360750.KS', 'resolved Yahoo symbol is retained');
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
 select extensions.throws_ok(
-  $$select public.app_upsert_price_rows('VALUATION:PRIVATE', 'VALUATION:PRIVATE', '[{"date":"2026-09-21","close":1}]'::jsonb)$$,
+  $$select public.app_sync_upsert_price_rows('00000000-0000-0000-0000-000000001401','VALUATION:PRIVATE', 'VALUATION:PRIVATE', '[{"date":"2026-09-21","close":1}]'::jsonb)$$,
   'P0001',
   'Market or FX instrument not found',
   'non-market instruments cannot receive synchronized prices'
 );
 
 select extensions.ok(
-  public.app_record_price_sync_run(2, 1, '[{"ticker":"UNKNOWN","error":"not found"}]'::jsonb) is not null,
+  public.app_sync_record_price_run('00000000-0000-0000-0000-000000001401',2, 1, '[{"ticker":"UNKNOWN","error":"not found"}]'::jsonb) is not null,
   'a partial web sync is recorded'
 );
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select extensions.is((select failed_count from public.sync_runs where user_id = auth.uid() order by id desc limit 1), 1, 'sync run preserves its failure count');
 select extensions.is((select (after_data ->> 'failed_count')::integer from public.activity_events where user_id = auth.uid() and action_type = 'sync_prices' order by id desc limit 1), 1, 'activity contains the partial outcome');
 
-select public.app_record_price_sync_run(1, 0, '[{"ticker":"UNKNOWN","error":"not found"}]'::jsonb);
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+select public.app_sync_record_price_run('00000000-0000-0000-0000-000000001401',1, 0, '[{"ticker":"UNKNOWN","error":"not found"}]'::jsonb);
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select extensions.is((select status from public.activity_events where user_id = auth.uid() and action_type = 'sync_prices' order by id desc limit 1), 'failed', 'an all-failed run is visibly failed');
 
 select set_config('request.jwt.claim.sub', '', true);
