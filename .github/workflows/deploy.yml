@@ -59,6 +59,14 @@ jobs:
       - name: Check Edge Functions
         run: npm run check:edge
 
+      - name: Verify deployed RPC compatibility with an authenticated user
+        run: npm run check:deployment
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SMOKE_EMAIL: ${{ secrets.SUPABASE_SMOKE_EMAIL }}
+          SUPABASE_SMOKE_PASSWORD: ${{ secrets.SUPABASE_SMOKE_PASSWORD }}
+
       - name: Run isolated database and browser tests
         run: npm run test:e2e
 
@@ -71,14 +79,6 @@ jobs:
             test-results
             playwright-report
           if-no-files-found: ignore
-
-      - name: Verify deployed RPC compatibility with an authenticated user
-        run: npm run check:deployment
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SMOKE_EMAIL: ${{ secrets.SUPABASE_SMOKE_EMAIL }}
-          SUPABASE_SMOKE_PASSWORD: ${{ secrets.SUPABASE_SMOKE_PASSWORD }}
 
   deploy:
     needs: verify

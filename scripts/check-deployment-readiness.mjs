@@ -17,7 +17,8 @@ const schemaResponse = await fetch(`${baseUrl}/rest/v1/`, {
   headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}`, Accept: 'application/openapi+json' },
 })
 if (!schemaResponse.ok) {
-  throw new Error(`Authenticated PostgREST schema read failed (${schemaResponse.status}); check API permissions and schema cache`)
+  const detail = await schemaResponse.text()
+  throw new Error(`Authenticated PostgREST schema read failed (${schemaResponse.status}): ${detail.slice(0, 300)}`)
 }
 const mutationCount = assertMutationRpcSignatures(await schemaResponse.json())
 
