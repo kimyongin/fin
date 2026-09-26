@@ -473,7 +473,7 @@ end;
 $function$;
 
 
-CREATE OR REPLACE FUNCTION public.app_search_activity_semantic(input_query_embedding vector, input_owner_user_id uuid DEFAULT NULL::uuid, input_from date DEFAULT NULL::date, input_to date DEFAULT NULL::date, input_has_conclusion boolean DEFAULT NULL::boolean, input_instrument_id bigint DEFAULT NULL::bigint, input_account_id bigint DEFAULT NULL::bigint, input_tag_ids uuid[] DEFAULT NULL::uuid[], input_tag_match text DEFAULT 'all'::text, input_limit integer DEFAULT 30, input_timezone text DEFAULT 'Asia/Seoul'::text)
+CREATE OR REPLACE FUNCTION public.app_search_activity_semantic(input_query_embedding extensions.vector, input_owner_user_id uuid DEFAULT NULL::uuid, input_from date DEFAULT NULL::date, input_to date DEFAULT NULL::date, input_has_conclusion boolean DEFAULT NULL::boolean, input_instrument_id bigint DEFAULT NULL::bigint, input_account_id bigint DEFAULT NULL::bigint, input_tag_ids uuid[] DEFAULT NULL::uuid[], input_tag_match text DEFAULT 'all'::text, input_limit integer DEFAULT 30, input_timezone text DEFAULT 'Asia/Seoul'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
