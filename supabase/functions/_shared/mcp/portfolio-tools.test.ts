@@ -75,7 +75,7 @@ describe('portfolio MCP tool definitions', () => {
 
   it('publishes every reviewed multi-step topic from one validated guide registry', () => {
     expect(workflowGuideTopics).toEqual([
-      'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation', 'todo', 'activity_report', 'product_feedback',
+      'assets', 'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation', 'todo', 'activity_report', 'product_feedback',
     ])
     for (const topic of workflowGuideTopics) {
       const guide = getWorkflowGuide(topic)!

@@ -71,7 +71,7 @@ try {
   assert(discoveredNames.has('list_due_general_tasks'), 'Due task tool was not discovered')
   const dueTasks = await call(session.access_token, 'tools/call', { name: 'list_due_general_tasks', arguments: { limit: 10, offset: 0 } })
   assert(dueTasks.body?.result?.isError === false && Array.isArray(dueTasks.body?.result?.structuredContent?.data?.items), 'Due task MCP read failed')
-  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','update_entity_note']) {
+  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','update_entity_note','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument']) {
     assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
   }
   for (const legacyTool of ['get_news_state','get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis','list_private_holding_notes','save_private_holding_note']) {
@@ -81,7 +81,7 @@ try {
     assert(!discoveredNames.has(retiredTool), `${retiredTool} remained in MCP discovery`)
   }
   const guideDefinition = listed.body?.result?.tools?.find((tool) => tool.name === 'get_workflow_guide')
-  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.length === 9, 'Workflow guide topics were not advertised')
+  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.includes('assets'), 'Asset workflow guide was not advertised')
 
   for (const topic of guideDefinition.inputSchema.properties.topic.enum) {
     const guideResult = await call(session.access_token, 'tools/call', { name: 'get_workflow_guide', arguments: { topic } })
@@ -304,6 +304,38 @@ try {
     name: 'reconcile_holding', arguments: { ...correctionArgs, reason: 'Different correction' },
   })
   assert(keyConflict.body?.result?.structuredContent?.error?.code === 'idempotency_conflict', 'Idempotency key conflict returned the wrong recovery contract')
+
+  const newAccount = await call(session.access_token, 'tools/call', { name: 'save_account', arguments: {
+    schema_version: 1, account_id: null, name: 'MCP CRUD Account', broker: null, note: null,
+  } })
+  const newAccountId = newAccount.body?.result?.structuredContent?.data?.[0]?.account_id
+  assert(newAccountId, 'OAuth account creation failed')
+  const newInstrument = await call(session.access_token, 'tools/call', { name: 'create_instrument', arguments: {
+    schema_version: 1, ticker: 'MCP-CRUD-TEST', display_name: 'MCP CRUD Asset', currency: 'KRW', instrument_type: 'market', tag_id: null, note: null,
+  } })
+  const newInstrumentId = newInstrument.body?.result?.structuredContent?.data?.[0]?.instrument_id
+  assert(newInstrumentId, 'OAuth instrument registration failed')
+  const assetArgs = {
+    schema_version: 1, instrument_id: newInstrumentId,
+    expected: { display_name: 'MCP CRUD Asset', currency: 'KRW', instrument_type: 'market', note: null, tag_id: null },
+    instrument: { display_name: 'MCP CRUD Asset', currency: 'KRW', instrument_type: 'market', note: null, tag_id: null },
+    holdings: [{ id: null, account_id: newAccountId, quantity: '2', avg_price: '100' }],
+    idempotency_key: crypto.randomUUID(), reason: 'Contract test current value',
+  }
+  const assetSaved = await call(session.access_token, 'tools/call', { name: 'save_asset_detail', arguments: assetArgs })
+  const newHolding = assetSaved.body?.result?.structuredContent?.data?.holdings?.[0]
+  assert(newHolding?.id && Number(newHolding.quantity) === 2, 'OAuth asset detail save failed')
+  const assetRetried = await call(session.access_token, 'tools/call', { name: 'save_asset_detail', arguments: assetArgs })
+  assert(assetRetried.body?.result?.structuredContent?.data?.holdings?.[0]?.id === newHolding.id, 'Asset detail retry duplicated a holding')
+  const deleteHoldingArgs = { schema_version: 1, holding_id: newHolding.id, expected_version: newHolding.state_version, idempotency_key: crypto.randomUUID() }
+  const holdingDeleted = await call(session.access_token, 'tools/call', { name: 'delete_holding', arguments: deleteHoldingArgs })
+  assert(holdingDeleted.body?.result?.structuredContent?.data?.holding_id === newHolding.id, 'OAuth holding delete failed')
+  const holdingDeleteRetry = await call(session.access_token, 'tools/call', { name: 'delete_holding', arguments: deleteHoldingArgs })
+  assert(holdingDeleteRetry.body?.result?.structuredContent?.data?.holding_id === newHolding.id, 'Holding delete retry failed')
+  const instrumentDeleted = await call(session.access_token, 'tools/call', { name: 'delete_instrument', arguments: { schema_version: 1, instrument_id: newInstrumentId } })
+  assert(instrumentDeleted.body?.result?.structuredContent?.data?.[0]?.instrument_id === newInstrumentId, 'OAuth instrument delete failed')
+  const accountDeleted = await call(session.access_token, 'tools/call', { name: 'delete_account', arguments: { schema_version: 1, account_id: newAccountId } })
+  assert(accountDeleted.body?.result?.structuredContent?.data?.[0]?.account_id === newAccountId, 'OAuth account delete failed')
 
   const invalid = await call(session.access_token, 'tools/call', { name: 'log_completed_trade', arguments: {} })
   const toolError = invalid.body?.result?.structuredContent?.error

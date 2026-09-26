@@ -1,43 +1,47 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-26",
-  "review_reason": "Review task delete and atomic tag-edit OAuth contracts after validation guard",
+  "review_reason": "Review new OAuth asset CRUD tools and asset-management workflow",
   "topics": {
+    "assets": {
+      "revision": "fnv1a32:240b34c9",
+      "contract_digest": "b9f70cedc7d3fa3e9b2e78460472cd282c195626f2b1643605c0a2bc389a01b6"
+    },
     "policy": {
       "revision": "fnv1a32:f720a938",
-      "contract_digest": "112e7f68d2630fcea1e665894725429390ed7112770a119d3cc14d1c8d26f6c2"
+      "contract_digest": "440b438b96cbac9a269f343685fc08c79e5516921ec93bacddf477dad074d0ae"
     },
     "holding_thesis": {
       "revision": "fnv1a32:4c4ae963",
-      "contract_digest": "b60c5d9a43a77c5188854f2bef6ec1ba713547014905af8f015b9291b4de2b7b"
+      "contract_digest": "26515f3c0fe55bfbc2c04afb6c204c5193903898fb1fbe6128144ef29e0acb7c"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "0a0d1aca83b97fa335f1aec14853d7e4e94f90f0dd407404b5b86ffb3c76bd47"
+      "contract_digest": "77c36dbaa40cb5b62be0122191f8c6d0f1a7edde7405389ae3df9bd4a8610801"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "f55898a4c8f8eed14a30268cf9ade3aae850e975438c5eb426f8deec527d75ec"
+      "contract_digest": "96b83f1a7fbc11d13447f029e6a940cd6b2bf83241663fd8fb594274b2e45321"
     },
     "trade_entry": {
       "revision": "fnv1a32:e542a131",
-      "contract_digest": "bbd12f3a8a1fca2daf26fc3ec36d5499fcfb0cba31b1723bc07a95709d75c0ae"
+      "contract_digest": "fa7c50f37d73b6676446ee23d8429be3b5daf73487342526dd5ad4ec861794de"
     },
     "reconciliation": {
       "revision": "fnv1a32:4c885520",
-      "contract_digest": "d9af04227f17f0f98174b2308444b53cd83d834870baf21cb3e0bd72143f7fc2"
+      "contract_digest": "c6ff5e970144e6a3b8467d9646e292edd271bd8b6b7e2102837e5d00199d1b3c"
     },
     "todo": {
       "revision": "fnv1a32:4dd20a2f",
-      "contract_digest": "f97f18e6b8ecc49e06ddb983a6c94639a2212a38d4d720311fe7c44c8b3f6083"
+      "contract_digest": "fcaae21a4fb61df522269022de2854c7a0fc67f6783161070b7e52e4428679dd"
     },
     "activity_report": {
       "revision": "fnv1a32:e4aa34cd",
-      "contract_digest": "9f09bbf8d38f88e20cd626ee3f1a063adf275029976d4becdbc808cc330fa7c5"
+      "contract_digest": "b51a7963d9991de7b29cecb9aeec41f22fb627db01ead20e6ccc33b00de2eb68"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "7198f6b3eb625cf2ea77154a106d2b5f93af3d8fc4efeb9ab94f19703adb3522"
+      "contract_digest": "238d0fd529efb4965082f47c18694885b887e5b04f40cfa67b9b0c7664921ffa"
     }
   }
 }

@@ -11,6 +11,9 @@ export const requiredMutationSignatures = {
   app_save_activity_detail: ['input_activity_id', 'input_authored_via', 'input_expected_version', 'input_idempotency_key', 'input_patch', 'input_tag_ids'],
   app_save_general_task_detail: ['input_expected_version', 'input_idempotency_key', 'input_payload', 'input_tag_ids', 'input_task_id'],
   app_delete_general_task: ['input_expected_version', 'input_idempotency_key', 'input_task_id'],
+  app_delete_holding_checked: ['input_expected_version', 'input_holding_id', 'input_idempotency_key'],
+  app_create_instrument: ['input_currency', 'input_display_name', 'input_instrument_type', 'input_note', 'input_tag_id', 'input_ticker'],
+  app_save_asset_detail_current: ['input_expected', 'input_holdings', 'input_idempotency_key', 'input_instrument', 'input_instrument_id', 'input_reason'],
   app_transition_general_task: ['input_action', 'input_authored_via', 'input_expected_version', 'input_idempotency_key', 'input_occurrence_on', 'input_reason', 'input_result', 'input_task_id'],
 }
 

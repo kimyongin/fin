@@ -238,7 +238,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_workflow_guide',
     title: 'Portfolio workflow guide',
-    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for a policy interview, holding reason, daily review, decision/follow-up, completed trade entry, balance correction, activity report, or product-feedback flow. This guide does not read user data, perform the workflow, or replace explicit save intent.',
+    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for asset management, a policy interview, holding reason, daily review, decision/follow-up, completed trade entry, balance correction, activity report, or product-feedback flow. This guide does not read user data, perform the workflow, or replace explicit save intent.',
     inputSchema: {
       type: 'object',
       properties: { topic: { type: 'string', enum: workflowGuideTopics } },
@@ -274,6 +274,58 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       additionalProperties: false,
     },
     annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'save_account', title: 'Create or edit a portfolio account',
+    description: 'After explicit save intent, create an account with account_id:null or edit one existing owned account by ID. Read get_portfolio_state first; this does not create holdings. Name is required; broker and note may be cleared with null. The returned account is current state, not a brokerage account connection. Avoid retrying an uncertain create blindly: re-read accounts first because this legacy account RPC has no idempotency receipt.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, account_id: { type: ['integer','null'], minimum: 1 },
+      name: { type: 'string', minLength: 1, maxLength: 500 }, broker: { type: ['string','null'] }, note: { type: ['string','null'] },
+    }, required: ['schema_version','account_id','name','broker','note'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: contextAnnotations,
+  },
+  {
+    name: 'delete_account', title: 'Delete an empty portfolio account',
+    description: 'Only after explicit confirmation, delete an owned account that has no holding rows. Even a zero-quantity holding blocks deletion until it is removed. Existing activity records remain. Re-read after an uncertain response; this legacy RPC has no idempotency receipt.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, account_id: { type: 'integer', minimum: 1 } }, required: ['schema_version','account_id'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
+  },
+  {
+    name: 'create_instrument', title: 'Register a new asset instrument',
+    description: 'Register an owned market, valuation, or cash instrument only after explicit save intent. A ticker lookup or portfolio read never registers it. Registration creates neither a holding nor a price; a registered instrument may have zero holdings. Duplicate normalized tickers are rejected without overwriting existing data. Read get_portfolio_state before retrying an uncertain result.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, ticker: { type: 'string', minLength: 1 }, display_name: { type: 'string', minLength: 1 },
+      currency: { type: 'string', enum: ['KRW','USD','JPY'] }, instrument_type: { type: 'string', enum: ['market','valuation','cash'] },
+      tag_id: { type: ['integer','null'], minimum: 1 }, note: { type: ['string','null'], maxLength: 25000 },
+    }, required: ['schema_version','ticker','display_name','currency','instrument_type','tag_id','note'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: contextAnnotations,
+  },
+  {
+    name: 'save_asset_detail', title: 'Save one instrument and its account holdings',
+    description: 'Read get_portfolio_state first, then save one owned instrument’s name, currency, type, note, representative tag and up to 40 current account-holding values atomically. expected must match its current fields exactly; each existing holding supplies its ID, account ID and state version. Decimal holding amounts should be strings. A missing holding from the array is not deleted: use delete_holding explicitly. Changed financial values are an absolute correction, not a brokerage trade; show the changes and optional reason to the user. Retry a lost response with the identical idempotency key and payload. Manual prices are forbidden here; use price sync.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, instrument_id: { type: 'integer', minimum: 1 },
+      expected: { type: 'object', properties: { display_name: { type: 'string' }, currency: { type: 'string' }, instrument_type: { type: 'string' }, note: { type: ['string','null'] }, tag_id: { type: ['integer','null'] } }, required: ['display_name','currency','instrument_type','note','tag_id'], additionalProperties: false },
+      instrument: { type: 'object', properties: { display_name: { type: 'string' }, currency: { type: 'string', enum: ['KRW','USD','JPY'] }, instrument_type: { type: 'string', enum: ['market','valuation','cash'] }, note: { type: ['string','null'] }, tag_id: { type: ['integer','null'] } }, required: ['display_name','currency','instrument_type','note','tag_id'], additionalProperties: false },
+      holdings: { type: 'array', maxItems: 40, items: { type: 'object', properties: {
+        id: { type: ['integer','null'] }, account_id: { type: 'integer', minimum: 1 }, expected_account_id: { type: ['integer','null'] }, expected_state_version: { type: ['integer','null'] },
+        quantity: { type: ['string','null'] }, avg_price: { type: ['string','null'] }, purchase_amount: { type: ['string','null'] }, valuation_amount: { type: ['string','null'] },
+      }, required: ['id','account_id'], additionalProperties: false } },
+      idempotency_key: { type: 'string', format: 'uuid' }, reason: { type: ['string','null'], maxLength: 1000 },
+    }, required: ['schema_version','instrument_id','expected','instrument','holdings','idempotency_key','reason'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'delete_holding', title: 'Delete one account holding',
+    description: 'After explicit confirmation, delete one owned current holding row after reading its state_version. This removes the current position from that account and writes an activity, but does not delete its instrument, undo past trades, or erase past records. The version check prevents deletion after a concurrent edit; retry an uncertain result only with the same key and inputs.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, holding_id: { type: 'integer', minimum: 1 }, expected_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','holding_id','expected_version','idempotency_key'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
+  },
+  {
+    name: 'delete_instrument', title: 'Delete an unheld instrument',
+    description: 'Only after explicit confirmation, delete an owned instrument with no holding rows. Any holding row, even quantity zero, blocks deletion. Its associated price rows and representative tag link are removed; past readable activity remains. Re-read after an uncertain response because this legacy RPC has no idempotency receipt.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, instrument_id: { type: 'integer', minimum: 1 } }, required: ['schema_version','instrument_id'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
   },
   {
     name: 'update_entity_note',
@@ -739,6 +791,8 @@ export const workflowGuideToolNames = ['get_workflow_guide'] as const
 export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_product_feedback'] as const
 
 export const entityNoteToolNames = ['update_entity_note'] as const
+
+export const assetCrudToolNames = ['save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument'] as const
 
 export const decisionActivityToolNames = [] as const
 

@@ -48,6 +48,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const retryKey = useRef(null)
+  const deleteRetry = useRef(null)
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial.current)
   const financialChanges = draft.holdings.flatMap((holding) => {
     const before = initial.current.holdings.find((item) => item.id != null && item.id === holding.id)
@@ -134,16 +135,19 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
       return false
     } finally { setSaving(false) }
   }
-  async function deleteHolding(holdingId) {
+  async function deleteHolding(holding) {
     if (saving) return
     setSaving(true)
     setError('')
     try {
-      const { error: rpcError } = await supabase.rpc('app_delete_holding', {
-        input_holding_id: holdingId, input_request: null, input_source: 'user',
+      if (deleteRetry.current?.id !== holding.id) deleteRetry.current = { id: holding.id, key: crypto.randomUUID() }
+      const { error: rpcError } = await supabase.rpc('app_delete_holding_checked', {
+        input_holding_id: holding.id, input_expected_version: holding.state_version,
+        input_idempotency_key: deleteRetry.current.key,
       })
       if (rpcError) throw rpcError
-      initial.current = { ...initial.current, holdings: initial.current.holdings.filter((item) => item.id !== holdingId) }
+      deleteRetry.current = null
+      initial.current = { ...initial.current, holdings: initial.current.holdings.filter((item) => item.id !== holding.id) }
       setDraft(initial.current)
       retryKey.current = null
       setStage(null)
@@ -172,7 +176,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
 
   const setInstrument = (key) => (value) => changeInstrument(key, value)
   return <ModalShell closeDisabled={saving} dirty={dirty} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={() => { setError(''); financialChanges.length ? setConfirming(true) : save() }} saveDisabled={!dirty} saveLabel={saving ? '저장 중' : '저장'} />} onClose={onClose} title={instrument.display_name ?? instrument.ticker}>
-    {stage?.kind === 'deleteHolding' && <ConfirmDialog title="보유 삭제" description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}${accounts.find((account) => Number(account.id) === Number(stage.holding.account_id))?.name}의 ${instrument.display_name} 보유를 삭제할까요? 이 계좌의 현재 보유값이 제거됩니다.`} confirmLabel="보유 삭제" danger error={error} pending={saving} onCancel={() => { setStage(null); setError('') }} onConfirm={() => deleteHolding(stage.holding.id)} />}
+    {stage?.kind === 'deleteHolding' && <ConfirmDialog title="보유 삭제" description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}${accounts.find((account) => Number(account.id) === Number(stage.holding.account_id))?.name}의 ${instrument.display_name} 보유를 삭제할까요? 이 계좌의 현재 보유값이 제거됩니다.`} confirmLabel="보유 삭제" danger error={error} pending={saving} onCancel={() => { setStage(null); setError('') }} onConfirm={() => deleteHolding(stage.holding)} />}
     {stage?.kind === 'deleteInstrument' && <ConfirmDialog title="종목 삭제" description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}종목과 연결된 태그·가격 이력을 삭제할까요? 보유가 있는 종목은 삭제할 수 없습니다.`} confirmLabel="종목 삭제" danger error={error} pending={saving} onCancel={() => { setStage(null); setError('') }} onConfirm={deleteInstrument} />}
     {confirming && <ConfirmDialog title="보유값 변경 확인" description="현재 보유값을 다음과 같이 바꿉니다. 매매나 증권사 확인 완료로 자동 분류하지 않습니다." confirmLabel="저장" cancelLabel="계속 편집" error={error} pending={saving} onCancel={() => { setConfirming(false); setError('') }} onConfirm={save}>
       {financialChanges.map(({ holding, before, keys }, index) => <div className="rounded-xl border border-[var(--line)] p-3" key={holding.id ?? `new-${index}`}><strong>{accounts.find((account) => String(account.id) === String(holding.account_id))?.name ?? '계좌'}</strong>{keys.map((key) => <p className="mt-1" key={key}>{({ quantity: '수량', avg_price: '평균가', purchase_amount: '매입금액', valuation_amount: '평가금액/잔액' })[key]}: {before?.[key] || '—'} → {holding[key] || '—'}</p>)}</div>)}

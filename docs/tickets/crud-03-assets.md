@@ -1,6 +1,6 @@
 # [CRUD 동등성] 계좌·종목·보유의 OAuth 관리 경로 완성
 
-2026-09-26 · [#153](https://github.com/kimyongin/fin/issues/153) · 설계 완료, 구현 전.
+2026-09-26 · [#153](https://github.com/kimyongin/fin/issues/153) · 첫 수직 슬라이스 로컬 검증, 추가 경계 검증 전.
 
 ## 목적
 에이전트도 웹처럼 계좌와 종목을 만들고 계좌별 현재 보유값을 수정/삭제한다. 토큰 MCP의 존재를 OAuth 지원으로 간주하지 않는다.
@@ -27,9 +27,16 @@ accountActions.js, instrumentActions.js, AssetDetailModal.jsx와 app_create_inst
 ## 공통 계약과 진행 상태
 
 - 설계 정본: https://github.com/kimyongin/fin/blob/master/docs/design/domain-crud-parity.md
-- 상태: 설계·티켓 작성, 구현 전. 로컬 문서는 아직 원격 Git에 없을 수 있다.
+- 상태: 웹과 OAuth MCP의 핵심 계좌·종목·보유 경로 연결 및 로컬 검증. 아래 남은 경계 검증 전.
 - 관련 문서: docs/START-HERE.md → PRD/ADR-0008 → docs/design/domain-crud-parity.md.
 - DB·목적별 RPC·필요 UI·OAuth·테스트·런타임 MCP 가이드를 한 수직 slice로 구현/검증/커밋한다.
 - 사용자 설정과 기존 데이터를 보존하며 보편 CRUD 엔진/의무 이력을 만들지 않는다.
 - 공통 수용 조건(양방향 CRUD, 권한, 삭제 영향, 재시도, UI 폭별 검증)을 정본대로 적용한다.
 - 운영 배포/실클라이언트 확인은 로컬 테스트와 별도 기록한다.
+
+## 구현·검증 기록 (2026-09-26)
+
+- OAuth에 `save_account`, `delete_account`, `create_instrument`, `save_asset_detail`, `delete_holding`, `delete_instrument`를 공개했다. 자산 가이드를 추가했다. 등록/조회/삭제와 원자 상세 저장은 기존 웹 RPC를 공유한다. `save_asset_detail`은 수동 시세 필드를 거부한다.
+- 보유 삭제에 `app_delete_holding_checked`를 추가하고 웹도 사용한다. 현재 state_version 검사, 동일 키 재시도, 소유자 경계를 DB에서 검증했다. 실제 금융값 변경은 기존 `app_save_asset_detail_current`의 원자 저장·receipt를 사용한다.
+- OAuth 계약 테스트에서 계좌·종목 생성 → 시장형 계좌 보유 생성/재시도 → 보유 삭제/재시도 → 종목·계좌 삭제를 통과했다. DB 전체 635개, 단위 110개, 웹 빌드, Deno 타입 검사 및 격리 브라우저 스모크를 통과했다.
+- 아직 남음: 평가형/현금성·복수 계좌와 태그/메모 교차 시나리오, 대상별 단건/페이지 조회 효율, 기존 직접 HTTP 쓰기 우회 감사, 모바일/데스크톱 삭제 확인 화면 검증. 구 `app_save_instrument`의 직접 시세 쓰기 가능성은 #157의 가격 경계 정리와 함께 차단해야 한다. 운영 배포/실 ChatGPT는 #158에서 확인한다.

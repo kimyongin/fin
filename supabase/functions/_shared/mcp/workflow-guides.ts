@@ -1,4 +1,5 @@
 export const workflowGuideTopics = [
+  'assets',
   'policy',
   'holding_thesis',
   'daily_review',
@@ -36,6 +37,29 @@ export type PublicWorkflowGuide = Omit<WorkflowGuide, 'source_paths'>
 type WorkflowGuideSource = Omit<WorkflowGuide, 'revision'>
 
 const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
+  assets: {
+    topic: 'assets', guide_id: 'portfolio.asset-management',
+    purpose: 'Manage owner accounts, registered instruments, and account holdings without changing prices or claiming brokerage execution.',
+    scenario_ids: ['A01', 'A02', 'A03'],
+    related_tools: ['get_portfolio_state','find_holdings','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument'],
+    source_paths: [
+      'supabase/functions/_shared/mcp/portfolio-tools.ts',
+      'supabase/functions/portfolio-mcp-oauth/index.ts',
+      'supabase/migrations/20260925173334_register_instruments_without_holdings.sql',
+      'supabase/migrations/20260924152000_decouple_asset_detail_from_legacy_notes.sql',
+      'supabase/migrations/20260926133725_checked_holding_delete.sql',
+    ],
+    steps: [
+      { id: 'read', title: 'Read current assets', instruction: 'Read get_portfolio_state and use find_holdings for ambiguous positions. A registered instrument with no holding is not owned quantity; distinguish zero quantity from no holding row.', tools: ['get_portfolio_state','find_holdings'] },
+      { id: 'account', title: 'Manage an account', instruction: 'Use save_account only for an approved new or changed name, broker, or note. Delete an empty account with delete_account only after showing the target and confirming. Re-read after uncertain legacy create/delete responses.', tools: ['save_account','delete_account'] },
+      { id: 'instrument', title: 'Register or remove a stock identity', instruction: 'A lookup never registers a ticker. Use create_instrument on explicit request; it creates no holding or price. Use delete_instrument only when no holding rows remain and after confirmation.', tools: ['create_instrument','delete_instrument'] },
+      { id: 'detail', title: 'Save current holdings and common fields', instruction: 'For an approved change, provide the exact current instrument expected fields and every edited holding’s account ID and state version to save_asset_detail. Show numeric before/after values and retain the same idempotency key for retries. Use delete_holding separately for explicit removal of one account row.', tools: ['get_portfolio_state','save_asset_detail','delete_holding'] },
+      { id: 'verify', title: 'Read back the result', instruction: 'Read get_portfolio_state again. Report account, instrument, and holding changes distinctly. A saved current value is not a completed brokerage order or live market quote.', tools: ['get_portfolio_state'] },
+    ],
+    boundaries: ['Do not write a manual price or FX rate; use price sync.', 'A zero-quantity holding still blocks account or instrument deletion until its row is deleted.', 'Never infer that a saved absolute value is a brokerage-confirmed trade.'],
+    recovery: ['For save_asset_detail and delete_holding, retry uncertain responses with the identical key and payload.', 'For account/instrument legacy create or delete, read current state before retrying to avoid duplicate actions.', 'After a version conflict, re-read and ask before overwriting changed values.'],
+    unavailable_steps: [],
+  },
   policy: {
     topic: 'policy',
     guide_id: 'portfolio.policy-interview',

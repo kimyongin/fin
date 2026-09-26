@@ -3,7 +3,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { pipeline } from 'npm:@supabase/middleware@^0.5.0'
 import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^1.7.0'
 import {
-  actionTaskToolNames, activityReportToolNames, dailyReviewToolNames, decisionActivityToolNames, entityNoteToolNames, holdingIntegrityToolNames,
+  actionTaskToolNames, activityReportToolNames, assetCrudToolNames, dailyReviewToolNames, decisionActivityToolNames, entityNoteToolNames, holdingIntegrityToolNames,
   investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames,
   productFeedbackToolNames, workflowGuideToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
@@ -178,6 +178,58 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async find_holdings(supabase, args) {
     return await rpc(supabase, 'app_find_holdings', { input_query: String(args.query ?? '') })
+  },
+  async save_account(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_save_account', {
+      input_account_id: args.account_id == null ? null : requirePositiveInteger(args.account_id, 'account_id'),
+      input_name: requireString(args.name, 'name'), input_broker: optionalString(args.broker) ?? null,
+      input_note: optionalString(args.note) ?? null, input_source: 'agent', input_request: null,
+    }) }
+  },
+  async delete_account(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_delete_account', {
+      input_account_id: requirePositiveInteger(args.account_id, 'account_id'), input_source: 'agent', input_request: null,
+    }) }
+  },
+  async create_instrument(supabase, args) {
+    requireSchemaVersion(args)
+    const type = requireString(args.instrument_type, 'instrument_type')
+    if (!['market','valuation','cash'].includes(type)) throw new ToolInputError('instrument_type is invalid')
+    return { ok: true, data: await rpc(supabase, 'app_create_instrument', {
+      input_ticker: requireString(args.ticker, 'ticker'), input_display_name: requireString(args.display_name, 'display_name'),
+      input_currency: requireString(args.currency, 'currency'), input_instrument_type: type,
+      input_tag_id: args.tag_id == null ? null : requirePositiveInteger(args.tag_id, 'tag_id'),
+      input_note: optionalString(args.note) ?? null,
+    }) }
+  },
+  async save_asset_detail(supabase, args) {
+    requireSchemaVersion(args)
+    const instrument = requireRecord(args.instrument, 'instrument')
+    if ('manual_price' in instrument || 'manual_price_date' in instrument) throw new ToolInputError('Prices are updated only by price sync')
+    return { ok: true, data: await rpc(supabase, 'app_save_asset_detail_current', {
+      input_instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      input_expected: requireRecord(args.expected, 'expected'), input_instrument: instrument,
+      input_holdings: requireArray(args.holdings, 'holdings'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+      input_reason: optionalString(args.reason) ?? null,
+    }) }
+  },
+  async delete_holding(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_delete_holding_checked', {
+      input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+    }) }
+  },
+  async delete_instrument(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_delete_instrument', {
+      input_instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      input_source: 'agent', input_request: null,
+    }) }
   },
   async update_entity_note(supabase, args) {
     requireSchemaVersion(args)
@@ -550,6 +602,7 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   workflowGuides: workflowGuideToolNames,
   productFeedback: productFeedbackToolNames,
   entityNotes: entityNoteToolNames,
+  assets: assetCrudToolNames,
   dailyReview: dailyReviewToolNames,
   decisionActivities: decisionActivityToolNames,
   actionTasks: actionTaskToolNames,
