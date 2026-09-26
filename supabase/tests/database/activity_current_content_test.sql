@@ -68,9 +68,9 @@ select extensions.is(
 select extensions.is(
   public.app_save_general_task(null,null,'19777777-7777-4777-8777-777777777777',
     jsonb_build_object('title','다음 실적 확인','subject',jsonb_build_object('kind','portfolio'),
-      'trigger_text','실적 발표 확인','due_date',(current_date+30)::text,
+      'trigger_text','실적 발표 확인','due_date',current_date::text,
       'timezone','Asia/Seoul','recurrence_kind','none','authored_via','app'))->>'title',
-  '다음 실적 확인','future intent is an independent task');
+  '다음 실적 확인','scheduled intent is an independent task');
 select extensions.is((select count(*) from information_schema.columns where table_schema='public' and table_name='portfolio_tasks' and column_name='origin_event_id'),0::bigint,'reverse follow-up column is retired');
 select extensions.is(public.app_transition_general_task(
   (select id from portfolio_tasks where title='다음 실적 확인'),1,'complete','실적 확인 완료',null,

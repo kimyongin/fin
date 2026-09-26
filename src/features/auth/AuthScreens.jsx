@@ -35,8 +35,8 @@ export function CenteredMessage({ title, body }) {
   return (
     <main className="grid min-h-screen content-center px-5">
       <section className="mx-auto max-w-sm rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 text-[var(--ink)] shadow-[var(--shadow-soft)]">
-        <h1 className="text-xl font-semibold">{title}</h1>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted-ink)]">{body}</p>
+        <h1 className="type-page-title">{title}</h1>
+        <p className="type-body type-long-body mt-3 text-[var(--muted-ink)]">{body}</p>
       </section>
     </main>
   )
@@ -56,9 +56,9 @@ export function LoginScreen({
     <main className="min-h-screen px-5 py-8 text-[var(--ink)]">
       <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-sm content-center gap-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Portfolio</p>
-          <h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">포트폴리오</h1>
-          <p className="mt-4 text-sm leading-6 text-[var(--muted-ink)]">
+          <p className="type-meta text-[var(--accent)]">Portfolio</p>
+          <h1 className="type-page-title mt-3 text-[var(--ink)]">포트폴리오</h1>
+          <p className="type-body type-long-body mt-4 text-[var(--muted-ink)]">
             여러 계좌에 흩어진 보유 종목을 한 화면에서 보고, 태그 기준 비중까지 빠르게 확인합니다.
           </p>
         </div>
@@ -120,9 +120,9 @@ export function GuestUnlockScreen({
     <main className="min-h-screen px-5 py-8 text-[var(--ink)]">
       <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-sm content-center gap-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Shared View</p>
-          <h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">공유 포트폴리오 보기</h1>
-          <p className="mt-4 text-sm leading-6 text-[var(--muted-ink)]">
+          <p className="type-meta text-[var(--accent)]">Shared View</p>
+          <h1 className="type-page-title mt-3 text-[var(--ink)]">공유 포트폴리오 보기</h1>
+          <p className="type-body type-long-body mt-4 text-[var(--muted-ink)]">
             공개 이름과 보기 비밀번호를 입력하면 읽기 전용으로 자산 현황을 볼 수 있습니다.
           </p>
         </div>

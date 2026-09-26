@@ -1,5 +1,14 @@
 const authStorageKey = 'sb-127-auth-token'
 
+export async function openPageActionMenu(page, title) {
+  await page.getByRole('button', { name: `${title} 작업 메뉴` }).click()
+}
+
+export async function clickPageAction(page, title, label) {
+  await openPageActionMenu(page, title)
+  await page.getByRole('group', { name: `${title} 작업` }).getByRole('button', { name: label, exact: true }).click()
+}
+
 export async function signInAs(page, email) {
   const response = await page.request.post(`${process.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     data: { email, password: 'e2e-password' },
@@ -37,6 +46,6 @@ export async function openMenuTab(page, label) {
     await primary.click()
     return
   }
-  await page.getByRole('button', { name: 'Open menu' }).click()
-  await page.locator('nav[aria-label="보조 메뉴"]').getByRole('button', { name: label, exact: true }).click()
+  await page.getByRole('button', { name: '메뉴 열기' }).click()
+  await page.getByRole('group', { name: '보조 메뉴' }).getByRole('button', { name: label, exact: true }).click()
 }

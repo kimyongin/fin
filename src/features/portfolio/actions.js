@@ -5,11 +5,9 @@ import {
   createAccountModalDraft,
   createHoldingModalDraft,
   createInstrumentModalDraft,
-  createTagModalDraft,
 } from './helpers'
 import { portfolioMessages } from './messages'
 import { summarizePriceSync } from './priceSync'
-import { createTagActions } from './tagActions'
 
 function createRpcCaller(supabase) {
   return async function callRpc(name, args) {
@@ -28,6 +26,7 @@ export function createPortfolioActions(params) {
     holdingsByAccountId,
     holdingsByTicker,
     instrumentModal,
+    instrumentLookupResult,
     latestPriceByTicker,
     refreshState,
     setAccountError,
@@ -40,19 +39,19 @@ export function createPortfolioActions(params) {
     setHoldingModal,
     setHoldingSaving,
     setInstrumentError,
+    setInstrumentLookupError,
+    setInstrumentLookupResult,
+    setInstrumentLookupSaving,
     setInstrumentModal,
     setInstrumentSaving,
     setLoadError = () => {},
     setSyncMessage,
     setSyncingPrices,
-    setTagError,
-    setTagModal,
-    setTagSaving,
     state,
     supabase,
     tagMapByTicker,
-    tagModal,
     today,
+    onInstrumentSaved,
   } = params
   const callRpc = createRpcCaller(supabase)
 
@@ -74,10 +73,11 @@ export function createPortfolioActions(params) {
 
   function openInstrument(instrument = null) {
     if (!canEdit) return
-    const latestPrice = instrument?.ticker ? latestPriceByTicker.get(instrument.ticker) : null
     const tagId = instrument?.ticker ? tagMapByTicker.get(instrument.ticker)?.id ?? '' : ''
     setInstrumentError('')
-    setInstrumentModal(createInstrumentModalDraft({ instrument, latestPrice, tagId }))
+    setInstrumentLookupError('')
+    setInstrumentLookupResult(null)
+    setInstrumentModal(createInstrumentModalDraft({ instrument, tagId }))
   }
 
   function openHolding(options = {}) {
@@ -91,12 +91,6 @@ export function createPortfolioActions(params) {
     })
     setHoldingLookupResult(lookupResult)
     setHoldingModal(draft)
-  }
-
-  function openTag(tag = null) {
-    if (!canEdit) return
-    setTagError('')
-    setTagModal(createTagModalDraft({ nextSortOrder: state.tags.length, tag, tags: state.tags }))
   }
 
   async function handleSyncPrices() {
@@ -119,12 +113,10 @@ export function createPortfolioActions(params) {
   return {
     ...createAccountActions({ accountModal, callRpc, canEdit, holdingsByAccountId, refreshAfterMutation, setAccountError, setAccountModal, setAccountSaving }),
     ...createHoldingActions({ callRpc, canEdit, holdingLookupResult, holdingModal, latestPriceByTicker, refreshAfterMutation, refreshState, setHoldingError, setHoldingLookupError, setHoldingLookupResult, setHoldingLookupSaving, setHoldingModal, setHoldingSaving, state, supabase }),
-    ...createInstrumentActions({ callRpc, canEdit, holdingsByTicker, instrumentModal, openHolding, refreshAfterMutation, setInstrumentError, setInstrumentModal, setInstrumentSaving, today }),
-    ...createTagActions({ callRpc, canEdit, refreshAfterMutation, setTagError, setTagModal, setTagSaving, tagModal }),
+    ...createInstrumentActions({ callRpc, canEdit, holdingsByTicker, instrumentModal, instrumentLookupResult, onInstrumentSaved, refreshAfterMutation, setInstrumentError, setInstrumentLookupError, setInstrumentLookupResult, setInstrumentLookupSaving, setInstrumentModal, setInstrumentSaving, state, supabase }),
     handleSyncPrices,
     openAccount,
     openHolding,
     openInstrument,
-    openTag,
   }
 }

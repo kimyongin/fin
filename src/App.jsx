@@ -10,7 +10,6 @@ import {
   LoginScreen as LoginScreenView,
 } from './features/auth/AuthScreens'
 import OAuthConsentPage from './features/auth/OAuthConsentPage'
-import { useAgentControls } from './features/agent/useAgentControls'
 import { useSupabaseSession } from './features/auth/useSupabaseSession'
 import PortfolioEditorModals from './features/modals/PortfolioEditorModals'
 import SettingsPageView from './features/settings/SettingsPage'
@@ -23,9 +22,11 @@ import {
   createOwnerViewContext,
   fetchActiveViewerAccess,
   fetchFriends,
+  fetchPortfolioViewers,
   fetchPortfolioState,
   fetchSharedFeatureAccess,
   fetchViewerProfile,
+  markSharedPortfolioView,
 } from './features/portfolio/data'
 import { portfolioMessages } from './features/portfolio/messages'
 import { usePortfolioBootstrap } from './features/portfolio/usePortfolioBootstrap'
@@ -35,7 +36,6 @@ import { usePortfolioEditorState } from './features/portfolio/usePortfolioEditor
 import { writeClipboard } from './lib/clipboard'
 import { today } from './lib/portfolioMath'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
-import { SUPABASE_URL } from './lib/config'
 import { createRequestGate } from './lib/requestGate'
 import {
   createGuestUnlockDraft,
@@ -60,7 +60,11 @@ function App() {
   const editor = usePortfolioEditorState()
   const [viewerProfileSchemaReady, setViewerProfileSchemaReady] = useState(true)
   const [viewerProfileSaving, setViewerProfileSaving] = useState(false)
+  const [avatarSaving, setAvatarSaving] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
+  const [viewerProfileLoaded, setViewerProfileLoaded] = useState(false)
   const [viewerProfileError, setViewerProfileError] = useState('')
+  const [viewerProfileErrorTarget, setViewerProfileErrorTarget] = useState('sharing')
   const [viewerProfileMessage, setViewerProfileMessage] = useState('')
   const [viewerProfile, setViewerProfile] = useState(() => createViewerProfileDraft())
   const [viewerProfileDraft, setViewerProfileDraft] = useState(() => createViewerProfileDraft())
@@ -68,6 +72,14 @@ function App() {
   const [guestUnlockSaving, setGuestUnlockSaving] = useState(false)
   const [guestUnlockError, setGuestUnlockError] = useState('')
   const [friends, setFriends] = useState([])
+  const [portfolioViewers, setPortfolioViewers] = useState([])
+  const [portfolioViewersNextOffset, setPortfolioViewersNextOffset] = useState(null)
+  const [portfolioViewersError, setPortfolioViewersError] = useState('')
+  const [portfolioViewersLoading, setPortfolioViewersLoading] = useState(false)
+  const [loadedOwnerUserId, setLoadedOwnerUserId] = useState(null)
+  const markedViewEntryRef = useRef(null)
+  const readySharedPageRef = useRef(null)
+  const currentViewRef = useRef(null)
   const [friendDraft, setFriendDraft] = useState(() => createFriendDraft())
   const [friendError, setFriendError] = useState('')
   const [friendSaving, setFriendSaving] = useState(false)
@@ -75,6 +87,7 @@ function App() {
   const [sharedFeatureAccess, setSharedFeatureAccess] = useState(null)
   const [assetAccountId, setAssetAccountId] = useState('all')
   const [assetQuery, setAssetQuery] = useState('')
+  const [registeredTicker, setRegisteredTicker] = useState(null)
   const [sheetDirty, setSheetDirty] = useState(false)
   const [spreadsheetSaving, setSpreadsheetSaving] = useState(false)
   const [state, setState] = useState(() => createEmptyPortfolioState())
@@ -86,11 +99,16 @@ function App() {
   })
   const isAnonymousSession = Boolean(session?.user?.is_anonymous)
   const portfolioRequestGate = useRef(createRequestGate())
+  const profileWriteRef = useRef(false)
+  const avatarWriteRef = useRef(false)
   const sessionUserId = session?.user?.id ?? null
   const sessionUserIdRef = useRef(sessionUserId)
   sessionUserIdRef.current = sessionUserId
   const canEdit = viewContext.mode === 'owner' && !isAnonymousSession
   const { activeTab, setActiveTab, tabs } = usePortfolioNavigation(canEdit, sharedFeatureAccess, !isAnonymousSession)
+  const sharedEntryKey = viewContext.mode === 'shared' ? `${viewContext.ownerUserId}:${activeTab}` : null
+  if (readySharedPageRef.current?.key !== sharedEntryKey) readySharedPageRef.current = null
+  currentViewRef.current = { activeTab, isAnonymousSession, loadedOwnerUserId, mode: viewContext.mode, ownerUserId: viewContext.ownerUserId }
   const [feedbackSourcePage, setFeedbackSourcePage] = useState('')
 
   const handleTabChange = useCallback((nextTab) => {
@@ -100,22 +118,6 @@ function App() {
     }
     setActiveTab(nextTab)
   }, [activeTab, setActiveTab, sheetDirty])
-  const {
-    createToken: handleCreateAgentToken,
-    dismissIssuedToken: handleDismissIssuedAgentToken,
-    issuedToken: issuedAgentToken,
-    revokeToken: handleRevokeAgentToken,
-    tokenError: agentTokenError,
-    tokenSaving: agentTokenSaving,
-    tokens: agentTokens,
-    tokensLoading: agentTokensLoading,
-  } = useAgentControls({
-    activeTab,
-    isAnonymousSession,
-    session,
-    supabase,
-  })
-
   const refreshState = useCallback(async (ownerUserId = null) => {
     const request = portfolioRequestGate.current.begin()
     const requestedByUserId = sessionUserIdRef.current
@@ -123,13 +125,66 @@ function App() {
     const nextState = await fetchPortfolioState(supabase, ownerUserId)
     if (!request.isCurrent() || sessionUserIdRef.current !== requestedByUserId) return false
     setState(nextState)
-    return true
+    setLoadedOwnerUserId(ownerUserId)
+    return nextState
   }, [])
 
   useEffect(() => {
     portfolioRequestGate.current.invalidate()
-    if (!sessionUserId) setState(createEmptyPortfolioState())
+    if (!sessionUserId) {
+      setState(createEmptyPortfolioState())
+      setLoadedOwnerUserId(null)
+    }
   }, [sessionUserId])
+
+  const loadPortfolioViewers = useCallback(async (offset = 0) => {
+    setPortfolioViewersLoading(true)
+    setPortfolioViewersError('')
+    try {
+      const page = await fetchPortfolioViewers(supabase, offset)
+      setPortfolioViewers((current) => offset === 0 ? page.items : [...current, ...page.items])
+      setPortfolioViewersNextOffset(page.nextOffset)
+    } catch (error) {
+      setPortfolioViewersError(error.message ?? '공유받는 친구를 불러오지 못했습니다.')
+    } finally {
+      setPortfolioViewersLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'settings' && sessionUserId && !isAnonymousSession) loadPortfolioViewers()
+  }, [activeTab, isAnonymousSession, loadPortfolioViewers, sessionUserId])
+
+  const signalSharedViewReady = useCallback((ownerUserId, tab) => {
+    const current = currentViewRef.current
+    if (!ownerUserId || current?.mode !== 'shared' || current.ownerUserId !== ownerUserId
+      || current.activeTab !== tab || current.isAnonymousSession) return
+    const entryKey = `${ownerUserId}:${tab}`
+    readySharedPageRef.current = { key: entryKey }
+    if (current.loadedOwnerUserId !== ownerUserId) return
+    if (markedViewEntryRef.current === entryKey) return
+    window.requestAnimationFrame(() => {
+      const latest = currentViewRef.current
+      if (latest?.mode !== 'shared' || latest.ownerUserId !== ownerUserId
+        || latest.activeTab !== tab || latest.isAnonymousSession || latest.loadedOwnerUserId !== ownerUserId
+        || markedViewEntryRef.current === entryKey) return
+      markedViewEntryRef.current = entryKey
+      markSharedPortfolioView(supabase, ownerUserId).catch(() => { /* Reading remains available when the signal fails. */ })
+    })
+  }, [])
+
+  useEffect(() => {
+    if (viewContext.mode !== 'shared') {
+      markedViewEntryRef.current = null
+      return
+    }
+    if (activeTab === 'overview' && loadedOwnerUserId === viewContext.ownerUserId) {
+      signalSharedViewReady(viewContext.ownerUserId, 'overview')
+    } else if (loadedOwnerUserId === viewContext.ownerUserId
+      && readySharedPageRef.current?.key === sharedEntryKey) {
+      signalSharedViewReady(viewContext.ownerUserId, activeTab)
+    }
+  }, [activeTab, loadedOwnerUserId, sharedEntryKey, signalSharedViewReady, viewContext.mode, viewContext.ownerUserId])
 
   const loadFriends = useCallback(async () => {
     try {
@@ -158,15 +213,19 @@ function App() {
     }
   }, [])
 
-  const loadViewerProfile = useCallback(async () => {
+  const loadViewerProfile = useCallback(async (preserveDraft = false) => {
     setViewerProfileError('')
     setViewerProfileMessage('')
+    setViewerProfileLoaded(false)
 
     try {
       const nextProfile = createViewerProfileDraft(await fetchViewerProfile(supabase))
       setViewerProfileSchemaReady(true)
       setViewerProfile(nextProfile)
-      setViewerProfileDraft(nextProfile)
+      setViewerProfileDraft((current) => preserveDraft
+        ? { ...current, avatar_key: nextProfile.avatar_key, viewer_password_updated_at: nextProfile.viewer_password_updated_at }
+        : nextProfile)
+      setViewerProfileLoaded(true)
     } catch (error) {
       if (isViewerSchemaMissingError(error)) {
         setViewerProfileSchemaReady(false)
@@ -174,6 +233,8 @@ function App() {
         setViewerProfileDraft(createViewerProfileDraft())
         return
       }
+      setViewerProfileErrorTarget('sharing')
+      setViewerProfileError(error.message ?? '공유 설정을 불러오지 못했습니다.')
       throw error
     }
   }, [])
@@ -213,17 +274,19 @@ function App() {
   }, [viewContext.mode, viewContext.ownerUserId])
 
   const handlePortfolioChange = useCallback(async (ownerUserId) => {
+    if (sheetDirty && !window.confirm('저장하지 않은 표 변경을 버리고 이동할까요?')) return
     portfolioRequestGate.current.invalidate()
+    setLoadedOwnerUserId(null)
     setState(createEmptyPortfolioState())
     setLoadError('')
     setLifecycleSelection(null)
+    setAssetAccountId('all')
+    setAssetQuery('')
     editor.setAccountModal(null)
     editor.setHoldingModal(null)
     editor.setInstrumentModal(null)
-    editor.setTagModal(null)
     if (ownerUserId === 'owner') {
       setViewContext(createOwnerViewContext(session.user.id))
-      setActiveTab('overview')
       await refreshState()
       return
     }
@@ -236,9 +299,31 @@ function App() {
       ownerUserId: friend.owner_user_id,
       ownerPublicName: friend.owner_public_name ?? '',
     })
-    setActiveTab('overview')
     await refreshState(friend.owner_user_id)
-  }, [editor, friends, refreshState, session?.user?.id, setActiveTab])
+  }, [editor, friends, refreshState, session?.user?.id, sheetDirty])
+
+  const handleAvatarSelect = useCallback(async (avatarKey) => {
+    if (avatarWriteRef.current || !viewerProfileLoaded || !viewerProfileSchemaReady || avatarKey === viewerProfile.avatar_key) return
+    avatarWriteRef.current = true
+    const previousAvatarKey = viewerProfile.avatar_key
+    setAvatarSaving(true)
+    setAvatarError('')
+    setViewerProfile((current) => ({ ...current, avatar_key: avatarKey }))
+    setViewerProfileDraft((current) => ({ ...current, avatar_key: avatarKey }))
+    try {
+      const { data, error } = await supabase.rpc('app_set_profile_avatar', { input_avatar_key: avatarKey })
+      if (error) throw error
+      setViewerProfile((current) => ({ ...current, avatar_key: data }))
+      setViewerProfileDraft((current) => ({ ...current, avatar_key: data }))
+    } catch (error) {
+      setViewerProfile((current) => ({ ...current, avatar_key: previousAvatarKey }))
+      setViewerProfileDraft((current) => ({ ...current, avatar_key: previousAvatarKey }))
+      setAvatarError(error.message ?? '아이콘을 저장하지 못했습니다.')
+    } finally {
+      avatarWriteRef.current = false
+      setAvatarSaving(false)
+    }
+  }, [viewerProfile.avatar_key, viewerProfileLoaded, viewerProfileSchemaReady])
 
   const handleAddFriend = useCallback(async () => {
     setFriendSaving(true)
@@ -254,14 +339,19 @@ function App() {
       const nextFriends = await loadFriends()
       setFriendDraft(createFriendDraft())
       if (friend?.owner_user_id && nextFriends.some((item) => item.owner_user_id === friend.owner_user_id)) {
-        await handlePortfolioChange(friend.owner_user_id)
+        portfolioRequestGate.current.invalidate()
+        setLoadedOwnerUserId(null)
+        setState(createEmptyPortfolioState())
+        setViewContext({ mode: 'shared', ownerUserId: friend.owner_user_id, ownerPublicName: friend.owner_public_name ?? '' })
+        setActiveTab('overview')
+        await refreshState(friend.owner_user_id)
       }
     } catch (error) {
       setFriendError(error.message ?? '친구를 추가하지 못했습니다.')
     } finally {
       setFriendSaving(false)
     }
-  }, [friendDraft, handlePortfolioChange, loadFriends])
+  }, [friendDraft, loadFriends, refreshState, setActiveTab])
 
   const handleRemoveFriend = useCallback(async (ownerUserId) => {
     setFriendSaving(true)
@@ -271,6 +361,8 @@ function App() {
       if (error) throw error
       await loadFriends()
       if (viewContext.ownerUserId === ownerUserId) {
+        setAssetAccountId('all')
+        setAssetQuery('')
         setViewContext(createOwnerViewContext(session.user.id))
         setActiveTab('overview')
         await refreshState()
@@ -351,17 +443,15 @@ function App() {
     handleDeleteAccount,
     handleDeleteHolding,
     handleDeleteInstrument,
-    handleDeleteTag,
+    handleLookupInstrumentTicker,
     handleLookupHoldingTicker,
     handleSaveAccount,
     handleSaveHolding,
     handleSaveInstrument,
-    handleSaveTag,
     handleSyncPrices,
     openAccount: openAccountModal,
     openHolding: openHoldingModal,
     openInstrument: openInstrumentModal,
-    openTag: openTagModal,
   } = createPortfolioActions({
     canEdit,
     ...editor,
@@ -374,13 +464,19 @@ function App() {
     supabase,
     tagMapByTicker,
     today,
+    onInstrumentSaved: (ticker) => {
+      setAssetAccountId('all')
+      setAssetQuery('')
+      setRegisteredTicker(ticker)
+    },
   })
 
   const { handleGuestUnlock, handleSaveViewerProfile, signOut } = createAccessActions({
     canEdit, createGuestUnlockDraft, createViewerProfileDraft, guestUnlockDraft, refreshState, session,
     setAuthStatus, setGuestUnlockDraft, setGuestUnlockError, setGuestUnlockSaving, setSession,
     setViewContext, setViewerProfile, setViewerProfileDraft, setViewerProfileError,
-    setViewerProfileMessage, setViewerProfileSaving, setViewerProfileSchemaReady,
+    setViewerProfileErrorTarget, setViewerProfileLoaded, setViewerProfileMessage,
+    setViewerProfileSaving, setViewerProfileSchemaReady, profileWriteRef,
     supabase, viewerProfile, viewerProfileDraft,
   })
 
@@ -454,13 +550,15 @@ function App() {
   return (
     <main className="min-h-screen px-4 pb-24 pt-5 text-[var(--ink)] sm:px-6">
       <div className="mx-auto max-w-6xl">
+        <h1 className="sr-only">{pageTitle}</h1>
         <AppHeader
           activeTab={activeTab}
           friends={friends}
-          onPortfolioChange={!isAnonymousSession && friends.length > 0 ? handlePortfolioChange : undefined}
+          onPortfolioChange={!isAnonymousSession ? handlePortfolioChange : undefined}
           onSignOut={signOut}
           onTabChange={handleTabChange}
           pageTitle={pageTitle}
+          ownerAvatarKey={viewerProfile.avatar_key}
           portfolioLabel="Portfolio"
           sharedPortfolioViewLabel={portfolioMessages.sharedPortfolioView}
           sharedViewLabel={portfolioMessages.sharedView}
@@ -481,6 +579,7 @@ function App() {
             initialSelection={lifecycleSelection}
             mode={activeTab}
             onModeChange={setActiveTab}
+            onSharedViewReady={(ownerUserId) => signalSharedViewReady(ownerUserId, 'tasks')}
             onSelectionHandled={() => setLifecycleSelection(null)}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             supabase={supabase}
@@ -489,6 +588,8 @@ function App() {
 
         {activeTab === 'overview' && (
           <AssetsPageView
+            key={viewContext.ownerUserId}
+            shared={viewContext.mode === 'shared'}
             accountById={accountById}
             accounts={state.accounts}
             selectedAccountId={assetAccountId}
@@ -502,8 +603,9 @@ function App() {
             latestPriceByTicker={latestPriceByTicker}
             onCopyCsv={handleCopyCsv}
             onCreateAccount={() => openAccountModal()}
-            onCreateHolding={(ticker) => openHoldingModal({ ticker })}
-            onCreateHoldingForAccount={(accountId) => openHoldingModal({ accountId })}
+            onCreateInstrument={() => openInstrumentModal()}
+            registeredTicker={registeredTicker}
+            onRegisteredTickerHandled={() => setRegisteredTicker(null)}
             onEditAccount={(account) => openAccountModal(account)}
             onEditHolding={(holding) => openHoldingModal({ holding })}
             onEditInstrument={(instrument) => openInstrumentModal(instrument)}
@@ -529,11 +631,15 @@ function App() {
             canEdit={canEdit}
             csvCopied={copied}
             onCopyCsv={handleCopyCsv}
-            onCreateTag={() => openTagModal()}
-            onEditTag={(tag) => openTagModal(tag)}
+            onRefreshTags={async () => {
+              const latest = await refreshState()
+              if (!latest) throw new Error('태그 목록을 새로고침하지 못했습니다.')
+              return latest.tags
+            }}
             onSyncPrices={handleSyncPrices}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             section="allocation"
+            onSharedViewReady={(ownerUserId) => signalSharedViewReady(ownerUserId, 'allocation')}
             showStrategy={canEdit || Boolean(sharedFeatureAccess?.features?.strategy)}
             showAssets={canEdit || Boolean(sharedFeatureAccess?.features?.assets)}
             supabase={supabase}
@@ -547,35 +653,38 @@ function App() {
         )}
         {activeTab === 'settings' && (
           <SettingsPageView
-            supabase={supabase}
-            agentMcpEndpoint={`${SUPABASE_URL}/functions/v1/portfolio-mcp`}
-            agentTokenError={agentTokenError}
-            agentTokenSaving={agentTokenSaving}
-            agentTokens={agentTokens}
-            agentTokensLoading={agentTokensLoading}
-            issuedAgentToken={issuedAgentToken}
             friendDraft={friendDraft}
             friendError={friendError}
             friendSaving={friendSaving}
             friends={friends}
+            portfolioViewers={portfolioViewers}
+            portfolioViewersError={portfolioViewersError}
+            portfolioViewersLoading={portfolioViewersLoading}
+            portfolioViewersNextOffset={portfolioViewersNextOffset}
+            onPortfolioViewersReload={() => loadPortfolioViewers()}
+            onPortfolioViewersMore={() => loadPortfolioViewers(portfolioViewersNextOffset)}
             onAddFriend={handleAddFriend}
             onFriendChange={(field, value) => {
               setFriendError('')
               setFriendDraft((current) => ({ ...current, [field]: value }))
             }}
             onRemoveFriend={handleRemoveFriend}
-            onAgentTokenCreate={handleCreateAgentToken}
-            onAgentTokenDismiss={handleDismissIssuedAgentToken}
-            onAgentTokenRevoke={handleRevokeAgentToken}
+            onViewFriend={handlePortfolioChange}
             onViewerProfileChange={(field, value) => {
               setViewerProfileError('')
               setViewerProfileMessage('')
               setViewerProfileDraft((current) => ({ ...current, [field]: value }))
             }}
             onViewerProfileSave={handleSaveViewerProfile}
+            onViewerProfileReload={loadViewerProfile}
+            onAvatarSelect={handleAvatarSelect}
+            avatarSaving={avatarSaving}
+            avatarError={avatarError}
             viewerProfile={viewerProfile}
             viewerProfileDraft={viewerProfileDraft}
             viewerProfileError={viewerProfileError}
+            viewerProfileErrorTarget={viewerProfileErrorTarget}
+            viewerProfileLoaded={viewerProfileLoaded}
             viewerProfileMessage={viewerProfileMessage}
             viewerProfileSaving={viewerProfileSaving}
             viewerProfileSchemaReady={viewerProfileSchemaReady}
@@ -586,6 +695,7 @@ function App() {
             canEdit={canEdit}
             ownerUserId={viewContext.mode === 'shared' ? viewContext.ownerUserId : null}
             section="principles"
+            onSharedViewReady={(ownerUserId) => signalSharedViewReady(ownerUserId, 'strategy')}
             supabase={supabase}
             tagCards={tagCards}
             tags={state.tags}
@@ -608,12 +718,11 @@ function App() {
           onDeleteAccount={handleDeleteAccount}
           onDeleteHolding={handleDeleteHolding}
           onDeleteInstrument={handleDeleteInstrument}
-          onDeleteTag={handleDeleteTag}
           onLookupHoldingTicker={handleLookupHoldingTicker}
+          onLookupInstrumentTicker={handleLookupInstrumentTicker}
           onSaveAccount={handleSaveAccount}
           onSaveHolding={handleSaveHolding}
           onSaveInstrument={handleSaveInstrument}
-          onSaveTag={handleSaveTag}
           tags={state.tags}
         />
       </div>

@@ -49,11 +49,7 @@ export function createAccountModalDraft(account = null) {
   }
 }
 
-export function createInstrumentModalDraft({
-  instrument = null,
-  latestPrice = null,
-  tagId = '',
-}) {
+export function createInstrumentModalDraft({ instrument = null, tagId = '' }) {
   return {
     id: instrument?.id ?? null,
     ticker: instrument?.ticker ?? '',
@@ -61,10 +57,7 @@ export function createInstrumentModalDraft({
     currency: instrument?.currency ?? 'KRW',
     instrument_type: normalizeEditableInstrumentType(instrument?.instrument_type),
     note: instrument?.note ?? '',
-    price: latestPrice?.close_price?.toString?.() ?? '',
-    price_date: latestPrice?.price_date ?? today(),
     tag_id: tagId ? String(tagId) : '',
-    linked_account_id: '',
   }
 }
 
@@ -109,13 +102,5 @@ export function createHoldingModalDraft({
       latestPrice: initialLatestPrice,
       ticker: initialTicker,
     }),
-  }
-}
-
-export function createTagModalDraft({ nextSortOrder, tag = null }) {
-  return {
-    id: tag?.id ?? null,
-    name: tag?.name ?? '',
-    sort_order: String(tag?.sort_order ?? nextSortOrder),
   }
 }

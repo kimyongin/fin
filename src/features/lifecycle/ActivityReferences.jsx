@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-const inputClass = 'min-h-11 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-2 text-base'
+const inputClass = 'form-control'
 
 function SearchReference({ disabled, kind, label, onChange, selectedId, selectedSummary, supabase }) {
   const [query, setQuery] = useState('')
@@ -52,7 +52,7 @@ function SearchReference({ disabled, kind, label, onChange, selectedId, selected
   }
   const selected = chosen?.id === selectedId ? chosen : selectedSummary
   return <div className="grid gap-2">
-    <label className="grid gap-2 text-xs font-semibold text-[var(--muted-ink)]">{label}
+    <label className="form-field form-label">{label}
       <input aria-autocomplete="list" aria-expanded={open} className={inputClass} data-escape-results-open={open ? 'true' : undefined} disabled={disabled} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => {
         if (event.key === 'Escape' && open) { event.stopPropagation(); setOpen(false) }
         if (event.key === 'ArrowDown' && open) { event.preventDefault(); setActive((value) => Math.min(value + 1, Math.max(items.length - 1, 0))) }
@@ -75,6 +75,6 @@ export default function ActivityReferences({ disabled = false, instrumentId, ins
   return <section className="grid gap-4 border-t border-[var(--line)] pt-4">
     <SearchReference disabled={disabled} kind="instrument" label="관련 종목" onChange={onInstrumentChange} selectedId={instrumentId} selectedSummary={instrumentSummary} supabase={supabase} />
     <SearchReference disabled={disabled} kind="task" label="관련 할 일" onChange={onTaskChange} selectedId={taskId} selectedSummary={taskSummary} supabase={supabase} />
-    <p className="text-xs leading-5 text-[var(--muted-ink)]">연결은 탐색용입니다. 기록 저장만으로 할 일이 완료되거나 잔고가 바뀌지 않습니다.</p>
+    <p className="type-secondary text-[var(--muted-ink)]">연결은 탐색용입니다. 기록 저장만으로 할 일이 완료되거나 잔고가 바뀌지 않습니다.</p>
   </section>
 }

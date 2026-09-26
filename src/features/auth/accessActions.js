@@ -1,12 +1,14 @@
 import { recordUserActivity } from '../agent/data'
-import { portfolioMessages, viewerProfileSavedMessage } from '../portfolio/messages'
+import { portfolioMessages } from '../portfolio/messages'
 import { formatSupabaseError, isViewerSchemaMissingError } from '../../lib/viewerAccess'
+import { fetchViewerProfile } from '../portfolio/data'
 
 export function createAccessActions({
   canEdit, createGuestUnlockDraft, createViewerProfileDraft, guestUnlockDraft, refreshState, session,
   setAuthStatus, setGuestUnlockDraft, setGuestUnlockError, setGuestUnlockSaving, setSession,
   setViewContext, setViewerProfile, setViewerProfileDraft, setViewerProfileError,
-  setViewerProfileMessage, setViewerProfileSaving, setViewerProfileSchemaReady,
+  setViewerProfileErrorTarget, setViewerProfileLoaded, setViewerProfileMessage,
+  setViewerProfileSaving, setViewerProfileSchemaReady, profileWriteRef,
   supabase, viewerProfile, viewerProfileDraft,
 }) {
   async function signOut() {
@@ -48,21 +50,29 @@ export function createAccessActions({
     } finally { setGuestUnlockSaving(false) }
   }
 
-  async function handleSaveViewerProfile() {
-    if (!canEdit) return
+  async function saveViewerProfile() {
+    if (!canEdit || profileWriteRef.current) return
+    const publicName = viewerProfileDraft.public_name.trim()
+    const password = viewerProfileDraft.viewer_password.trim()
+    const sharingEnabled = Boolean(viewerProfileDraft.sharing_enabled)
+    const validationError = sharingEnabled && !publicName ? portfolioMessages.viewerPublicNameRequired
+      : password && password.length < 4 ? portfolioMessages.viewerPasswordTooShort
+        : sharingEnabled && !password && !viewerProfile.viewer_password_updated_at ? portfolioMessages.viewerPasswordRequired : ''
+    if (validationError) {
+      setViewerProfileErrorTarget(validationError === portfolioMessages.viewerPublicNameRequired ? 'public_name' : 'viewer_password')
+      setViewerProfileError(validationError)
+      return
+    }
+    profileWriteRef.current = true
     setViewerProfileSaving(true)
     setViewerProfileError('')
     setViewerProfileMessage('')
+    setViewerProfileErrorTarget('credentials')
     try {
-      const publicName = viewerProfileDraft.public_name.trim()
-      const password = viewerProfileDraft.viewer_password.trim()
-      if (viewerProfileDraft.sharing_enabled && !publicName) throw new Error(portfolioMessages.viewerPublicNameRequired)
-      if (password && password.length < 4) throw new Error(portfolioMessages.viewerPasswordTooShort)
-      if (viewerProfileDraft.sharing_enabled && !password && !viewerProfile.viewer_password_updated_at) throw new Error(portfolioMessages.viewerPasswordRequired)
-
       const { data, error } = await supabase.rpc('set_viewer_profile', {
         input_public_name: publicName,
-        input_sharing_enabled: Boolean(viewerProfileDraft.sharing_enabled),
+        input_sharing_enabled: sharingEnabled,
+        input_share_scope: 'portfolio_all',
         input_viewer_password: password,
       })
       if (error) throw error
@@ -71,7 +81,7 @@ export function createAccessActions({
         await recordUserActivity(supabase, {
           actionType: 'update_viewer_profile',
           afterData: {
-            password_updated: Boolean(viewerProfileDraft.viewer_password),
+            password_updated: Boolean(password),
             public_name: nextProfile.public_name,
             sharing_enabled: nextProfile.sharing_enabled,
             viewer_password_updated_at: nextProfile.viewer_password_updated_at,
@@ -86,16 +96,35 @@ export function createAccessActions({
         })
       } catch { /* Activity logging should never block the profile edit. */ }
       setViewerProfileSchemaReady(true)
-      setViewerProfile(nextProfile)
-      setViewerProfileDraft(nextProfile)
-      setViewerProfileMessage(viewerProfileSavedMessage(Boolean(viewerProfileDraft.viewer_password)))
+      setViewerProfileLoaded(true)
+      setViewerProfile((current) => ({ ...current, ...nextProfile, avatar_key: current.avatar_key }))
+      setViewerProfileDraft((current) => ({
+        ...current, public_name: nextProfile.public_name, sharing_enabled: nextProfile.sharing_enabled,
+        viewer_password: '', viewer_password_updated_at: nextProfile.viewer_password_updated_at,
+      }))
+      setViewerProfileMessage('공유 설정을 저장했습니다.')
     } catch (error) {
       if (isViewerSchemaMissingError(error)) {
         setViewerProfileSchemaReady(false)
-        setViewerProfileError(formatSupabaseError(error, portfolioMessages.viewerProfileSchemaFailed))
-      } else setViewerProfileError(error.message ?? portfolioMessages.viewerProfileSaveFailed)
-    } finally { setViewerProfileSaving(false) }
+      }
+      try {
+        const actual = createViewerProfileDraft(await fetchViewerProfile(supabase))
+        setViewerProfileLoaded(true)
+        setViewerProfile((current) => ({ ...current, ...actual, avatar_key: current.avatar_key }))
+        setViewerProfileError(formatSupabaseError(error, portfolioMessages.viewerProfileSaveFailed))
+      } catch {
+        setViewerProfileLoaded(false)
+        setViewerProfileError('저장 결과를 확인하지 못했습니다. 다시 조회해 주세요.')
+      }
+    } finally {
+      profileWriteRef.current = false
+      setViewerProfileSaving(false)
+    }
   }
 
-  return { handleGuestUnlock, handleSaveViewerProfile, signOut }
+  return {
+    handleGuestUnlock,
+    handleSaveViewerProfile: saveViewerProfile,
+    signOut,
+  }
 }

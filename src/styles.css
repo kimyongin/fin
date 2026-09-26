@@ -4,6 +4,7 @@
 :root {
   color-scheme: dark;
   --accent: #ff8a00;
+  --accent-ink: #15120d;
   --accent-soft: rgba(255, 138, 0, 0.16);
   --panel: rgba(24, 25, 31, 0.94);
   --surface-2: rgba(19, 20, 26, 0.9);
@@ -29,6 +30,9 @@ html {
 body {
   margin: 0;
   min-width: 320px;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5rem;
   background: transparent;
   overflow-x: hidden;
   scrollbar-width: none;
@@ -71,11 +75,227 @@ body {
   border-radius: 999px;
 }
 
-button,
+/* Text roles are shared across screens; layout and state colors remain local. */
+.type-page-title,
+.type-summary-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 2rem;
+}
+
+.type-dialog-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+}
+
+.type-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+}
+
+.type-item-title,
+.type-value {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+.type-body,
+.type-input {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5rem;
+}
+
+.type-label,
+.type-action {
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+
+.type-secondary {
+  font-size: .875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+}
+
+.type-meta {
+  font-size: .75rem;
+  font-weight: 400;
+  line-height: 1.125rem;
+}
+
+.type-long-body {
+  line-height: 1.625rem;
+}
+
+.type-number {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The same label/control rhythm is used by modal forms and page filters. */
+.form-field { display: grid; gap: 8px; min-width: 0; }
+.form-label { color: var(--muted-ink); font-size: .875rem; font-weight: 600; line-height: 1.25rem; }
+.form-control {
+  width: 100%; min-width: 0; min-height: 3rem; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--surface-3); color: var(--ink);
+  padding: 10px 12px; font-size: 1rem; font-weight: 400; line-height: 1.5rem;
+}
+.form-control:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.form-control:disabled { opacity: .55; }
+textarea.form-control { min-height: 6rem; resize: vertical; }
+.form-readonly { position: relative; min-width: 0; }
+.form-readonly .form-control { padding-right: 40px; background: var(--surface-2); cursor: text; }
+.form-readonly svg { position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); pointer-events: none; color: var(--muted-ink); }
+.calendar-field-control { position: relative; min-width: 0; }
+.calendar-field-control .form-control { padding-right: 56px; }
+.calendar-field-toggle {
+  position: absolute; inset-block: 2px; right: 2px; display: grid; width: 44px;
+  place-items: center; border-radius: 10px; color: var(--muted-ink);
+}
+.calendar-field-toggle:hover { color: var(--ink); background: var(--surface-2); }
+.calendar-field-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.calendar-field-toggle:disabled { opacity: .55; }
+.calendar-field-panel {
+  width: max-content; max-width: 100%; overflow-x: auto; border: 1px solid var(--line);
+  border-radius: 16px; background: var(--surface-2); padding: 12px;
+}
+.calendar-field-panel .rdp-root {
+  --rdp-accent-color: var(--accent);
+  --rdp-accent-background-color: var(--accent-soft);
+  --rdp-day-height: 44px;
+  --rdp-day-width: 44px;
+  --rdp-day_button-height: 44px;
+  --rdp-day_button-width: 44px;
+  --rdp-day_button-border-radius: 12px;
+  --rdp-nav_button-height: 44px;
+  --rdp-nav_button-width: 44px;
+  color: var(--ink); font-size: 1rem;
+}
+.calendar-field-panel .rdp-caption_label { font-size: 1rem; font-weight: 600; }
+.calendar-field-panel .rdp-selected { font-size: 1rem; font-weight: 600; }
+.calendar-field-panel .rdp-selected .rdp-day_button { background: var(--accent-soft); }
+.calendar-field-panel .rdp-day_button:focus-visible,
+.calendar-field-panel .rdp-button_next:focus-visible,
+.calendar-field-panel .rdp-button_previous:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.record-date-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: 12px; }
+.record-date-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 850px) {
+  .record-date-grid { grid-template-columns: minmax(0, 1fr); }
+  .record-date-separator { display: none; }
+  .record-date-label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+}
+@media (max-width: 390px) {
+  .calendar-field-panel { padding: 8px; }
+}
+
+.page-panel { display: grid; gap: 8px; min-width: 0; }
+.page-panel__header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.page-panel__heading { display: flex; flex: 1 0 auto; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.page-panel__actions { position: relative; flex: 0 0 auto; margin-left: auto; }
+.page-panel__menu { position: absolute; z-index: 30; top: calc(100% + 8px); right: 0; max-width: calc(100vw - 32px); }
+.page-panel__menu[hidden] { display: none; }
+.page-panel__menu > button { width: 100%; white-space: nowrap; }
+.page-panel__supporting { display: grid; gap: 8px; min-width: 0; }
+.page-panel__metric { min-width: 0; }
+.page-panel__body { display: grid; gap: 12px; min-width: 0; margin-top: 8px; border-top: 1px solid var(--line); padding-top: 16px; }
+.list-column-header { min-height: 36px; align-items: center; }
+
+
+.type-code,
+pre,
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+}
+
+.type-page-title,
+.type-dialog-title,
+.type-section-title,
+.type-item-title,
+.type-value,
+.type-summary-value,
+.type-body,
+.type-label,
+.type-input,
+.type-action,
+.type-secondary,
+.type-meta,
+.type-code {
+  letter-spacing: normal;
+}
+
 input,
 select,
 textarea {
-  font: inherit;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5rem;
+}
+
+button {
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 2rem;
+}
+
+h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+}
+
+h3,
+h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+label,
+legend,
+th {
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+
+label > span:first-child:not(.sr-only) {
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+strong,
+b {
+  font-weight: 600;
+}
+
+/* Small action text must remain readable on the bright accent surface. */
+[class~="bg-[var(--accent)]"] {
+  color: var(--accent-ink);
+}
+
+time {
+  font-size: .75rem;
+  font-weight: 400;
+  line-height: 1.125rem;
+  font-variant-numeric: tabular-nums;
 }
 
 select {

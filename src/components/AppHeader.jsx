@@ -1,154 +1,62 @@
 import { useEffect, useRef, useState } from 'react'
+import { profileAvatar } from '../lib/profileAvatar'
 
-function AppHeader({
-  activeTab,
-  pageTitle,
-  portfolioLabel = 'Portfolio',
-  friends = [],
-  onPortfolioChange,
-  sharedPortfolioViewLabel,
-  sharedViewLabel,
-  signOutLabel,
-  tabs,
-  viewContext,
-  onSignOut,
-  onTabChange,
-}) {
-  const [menuOpen, setMenuOpen] = useState(false)
+const primaryIds = ['overview', 'allocation', 'tasks', 'strategy']
+const secondaryIds = ['settings', 'guide', 'feedback']
+
+export default function AppHeader({ activeTab, friends = [], onPortfolioChange, onSignOut, onTabChange, ownerAvatarKey, pageTitle, signOutLabel, tabs, viewContext }) {
+  const [open, setOpen] = useState(null)
+  const navRef = useRef(null)
+  const profileRef = useRef(null)
   const menuRef = useRef(null)
+  const inPortfolio = primaryIds.includes(activeTab)
+  const selectedFriend = inPortfolio && viewContext.mode === 'shared' ? friends.find((friend) => friend.owner_user_id === viewContext.ownerUserId) : null
+  const selectedName = viewContext.mode === 'shared' ? (selectedFriend?.owner_public_name || viewContext.ownerPublicName || '이름 없는 친구') : '나'
+  const selectedAvatar = profileAvatar(inPortfolio && viewContext.mode === 'shared' ? (selectedFriend?.owner_avatar_key || viewContext.ownerAvatarKey) : ownerAvatarKey)
+  const showSelfBadge = viewContext.mode === 'owner'
 
   useEffect(() => {
-    if (!menuOpen) return
-
-    function handleClick(event) {
-      if (!menuRef.current?.contains(event.target)) {
-        setMenuOpen(false)
-      }
+    if (!open) return
+    function onPointerDown(event) { if (!navRef.current?.contains(event.target)) setOpen(null) }
+    function onKeyDown(event) {
+      if (event.key !== 'Escape') return
+      setOpen(null)
+      ;(open === 'profile' ? profileRef : menuRef).current?.focus()
     }
-
-    function handleKeydown(event) {
-      if (event.key === 'Escape') {
-        setMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('keydown', handleKeydown)
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
     return () => {
-      document.removeEventListener('mousedown', handleClick)
-      document.removeEventListener('keydown', handleKeydown)
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
     }
-  }, [menuOpen])
+  }, [open])
 
-  const availableIds = new Set(tabs.map((tab) => tab.id))
-  const primaryTabs = [
-    availableIds.has('overview') && { id: 'overview', label: '자산' },
-    availableIds.has('allocation') && { id: 'allocation', label: '배분' },
-    availableIds.has('tasks') && {
-      id: 'tasks',
-      label: '활동',
-      activeIds: ['tasks'],
-    },
-    availableIds.has('strategy') && { id: 'strategy', label: '원칙' },
-  ].filter(Boolean)
-  const secondaryTabs = tabs.filter((tab) => ['feedback', 'settings', 'guide'].includes(tab.id))
-
-  function PrimaryNavigation() {
-    return (
-      <nav
-        aria-label="주요 메뉴"
-        className="fixed inset-x-0 bottom-0 z-50 grid border-t border-[var(--line)] bg-[var(--surface-3)] px-2 pt-2 shadow-2xl"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', gridTemplateColumns: `repeat(${Math.max(primaryTabs.length, 1)}, minmax(0, 1fr))` }}
-      >
-        {primaryTabs.map((tab) => {
-          const selected = (tab.activeIds ?? [tab.id]).includes(activeTab)
-          return (
-            <button
-              aria-current={selected ? 'page' : undefined}
-              className={`min-h-11 rounded-xl px-1 text-center text-xs font-semibold transition sm:text-sm ${selected ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'}`}
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          )
-        })}
-      </nav>
-    )
+  function selectPortfolio(id) {
+    setOpen(null)
+    onPortfolioChange?.(id)
+    requestAnimationFrame(() => profileRef.current?.focus())
   }
 
-  return (
-    <header className="relative z-[60] mb-6" ref={menuRef}>
-      <PrimaryNavigation />
-      <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold">{pageTitle}</h1>
-          {onPortfolioChange && (
-            <select
-              aria-label="포트폴리오 전환"
-              className="max-w-48 rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-2 py-1.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
-              onChange={(event) => onPortfolioChange(event.target.value)}
-              value={viewContext.mode === 'owner' ? 'owner' : viewContext.ownerUserId}
-            >
-              <option value="owner">내 포트폴리오</option>
-              {friends.map((friend) => (
-                <option key={friend.owner_user_id} value={friend.owner_user_id}>
-                  {friend.owner_public_name || '이름 없는 친구'}
-                </option>
-              ))}
-            </select>
-          )}
-          {viewContext.mode === 'shared' && (
-            <p className="min-w-0 text-sm text-[var(--muted-ink)]">
-              {(viewContext.ownerPublicName || sharedViewLabel) + ' ' + sharedPortfolioViewLabel}
-            </p>
-          )}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            aria-expanded={menuOpen}
-            aria-label="Open menu"
-            className="inline-flex h-12 w-12 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] text-[var(--ink)]"
-            onClick={() => setMenuOpen((open) => !open)}
-            type="button"
-          >
-            <span className="h-0.5 w-4 rounded-full bg-current" />
-            <span className="h-0.5 w-4 rounded-full bg-current" />
-            <span className="h-0.5 w-4 rounded-full bg-current" />
-          </button>
-        </div>
-      </div>
-      {menuOpen && (
-        <nav aria-label="보조 메뉴" className="absolute right-0 top-[calc(100%+10px)] z-10 grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-1.5 shadow-2xl shadow-black/40 backdrop-blur">
-          {secondaryTabs.map((tab) => (
-            <button
-              className={`min-h-11 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                activeTab === tab.id
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'text-[var(--muted-ink)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'
-              }`}
-              key={tab.id}
-              onClick={() => {
-                onTabChange(tab.id)
-                setMenuOpen(false)
-              }}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          ))}
-          <button
-            className="min-h-11 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-            onClick={onSignOut}
-            type="button"
-          >
-            {signOutLabel}
-          </button>
-        </nav>
-      )}
-    </header>
-  )
+  return <nav aria-label="주요 메뉴" className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--line)] bg-[var(--surface-3)] px-2 pt-2 shadow-2xl" ref={navRef} style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+    {open === 'profile' && <div aria-label="포트폴리오 선택" className="absolute bottom-[calc(100%+0.5rem)] left-2 max-h-[min(60vh,24rem)] min-w-48 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-2 shadow-2xl" role="group">
+      {[{ id: 'owner', name: '나', avatar: ownerAvatarKey }, ...friends.map((friend) => ({ id: friend.owner_user_id, name: friend.owner_public_name || '이름 없는 친구', avatar: friend.owner_avatar_key }))].map((item) => {
+        const selected = (viewContext.mode === 'owner' && item.id === 'owner') || viewContext.ownerUserId === item.id
+        return <button aria-current={selected ? 'true' : undefined} className="type-action flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left hover:bg-[var(--surface-2)]" key={item.id} onClick={() => selectPortfolio(item.id)} type="button"><span aria-hidden="true" className="text-xl">{profileAvatar(item.avatar).symbol}</span><span className="min-w-0 flex-1 truncate">{item.name}</span>{selected && <span aria-label="선택됨">✓</span>}</button>
+      })}
+      {friends.length > 0 && <p className="type-secondary border-t border-[var(--line)] px-3 pt-2 text-[var(--muted-ink)]">내 공개 이름과 최근 열람 시각이 상대방에게 표시됩니다.</p>}
+    </div>}
+    {open === 'menu' && <div aria-label="보조 메뉴" className="absolute bottom-[calc(100%+0.5rem)] right-2 grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-2 shadow-2xl" role="group">
+      {secondaryIds.map((id) => tabs.find((tab) => tab.id === id)).filter(Boolean).map((tab) => <button aria-current={activeTab === tab.id ? 'page' : undefined} className="type-action min-h-11 rounded-xl px-3 text-left hover:bg-[var(--surface-2)]" key={tab.id} onClick={() => { setOpen(null); onTabChange(tab.id) }} type="button">{tab.label}</button>)}
+      <button className="type-action min-h-11 rounded-xl px-3 text-left hover:bg-[var(--surface-2)]" onClick={onSignOut} type="button">{signOutLabel}</button>
+    </div>}
+    <div className="grid items-center gap-1" style={{ gridTemplateColumns: '44px repeat(4, minmax(0, 1fr)) 44px' }}>
+      <button aria-expanded={open === 'profile'} aria-label={inPortfolio ? `현재 ${selectedName}의 포트폴리오, 전환하기` : '내 프로필'} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-[var(--surface-2)] disabled:opacity-70" disabled={!inPortfolio || !onPortfolioChange} onClick={() => setOpen((current) => current === 'profile' ? null : 'profile')} ref={profileRef} type="button"><span aria-hidden="true" className="relative flex h-8 w-8 items-center justify-center rounded-full border border-[var(--muted-ink)]"><span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{selectedAvatar.symbol}</span>{showSelfBadge && <span className="absolute -bottom-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-[var(--surface-3)] bg-[var(--accent)] text-xs leading-none text-[var(--surface-3)]" data-testid="self-profile-badge">나</span>}</span></button>
+      {primaryIds.map((id) => {
+        const tab = tabs.find((item) => item.id === id)
+        return tab ? <button aria-current={activeTab === id ? 'page' : undefined} className={`type-action min-h-11 min-w-0 rounded-xl px-0.5 text-center ${activeTab === id ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-ink)] hover:bg-[var(--surface-2)]'}`} key={id} onClick={() => { setOpen(null); onTabChange(id) }} type="button">{tab.label}</button> : <span aria-hidden="true" key={id} />
+      })}
+      <button aria-expanded={open === 'menu'} aria-label="메뉴 열기" className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-xl hover:bg-[var(--surface-2)]" onClick={() => setOpen((current) => current === 'menu' ? null : 'menu')} ref={menuRef} type="button"><span className="h-0.5 w-4 rounded-full bg-current" /><span className="h-0.5 w-4 rounded-full bg-current" /><span className="h-0.5 w-4 rounded-full bg-current" /></button>
+    </div>
+    <span className="sr-only">현재 화면: {pageTitle}</span>
+  </nav>
 }
-
-export default AppHeader

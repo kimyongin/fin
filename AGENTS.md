@@ -1,5 +1,9 @@
 # Session Entry and Product Context
 
+- Follow the model/phase policy in `docs/engineering/development.md`: GPT-6 Astra owns planning, design, independent review, and ticket authoring; GPT-6 Sol owns implementation, fixes, tests, and implementation-related documentation updates.
+- Before phase-specific work, use reliable session model metadata or the user's explicit model selection statement. Do not infer the selected model from task difficulty or claim to have switched it. If the model is mismatched or unknown, finish useful read-only inspection and prepare the handoff, then request the appropriate model selection before phase-specific edits. A confirmed selection remains valid until a switch is indicated; do not repeatedly ask.
+- Design/ticket requests end with reviewable documents and implementation handoff, not application code changes. A generic "continue" during design does not authorize implementation. Start coding only after an explicit implementation request with Sol selected. Only an explicit user exception overrides this policy; do not automatically delegate or switch models to bypass it.
+
 - At the start of development or after context loss, read `docs/START-HERE.md`, then the PRD, accepted ADR, and relevant ticket it points to before implementation.
 - Treat unresolved contracts as work to complete in their owning tickets, not permission to invent behavior. Record decisions, validation results, and next steps in persistent project documents before handing off.
 - Historical prototypes and `tickets/20260718-*.md` are background, not the current implementation specification. Preserve unrelated dirty work and verify Git/GitHub state rather than trusting old session status.
@@ -29,6 +33,12 @@ Before code changes, read `docs/engineering/architecture.md` for placement and r
 - When a database change affects the facts in `supabase/schema/OVERVIEW.md`, update that index.
 
 # UI Design
+
+- Before changing page-top cards, toolbars, summaries, or filters, read `docs/design/page-panel-guidelines.md`. Keep related controls in one top panel, preserve feature-specific filter scope, and record responsive and filter-to-detail verification in the ticket.
+
+- Before changing UI text presentation, read `docs/design/typography-guidelines.md`. Use its semantic text roles and shared styles for size, weight, line height, and numeric alignment. Verify actual computed styles and responsive readability; do not add page-specific font sizes or inherit button typography into nested content. Track full-screen coverage and intentional exceptions in the implementation ticket.
+
+- Before adding or modifying tag display, selection, filters, or management, read `docs/design/tag-guidelines.md`. Reuse the shared chip presentation, preserve single/multiple selection semantics, and record coverage or intentional exceptions in the ticket.
 
 - Before adding or modifying any modal, read `docs/design/modal-guidelines.md`. Follow its shared form, spacing, actions, responsive layout, and accessibility rules; record intentional exceptions and actual verification in the relevant ticket.
 

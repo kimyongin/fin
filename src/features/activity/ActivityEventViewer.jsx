@@ -3,6 +3,7 @@ import { CopyIcon } from '../../components/icons'
 import { writeClipboard } from '../../lib/clipboard'
 import { buildBulkSnapshotCsv } from './snapshotCsv'
 import { TimelineEntry } from '../../components/Timeline'
+import TagChip from '../../components/TagChip'
 
 const actionLabels = {
   create_account: '계좌 추가', update_account: '계좌 수정', delete_account: '계좌 삭제',
@@ -151,8 +152,8 @@ export function ChangeSummary({ action }) {
     <dl className="grid gap-1.5">
       {changes.map((change) => (
         <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3" key={change.key}>
-          <dt className="text-xs font-medium text-[var(--muted-ink)]">{change.label}</dt>
-          <dd className="min-w-0 break-words text-sm text-[var(--ink)]">
+          <dt className="type-label text-[var(--muted-ink)]">{change.label}</dt>
+          <dd className="type-body min-w-0 break-words text-[var(--ink)]">
             {action.before_data && action.after_data ? `${formatValue(change.before)} → ${formatValue(change.after)}` : formatValue(action.after_data ? change.after : change.before)}
           </dd>
         </div>
@@ -162,7 +163,7 @@ export function ChangeSummary({ action }) {
 }
 
 export function ActivityEvent({ action, onOpenActivity }) {
-  const tagChips = action.tags?.map((tag) => <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--muted-ink)]" key={tag.id}>{tag.name}</span>)
+  const tagChips = action.tags?.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)
   if (onOpenActivity) {
     const meta = <>{tagChips?.slice(0, 3)}{(tagChips?.length ?? 0) > 3 && <span className="text-xs text-[var(--muted-ink)]">+{tagChips.length - 3}</span>}{action.status === 'failed' && <span className="text-red-200">실패</span>}</>
     return <TimelineEntry ariaLabel={eventTarget(action)} meta={meta} occurredAt={action.occurred_at ?? action.created_at} onOpen={() => onOpenActivity(action)} summary={action.body || action.result || action.conclusion || action.note} title={eventTarget(action)} />
@@ -176,14 +177,14 @@ export function ActivityEvent({ action, onOpenActivity }) {
       <article className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           {tagChips}
-          {onOpenActivity ? <button className="text-left text-sm font-semibold text-[var(--ink)] hover:text-[var(--accent)]" onClick={() => onOpenActivity(action)} type="button">{eventTarget(action)}</button> : <h3 className="text-sm font-semibold text-[var(--ink)]">{eventTarget(action)}</h3>}
+          {onOpenActivity ? <button className="type-item-title text-left text-[var(--ink)] hover:text-[var(--accent)]" onClick={() => onOpenActivity(action)} type="button">{eventTarget(action)}</button> : <h3 className="type-item-title text-[var(--ink)]">{eventTarget(action)}</h3>}
           {!narrativeActivity && <span className="text-sm text-[var(--muted-ink)]">{actionLabels[action.action_type] ?? action.action_type}</span>}
           <span className={`rounded-full border px-2 py-0.5 text-xs ${failed ? 'border-red-400/40 text-red-100' : 'border-[var(--line)] text-[var(--muted-ink)]'}`}>{failed ? '실패' : action.source === 'agent' ? '에이전트' : '앱'}</span>
         </div>
         {eventContext(action) && <p className="mt-1 text-xs text-[var(--muted-ink)]">{eventContext(action)}{action.target_id ? ` · #${action.target_id}` : ''}</p>}
-        {(action.result || action.conclusion || action.note) && <div className="mt-3 grid gap-2 border-l-2 border-[var(--line)] pl-3">{action.result && <p className="text-sm leading-6"><span className="font-medium">결과:</span> {repairMojibake(action.result)}</p>}{action.conclusion && <p className="text-sm leading-6"><span className="font-medium">결론:</span> {repairMojibake(action.conclusion)}</p>}{action.note && <p className="text-sm leading-6 text-[var(--muted-ink)]">{repairMojibake(action.note)}</p>}</div>}
+        {(action.result || action.conclusion || action.note) && <div className="mt-3 grid gap-2 border-l-2 border-[var(--line)] pl-3">{action.result && <p className="type-body type-long-body"><span className="font-semibold">결과:</span> {repairMojibake(action.result)}</p>}{action.conclusion && <p className="type-body type-long-body"><span className="font-semibold">결론:</span> {repairMojibake(action.conclusion)}</p>}{action.note && <p className="type-body type-long-body text-[var(--muted-ink)]">{repairMojibake(action.note)}</p>}</div>}
         {!narrativeActivity && <div className="mt-3 border-l-2 border-[var(--line)] pl-3"><ChangeSummary action={action} /></div>}
-        {action.source === 'agent' && action.natural_language_request && <p className="mt-3 text-sm leading-6 text-[var(--muted-ink)]"><span className="font-medium text-[var(--ink)]">요청:</span> {repairMojibake(action.natural_language_request)}</p>}
+        {action.source === 'agent' && action.natural_language_request && <p className="type-body type-long-body mt-3 text-[var(--muted-ink)]"><span className="font-semibold text-[var(--ink)]">요청:</span> {repairMojibake(action.natural_language_request)}</p>}
         {action.error_message && <p className="mt-3 text-sm text-red-100">{repairMojibake(action.error_message)}</p>}
       </article>
     </li>
@@ -201,7 +202,7 @@ export default function ActivityEventViewer({ actions, loading, onOpenActivity, 
     <div className="grid gap-5">
       {groupByDate(actions).map((group) => (
         <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]" key={group.label}>
-          <h2 className="border-b border-[var(--line)] pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">{group.label}</h2>
+          <h2 className="type-section-title border-b border-[var(--line)] pb-2 text-[var(--muted-ink)]">{group.label}</h2>
           <ol className="relative mt-4 border-l border-[var(--line)] sm:border-l-0">
             {group.actions.map((action) => <ActivityEvent action={action} key={action.id} onOpenActivity={onOpenActivity} />)}
           </ol>

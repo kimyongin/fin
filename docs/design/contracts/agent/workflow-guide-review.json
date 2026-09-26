@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-24",
-  "review_reason": "Search and detail now expose stock-level activity references only; reviewed all nine guides, whose steps remain correct while financial execution continues to use holding IDs.",
+  "reviewed_at": "2026-09-26",
+  "review_reason": "Whole-portfolio sharing replaces per-feature policy; supported shared reads include principles and existing owner-only writes remain unchanged.",
   "topics": {
     "policy": {
-      "revision": "fnv1a32:bf7fa033",
-      "contract_digest": "81a7b41a00acb6fc055367d43976911da4e1ae59b6b6cfe0c7026c1a500cadd5"
+      "revision": "fnv1a32:9c38d7d7",
+      "contract_digest": "f085690fd5ed171623717d8442920a6751c08c6b813287df2936161d3b27cc5a"
     },
     "holding_thesis": {
-      "revision": "fnv1a32:d819b455",
-      "contract_digest": "fc77b90dc95c01818416d3aa227474783495c13d3220701809c98b2f2e440320"
+      "revision": "fnv1a32:4c4ae963",
+      "contract_digest": "fd042c11932cc5759488a18d90990c82eb62621e011ee85a2fcca0a2a8225e6d"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "ed11a51d4d5d4faa21a27c028e6ceb3acb4fdc8ef10d760af87ff4ef44bc7db2"
+      "contract_digest": "b92c396188817456a491dd9bd9923e03b713887db2ce8a9a8d6e37a5ff16c3c8"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "431c2252288957716f272280e6668cc631741e11f5b556860c887646fb9c0477"
+      "contract_digest": "754e6da432c658812a297a2a29a43707488ae37f58640e8c89aa0f5a01194c9b"
     },
     "trade_entry": {
-      "revision": "fnv1a32:497bf056",
-      "contract_digest": "143cfc33c6b9d97ff06728bf6dcc5b4afe442c8d5959346bd6391d78e845a878"
+      "revision": "fnv1a32:e542a131",
+      "contract_digest": "eb48b33502cc93c7fdab5f09f66e7d81e4d51d70f0b47b69dfe1f8c4e2f1d358"
     },
     "reconciliation": {
-      "revision": "fnv1a32:29ac55b9",
-      "contract_digest": "34c92fb38eac04d0cf45eea30d268fb1622fe94fd628c4f4bb951fd270d8ad3f"
+      "revision": "fnv1a32:4c885520",
+      "contract_digest": "d2f7a72602fecd0a9d93b1f09ef732e87f32043bba3f0c4401fe1174e2c32a9e"
     },
     "todo": {
-      "revision": "fnv1a32:53e7ef11",
-      "contract_digest": "1be05350260224d1807c7164f54196e0eb9926435cf6aa960480b16264b4c247"
+      "revision": "fnv1a32:4fa9efff",
+      "contract_digest": "a5056362555e8b088072f79674db8de4c0f64453bd2968ad24522fdf55be1fea"
     },
     "activity_report": {
-      "revision": "fnv1a32:8adf4a69",
-      "contract_digest": "e727b2b5b1fe19bcd9a49cb993976e83f59071e9c5910f65d56d6037ad3b1b07"
+      "revision": "fnv1a32:e4aa34cd",
+      "contract_digest": "39fcc57fe0f5dc14346aeff94e7cba565523b46b63691d7dd3dad3a5f6fd2e44"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "e5c4bde58e9d3bc9ee553053c50162629cfc167f3270cadbc1a85c66aaf7ad98"
+      "contract_digest": "21c4488523ddd8d203d63bed2d6d5e7527eaf36c7937d0a54cf4ef814b2a08bb"
     }
   }
 }

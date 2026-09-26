@@ -19,7 +19,7 @@
 
 런타임 가이드 원본은 `workflow-guides.ts`, 공통 description/inputSchema/outputSchema/annotations는 `portfolio-tools.ts`에 둔다. 나머지 Markdown은 사람과 구현 에이전트를 위한 의도·평가 기록이다. OAuth handler registry는 시작 시 정의 이름과 일치하는지 검사한다.
 
-기존 `portfolio-mcp`는 사용자가 발급한 agent token과 legacy `mcp_*` RPC를 사용하는 호환 endpoint이고, `portfolio-mcp-oauth`는 사용자 OAuth와 최신 `app_*` RPC를 사용하는 ChatGPT용 기준 endpoint다. 두 endpoint는 인증·도구 의미가 달라 하나의 tools 배열을 억지로 공유하지 않는다. 신규 기능은 OAuth 쪽에만 추가하고 legacy endpoint는 별도 폐기 결정 전까지 안정화 변경만 한다. 이는 중복 방치를 뜻하지 않고 서로 다른 공개 API의 경계를 명시한 것이다.
+기존 `portfolio-mcp`는 과거에 발급한 agent token과 legacy `mcp_*` RPC를 사용하는 호환 endpoint이고, `portfolio-mcp-oauth`는 사용자 OAuth와 최신 `app_*` RPC를 사용하는 ChatGPT용 기준 endpoint다. 새 토큰 발급 UI와 `agent_create_token` RPC는 2026-09-26 로컬 변경으로 제거했다. 기존 토큰과 endpoint는 사용 여부를 확인한 뒤 별도로 종료한다. 두 endpoint는 인증·도구 의미가 달라 하나의 tools 배열을 억지로 공유하지 않는다. 신규 기능은 OAuth 쪽에만 추가하고 legacy endpoint는 종료 전까지 안정화 변경만 한다.
 
 MCP prompt/resource는 표준 호환성 실험을 위해 유지하되 daily-review resource는 같은 런타임 가이드 원본에서 렌더링한다. 노출되지 않는 클라이언트에서도 instructions, self-contained 도구 설명과 `get_workflow_guide`만으로 안전 경계가 유지돼야 한다.
 

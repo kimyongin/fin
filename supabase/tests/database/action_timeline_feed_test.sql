@@ -13,7 +13,7 @@ select public.app_save_general_task(null,null,'18111111-1111-4111-8111-111111111
   'title','미완료 일반 과제','subject',jsonb_build_object('kind','portfolio'),'timezone','Asia/Seoul','authored_via','app'));
 select public.app_save_general_task(null,null,'18222222-2222-4222-8222-222222222222',jsonb_build_object(
   'title','완료할 일반 과제','subject',jsonb_build_object('kind','portfolio'),'timezone','Asia/Seoul','authored_via','app'));
-select public.app_transition_general_task((select id from portfolio_tasks where title='완료할 일반 과제'),1,'complete','끝냄',null,current_date,
+select public.app_transition_general_task((select id from portfolio_tasks where title='완료할 일반 과제'),1,'complete','끝냄',null,(clock_timestamp() at time zone 'Asia/Seoul')::date,
   '18333333-3333-4333-8333-333333333333','app');
 select public.app_record_manual_activity('앱 밖 행동','결과',clock_timestamp()-interval '1 day','Asia/Seoul',
   '18444444-4444-4444-8444-444444444444','app');
@@ -25,8 +25,8 @@ select extensions.is((select count(*)::integer from jsonb_array_elements(public.
 select extensions.is((select count(*)::integer from jsonb_array_elements(public.app_list_action_timeline(null,'all',null,null,30,null,'Asia/Seoul')->'days') day, jsonb_array_elements(day->'items') item where item->>'title'='미완료 일반 과제'),0,'task setup events do not duplicate pending work');
 select extensions.is(jsonb_array_length(public.app_list_action_timeline(null,'pending',null,null,30,null,'Asia/Seoul')->'days'),0,'pending filter omits performed events');
 select extensions.is(jsonb_array_length(public.app_list_action_timeline(null,'done',null,null,30,null,'Asia/Seoul')->'pending'),0,'done filter omits pending work');
-select extensions.is(jsonb_array_length(public.app_list_action_timeline(null,'done',current_date,current_date,30,null,'Asia/Seoul')->'days'),1,'date range is applied before grouping');
-select extensions.ok((select item->>'body' like '%끝냄%' from jsonb_array_elements(public.app_list_action_timeline(null,'done',current_date,current_date,30,null,'Asia/Seoul')->'days') day, jsonb_array_elements(day->'items') item where item->>'title'='완료할 일반 과제'),'completion result is readable in the body');
+select extensions.is(jsonb_array_length(public.app_list_action_timeline(null,'done',(clock_timestamp() at time zone 'Asia/Seoul')::date,(clock_timestamp() at time zone 'Asia/Seoul')::date,30,null,'Asia/Seoul')->'days'),1,'date range is applied before grouping');
+select extensions.ok((select item->>'body' like '%끝냄%' from jsonb_array_elements(public.app_list_action_timeline(null,'done',(clock_timestamp() at time zone 'Asia/Seoul')::date,(clock_timestamp() at time zone 'Asia/Seoul')::date,30,null,'Asia/Seoul')->'days') day, jsonb_array_elements(day->'items') item where item->>'title'='완료할 일반 과제'),'completion result is readable in the body');
 select extensions.ok((public.app_list_action_timeline(null,'all',null,null,1,null,'Asia/Seoul')->'next_cursor') is not null,'bounded event page returns a cursor');
 select extensions.throws_ok($$select public.app_list_action_timeline(null,'all',null,null,30,'{"id":"bad"}'::jsonb,'Asia/Seoul')$$,'P0001','Invalid action timeline cursor','malformed cursor fails closed');
 

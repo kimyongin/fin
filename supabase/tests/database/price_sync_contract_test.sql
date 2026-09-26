@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select extensions.plan(15);
+select extensions.plan(17);
 
 insert into auth.users(id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
 values
@@ -17,6 +17,8 @@ values
   (9941, '00000000-0000-0000-0000-000000001401', '360750', 'Korean ETF', 'KRW', 'market'),
   (9942, '00000000-0000-0000-0000-000000001401', 'VALUATION:PRIVATE', 'Private asset', 'KRW', 'valuation'),
   (9943, '00000000-0000-0000-0000-000000001401', 'USDKRW=X', 'USD/KRW', 'KRW', 'fx');
+insert into public.instruments(id, user_id, ticker, display_name, currency, instrument_type)
+values (9944, '00000000-0000-0000-0000-000000001401', 'UNHELD', 'No holding yet', 'USD', 'market');
 
 insert into public.holdings(user_id, account_id, ticker, quantity, avg_price, purchase_amount, valuation_amount)
 values
@@ -26,8 +28,10 @@ values
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000001401', true);
 set local role authenticated;
 
-select extensions.is((select count(*)::integer from public.app_get_price_sync_targets()), 2, 'held market and FX instruments are sync targets');
+select extensions.is((select count(*)::integer from public.app_get_price_sync_targets()), 3, 'registered market and FX instruments are sync targets');
 select extensions.ok(exists(select 1 from public.app_get_price_sync_targets() where ticker = '360750'), 'held market instrument is included');
+select extensions.ok(exists(select 1 from public.app_get_price_sync_targets() where ticker = 'UNHELD'), 'unheld market instrument is included');
+select extensions.ok(exists(select 1 from public.app_get_price_sync_targets(array['UNHELD']) where ticker = 'UNHELD'), 'unheld instrument is included when explicitly requested');
 select extensions.ok(exists(select 1 from public.app_get_price_sync_targets() where ticker = 'USDKRW=X'), 'FX instrument is included');
 select extensions.ok(not exists(select 1 from public.app_get_price_sync_targets() where ticker = 'VALUATION:PRIVATE'), 'valuation holding is excluded');
 select extensions.is((select count(*)::integer from public.app_get_price_sync_targets(array['VALUATION:PRIVATE'])), 0, 'explicit requests cannot bypass the eligible instrument types');

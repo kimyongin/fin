@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(11);
+select extensions.plan(10);
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at)
 values ('00000000-0000-0000-0000-000000000991','authenticated','authenticated','current-asset-owner@example.com','',now(),now(),now());
 set local role postgres;
@@ -42,16 +42,15 @@ select extensions.is((select response from current_fixture),
     '00000000-0000-0000-0000-000000009991','증권사 앱 확인') from current_fixture),
   'response-loss retry reuses receipt');
 select extensions.is((select count(*) from public.activity_events where user_id='00000000-0000-0000-0000-000000000991' and action_type='save_asset_detail'),1::bigint,'retry creates no activity');
-create temp table current_price_result(payload jsonb) on commit drop;
-grant insert on current_price_result to authenticated;
-insert into current_price_result select public.app_save_asset_detail_current(9991,(select (response->'instrument')-'id' from current_fixture),
-  '{"display_name":"Updated","currency":"KRW","instrument_type":"market","note":"public note","tag_id":null,"manual_price":150,"manual_price_date":"2026-09-24"}'::jsonb,
-  '[]'::jsonb,'00000000-0000-0000-0000-000000009992',null);
-select extensions.is((select close_price::numeric from public.holding_prices_daily where ticker='CURRENT' and price_date='2026-09-24'),150::numeric,'price-only edit is saved');
-select extensions.is((select count(*) from public.activity_events where user_id='00000000-0000-0000-0000-000000000991' and action_type='save_asset_detail'),2::bigint,'price-only edit creates one activity');
-insert into current_price_result select public.app_save_asset_detail_current(9991,(select (response->'instrument')-'id' from current_fixture),
+select extensions.throws_ok(
+  $$select public.app_save_asset_detail_current(9991,
+    '{"display_name":"Updated","currency":"KRW","instrument_type":"market","note":"public note","tag_id":null}'::jsonb,
+    '{"display_name":"Updated","currency":"KRW","instrument_type":"market","note":"public note","tag_id":null,"manual_price":150,"manual_price_date":"2026-09-24"}'::jsonb,
+    '[]'::jsonb,'00000000-0000-0000-0000-000000009992',null)$$,
+  'P0001','Manual price is not accepted in asset detail','manual price is rejected');
+select public.app_save_asset_detail_current(9991,(select (response->'instrument')-'id' from current_fixture),
   '{"display_name":"Updated","currency":"KRW","instrument_type":"market","note":"public note","tag_id":null}'::jsonb,
   '[]'::jsonb,'00000000-0000-0000-0000-000000009993',null);
-select extensions.is((select count(*) from public.activity_events where user_id='00000000-0000-0000-0000-000000000991' and action_type='save_asset_detail'),2::bigint,'unchanged edit creates no activity');
+select extensions.is((select count(*) from public.activity_events where user_id='00000000-0000-0000-0000-000000000991' and action_type='save_asset_detail'),1::bigint,'unchanged edit creates no activity');
 select * from extensions.finish();
 rollback;

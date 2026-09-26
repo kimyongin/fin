@@ -48,7 +48,8 @@ describe('portfolio MCP tool definitions', () => {
     expect((tool('record_manual_activity').inputSchema as any).properties).toHaveProperty('body')
     expect(tool('delete_activity').description).toContain('never reverses a completed trade')
     expect((tool('delete_activity').inputSchema as any).required).toEqual(['schema_version', 'activity_id', 'expected_version'])
-    expect((tool('save_general_task').inputSchema as any).properties.recurrence_kind.enum).toEqual(['none', 'daily'])
+    expect((tool('save_general_task').inputSchema as any).properties.recurrence_kind.enum).toEqual(['none', 'daily', 'weekly'])
+    expect(tool('list_due_general_tasks').annotations.readOnlyHint).toBe(true)
   })
 
   it('publishes a self-contained read-only policy workflow guide', () => {
@@ -106,7 +107,6 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('search_activities').annotations.readOnlyHint).toBe(true)
     expect(tool('record_manual_activity').annotations.idempotentHint).toBe(true)
     expect(tool('record_manual_activity').description).toContain('Markdown body')
-    expect(tool('get_portfolio_integrity').annotations.readOnlyHint).toBe(true)
   })
 
   it('uses activities and independent tasks for decisions', () => {
@@ -197,11 +197,11 @@ describe('portfolio MCP tool definitions', () => {
     expect((tool('log_completed_trade').inputSchema as any).properties).not.toHaveProperty('order_id')
   })
 
-  it('separates absolute correction from field-scoped verification', () => {
+  it('exposes only absolute correction, without verification status', () => {
     expect(tool('preview_holding_reconciliation').annotations.idempotentHint).toBe(false)
     expect(tool('reconcile_holding').annotations.idempotentHint).toBe(true)
-    expect(tool('verify_holdings').annotations.idempotentHint).toBe(true)
-    expect((tool('verify_holdings').inputSchema as any).properties.fields.minItems).toBe(1)
+    expect((tool('reconcile_holding').inputSchema as any).properties).not.toHaveProperty('confirmed_fields')
+    expect(portfolioToolDefinitions.some((definition) => ['verify_holdings','get_holding_integrity','get_portfolio_integrity'].includes(definition.name))).toBe(false)
   })
 
   it('updates only an existing entity note with conflict and retry inputs', () => {

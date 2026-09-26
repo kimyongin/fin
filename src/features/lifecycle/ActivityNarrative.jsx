@@ -9,8 +9,8 @@ export default function ActivityNarrative({ sections = [], sources = [], sources
     {sections.filter(({ content }) => content).map(({ label, content, markdown = false }) => <section key={label}>
       <h4 className="text-sm font-semibold">{label}</h4>
       {markdown
-        ? <MarkdownContent className="mt-2 text-sm leading-6" content={content} />
-        : <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{content}</p>}
+        ? <MarkdownContent className="mt-2" content={content} />
+        : <p className="type-body type-long-body mt-2 whitespace-pre-wrap break-words">{content}</p>}
     </section>)}
     {visibleSources.length > 0 && <section>
       <h4 className="text-sm font-semibold">{sourcesTitle}</h4>

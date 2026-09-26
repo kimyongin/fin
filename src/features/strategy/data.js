@@ -21,20 +21,22 @@ export async function saveAllocationTargets(supabase, { targets, expectedTargets
   return { ...createEmptyStrategyState(), ...(data ?? {}) }
 }
 
-export async function fetchPrinciples(supabase, { onDate = null, includeEnded = false } = {}) {
+export async function fetchPrinciples(supabase, { onDate = null, includeEnded = false, ownerUserId = null } = {}) {
   const { data, error } = await supabase.rpc('app_list_principles', {
     input_on: onDate,
     input_timezone: DEFAULT_BUSINESS_TIMEZONE,
     input_include_ended: includeEnded,
+    input_owner_user_id: ownerUserId,
   })
   if (error) throw error
   return data?.items ?? []
 }
 
-export async function fetchPrincipleChanges(supabase, { cursor = null, limit = 20 } = {}) {
+export async function fetchPrincipleChanges(supabase, { cursor = null, limit = 20, ownerUserId = null } = {}) {
   const { data, error } = await supabase.rpc('app_list_principle_changes', {
     input_limit: limit,
     input_cursor: cursor,
+    input_owner_user_id: ownerUserId,
   })
   if (error) throw error
   return { items: data?.items ?? [], nextCursor: data?.next_cursor ?? null }

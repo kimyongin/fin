@@ -207,11 +207,10 @@ const reconciliationPreviewOutputSchema = successEnvelope({
     instrument_type: { type: 'string', enum: ['market', 'valuation', 'cash'] },
     before: holdingValueSchema,
     after: holdingValueSchema,
-    confirmed_fields: { type: 'array', items: { type: 'string' } },
     reason: { type: 'string' },
     effective_on: { type: 'string', format: 'date' },
   },
-  required: ['holding_id', 'holding_state_version', 'instrument_id', 'instrument_type', 'before', 'after', 'confirmed_fields', 'reason', 'effective_on'],
+  required: ['holding_id', 'holding_state_version', 'instrument_id', 'instrument_type', 'before', 'after', 'reason', 'effective_on'],
   additionalProperties: false,
 })
 
@@ -223,9 +222,8 @@ const reconciliationOutputSchema = successEnvelope({
     holding_state_version: { type: 'integer' },
     before: holdingValueSchema,
     after: holdingValueSchema,
-    verification_id: { type: ['string', 'null'], format: 'uuid' },
   },
-  required: ['activity_id', 'holding_id', 'holding_state_version', 'before', 'after', 'verification_id'],
+  required: ['activity_id', 'holding_id', 'holding_state_version', 'before', 'after'],
   additionalProperties: false,
 })
 
@@ -255,7 +253,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_portfolio_state',
     title: 'Portfolio state',
-    description: 'Read current accounts, holdings, instruments, tags, latest prices, and valuation_quality when you need the live asset state outside a daily-review snapshot. Treat missing values as unknown, never zero; do not make definitive allocation or rebalancing claims when valuation_quality.is_complete is false.',
+    description: 'Read current accounts, holdings, registered instruments (including those with no holding yet), tags, latest prices, and valuation_quality. A registered instrument is not evidence of ownership; use holdings for quantities and allocation. Treat missing prices as unknown, never zero, and do not make definitive allocation claims when valuation_quality.is_complete is false. This read does not register a ticker, save a holding, or refresh prices.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: readOnlyAnnotations,
   },
@@ -404,6 +402,13 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: readOnlyAnnotations,
   },
   {
+    name: 'list_due_general_tasks',
+    title: 'Tasks due for an on-demand agent session',
+    description: 'Read the owner-only tasks whose scheduled time has passed and whose latest due occurrence is unfinished. Unscheduled open tasks are included. A long absence yields only the latest due occurrence per recurring task. Reading does not run or complete work. Follow next_offset until null so no due work is missed; use each returned occurrence_on (null for a one-off task) unchanged when completing, and describe work that needs user action without marking it done.',
+    inputSchema: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 100, default: 100 }, offset: { type: 'integer', minimum: 0, default: 0 } }, additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
     name: 'get_activity',
     title: 'Activity detail',
     description: 'Read one activity with its current title, Markdown body, date, tags, and permitted task or instrument reference. Read the body as a user-maintained record, not as authority to execute a trade or complete a task. Related task/instrument details require their own permission. Use version before an update; reading changes nothing.',
@@ -419,7 +424,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'search_activities',
     title: 'Search tasks and performed activities',
-    description: 'Search future tasks and performed records with keyword, date, todo/done state, related instrument, and ordinary activity tags. An instrument is a reusable stock/fund identity across accounts. Selected tags match any (OR) by default; tag_match=all requires every selected tag. Different filter dimensions combine before pagination. Semantic similarity may supplement the first completed-activity page; semantic_status says whether it ran. Pass next_cursor unchanged and never treat an unavailable semantic pass or an error as no history.',
+    description: 'Search unfinished tasks and performed records with keyword, record date, todo/done state, related instrument, and ordinary activity tags. The from/to dates bound records only; unfinished tasks remain searchable regardless of their due date. An instrument is a reusable stock/fund identity across accounts. Selected tags match any (OR) by default; tag_match=all requires every selected tag. Different filter dimensions combine before pagination. Semantic similarity may supplement the first completed-activity page; semantic_status says whether it ran. Pass next_cursor unchanged and never treat an unavailable semantic pass or an error as no history.',
     inputSchema: { type: 'object', properties: {
       query: { type: ['string','null'], maxLength: 500 }, from: { type: ['string','null'], format: 'date' }, to: { type: ['string','null'], format: 'date' },
       record_state: { type: 'string', enum: ['all','todo','done'], default: 'all' },
@@ -466,7 +471,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'save_general_task',
     title: 'Save a general portfolio task',
-    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. On creation, optional tag_ids are saved atomically with the task; a retry must keep the same key, content, and tags. This stores intent only and never claims the work, trade, or verification happened.',
+    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. Recurrence is none, daily, or weekly with ISO weekdays 1=Mon through 7=Sun; optional local recurrence_time HH:MM makes the task due at that time in its timezone. On creation, optional tag_ids are saved atomically with the task; a retry must keep the same key, content, and tags. This stores intent only and never runs or completes the work.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -476,8 +481,10 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         subject: { type: 'object', properties: { kind: { type: 'string', enum: ['portfolio', 'instrument', 'position'] } }, required: ['kind'], additionalProperties: true },
         due_date: { type: ['string', 'null'], format: 'date' }, timezone: { type: 'string', minLength: 1 },
         trigger_text: { type: ['string', 'null'], maxLength: 1000 },
-        recurrence_kind: { type: 'string', enum: ['none', 'daily'], default: 'none' },
+        recurrence_kind: { type: 'string', enum: ['none', 'daily', 'weekly'], default: 'none' },
         recurrence_start_on: { type: ['string', 'null'], format: 'date' },
+        recurrence_weekdays: { type: 'array', uniqueItems: true, maxItems: 7, items: { type: 'integer', minimum: 1, maximum: 7 } },
+        recurrence_time: { type: ['string', 'null'], pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' },
         tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Optional tags for a new task; omit when editing.' },
       },
       required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','recurrence_kind','recurrence_start_on'],
@@ -489,7 +496,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'transition_general_task',
     title: 'Complete, correct, or end a general task',
-    description: 'Complete the current occurrence, reopen an incorrectly checked occurrence, or end a recurring task after reading its current version. Completion creates one linked action event. Use cancel to end future recurrence without creating a completed performance; existing completed activities remain. A result describes what actually happened and must not be invented. Pause/resume is legacy behavior and is not offered for new work.',
+    description: 'Complete the latest due occurrence, reopen an incorrectly checked occurrence, or end a recurring task after reading its current version. Use the occurrence_on returned by list_due_general_tasks; the server rejects a stale or future occurrence. Completion creates one linked action event. Use cancel to end future recurrence without claiming performance; prior activities remain. A result describes work actually done and must not be invented.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -576,20 +583,19 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'list_principles',
-    title: 'List saved investment and operating principles',
-    description: 'Read owner-only Markdown principles. The current view returns the latest row per stable principle ID; an optional local date returns the state as of that day. Ended principles are omitted by default. Read before advising from saved preferences or editing one; an empty list means nothing was saved, not permission to infer preferences.',
+    title: 'Read the current investment principles document',
+    description: 'Read the one current owner-only Markdown principles document. An optional local date returns the document saved as of that day. An empty list means nothing is currently saved. Read before advising from preferences or editing, and preserve unrelated approved text.',
     inputSchema: { type: 'object', properties: {
       on_date: { type: 'string', format: 'date' }, timezone: { type: 'string', minLength: 1, maxLength: 100 }, include_ended: { type: 'boolean', default: false },
     }, additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
   },
   {
     name: 'save_principle',
-    title: 'Save one approved principle',
-    description: 'Append a revision to one owner-only Markdown principle only after explicit user approval. Read list_principles first. Generate a UUID for a new principle or reuse its principle_id and latest row id for an edit. Put any headings or applicability in body Markdown, not separate fields. An optional change_note summarizes the edit for the history timeline; it is not a replacement for the full body. Use end=true to stop applying the principle. Never save model suggestions as user-approved rules. Does not alter holdings, allocation targets, or trades.',
+    title: 'Save the approved principles document',
+    description: 'Save one complete owner-only Markdown document only after explicit user approval. Read list_principles first. For the initial document generate one UUID and use null expected_row_id; for edits reuse the current principle_id and latest row id. This replaces the current full body and appends an in-table history row. Preserve unrelated rules. Optional change_note explains the edit in history but is not part of the policy. Never save model suggestions as user-approved rules. Does not alter holdings, allocation targets, or trades.',
     inputSchema: { type: 'object', properties: {
       schema_version: { const: 1 }, principle_id: { type: 'string', format: 'uuid' }, expected_row_id: { type: ['integer','null'], minimum: 1 },
       body: { type: 'string', minLength: 1, maxLength: 10000 }, change_note: { type: ['string','null'], maxLength: 1000 },
-      end: { type: 'boolean', default: false },
     }, required: ['schema_version','principle_id','expected_row_id','body'], additionalProperties: false },
     outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
@@ -656,37 +662,20 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: readOnlyAnnotations,
   },
   {
-    name: 'get_holding_integrity', title: 'Holding reconciliation and verification status',
-    description: 'Read the latest absolute correction and explicit brokerage verification for one holding. changed_since means the local holding version changed afterward; missing verification remains unknown rather than incorrect.',
-    inputSchema: { type: 'object', properties: { holding_id: { type: 'integer', minimum: 1 } }, required: ['holding_id'], additionalProperties: false },
-    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
-  },
-  {
-    name: 'get_portfolio_integrity', title: 'Portfolio verification summary',
-    description: 'Summarize which current holdings were explicitly compared with a brokerage, which changed afterward, and which were never checked, grouped by account. It does not verify or change any value, and old status alone is not proof of an error.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
-  },
-  {
     name: 'preview_holding_reconciliation', title: 'Preview an absolute holding correction',
-    description: 'Calculate an unsaved estimate for replacing one holding with user-supplied actual values. Return the holding version for direct confirmation; the server rechecks it under a lock. Send non-negative decimals as strings, not JSON numbers. Market requires quantity and avg_price; valuation requires purchase_amount and valuation_amount; cash requires valuation_amount. Zero market quantity still requires avg_price, which is discarded in the resulting zero balance. This does not modify the holding or imply brokerage verification unless confirmed_fields are explicit.',
+    description: 'Calculate an unsaved estimate for replacing one holding with user-supplied actual values. Return the holding version for direct confirmation; the server rechecks it under a lock. Send non-negative decimals as strings, not JSON numbers. Market requires quantity and avg_price; valuation requires purchase_amount and valuation_amount; cash requires valuation_amount. Zero market quantity still requires avg_price, which is discarded in the resulting zero balance. This does not modify the holding.',
     inputSchema: { type: 'object', properties: {
-      holding_id: { type: 'integer', minimum: 1 }, values: holdingCorrectionValuesSchema, reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' }, confirmed_fields: { type: 'array', items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] }, uniqueItems: true },
-    }, required: ['holding_id','values','reason','effective_on','confirmed_fields'], additionalProperties: false }, outputSchema: reconciliationPreviewOutputSchema, annotations: contextAnnotations,
+      holding_id: { type: 'integer', minimum: 1 }, values: holdingCorrectionValuesSchema, reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' },
+    }, required: ['holding_id','values','reason','effective_on'], additionalProperties: false }, outputSchema: reconciliationPreviewOutputSchema, annotations: contextAnnotations,
   },
   {
     name: 'reconcile_holding', title: 'Apply an absolute holding correction',
-    description: 'Use only after the user explicitly confirms a fresh unsaved correction estimate. Pass the exact values, reason, date, confirmed fields, and expected holding version with an idempotency key. The server locks and recalculates the current row; stale versions require a new estimate. It establishes a new absolute local balance checkpoint and optionally records only fields explicitly compared with the brokerage. It does not create a trade or place an order.',
+    description: 'Use only after the user explicitly confirms a fresh unsaved correction estimate. Pass the exact values, reason, date, and expected holding version with an idempotency key. The server locks and recalculates the current row; stale versions require a new estimate. It establishes a new absolute local balance checkpoint and records the correction as an activity. It does not create a trade or place an order.',
     inputSchema: { type: 'object', properties: {
       schema_version: { const: 1 }, holding_id: { type: 'integer', minimum: 1 }, values: holdingCorrectionValuesSchema,
       reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' },
-      confirmed_fields: { type: 'array', items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] }, uniqueItems: true },
       expected_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
-    }, required: ['schema_version','holding_id','values','reason','effective_on','confirmed_fields','expected_version','idempotency_key'], additionalProperties: false }, outputSchema: reconciliationOutputSchema, annotations: idempotentWriteAnnotations,
-  },
-  {
-    name: 'verify_holdings', title: 'Record explicit brokerage comparison',
-    description: 'Store the latest explicit brokerage comparison on the current holding and record the check as a private automatic activity. Record only the named fields the user says they compared at the current holding version; a later check replaces the current verification checkpoint, while activities retain performed facts. This never changes quantities, costs, valuation, trades, prices, or briefing dates.',
-    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, holding_id: { type: 'integer', minimum: 1 }, expected_version: { type: 'integer', minimum: 1 }, fields: { type: 'array', minItems: 1, uniqueItems: true, items: { type: 'string', enum: ['quantity','avg_price','purchase_amount','valuation_amount'] } }, verified_on: { type: 'string', format: 'date' }, note: { type: ['string','null'], maxLength: 1000 }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','holding_id','expected_version','fields','verified_on','idempotency_key'], additionalProperties: false }, outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+    }, required: ['schema_version','holding_id','values','reason','effective_on','expected_version','idempotency_key'], additionalProperties: false }, outputSchema: reconciliationOutputSchema, annotations: idempotentWriteAnnotations,
   },
 ]
 
@@ -704,6 +693,7 @@ export const decisionActivityToolNames = [] as const
 
 export const actionTaskToolNames = [
   'list_general_tasks',
+  'list_due_general_tasks',
   'get_general_task',
   'get_activity',
   'search_activities',
@@ -734,4 +724,4 @@ export const tradeEntryToolNames = [
   'list_transactions',
 ] as const
 
-export const holdingIntegrityToolNames = ['get_holding_integrity','get_portfolio_integrity','preview_holding_reconciliation','reconcile_holding','verify_holdings'] as const
+export const holdingIntegrityToolNames = ['preview_holding_reconciliation','reconcile_holding'] as const

@@ -16,7 +16,7 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | --- | --- | --- |
 | get_workflow_guide / observed-local | 복합 Portfolio 작업 전에 현재 단계·질문·경계·복구 규칙을 topic별로 읽습니다. 사용자 데이터를 조회하거나 작업을 실행하지 않습니다. | W01~W09 |
 | get_profile / observed-local | 인증된 Portfolio 계정 프로필을 읽습니다. 투자 성향이나 투자 원칙 조회가 아닙니다. | W01 |
-| get_portfolio_state / observed-local | 본인의 계좌·보유·종목·태그·저장 시세를 읽습니다. 증권사 실시간 잔고나 확인 완료를 뜻하지 않습니다. | W01,W05 |
+| get_portfolio_state / observed-local | 본인의 계좌·보유·등록 종목(0보유 포함)·태그·저장 시세를 읽습니다. 등록 종목이 실제 보유라는 뜻은 아닙니다. 증권사 실시간 잔고나 확인 완료를 뜻하지 않습니다. | W01,W05 |
 | find_holdings / observed-local | 티커·종목명·계좌명으로 본인의 보유 후보를 찾습니다. 여러 결과가 나오면 변경 전에 대상을 확인하세요. | W05,W06 |
 | update_entity_note / local | 현재 메모를 먼저 읽고 계좌·종목의 기존 메모만 충돌 방지 방식으로 수정합니다. 종목 메모는 기존 자산 공유 범위를 따르므로 민감한 내용을 자동 이전하지 않습니다. 수량·원가·검증 상태는 바꾸지 않습니다. | 대상별 메모 |
 | get_strategy_state / observed-local | 자산 태그별 목표 비중을 읽습니다. 목표가 없으면 미설정이며, 목표 숫자를 개인 성향으로 추정하지 않습니다. | W01,W02 |
@@ -27,10 +27,11 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | get_activity, update_activity / local | 활동 제목·마크다운 본문·날짜·허용된 대상 참조를 조회·정정합니다. 자동 활동의 본문 정정도 실제 잔고나 할 일 상태를 바꾸지 않습니다. | W03 |
 | list_operating_rules / removed | 별도 운영 규칙 조회를 제거했다. `list_principles`의 현재 마크다운 본문에서 관련 규칙과 적용 맥락을 읽습니다. | W06 |
 | save_operating_rule / removed | 별도 운영 규칙 저장을 제거했다. 사용자가 승인한 규칙은 `save_principle`로 저장합니다. | W06 |
-| archive_operating_rule / removed | 별도 보관 상태를 제거했다. 해당 원칙에 `end=true`를 저장합니다. | W06 |
+| archive_operating_rule / removed | 별도 보관 상태를 제거했다. 현재 원칙은 문서 하나를 수정하며 개별 `end=true`도 지원하지 않습니다. | W06 |
 | list_general_tasks / observed-local | 본인의 미래 할 일을 상태별로 읽습니다. 이미 수행한 활동이나 실제 매매 내역을 대신하지 않습니다. | A02,A04 |
+| list_due_general_tasks / observed-local | 요청 시 사용자 본인의 도래한 미완료 할 일만 읽습니다. 최신 도래 회차 하나씩 반환하고 `next_offset`이 없어질 때까지 페이지를 읽습니다. 자동 실행이나 완료는 하지 않습니다. | A04 |
 | get_general_task / observed-local | 일반 할 일의 현재 상태·버전과 연결된 실제 수행 활동을 읽습니다. 별도 수정 이력은 저장하지 않으며 조회로 회차를 완료하거나 재개하지 않습니다. | A02,A04 |
-| save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성 또는 매일 반복 미래 행동을 독립된 할 일로 저장합니다. | A02,A04 |
+| save_general_task / observed-local | 사용자가 기억해 달라고 한 일회성·매일·선택 요일 반복 일을 독립된 할 일로 저장합니다. 선택적 로컬 시간과 시간대를 함께 관리합니다. | A02,A04 |
 | transition_general_task / observed-local | 현재 version과 회차 날짜를 확인해 일반 할 일의 이번 완료・잘못된 완료 해제・반복 전체 종료를 처리합니다. 반복 종료는 수행하지 않은 회차의 완료 기록을 만들지 않으며, 같은 일을 manual activity로 중복 기록하지 않습니다. | A02,A04 |
 | get_activity / observed-local | 활동의 현재 제목·본문·날짜·태그와 권한이 있는 관련 할 일·종목 참조를 조회합니다. 금융 실행 대상 보유 ID와 구분합니다. | A03 |
 | record_manual_activity / observed-local | 이미 수행한 일을 제목·마크다운 본문·날짜·일반 태그·선택적 대상 참조로 기록합니다. 태그나 참조만으로 잔고·체결·할 일 완료 사실을 만들 수 없습니다. | A03,W01,W03 |
@@ -48,11 +49,8 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | preview_trade_entry / observed-local | 이미 체결된 시장형 매매 입력이 현재 수량·평균가를 어떻게 바꾸는지 서버에서 저장 없이 계산하고 보유 ID/버전을 돌려줍니다. 주문·현금 이동·잔고 확인은 하지 않습니다. | W05 |
 | log_completed_trade / observed-local | 사용자가 요청한 완료 매매의 동일 입력과 미리 본 보유 ID/버전을 전달하면 서버가 잠금 후 재계산·검증하고 멱등 저장합니다. 현재값과 자동 활동을 갱신하지만 증권사 주문이나 잔고 확인은 하지 않습니다. | W05 |
 | list_transactions / observed-local | Portfolio가 자동 활동으로 기록한 완료 체결을 읽습니다. 증권사 전체 거래내역이나 삭제된 구 기록·미입력 거래까지 완전하다고 설명하지 않습니다. | W05,W06 |
-| get_holding_integrity / observed-local | 한 보유의 마지막 절대 보정과 명시적 증권사 확인 범위, 확인 뒤 값 변경 여부를 읽습니다. 미확인을 불일치로 해석하지 않습니다. | W06 |
-| get_portfolio_integrity / observed-local | 전체·계좌별로 확인됨, 확인 뒤 변경됨, 미확인 보유 수를 요약합니다. 오래된 상태만으로 오류를 단정하거나 값을 변경하지 않습니다. | W06 |
-| preview_holding_reconciliation / observed-local | 사용자가 제시한 실제 현재값으로 시장형/평가형/현금성 잔고를 바꿀 영향을 저장 없이 계산하고 보유 버전을 돌려줍니다. 아직 값을 바꾸거나 확인 완료로 기록하지 않습니다. | W06 |
-| reconcile_holding / observed-local | 사용자가 확인한 예상 결과의 동일 값·사유·일자·확인 필드·보유 버전을 전달하면 서버가 잠금 후 다시 검증하고 절대 현재값과 자동 활동을 멱등 저장합니다. 거래를 만들지 않고 명시한 필드만 선택적으로 실제 확인 기록에 포함합니다. | W06 |
-| verify_holdings / observed-local | 현재 version에서 사용자가 증권사와 비교했다고 명시한 필드와 선택적 확인 메모를 보유의 최신 비공개 확인값에 저장하고 확인 활동을 남깁니다. 저장 결과와 integrity 조회에서 메모·작성 경로를 다시 읽습니다. 잔고·원가·시세·브리핑은 변경하지 않습니다. | W06 |
+| preview_holding_reconciliation / observed-local | 사용자가 제시한 실제 현재값으로 시장형/평가형/현금성 잔고를 바꿀 영향을 저장 없이 계산하고 보유 버전을 돌려줍니다. 아직 값을 바꾸지 않습니다. | W06 |
+| reconcile_holding / observed-local | 사용자가 확인한 예상 결과의 동일 값·사유·일자·보유 버전을 전달하면 서버가 잠금 후 다시 검증하고 절대 현재값과 자동 활동을 멱등 저장합니다. 거래나 별도 증권사 확인 상태를 만들지 않습니다. | W06 |
 | preview_trade_reversal / removed | 과거 취소 미리보기 도구와 DB RPC를 제거했다. | W06 |
 | reverse_trade_entry / removed | 과거 체결 취소 도구와 DB RPC를 제거했다. 오류는 증권사 현재값 확인 후 보정한다. | W06 |
 | list_tasks, get_task, transition_task / removed | 조사 전용 상태를 새 OAuth 도구에서 종료했습니다. 미래 행동은 일반 할 일, 조사 결과는 활동으로 기록합니다. | W04,W08 |

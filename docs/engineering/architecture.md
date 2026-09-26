@@ -16,7 +16,7 @@
 | src/components | 여러 기능이 재사용하는 표현 컴포넌트 |
 | src/lib, constants | Supabase 연결/설정, 포맷, 계산 등 공통 유틸리티와 상수 |
 | supabase/functions/portfolio-mcp-oauth, _shared/mcp | OAuth MCP 진입점과 실제 도구 schema/description/guide 정의. 새 기능의 기준 endpoint |
-| supabase/functions/portfolio-mcp | 기존 토큰 MCP. 앱 설정의 토큰 발급과 운영 토큰 사용 여부 확인 전까지 호환 유지 |
+| supabase/functions/portfolio-mcp | 기존 토큰 MCP. 새 토큰 발급은 제거했고, 과거 운영 토큰의 사용 여부를 확인할 때까지 호환 유지 |
 | supabase/functions/sync-prices, lookup-ticker | 외부 시세·종목 조회 |
 | supabase/migrations | 적용 DB 이력. 과거 파일을 바꾸는 대신 incremental migration |
 | supabase/schema/OVERVIEW.md | DB 탐색 시작점. 실제 DDL의 대체물이 아님 |

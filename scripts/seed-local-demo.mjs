@@ -293,11 +293,11 @@ if (!financialEvents.some((item) => item.action_type === 'reconcile_holding')) {
   const reason = '데모 기능 확인: 임의의 현재값으로 맞춤'
   const preview = await rpc('app_preview_holding_reconciliation', {
     input_holding_id: holding.id, input_values: values, input_reason: reason,
-    input_effective_on: date, input_confirmed_fields: [],
+    input_effective_on: date,
   })
   await rpc('app_apply_holding_correction', {
     input_holding_id: holding.id, input_values: values, input_reason: reason,
-    input_effective_on: date, input_confirmed_fields: [],
+    input_effective_on: date,
     input_expected_version: preview.holding_state_version,
     input_idempotency_key: randomUUID(), input_authored_via: 'app',
   })

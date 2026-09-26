@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { editableInstrumentTypeOptions } from '../../constants/portfolio'
 import ModalActions from '../../components/ModalActions'
 import ModalShell from '../../components/ModalShell'
-import { formatUnitPrice } from '../../lib/format'
-import { normalizeTickerInput } from '../../lib/portfolioMath'
+import { SingleTagPicker } from '../../components/TagChip'
+import ReadOnlyField from '../../components/ReadOnlyField'
+
+const inputClass = 'form-control'
 
 function useDraftDirty(draft, fields) {
   const initial = useRef(null)
@@ -24,6 +26,8 @@ export function AccountEditorModal({
   const actions = (requestClose) => (
     <ModalActions
       canDelete={!!draft.id}
+      dirty={dirty}
+      deleteError={accountError}
       deleteConfirmMessage="계좌를 삭제하면 이 계좌 정보가 사라집니다. 계속할까요?"
       deleteLabel="계좌 삭제"
       disabled={accountSaving}
@@ -36,34 +40,34 @@ export function AccountEditorModal({
   return (
     <ModalShell closeDisabled={accountSaving} dirty={dirty} footer={actions} onClose={onClose} title={draft.id ? draft.name || '계좌 수정' : '계좌 추가'}>
       <div className="grid gap-4">
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+        <label className="form-field">
+          <span className="form-label">
             계좌명
           </span>
           <input
-            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className={inputClass}
             onChange={(event) => onChange('name', event.target.value)}
             value={draft.name}
           />
         </label>
 
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+        <label className="form-field">
+          <span className="form-label">
             증권사
           </span>
           <input
-            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className={inputClass}
             onChange={(event) => onChange('broker', event.target.value)}
             value={draft.broker}
           />
         </label>
 
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+        <label className="form-field">
+          <span className="form-label">
             메모
           </span>
           <textarea
-            className="min-h-24 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className={inputClass}
             onChange={(event) => onChange('note', event.target.value)}
             value={draft.note}
           />
@@ -81,92 +85,79 @@ export function AccountEditorModal({
 }
 
 export function InstrumentEditorModal({
-  accounts,
   draft,
   instrumentError,
+  instrumentLookupError,
+  instrumentLookupResult,
+  instrumentLookupSaving,
   instrumentSaving,
   onChange,
   onClose,
   onDelete,
+  onLookup,
   onSave,
   tags,
 }) {
   const dirty = useDraftDirty(draft, [
     'ticker',
     'display_name',
-    'linked_account_id',
     'currency',
     'instrument_type',
-    'price',
-    'price_date',
     'tag_id',
     'note',
   ])
   const actions = (requestClose) => (
     <ModalActions
       canDelete={!!draft.id}
+      dirty={dirty}
+      deleteError={instrumentError}
       deleteConfirmMessage="종목과 연결된 태그, 가격 이력이 함께 삭제됩니다. 계속할까요?"
       deleteLabel="종목 삭제"
       disabled={instrumentSaving}
       onClose={requestClose}
       onDelete={onDelete}
       onSave={onSave}
-      saveLabel={instrumentSaving ? '저장 중' : '저장'}
+      saveLabel={instrumentSaving ? '저장 중' : draft.id ? '저장' : '등록'}
     />
   )
   return (
     <ModalShell closeDisabled={instrumentSaving} dirty={dirty} footer={actions} onClose={onClose} title={draft.id ? '종목 수정' : '종목 추가'}>
       <div className="grid gap-4">
-        {draft.instrument_type === 'market' ? <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-            티커
-          </span>
-          <input
-            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:bg-black/30"
-            disabled={!!draft.id}
-            onChange={(event) => onChange('ticker', event.target.value.trim().toUpperCase())}
-            value={draft.ticker}
-          />
-        </label> : <p className="text-sm text-[var(--muted-ink)]">평가형 투자와 현금성 자산의 내부 식별자는 자동으로 생성됩니다.</p>}
+        {draft.instrument_type === 'market' ? draft.id ? <ReadOnlyField label="티커" value={draft.ticker} /> : <div className="form-field">
+          <label className="form-label" htmlFor="instrument-ticker">티커</label>
+          <div className="flex gap-2">
+            <input
+              className={inputClass}
+              disabled={instrumentLookupSaving}
+              id="instrument-ticker"
+              onChange={(event) => onChange('ticker', event.target.value.trim().toUpperCase())}
+              value={draft.ticker}
+            />
+            {!draft.id && <button className="type-action min-h-11 shrink-0 rounded-2xl border border-[var(--line)] px-4" disabled={instrumentLookupSaving || instrumentSaving} onClick={onLookup} type="button">{instrumentLookupSaving ? '조회 중' : '조회'}</button>}
+          </div>
+        </div> : <p className="type-secondary text-[var(--muted-ink)]">평가형 투자와 현금성 자산의 내부 식별자는 자동으로 생성됩니다.</p>}
 
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+        {!draft.id && instrumentLookupResult?.ticker === draft.ticker && <p className="type-secondary text-[var(--muted-ink)]">조회 결과 · {instrumentLookupResult.display_name} · {instrumentLookupResult.currency}</p>}
+        {instrumentLookupError && <p role="alert" className="type-secondary text-red-200">{instrumentLookupError}</p>}
+
+        <label className="form-field">
+          <span className="form-label">
             종목명
           </span>
           <input
-            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className={inputClass}
             onChange={(event) => onChange('display_name', event.target.value)}
             value={draft.display_name}
           />
         </label>
 
-        {!draft.id && (
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-              보유 계좌
-            </span>
-            <select
-              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => onChange('linked_account_id', event.target.value)}
-              value={draft.linked_account_id}
-            >
-              <option value="">계좌 선택 안 함</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="form-field">
+            <span className="form-label">
               통화
             </span>
             <select
-              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className={inputClass}
               onChange={(event) => onChange('currency', event.target.value)}
               value={draft.currency}
             >
@@ -178,12 +169,12 @@ export function InstrumentEditorModal({
             </select>
           </label>
 
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+          <label className="form-field">
+            <span className="form-label">
               종류
             </span>
             <select
-              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+              className={inputClass}
               onChange={(event) => onChange('instrument_type', event.target.value)}
               value={draft.instrument_type}
             >
@@ -196,57 +187,14 @@ export function InstrumentEditorModal({
           </label>
         </div>
 
-        {draft.instrument_type === 'market' && <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-              현재가
-            </span>
-            <input
-              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => onChange('price', event.target.value)}
-              step="any"
-              type="number"
-              value={draft.price}
-            />
-          </label>
+        <SingleTagPicker onChange={(value) => onChange('tag_id', value)} tags={tags} value={draft.tag_id} />
 
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-              가격일
-            </span>
-            <input
-              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => onChange('price_date', event.target.value)}
-              type="date"
-              value={draft.price_date}
-            />
-          </label>
-        </div>}
-
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-            대표 태그
-          </span>
-          <select
-            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => onChange('tag_id', event.target.value)}
-            value={draft.tag_id}
-          >
-            <option value="">태그 없음</option>
-            {tags.map((tag) => (
-              <option key={tag.id} value={tag.id}>
-                {tag.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
+        <label className="form-field">
+          <span className="form-label">
             메모
           </span>
           <textarea
-            className="min-h-24 w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
+            className={inputClass}
             onChange={(event) => onChange('note', event.target.value)}
             value={draft.note}
           />
@@ -255,328 +203,6 @@ export function InstrumentEditorModal({
         {instrumentError && (
           <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100">
             {instrumentError}
-          </div>
-        )}
-      </div>
-    </ModalShell>
-  )
-}
-
-export function HoldingEditorModal({
-  accounts,
-  draft,
-  holdingError,
-  holdingLookupError,
-  holdingLookupResult,
-  holdingLookupSaving,
-  holdingSaving,
-  instruments,
-  onChange,
-  onClose,
-  onLookupTicker,
-  onDelete,
-  onSave,
-}) {
-  const [tickerMenuOpen, setTickerMenuOpen] = useState(false)
-  const tickerMenuRef = useRef(null)
-  const normalizedDraftTicker = normalizeTickerInput(draft.ticker)
-  const selectedInstrument = instruments.find((instrument) => instrument.ticker === normalizedDraftTicker)
-  const selectedCurrency =
-    holdingLookupResult?.ticker === normalizedDraftTicker
-      ? holdingLookupResult.currency
-      : selectedInstrument?.currency
-  const selectedInstrumentType =
-    holdingLookupResult?.ticker === normalizedDraftTicker
-      ? holdingLookupResult.instrument_type
-      : selectedInstrument?.instrument_type ?? 'market'
-  const suggestedInstruments = draft.ticker
-    ? instruments
-        .filter((instrument) => {
-          const query = normalizedDraftTicker
-          const ticker = normalizeTickerInput(instrument.ticker)
-          const name = normalizeTickerInput(instrument.display_name)
-          return ticker.includes(query) || name.includes(query)
-        })
-        .slice(0, 6)
-    : instruments.slice(0, 6)
-  const dirty = useDraftDirty(draft, [
-    'account_id',
-    'ticker',
-    'quantity',
-    'avg_price',
-    'purchase_amount',
-    'valuation_amount',
-  ])
-  const actions = (requestClose) => (
-    <ModalActions
-      canDelete={!!draft.id}
-      deleteConfirmMessage="이 계좌의 보유 항목을 삭제합니다. 계속할까요?"
-      deleteLabel="보유 삭제"
-      disabled={holdingSaving}
-      onClose={requestClose}
-      onDelete={onDelete}
-      onSave={onSave}
-      saveLabel={holdingSaving ? '저장 중' : '저장'}
-    />
-  )
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (!tickerMenuRef.current?.contains(event.target)) {
-        setTickerMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  return (
-    <ModalShell closeDisabled={holdingSaving} dirty={dirty} footer={actions} onClose={onClose} title={draft.id ? '보유 수정' : '보유 종목 추가'}>
-      <div className="grid gap-4">
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-            계좌
-          </span>
-          <select
-            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => onChange('account_id', event.target.value)}
-            value={draft.account_id}
-          >
-            <option value="">계좌 선택</option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-            티커
-          </span>
-          <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-            <div className="relative min-w-0 flex-1" ref={tickerMenuRef}>
-              <div
-                aria-busy={holdingLookupSaving}
-                className={`flex min-w-0 items-center rounded-2xl border bg-[var(--surface-3)] pr-2 transition focus-within:border-[var(--accent)] ${
-                  holdingLookupSaving
-                    ? 'border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]'
-                    : 'border-[var(--line)]'
-                }`}
-              >
-                <input
-                  autoComplete="off"
-                  className="min-w-0 flex-1 bg-transparent px-3 py-3 outline-none"
-                  disabled={holdingLookupSaving}
-                  onChange={(event) => {
-                    onChange('ticker', normalizeTickerInput(event.target.value))
-                    setTickerMenuOpen(true)
-                  }}
-                  onFocus={() => setTickerMenuOpen(true)}
-                  placeholder="예: AAPL, 360750, JPYKRW=X"
-                  value={draft.ticker}
-                />
-                <button
-                  aria-label="티커 목록 열기"
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
-                  disabled={holdingLookupSaving}
-                  onClick={() => setTickerMenuOpen((current) => !current)}
-                  type="button"
-                >
-                  <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="m6 9 6 6 6-6"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.8"
-                    />
-                  </svg>
-                </button>
-              </div>
-              {tickerMenuOpen && !!suggestedInstruments.length && (
-                <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-[var(--line)] bg-[#1b1d23] shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
-                  {suggestedInstruments.map((instrument) => (
-                    <button
-                      className="flex min-h-11 w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2.5 text-left text-sm transition hover:bg-[var(--surface-3)] last:border-b-0"
-                      key={instrument.ticker}
-                      onClick={() => {
-                        onChange('ticker', instrument.ticker)
-                        setTickerMenuOpen(false)
-                      }}
-                      type="button"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate font-semibold text-[var(--ink)]">
-                          {instrument.display_name}
-                        </span>
-                        <span className="block truncate text-[var(--muted-ink)]">
-                          {instrument.ticker}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-xs font-medium text-[var(--muted-ink)]">
-                        {instrument.currency}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button
-              className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-2xl border border-[var(--line)] px-3 py-2.5 text-sm font-semibold text-[var(--muted-ink)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-70 sm:min-w-20 sm:w-auto"
-              disabled={holdingSaving || holdingLookupSaving}
-              onClick={onLookupTicker}
-              type="button"
-            >
-              {holdingLookupSaving && (
-                <span
-                  aria-hidden="true"
-                  className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--accent)]"
-                />
-              )}
-              {holdingLookupSaving ? '조회 중' : '조회'}
-            </button>
-          </div>
-          {holdingLookupSaving && (
-            <div className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--muted-ink)]">
-              <span
-                aria-hidden="true"
-                className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--accent)]"
-              />
-              <span>티커 정보를 확인하고 있습니다. 잠시만 기다려 주세요.</span>
-            </div>
-          )}
-        </div>
-
-        {!holdingLookupSaving && holdingLookupResult && (
-          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-              <span className="font-semibold text-[var(--ink)]">
-                {holdingLookupResult.display_name}
-              </span>
-              <span className="text-[var(--muted-ink)]">{holdingLookupResult.ticker}</span>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--muted-ink)]">
-              <span>통화 {holdingLookupResult.currency}</span>
-              <span>종류 {holdingLookupResult.instrument_type}</span>
-              {Number.isFinite(holdingLookupResult.price) && (
-                <span>
-                  현재가{' '}
-                  {formatUnitPrice(holdingLookupResult.price, holdingLookupResult.currency)}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {holdingLookupError && (
-          <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100">
-            {holdingLookupError}
-          </div>
-        )}
-
-        {selectedInstrumentType === 'valuation' ? <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">매입금액</span>
-            <input className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]" onChange={(event) => onChange('purchase_amount', event.target.value)} step="any" type="number" value={draft.purchase_amount} />
-          </label>
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">평가금액</span>
-            <input className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]" onChange={(event) => onChange('valuation_amount', event.target.value)} step="any" type="number" value={draft.valuation_amount} />
-          </label>
-        </div> : selectedInstrumentType === 'cash' ? <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">평가금액</span>
-          <input className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]" onChange={(event) => onChange('valuation_amount', event.target.value)} step="any" type="number" value={draft.valuation_amount} />
-        </label> : <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-              수량
-            </span>
-            <input
-              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => onChange('quantity', event.target.value)}
-              step="any"
-              type="number"
-              value={draft.quantity}
-            />
-          </label>
-
-          <label className="grid gap-2">
-            <span className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-              <span>평균 단가</span>
-              {selectedCurrency && (
-                <span className="rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-2 py-0.5 text-[10px] tracking-normal text-[var(--ink)]">
-                  {selectedCurrency}
-                </span>
-              )}
-            </span>
-            <input
-              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => onChange('avg_price', event.target.value)}
-              step="any"
-              type="number"
-              value={draft.avg_price}
-            />
-          </label>
-        </div>}
-
-        {holdingError && (
-          <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100">
-            {holdingError}
-          </div>
-        )}
-      </div>
-    </ModalShell>
-  )
-}
-
-export function TagEditorModal({ draft, onChange, onClose, onDelete, onSave, tagError, tagSaving }) {
-  const dirty = useDraftDirty(draft, ['name', 'sort_order'])
-  const actions = (requestClose) => (
-    <ModalActions
-      canDelete={!!draft.id}
-      deleteConfirmMessage="태그를 삭제하면 연결된 종목은 태그 없음으로 바뀌고, 전략 버킷 연결도 해제됩니다. 계속할까요?"
-      deleteLabel="태그 삭제"
-      disabled={tagSaving}
-      onClose={requestClose}
-      onDelete={onDelete}
-      onSave={onSave}
-      saveLabel={tagSaving ? '저장 중' : '저장'}
-    />
-  )
-  return (
-    <ModalShell closeDisabled={tagSaving} dirty={dirty} footer={actions} onClose={onClose} title={draft.id ? '태그 수정' : '태그 추가'}>
-      <div className="grid gap-4">
-        <label className="grid gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-            태그명
-          </span>
-          <input
-            className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-            onChange={(event) => onChange('name', event.target.value)}
-            value={draft.name}
-          />
-        </label>
-
-        <div className="grid gap-4">
-          <label className="grid gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-ink)]">
-              정렬 순서
-            </span>
-            <input
-              className="w-full min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] px-3 py-3 outline-none transition focus:border-[var(--accent)]"
-              onChange={(event) => onChange('sort_order', event.target.value)}
-              type="number"
-              value={draft.sort_order}
-            />
-          </label>
-        </div>
-
-        {tagError && (
-          <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-100">
-            {tagError}
           </div>
         )}
       </div>

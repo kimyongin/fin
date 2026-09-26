@@ -1,23 +1,93 @@
 import { expect, test } from '@playwright/test'
-import { signInAs } from './helpers'
+import { callRpc, clickPageAction, signInAs } from './helpers'
 
-test('captures account reference and activity editor at mobile and desktop widths', async ({ page }, testInfo) => {
+test('captures modal fields and activity filters at mobile and desktop widths', async ({ page }, testInfo) => {
+  test.setTimeout(120_000)
   await signInAs(page, 'e2e-owner@example.com')
-  for (const width of [390, 1024]) {
+  await page.goto('/#tasks')
+  for (const name of ['시안 리스크', '시안 매매', '시안 점검', '시안 작은 화면에서도 전체 이름을 확인할 수 있는 긴 태그']) {
+    const created = await callRpc(page, 'app_save_activity_tag', {
+      input_tag_id: null, input_expected_version: null,
+      input_idempotency_key: crypto.randomUUID(), input_name: name,
+    })
+    expect(created.status).toBe(200)
+  }
+  for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await page.goto('/#overview')
-    await page.getByText('추가 ▾').click()
-    await page.getByRole('button', { name: '계좌 추가' }).click()
+    await clickPageAction(page, '자산', '계좌 추가')
     const account = page.getByRole('dialog', { name: '계좌 추가' })
     await expect(account.getByLabel('계좌명')).toBeVisible()
+    expect(await account.getByLabel('계좌명').evaluate((element) => getComputedStyle(element).fontSize)).toBe('16px')
+    expect(await account.locator('.type-dialog-title').first().evaluate((element) => getComputedStyle(element).fontSize)).toBe('20px')
     await page.screenshot({ path: testInfo.outputPath(`account-${width}.png`) })
+    await account.getByLabel('계좌명').fill(`미저장 계좌 ${width}`)
     await account.getByRole('button', { name: '닫기' }).first().click()
+    const confirm = page.getByRole('dialog', { name: '변경 버리기' })
+    await expect(confirm).toBeVisible()
+    expect(await account.evaluate((element) => Boolean(element.closest('[inert]')))).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`confirm-${width}.png`) })
+    await confirm.getByRole('button', { name: '변경 버리기' }).click()
+
+    await page.getByRole('button', { name: /E2E Apple/ }).click()
+    const asset = page.getByRole('dialog', { name: 'E2E Apple' })
+    for (const name of ['티커', '현재가', '기준일']) {
+      const fixed = asset.getByLabel(name, { exact: true })
+      await expect(fixed).toHaveAttribute('readonly', '')
+      expect(await fixed.evaluate((element) => getComputedStyle(element).minHeight)).toBe('48px')
+      expect(await fixed.evaluate((element) => getComputedStyle(element).fontSize)).toBe('16px')
+    }
+    expect(await asset.locator('.form-label').first().evaluate((element) => getComputedStyle(element).fontSize)).toBe('14px')
+    await page.screenshot({ path: testInfo.outputPath(`asset-detail-${width}.png`) })
+    const assetTags = asset.getByRole('group', { name: '대표 태그' })
+    const assetLabel = assetTags.locator('.form-label')
+    const assetFirstChip = assetTags.getByRole('button').first()
+    const assetBefore = { label: await assetLabel.boundingBox(), chip: await assetFirstChip.boundingBox() }
+    expect(Math.abs(assetBefore.chip.y - assetBefore.label.y - assetBefore.label.height - 8)).toBeLessThanOrEqual(1)
+    await expect(assetFirstChip.locator('span')).toHaveCount(0)
+    await assetFirstChip.click()
+    const assetAfter = await assetFirstChip.boundingBox()
+    expect(Math.abs(assetAfter.y - assetBefore.chip.y)).toBeLessThanOrEqual(1)
+    expect(Math.abs(assetAfter.width - assetBefore.chip.width)).toBeLessThanOrEqual(1)
+    await expect(assetFirstChip).toHaveAttribute('aria-pressed', 'true')
+    await page.screenshot({ path: testInfo.outputPath(`asset-tag-selected-${width}.png`) })
+    await assetTags.getByRole('button', { name: '선택 해제' }).click()
+    const assetCleared = await assetTags.evaluate((group) => ({ label: group.querySelector('.form-label').getBoundingClientRect().toJSON(), chip: group.querySelector('button').getBoundingClientRect().toJSON() }))
+    expect(Math.abs(assetCleared.chip.y - assetCleared.label.y - assetCleared.label.height - 8)).toBeLessThanOrEqual(1)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await asset.getByRole('button', { name: '닫기' }).first().click()
+    const assetDiscard = page.getByRole('dialog', { name: '변경 버리기' })
+    if (await assetDiscard.isVisible()) await assetDiscard.getByRole('button', { name: '변경 버리기' }).click()
 
     await page.goto('/#tasks')
-    await page.getByRole('button', { name: '활동 추가', exact: true }).click()
+    await expect(page.getByRole('button', { name: '시안 리스크', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '할 일', exact: true })).toBeVisible()
+    await page.screenshot({ path: testInfo.outputPath(`activity-filter-${width}.png`) })
+    await expect(page.getByText('기록에만 적용 · 미완료 할 일은 기간과 무관')).toHaveCount(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await clickPageAction(page, '할 일과 기록', '활동 추가')
     const activity = page.getByRole('dialog', { name: '활동 추가' })
     await expect(activity.getByRole('textbox', { name: '할 일 제목' })).toBeVisible()
+    expect(await activity.getByRole('textbox', { name: '할 일 제목' }).evaluate((element) => getComputedStyle(element).fontSize)).toBe('16px')
     await page.screenshot({ path: testInfo.outputPath(`activity-${width}.png`) })
+    const activityTags = activity.getByRole('group', { name: '활동 태그' })
+    const activityLabel = activityTags.locator('.form-label')
+    const activityFirstChip = activityTags.getByRole('button', { name: '시안 리스크' })
+    const activityBefore = await activityTags.evaluate((group) => ({ label: group.querySelector('.form-label').getBoundingClientRect().toJSON(), chip: group.querySelector('button').getBoundingClientRect().toJSON() }))
+    expect(Math.abs(activityBefore.chip.y - activityBefore.label.y - activityBefore.label.height - 8)).toBeLessThanOrEqual(1)
+    await expect(activityFirstChip.locator('span')).toHaveCount(0)
+    await activityFirstChip.click()
+    const activityAfter = await activityTags.evaluate((group) => ({ label: group.querySelector('.form-label').getBoundingClientRect().toJSON(), chip: group.querySelector('button').getBoundingClientRect().toJSON() }))
+    expect(Math.abs(activityAfter.chip.y - activityAfter.label.y - activityAfter.label.height - 8)).toBeLessThanOrEqual(1)
+    expect(Math.abs(activityAfter.chip.width - activityBefore.chip.width)).toBeLessThanOrEqual(1)
+    await expect(activityFirstChip).toHaveAttribute('aria-pressed', 'true')
+    await activityTags.getByRole('button', { name: '시안 매매' }).click()
+    const activityMultiple = await activityTags.evaluate((group) => ({ label: group.querySelector('.form-label').getBoundingClientRect().toJSON(), chip: group.querySelector('button').getBoundingClientRect().toJSON() }))
+    expect(Math.abs(activityMultiple.chip.y - activityMultiple.label.y - activityMultiple.label.height - 8)).toBeLessThanOrEqual(1)
+    await page.screenshot({ path: testInfo.outputPath(`activity-tag-selected-${width}.png`) })
+    await activityTags.getByRole('button', { name: '선택 해제' }).click()
+    const activityCleared = await activityTags.evaluate((group) => ({ label: group.querySelector('.form-label').getBoundingClientRect().toJSON(), chip: group.querySelector('button').getBoundingClientRect().toJSON() }))
+    expect(Math.abs(activityCleared.chip.y - activityCleared.label.y - activityCleared.label.height - 8)).toBeLessThanOrEqual(1)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await activity.getByRole('button', { name: '닫기' }).first().click()
   }

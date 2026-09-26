@@ -101,9 +101,9 @@ export default function OAuthConsentPage({ authorizationId, onSignIn, session, s
     return (
       <main className="grid min-h-screen content-center px-5 text-[var(--ink)]">
         <section className="mx-auto w-full max-w-md rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Portfolio OAuth</p>
-          <h1 className="mt-3 text-2xl font-semibold">ChatGPT 연결</h1>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted-ink)]">
+          <p className="type-meta text-[var(--accent)]">Portfolio OAuth</p>
+          <h1 className="type-page-title mt-3">ChatGPT 연결</h1>
+          <p className="type-body type-long-body mt-3 text-[var(--muted-ink)]">
             포트폴리오 계정으로 로그인한 뒤 ChatGPT가 내 데이터에 접근하도록 승인할 수 있습니다.
           </p>
           {error && (
@@ -137,14 +137,14 @@ export default function OAuthConsentPage({ authorizationId, onSignIn, session, s
   return (
     <main className="grid min-h-screen content-center px-5 py-8 text-[var(--ink)]">
       <section className="mx-auto w-full max-w-md rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)]">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Portfolio OAuth</p>
-        <h1 className="mt-3 text-2xl font-semibold">{details?.client?.name ?? 'AI 도구'} 연결</h1>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted-ink)]">
+        <p className="type-meta text-[var(--accent)]">Portfolio OAuth</p>
+        <h1 className="type-page-title mt-3">{details?.client?.name ?? 'AI 도구'} 연결</h1>
+        <p className="type-body type-long-body mt-3 text-[var(--muted-ink)]">
           이 도구가 로그인한 사용자의 포트폴리오를 조회하고, 사용자가 요청한 변경 작업을 수행할 수 있게 됩니다.
         </p>
 
-        <div className="mt-5 rounded-2xl bg-[var(--surface-2)] p-4 text-sm">
-          <p className="font-medium">요청 권한</p>
+        <div className="type-body mt-5 rounded-2xl bg-[var(--surface-2)] p-4">
+          <p className="type-item-title">요청 권한</p>
           <ul className="mt-2 grid gap-2 text-[var(--muted-ink)]">
             {(scopes.length ? scopes : ['openid']).map((scope) => (
               <li key={scope}>• {scopeLabels[scope] ?? scope}</li>

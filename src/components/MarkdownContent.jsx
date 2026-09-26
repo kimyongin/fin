@@ -1,8 +1,8 @@
 function InlineMarkdown({ text }) {
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^\s)]+\))/g)
   return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) return <strong key={index}>{part.slice(2, -2)}</strong>
-    if (part.startsWith('`') && part.endsWith('`')) return <code className="rounded bg-[var(--surface-2)] px-1 py-0.5 text-[0.9em]" key={index}>{part.slice(1, -1)}</code>
+    if (part.startsWith('**') && part.endsWith('**')) return <strong className="font-semibold" key={index}>{part.slice(2, -2)}</strong>
+    if (part.startsWith('`') && part.endsWith('`')) return <code className="rounded bg-[var(--surface-2)] px-1 py-0.5" key={index}>{part.slice(1, -1)}</code>
     const link = part.match(/^\[([^\]]+)\]\(([^\s)]+)\)$/)
     if (link) {
       try {
@@ -42,10 +42,10 @@ export default function MarkdownContent({ className = '', content }) {
     flushList()
     if (heading) {
       const Tag = `h${heading[1].length}`
-      blocks.push(<Tag className={heading[1].length === 1 ? 'text-lg font-semibold' : 'text-base font-semibold'} key={`heading-${blocks.length}`}><InlineMarkdown text={heading[2]} /></Tag>)
+      blocks.push(<Tag className={heading[1].length === 1 ? 'type-section-title' : 'type-item-title'} key={`heading-${blocks.length}`}><InlineMarkdown text={heading[2]} /></Tag>)
     } else if (line.trim()) blocks.push(<p className="whitespace-pre-wrap" key={`paragraph-${blocks.length}`}><InlineMarkdown text={line} /></p>)
   }
   flushList()
 
-  return <div className={`grid gap-2 ${className}`}>{blocks}</div>
+  return <div className={`type-body type-long-body grid gap-2 ${className}`}>{blocks}</div>
 }

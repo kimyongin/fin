@@ -1,14 +1,22 @@
 # React 공통 컴포넌트 설계
 
+상단 카드의 표현 책임은 [페이지 상단 카드 가이드](./page-panel-guidelines.md)를 따른다. 자산·활동에서 실제 사용하는 여백/구획만 PageControls의 작은 wrapper 또는 스타일로 공유한다. 조회·조건 적용·평가 계산은 각 feature가 담당한다. 페이지별 설정을 해석하는 범용 필터/레이아웃 엔진은 추가하지 않는다.
+
+글자 표현은 [타이포그래피 가이드](./typography-guidelines.md)를 따른다. `styles.css`의 작은 역할별 스타일을 기존 컴포넌트와 실제 소비 화면에서 재사용하며 별도 범용 Text 컴포넌트/디자인 시스템 엔진은 만들지 않는다. 전역 font 상속과 Tailwind layer를 검증하고 공통 제목/입력/버튼의 실제 스타일을 확인한다. [전 영역 적용](../tickets/ui-24-typography-consistency.md)은 설계 완료·구현 대기다.
+
 타임라인 표현은 [타임라인 디자인 가이드](./timeline-guidelines.md)를 따른다. #119에서 활동/원칙 두 소비자가 쓰는 날짜 그룹·행 표현만 추출할 예정이며 데이터 조회·권한·커서는 각 기능에 둔다. 공통 타임라인 컴포넌트는 아직 미구현이다.
 
 모달 구현·수정의 필수 기준은 [모달 디자인 가이드](./modal-guidelines.md)다. ModalShell/ModalActions를 재사용하고, 아래 초기 DetailSurface 제안과 충돌하면 가이드의 용도별 레이아웃을 따른다.
+
+2026-09-26 [필드 통일 설계](../tickets/ui-29-modal-field-consistency.md): 같은 역할의 편집·읽기 전용 scalar를 `라벨 + 동일 크기 필드`로 통일한다. `styles.css`의 작은 공통 스타일과 필요한 얇은 라벨/읽기 전용 표현을 자산·계좌부터 실제 소비한다. 읽기 전용 값도 선택·복사를 지원하고 잠금/배경으로 구별한다. 범용 폼/검증 엔진은 도입하지 않는다. 긴 본문·확인 설명·표 셀은 가이드의 명시적 예외다. 아래 FormField 후보는 이 최소 범위에서만 판단하며 아직 코드 적용 전이다.
+
+[태그 가이드](./tag-guidelines.md)와 [#128](../tickets/ui-20-tag-chip-guidelines.md)은 `TagChip`의 최소 표시/선택 표현을 관리자·필터·상세에서 재사용하도록 한다. `TagManagerModal`은 초기 미선택 칩 목록과 선택 후 목록 아래 직접 편집을 제공한다. #127의 기존 전체 폭 행·목록 내부 스크롤 표현을 대체한다. API·권한·배분 목표/활동 검색 갱신은 기능별 책임이다. `ActivityTagPicker`는 선택만 담당하며 2차 `ConfirmDialog`에 태그 편집 폼을 넣지 않는다.
 
 2026-09-21 · 공통 구조 로컬 구현 완료. 현재 React 19 + Vite + Tailwind를 사용한다(package.json 선언 기준). 구조/배치 계약과 남은 실기기 검증은 [화면 구조 규칙](./screen-structure.md)을 따른다. 별도 Web Components/custom elements 프레임워크를 도입한다는 뜻이 아니다. 기존 어두운 테마와 CSS 변수를 유지한다.
 
 ## 현재 기반과 보완
 
-ModalShell, ModalActions, PageControls, PortfolioEntityHeader/Identity, MetricSummary, MarkdownContent가 src/components에 있다. 이를 폐기하고 새 디자인 시스템을 전면 도입하지 않는다.
+ModalShell, ConfirmDialog, ModalActions, PageControls, PortfolioEntityHeader/Identity, MetricSummary, MarkdownContent가 src/components에 있다. 이를 폐기하고 새 디자인 시스템을 전면 도입하지 않는다.
 ModalShell에는 Escape, Tab 순환, 호출 요소 focus 복귀, dialog 이름 연결, background inert, scroll lock, 최상위 modal, 고정 footer, detail drawer, dirty/pending 닫기 처리가 구현돼 있다. PageControls는 ViewTabs/FilterChips/PageToolbar를 제공한다. 별도 DialogSurface/FormField/범용 PageLayout은 실제 두 번째 소비자가 생기기 전 만들지 않았다. 자동 접근성 회귀는 통과했지만 실기기 스크린리더 검증 완료를 뜻하지 않는다.
 
 ## 공통 UI 계약
@@ -26,7 +34,7 @@ ModalShell에는 Escape, Tab 순환, 호출 요소 focus 복귀, dialog 이름 �
 | AsyncState | loading/empty/error/ready, retry callback; 오래된 데이터와 loading 구별 | 읽기 실패를 빈 목록으로 숨김 |
 | QualityBadge / DataTimestamp | missing/stale/estimated/partial, 날짜와 텍스트 레이블 | 품질 상태를 자체 추론해 변경 |
 
-이름/props는 제안이며 React JSX 기존 방식 유지. 새 UI 라이브러리 채택은 지금 확정하지 않는다. 구현 시 접근성 동작을 검증한 primitive 사용과 자체 구현을 비교하되 저장소 전체 교체를 전제하지 않는다.
+이름/props는 제안이며 React JSX 기존 방식 유지. 범용 UI 라이브러리 채택은 확정하지 않는다. 구현 시 접근성 동작을 검증한 primitive 사용과 자체 구현을 비교하되 저장소 전체 교체를 전제하지 않는다. 날짜 달력에 한정한 `@daypicker/react` 도입은 아래 실제 소비자 기록을 따른다.
 
 ## 모달·드로어 공통 동작
 
@@ -56,3 +64,5 @@ BriefingSummary, DecisionStatus, TaskProgress, EvidenceList, PositionChangePrevi
 4. 저장 성공 후 재조회 실패는 편집 오류와 분리했다. 실제 모바일 가상 키보드·safe-area·스크린리더는 #39에서 확인한다.
 
 문서화는 UI 구현/접근성 검증 완료가 아니다. 원칙은 [PRINCIPLES](./PRINCIPLES.md), 코드 책임은 [architecture](../engineering/architecture.md)를 따른다.
+
+2026-09-26 날짜·시간 입력 후속: 활동 필터와 기록·할 일 폼의 기본 브라우저 달력을 공통 `CalendarDateField` + `@daypicker/react`로 교체했다. 시간은 한 소비자만 있어 별도 라이브러리 없이 공통 `ClockTimeField`에서 `HH:mm`을 입력한다. 기존 폼 값·저장 API는 그대로 두며 달력은 현재 본문에 펼쳐 2차 모달을 만들지 않는다. [활동 필터 티켓](../tickets/ui-31-activity-filter-fields.md)에 후속 결정과 검증 범위를 기록한다.

@@ -115,23 +115,8 @@ Deno.serve(async (req) => {
       instrument_type: mapYahooInstrumentType(meta.instrumentType ?? meta.quoteType),
       price: Number.isFinite(meta.regularMarketPrice) ? meta.regularMarketPrice : null,
       price_date: priceDate,
-      source: 'registered',
+      source: 'lookup',
     }
-
-    const { error: instrumentError } = await userClient.rpc('app_save_instrument', {
-      input_instrument_id: null,
-      input_ticker: ticker,
-      input_display_name: result.display_name,
-      input_currency: result.currency,
-      input_instrument_type: result.instrument_type,
-      input_price: Number.isFinite(result.price) && result.price > 0 ? result.price : null,
-      input_price_date: result.price_date,
-      input_tag_id: null,
-      input_source: 'user',
-      input_request: `티커 조회: ${ticker}`,
-      input_price_source: 'lookup',
-    })
-    if (instrumentError) throw instrumentError
 
     return Response.json(result, { headers: corsHeaders })
   } catch (error) {

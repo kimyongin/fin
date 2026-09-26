@@ -2,13 +2,13 @@ import { formatSignedPercent, returnToneClass } from '../lib/format'
 
 function MetricInline({ accentText = null, accentToneClass = '', label, value }) {
   return (
-    <span className="inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap text-sm leading-5">
+    <span className="type-secondary inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap">
       <span className="text-[var(--muted-ink)]">{label}</span>{' '}
-      <span className="font-semibold text-[var(--ink)]">{value}</span>
+      <span className="type-value type-number text-[var(--ink)]">{value}</span>
       {accentText && (
         <span className="ml-2 inline-flex items-baseline gap-1">
           <span className="text-[var(--muted-ink)]">수익률</span>
-          <span className={`font-semibold ${accentToneClass}`}>{accentText}</span>
+          <span className={`type-secondary type-number ${accentToneClass}`}>{accentText}</span>
         </span>
       )}
     </span>
@@ -30,13 +30,13 @@ export default function MetricSummary({
     <div className="mt-2 grid gap-2">
       {showValueSummary && (
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="text-sm leading-5 text-[var(--muted-ink)]">평가금액</span>
-          <span className="text-sm font-semibold leading-5 text-[var(--ink)]">{valueText}</span>
-          {valueMeta && <span className="text-sm font-medium leading-5 text-[var(--muted-ink)]">{valueMeta}</span>}
+          <span className="type-label text-[var(--muted-ink)]">평가금액</span>
+          <span className="type-value type-number text-[var(--ink)]">{valueText}</span>
+          {valueMeta && <span className="type-secondary text-[var(--muted-ink)]">{valueMeta}</span>}
         </div>
       )}
       {showPriceMetrics && (
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm leading-5 text-[var(--muted-ink)]">
+        <div className="type-secondary flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[var(--muted-ink)]">
           <MetricInline label={avgCostLabel} value={avgCostText} />
           <MetricInline
             accentText={formatSignedPercent(returnPercent)}

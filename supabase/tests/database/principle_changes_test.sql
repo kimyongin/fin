@@ -11,18 +11,17 @@ set local role authenticated;
 
 select extensions.is(public.app_list_principle_changes()->'items','[]'::jsonb,'starts with no changes');
 select public.app_save_principle('94000000-0000-0000-0000-000000000001',null,'처음');
-select public.app_save_principle('94000000-0000-0000-0000-000000000002',null,'다른 원칙');
 select public.app_save_principle('94000000-0000-0000-0000-000000000001',
   (select id from public.principles where principle_id='94000000-0000-0000-0000-000000000001' order by id desc limit 1),
   '수정 후','변경 이유');
 select public.app_save_principle('94000000-0000-0000-0000-000000000001',
   (select id from public.principles where principle_id='94000000-0000-0000-0000-000000000001' order by id desc limit 1),
-  '종료 후','중단',true);
+  '다시 수정','두 번째 변경');
 
-select extensions.is(jsonb_array_length(public.app_list_principle_changes()->'items'),4,'all changes are listed');
-select extensions.is(public.app_list_principle_changes() #>> '{items,0,change_type}','ended','latest row is an end');
-select extensions.is(public.app_list_principle_changes() #>> '{items,0,body}','수정 후','end retains the preceding body');
-select extensions.is(public.app_list_principle_changes(1) #>> '{items,0,change_note}','중단','end note is returned outside the page');
+select extensions.is(jsonb_array_length(public.app_list_principle_changes()->'items'),3,'all document revisions are listed');
+select extensions.is(public.app_list_principle_changes() #>> '{items,0,change_type}','updated','latest row is an update');
+select extensions.is(public.app_list_principle_changes() #>> '{items,0,body}','다시 수정','latest full body is retained');
+select extensions.is(public.app_list_principle_changes(1) #>> '{items,0,change_note}','두 번째 변경','latest change note is returned outside the page');
 select extensions.is(jsonb_array_length(public.app_list_principle_changes(1,
   public.app_list_principle_changes(1)->'next_cursor')->'items'),1,'cursor advances without duplicate');
 select extensions.is(public.app_list_principle_changes() #>> '{items,1,change_type}','updated','second revision is classified as an update');

@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(20);
+select extensions.plan(18);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000001601','authenticated','authenticated','note-owner@example.com','',now(),now(),now()),
@@ -28,8 +28,6 @@ select extensions.throws_ok($$select public.app_update_entity_note('portfolio',9
 select extensions.is(public.app_get_portfolio_state(null)#>>'{accounts,0,note}','새 계좌 메모','portfolio state returns the updated account note');
 select extensions.is((select count(*) from information_schema.columns where table_schema='public' and table_name='holdings' and column_name='note'),0::bigint,'holding note is not a separate model');
 select extensions.is(public.app_update_entity_note('instrument',9961,'새 종목 메모',' ','16111111-1111-4111-8111-111111111117','app')->>'note',null,'blank input clears an instrument note');
-select extensions.lives_ok($$select public.app_verify_holding(9961,1,array['quantity'],current_date,'증권사 화면 확인','16111111-1111-4111-8111-111111111119','app')$$,'holding verification succeeds');
-select extensions.is((select count(*) from public.activity_events where action_type='verify_holding'),1::bigint,'holding verification records an automatic event');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001602',true);
 select extensions.throws_ok($$select public.app_update_entity_note('account',9961,'새 계좌 메모','침범','16222222-2222-4222-8222-222222222221','agent')$$,'P0001','Entity was not found or is not accessible','another user cannot update the note');

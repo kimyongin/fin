@@ -35,9 +35,3 @@ export const portfolioMessages = {
   sharedView: '\uacf5\uc720 \ubcf4\uae30',
   sharedPortfolioView: '\ud3ec\ud2b8\ud3f4\ub9ac\uc624 \ubcf4\uae30',
 }
-
-export function viewerProfileSavedMessage(passwordUpdated) {
-  return passwordUpdated
-    ? '\uacf5\uc720 \ubcf4\uae30 \uc124\uc815\uc774 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \ube44\ubc00\ubc88\ud638\ub3c4 \ud568\uaed8 \uc5c5\ub370\uc774\ud2b8\ub418\uc5c8\uc2b5\ub2c8\ub2e4.'
-    : '\uacf5\uc720 \ubcf4\uae30 \uc124\uc815\uc774 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.'
-}

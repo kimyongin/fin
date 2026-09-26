@@ -67,7 +67,7 @@ for (const requiredTool of [
   'search_activities',
   'delete_activity',
   'list_transactions',
-  'verify_holdings',
+  'reconcile_holding',
   'list_principles',
   'save_principle',
   'list_general_tasks',

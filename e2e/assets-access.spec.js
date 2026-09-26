@@ -26,10 +26,17 @@ test('saves one asset detail across accounts atomically and retries after a reje
     input_account_id: first.body[0].account_id, input_avg_price: 8, input_holding_id: null,
     input_quantity: 2, input_request: null, input_source: 'user', input_ticker: ticker,
   })).status).toBe(200)
+  const createdTag = await callRpc(page, 'app_save_tag', {
+    input_name: `Detail Tag ${suffix}`, input_request: null, input_sort_order: 99,
+    input_source: 'user', input_tag_id: null,
+  })
+  expect(createdTag.status).toBe(200)
   await page.reload()
   await openMenuTab(page, '자산')
   await page.getByRole('button', { name: new RegExp(`Detail ${suffix}`) }).click()
   const editor = page.getByRole('dialog', { name: `Detail ${suffix}` })
+  await editor.getByRole('button', { name: `Detail Tag ${suffix}` }).click()
+  await expect(editor.getByRole('button', { name: `Detail Tag ${suffix}` })).toHaveAttribute('aria-pressed', 'true')
   await editor.getByLabel('종목명').fill(`Updated ${suffix}`)
   await editor.getByLabel('수량').first().fill('3')
   await editor.getByRole('button', { name: '다른 계좌에 보유 추가' }).click()
@@ -43,6 +50,9 @@ test('saves one asset detail across accounts atomically and retries after a reje
       const bounds = dialog.getBoundingClientRect()
       return bounds.left >= 0 && bounds.right <= window.innerWidth
     })).toBe(true)
+    const deleteButton = await editor.getByRole('button', { name: '보유 삭제' }).boundingBox()
+    const accountSelect = await editor.getByRole('combobox', { name: '계좌', exact: true }).first().boundingBox()
+    expect(deleteButton.y + deleteButton.height).toBeLessThan(accountSelect.y)
   }
 
   let rejectOnce = true
@@ -53,8 +63,15 @@ test('saves one asset detail across accounts atomically and retries after a reje
     payload.input_holdings[1].account_id = 999999
     await route.continue({ postData: JSON.stringify(payload) })
   })
+  await page.setViewportSize({ width: 390, height: 844 })
+  const editorBody = editor.locator(':scope > div').nth(1)
+  await editorBody.evaluate((element) => { element.scrollTop = 120 })
+  const beforeConfirmScroll = await editorBody.evaluate((element) => element.scrollTop)
   await editor.getByRole('button', { name: '저장', exact: true }).click()
   const confirmation = page.getByRole('dialog', { name: '보유값 변경 확인' })
+  expect(await editor.evaluate((element) => Boolean(element.closest('[inert]')))).toBe(true)
+  await expect(editor.getByLabel('수량').first()).toHaveValue('3')
+  expect(await editorBody.evaluate((element) => element.scrollTop)).toBe(beforeConfirmScroll)
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: width < 768 ? 844 : 900 })
     await expect(confirmation).toBeVisible()
@@ -70,16 +87,27 @@ test('saves one asset detail across accounts atomically and retries after a reje
   await expect(page.getByRole('dialog').getByText('저장되었습니다.')).toBeVisible()
   const saved = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(saved.body.instruments.find((item) => item.ticker === ticker).display_name).toBe(`Updated ${suffix}`)
+  expect(saved.body.instrumentTags.find((item) => item.ticker === ticker)?.tags?.id).toBe(createdTag.body[0].tag_id)
   expect(saved.body.holdings.filter((item) => item.ticker === ticker)).toHaveLength(2)
   expect(saved.body.holdings.find((item) => item.ticker === ticker && Number(item.account_id) === Number(first.body[0].account_id)).quantity).toBe(3)
   const updatedEditor = page.getByRole('dialog', { name: `Updated ${suffix}` })
+  let rejectDeleteOnce = true
+  await page.route('**/rest/v1/rpc/app_delete_holding', async (route) => {
+    if (!rejectDeleteOnce) return route.continue()
+    rejectDeleteOnce = false
+    await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ message: '시험 삭제 오류' }) })
+  })
   await updatedEditor.getByRole('button', { name: '보유 삭제' }).last().click()
-  await expect(page.getByRole('dialog')).toHaveCount(1)
+  expect(await updatedEditor.evaluate((element) => Boolean(element.closest('[inert]')))).toBe(true)
+  await expect(page.getByRole('dialog', { name: '보유 삭제' })).toBeVisible()
+  await page.getByRole('dialog', { name: '보유 삭제' }).getByRole('button', { name: '보유 삭제' }).click()
+  await expect(page.getByRole('dialog', { name: '보유 삭제' }).getByRole('alert')).toContainText('시험 삭제 오류')
   await page.getByRole('dialog', { name: '보유 삭제' }).getByRole('button', { name: '보유 삭제' }).click()
   await expect(page.getByRole('dialog', { name: `Updated ${suffix}` })).toBeVisible()
   const afterDelete = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(afterDelete.body.holdings.filter((item) => item.ticker === ticker)).toHaveLength(1)
   await page.unroute('**/rest/v1/rpc/app_save_asset_detail_current')
+  await page.unroute('**/rest/v1/rpc/app_delete_holding')
 })
 
 test('edits only the shared instrument memo in the asset detail', async ({ page }) => {
@@ -104,7 +132,7 @@ test('edits only the shared instrument memo in the asset detail', async ({ page 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('edits current holdings in place without claiming a brokerage verification', async ({ page }) => {
+test('edits current holdings in place without a separate verification flow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
@@ -113,8 +141,9 @@ test('edits current holdings in place without claiming a brokerage verification'
   const editor = page.getByRole('dialog', { name: 'E2E Apple' })
   await expect(editor.getByRole('button', { name: '매매 기록' })).toHaveCount(0)
   await expect(editor.getByRole('button', { name: '증권사 확인·보정' })).toHaveCount(0)
-  await expect(editor.getByLabel('현재가')).toBeVisible()
-  await expect(editor.getByLabel('가격 기준일')).toBeVisible()
+  await expect(editor.getByLabel('현재가')).toHaveAttribute('readonly', '')
+  await expect(editor.getByLabel('기준일')).toHaveAttribute('readonly', '')
+  await expect(editor.getByLabel('티커')).toHaveAttribute('readonly', '')
   await editor.getByLabel('수량').first().fill('4')
   await editor.getByLabel('평균가').first().fill('125')
   await editor.getByRole('button', { name: '저장', exact: true }).click()
@@ -126,8 +155,7 @@ test('edits current holdings in place without claiming a brokerage verification'
   const state=await callRpc(page,'app_get_portfolio_state',{input_owner_user_id:null})
   const holding=state.body.holdings.find((item)=>item.ticker==='E2EAPL')
   expect(holding).toMatchObject({quantity:4,avg_price:125})
-  const integrity=await callRpc(page,'app_get_holding_integrity',{input_holding_id:holding.id})
-  expect(integrity.body.last_verification?.verified_fields ?? []).toEqual([])
+  await expect(page.getByText(/보유가 아직 미확인/)).toHaveCount(0)
 })
 
 test('starts the Google OAuth authorization redirect without using a Google account', async ({ page }) => {
@@ -281,12 +309,24 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   const ownerPage = await browser.newPage()
   await signInAs(ownerPage, 'e2e-owner@example.com')
   await ownerPage.goto('/')
-  const initialPolicy = await callRpc(ownerPage, 'app_get_sharing_policy')
-  const enabledPolicy = await callRpc(ownerPage, 'app_update_sharing_policy', {
-    input_expected_version: initialPolicy.body.version,
-    input_grants: { activity: true, tasks: true },
+  expect((await callRpc(ownerPage, 'app_set_profile_avatar', { input_avatar_key: 'fox' })).body).toBe('fox')
+  expect((await callRpc(ownerPage, 'app_set_profile_avatar', { input_avatar_key: 'invalid' })).status).toBeGreaterThanOrEqual(400)
+  const enabledShare = await callRpc(ownerPage, 'set_viewer_profile', {
+    input_public_name: 'e2e-owner', input_viewer_password: 'e2e-password',
+    input_sharing_enabled: true, input_share_scope: 'portfolio_all',
   })
-  expect(enabledPolicy.status).toBe(200)
+  expect(enabledShare.status).toBe(200)
+  const originalPrinciples = await callRpc(ownerPage, 'app_list_principles', {
+    input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: false,
+    input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
+  })
+  expect(originalPrinciples.status).toBe(200)
+  const savedPrinciple = await callRpc(ownerPage, 'app_save_principle', {
+    input_principle_id: originalPrinciples.body.items[0]?.principle_id ?? crypto.randomUUID(),
+    input_expected_row_id: originalPrinciples.body.items[0]?.id ?? null,
+    input_body: 'E2E 공유 원칙', input_change_note: '공유 확인', input_end: false,
+  })
+  expect(savedPrinciple.status).toBe(200)
 
   const friendPage = await browser.newPage()
   await signInAs(friendPage, 'e2e-friend@example.com')
@@ -297,6 +337,7 @@ test('adds a friend and grants only that user shared portfolio access', async ({
     input_viewer_password: 'e2e-password',
   })
   expect(addFriend.status).toBe(200)
+  expect((await callRpc(friendPage, 'list_friends')).body).toContainEqual(expect.objectContaining({ owner_public_name: 'e2e-owner', owner_avatar_key: 'fox' }))
 
   const sharedState = await callRpc(friendPage, 'app_get_portfolio_state', {
     input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
@@ -304,26 +345,46 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   expect(sharedState.body.accounts).toContainEqual(expect.objectContaining({ name: 'E2E Account' }))
 
   await friendPage.reload()
-  await friendPage.getByLabel('포트폴리오 전환').selectOption('00000000-0000-0000-0000-00000000e201')
+  await friendPage.getByRole('button', { name: /포트폴리오, 전환하기/ }).click()
+  await expect(friendPage.getByRole('group', { name: '포트폴리오 선택' }).getByRole('button', { name: 'e2e-owner' })).toContainText('🦊')
+  await friendPage.getByRole('button', { name: /포트폴리오, 전환하기/ }).click()
+  const selectPortfolio = async (owner = 'owner') => {
+    await friendPage.getByRole('button', { name: /포트폴리오, 전환하기/ }).click()
+    await friendPage.getByRole('group', { name: '포트폴리오 선택' }).getByRole('button', { name: owner === 'owner' ? '나' : 'e2e-owner' }).click()
+  }
+  await selectPortfolio('friend')
+  await expect(friendPage.getByTestId('self-profile-badge')).toHaveCount(0)
   const sharedPrimary = friendPage.locator('nav[aria-label="주요 메뉴"]:visible')
-  await expect(sharedPrimary.getByRole('button')).toHaveCount(4)
+  await expect(sharedPrimary.getByRole('button')).toHaveCount(6)
   await expect(sharedPrimary.getByRole('button', { name: '자산', exact: true })).toBeVisible()
   await expect(sharedPrimary.getByRole('button', { name: '배분', exact: true })).toBeVisible()
   await expect(sharedPrimary.getByRole('button', { name: '활동', exact: true })).toBeVisible()
   await expect(sharedPrimary.getByRole('button', { name: '원칙', exact: true })).toBeVisible()
+  await sharedPrimary.getByRole('button', { name: '원칙', exact: true }).click()
+  await expect(friendPage.getByText('E2E 공유 원칙')).toBeVisible()
+  await expect(friendPage.getByRole('button', { name: '수정', exact: true })).toHaveCount(0)
+  await expect(friendPage.getByRole('heading', { name: '변경 이력' })).toBeVisible()
+  await sharedPrimary.getByRole('button', { name: '배분', exact: true }).click()
+  await expect(friendPage.getByRole('button', { name: '태그 관리' })).toHaveCount(0)
   await sharedPrimary.getByRole('button', { name: '활동', exact: true }).click()
-  await friendPage.getByText('상세 필터').click()
+  await expect(friendPage.getByRole('button', { name: '태그 관리' })).toHaveCount(0)
   await friendPage.getByRole('textbox', { name: '활동 검색' }).fill('점검')
-  await friendPage.getByRole('button', { name: '검색', exact: true }).click()
   await expect(friendPage.getByRole('heading', { name: '검색 결과' })).toBeVisible({ timeout: 20000 })
-  await friendPage.getByRole('button', { name: 'Open menu' }).click()
-  const sharedMenu = friendPage.locator('nav[aria-label="보조 메뉴"]')
+  await friendPage.getByRole('button', { name: '메뉴 열기' }).click()
+  const sharedMenu = friendPage.getByRole('group', { name: '보조 메뉴' })
   await expect(sharedMenu.getByRole('button', { name: '오늘', exact: true })).toHaveCount(0)
   await expect(sharedMenu.getByRole('button', { name: '활동', exact: true })).toHaveCount(0)
   await expect(sharedMenu.getByRole('button', { name: '설정', exact: true })).toHaveCount(0)
 
-  await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
+  await selectPortfolio()
+  await expect(friendPage.getByTestId('self-profile-badge')).toBeVisible()
+  await expect(friendPage).toHaveURL(/#tasks$/)
   await expect(friendPage.getByText('E2E Apple')).toHaveCount(0)
+  let staleViewSignals = 0
+  await friendPage.route('**/rest/v1/rpc/app_mark_shared_portfolio_view', async (route) => {
+    staleViewSignals += 1
+    await route.continue()
+  })
   let releaseSharedRequest
   let markSharedRequest
   const sharedRequestSeen = new Promise((resolve) => { markSharedRequest = resolve })
@@ -335,22 +396,24 @@ test('adds a friend and grants only that user shared portfolio access', async ({
     }
     await route.continue()
   })
-  await friendPage.getByLabel('포트폴리오 전환').selectOption('00000000-0000-0000-0000-00000000e201')
+  await selectPortfolio('friend')
   await sharedRequestSeen
-  await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
-  await expect(friendPage.getByLabel('포트폴리오 전환')).toHaveValue('owner')
+  await selectPortfolio()
+  await expect(friendPage.getByRole('button', { name: '현재 나의 포트폴리오, 전환하기' })).toBeVisible()
   releaseSharedRequest()
   await expect(friendPage.getByText('E2E Apple')).toHaveCount(0)
+  expect(staleViewSignals).toBe(0)
   await friendPage.unroute('**/rest/v1/rpc/app_get_portfolio_state')
+  await friendPage.unroute('**/rest/v1/rpc/app_mark_shared_portfolio_view')
 
-  await friendPage.getByLabel('포트폴리오 전환').selectOption('00000000-0000-0000-0000-00000000e201')
+  await selectPortfolio('friend')
   expect((await callRpc(friendPage, 'app_list_action_timeline', {
     input_cursor: null, input_filter: 'all', input_limit: 20,
     input_owner_user_id: '00000000-0000-0000-0000-00000000e201',
     input_from: null, input_to: null, input_timezone: 'Asia/Seoul',
   })).body.pending).toBeInstanceOf(Array)
 
-  await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
+  await selectPortfolio()
   let releaseTimeline
   const heldTimeline = new Promise((resolve) => { releaseTimeline = resolve })
   let sawTimeline
@@ -361,18 +424,18 @@ test('adds a friend and grants only that user shared portfolio access', async ({
     await heldTimeline
     await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'stale shared error' }) })
   })
-  await friendPage.getByLabel('포트폴리오 전환').selectOption('00000000-0000-0000-0000-00000000e201')
+  await selectPortfolio('friend')
   await sharedPrimary.getByRole('button', { name: '활동', exact: true }).click()
   await timelineReached
-  await friendPage.getByLabel('포트폴리오 전환').selectOption('owner')
+  await selectPortfolio()
   releaseTimeline()
   await expect(friendPage.getByRole('heading', { name: '할 일' })).toBeVisible()
   await expect(friendPage.getByText('stale shared error')).toHaveCount(0)
   await friendPage.unroute('**/rest/v1/rpc/app_list_action_timeline')
 
-  expect((await callRpc(ownerPage, 'app_update_sharing_policy', {
-    input_expected_version: enabledPolicy.body.version,
-    input_grants: { activity: false, tasks: false },
+  expect((await callRpc(ownerPage, 'set_viewer_profile', {
+    input_public_name: 'e2e-owner', input_viewer_password: '',
+    input_sharing_enabled: false, input_share_scope: 'portfolio_all',
   })).status).toBe(200)
   expect((await callRpc(friendPage, 'app_list_action_timeline', {
     input_cursor: null, input_filter: 'all', input_limit: 20,
@@ -393,7 +456,7 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   expect(blockedState.body.accounts).toEqual([])
 })
 
-test('saves allocation targets, manages an agent token, and revokes friend access', async ({ browser }) => {
+test('saves allocation targets, rejects legacy token issuance, and revokes friend access', async ({ browser }) => {
   const ownerPage = await browser.newPage()
   await signInAs(ownerPage, 'e2e-owner@example.com')
   await ownerPage.goto('/')
@@ -409,21 +472,9 @@ test('saves allocation targets, manages an agent token, and revokes friend acces
   const strategyState = await callRpc(ownerPage, 'app_get_strategy_state', { input_owner_user_id: null })
   expect(strategyState.body.targets[0]).toMatchObject({ target_percentage: 100 })
 
-  const tokenHash = Date.now().toString(16).padStart(64, '0')
-  const token = await callRpc(ownerPage, 'agent_create_token', {
-    input_name: 'E2E Agent', input_token_hash: tokenHash, input_token_prefix: 'e2e_',
-  })
-  expect(token.status).toBe(200)
-  expect((await callRpc(ownerPage, 'mcp_get_portfolio_state', { input_token_hash: tokenHash })).status).toBe(200)
-  const tokenTargets = await callRpc(ownerPage, 'mcp_get_strategy_state', { input_token_hash: tokenHash })
-  expect(tokenTargets.body.targets[0]).toMatchObject({ tag_id: portfolioState.body.tags[0].id, target_percentage: 100 })
-  expect((await callRpc(ownerPage, 'mcp_save_strategy', {
-    input_token_hash: tokenHash,
-    input_targets: [{ tag_id: portfolioState.body.tags[0].id, target_percentage: 100 }],
-    input_expected_targets: [{ tag_id: portfolioState.body.tags[0].id, target_percentage: 100 }],
-  })).status).toBe(200)
-  expect((await callRpc(ownerPage, 'agent_revoke_token', { input_token_id: token.body[0].id })).body[0].revoked_at).toBeTruthy()
-  expect((await callRpc(ownerPage, 'mcp_get_portfolio_state', { input_token_hash: tokenHash })).status).toBe(400)
+  expect((await callRpc(ownerPage, 'agent_create_token', {
+    input_name: 'retired', input_token_hash: '0'.repeat(64), input_token_prefix: 'retired',
+  })).status).toBe(404)
 
   const friendPage = await browser.newPage()
   await signInAs(friendPage, 'e2e-friend@example.com')

@@ -2,6 +2,8 @@
 
 2026-09-22 · 설계와 로컬 구현 최종 대조. API 상세: [일일 점검](./daily-review-api.md), [원칙·판단·실행](./lifecycle-model-api.md), [태스크・이벤트](../tasks-and-events.md). 아래 이름은 구현된 목적 중심 RPC/MCP 또는 유지된 앱 서비스다. 운영 배포·실사용 통과를 뜻하지 않는다.
 
+> 2026-09-25 후속 변경: 이 표는 당시 대조 이력이다. S21/T02의 독립 증권사 확인 API·저장, 그 밖의 구 preview/원장 모델은 현재 계약이 아니다. 현행 보유 보정은 [보유 확인 상태 퇴역 기록](../../tickets/storage-simplification-07-verification-retirement.md)과 [schema overview](../../../supabase/schema/OVERVIEW.md)를 따른다.
+
 공통 쓰기에는 성공 receipt/감사가 따라간다. 아래 표는 사용자 데이터 변화를 중심으로 표기한다. 사용자의 지시가 없으면 ‘읽기/제안’을 ‘저장/채택’으로 승격하지 않는다.
 
 | ID | 사용자 경험/요청 | 필요한 API 흐름 | 생성·변경 모델 | 변경하면 안 되는 것 | 담당 |

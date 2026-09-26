@@ -7,15 +7,15 @@ export function usePortfolioEditorState() {
   const [instrumentModal, setInstrumentModal] = useState(null)
   const [instrumentSaving, setInstrumentSaving] = useState(false)
   const [instrumentError, setInstrumentError] = useState('')
+  const [instrumentLookupSaving, setInstrumentLookupSaving] = useState(false)
+  const [instrumentLookupError, setInstrumentLookupError] = useState('')
+  const [instrumentLookupResult, setInstrumentLookupResult] = useState(null)
   const [holdingModal, setHoldingModal] = useState(null)
   const [holdingSaving, setHoldingSaving] = useState(false)
   const [holdingError, setHoldingError] = useState('')
   const [holdingLookupSaving, setHoldingLookupSaving] = useState(false)
   const [holdingLookupError, setHoldingLookupError] = useState('')
   const [holdingLookupResult, setHoldingLookupResult] = useState(null)
-  const [tagModal, setTagModal] = useState(null)
-  const [tagSaving, setTagSaving] = useState(false)
-  const [tagError, setTagError] = useState('')
   const [syncingPrices, setSyncingPrices] = useState(false)
   const [syncMessage, setSyncMessage] = useState('')
 
@@ -30,6 +30,9 @@ export function usePortfolioEditorState() {
     holdingModal,
     holdingSaving,
     instrumentError,
+    instrumentLookupSaving,
+    instrumentLookupError,
+    instrumentLookupResult,
     instrumentModal,
     instrumentSaving,
     setAccountError,
@@ -42,17 +45,14 @@ export function usePortfolioEditorState() {
     setHoldingModal,
     setHoldingSaving,
     setInstrumentError,
+    setInstrumentLookupSaving,
+    setInstrumentLookupError,
+    setInstrumentLookupResult,
     setInstrumentModal,
     setInstrumentSaving,
     setSyncMessage,
     setSyncingPrices,
-    setTagError,
-    setTagModal,
-    setTagSaving,
     syncMessage,
     syncingPrices,
-    tagError,
-    tagModal,
-    tagSaving,
   }
 }

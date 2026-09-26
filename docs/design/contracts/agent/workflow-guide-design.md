@@ -13,7 +13,7 @@ ChatGPT가 사용자의 요청을 적절한 질문·조회·초안·저장으로
 | daily_review | 오늘 점검해줘 / 점검하고 저장해줘. 최근 활동·미확인 범위부터 조사하고 사실·해석·불확실성을 구분한다. | get_daily_context, search_activities, record_manual_activity / W01 |
 | decision_followup | 유지하기로 한 이유와 다음 실적 확인을 남겨줘. 모델 제안/사용자 채택을 활동 본문에 구분하고 선택적 후속 일반 할 일의 부분 성공을 설명한다. | search_activities, record_manual_activity, get_activity, update_activity, save_general_task, list_general_tasks / W03~W04 |
 | trade_entry | 실제로 산/판 내역을 기록해줘. 필요한 계좌·종목·수량·가격·날짜를 확인하고 preview→기록을 안내한다. 미래 매매 의향은 요청 시 일반 할 일로 남긴다. | find_holdings, preview_trade_entry, log_completed_trade, list_transactions, save_general_task / W05 |
-| reconciliation | 현재 잔고 맞추기 / 잘못된 기록의 현재값 보정 / 잔고 확인 표시. 의도에 따라 서로 다른 도구를 선택한다. | get_holding_integrity, get_portfolio_integrity, preview_holding_reconciliation, reconcile_holding, verify_holdings / W06 |
+| reconciliation | 실제 현재값으로 잔고 맞추기 / 잘못된 기록의 현재값 보정. 이미 맞으면 쓰지 않는다. | find_holdings, preview_holding_reconciliation, reconcile_holding / W06 |
 
 공유 설정은 앱으로 안내한다(W07). 실패 복구(W08)는 각 가이드의 해당 단계에 포함한다. 단순 조회용 가이드·범용 CRUD 가이드·독립 복구 topic은 추가하지 않는다. 이 표는 범위이며 실제 단계별 필수/선택 의존 도구 목록은 구현에서 명시한다. 현재 없는 독립 save_task/get_research_history나 MCP 운용 전략 수정 기능을 안내하지 않는다.
 

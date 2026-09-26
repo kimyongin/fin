@@ -58,7 +58,7 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
   })).status).toBe(200)
 
   await page.reload()
-  const list = page.getByRole('region', { name: '보유 종목' })
+  const list = page.getByRole('region', { name: '자산 종목' })
   const header = list.getByText('종목', { exact: true }).locator('..')
   const row = list.getByRole('button', { name: new RegExp(name) })
   await expect(row).toBeVisible()
@@ -80,6 +80,7 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
   const missingRow = list.getByRole('button', { name: /시세 없는 종목/ })
   await expect(missingRow.getByText('평가 불가')).toBeVisible()
   await expect(missingRow).toContainText('—')
+  await page.evaluate(() => document.fonts.ready)
 
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
@@ -91,10 +92,29 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
     aligned[0].forEach((left, index) => expect(Math.abs(left - aligned[1][index])).toBeLessThan(1))
     expect(await row.evaluate((element) => [...element.children].every((cell) => cell.scrollWidth <= cell.clientWidth + 1))).toBe(true)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    const typography = await row.evaluate((element) => {
+      const style = (selector) => {
+        const computed = getComputedStyle(element.querySelector(selector))
+        return [computed.fontSize, computed.fontWeight, computed.lineHeight]
+      }
+      return {
+        name: style('.type-item-title'),
+        ticker: style('.type-meta'),
+        quantity: style('.type-value'),
+        price: style('.type-secondary'),
+      }
+    })
+    expect(typography).toEqual({
+      name: ['16px', '600', '24px'],
+      ticker: ['12px', '400', '18px'],
+      quantity: ['16px', '600', '24px'],
+      price: ['14px', '400', '20px'],
+    })
+    expect(await page.getByRole('searchbox', { name: '종목 검색' }).evaluate((element) => getComputedStyle(element).fontSize)).toBe('16px')
   }
 
   await page.getByRole('searchbox', { name: '종목 검색' }).fill('존재하지 않는 검색어')
-  await expect(list.getByText('검색 결과가 없습니다.')).toBeVisible()
+  await expect(list.getByText('조건에 맞는 종목이 없습니다.')).toBeVisible()
   await expect(list.getByText('종목', { exact: true })).toHaveCount(0)
   await page.getByRole('searchbox', { name: '종목 검색' }).clear()
   await expect(row).toBeVisible()
@@ -103,7 +123,12 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
 
   await row.click()
   const detail = page.getByRole('dialog', { name })
-  await expect(detail.getByText('2026-09-24').first()).toBeVisible()
+  await expect(detail.getByLabel('기준일')).toHaveValue('2026-09-24')
+  await expect(detail.getByLabel('기준일')).toHaveAttribute('readonly', '')
+  expect(await detail.locator('.type-dialog-title').first().evaluate((element) => {
+    const computed = getComputedStyle(element)
+    return [computed.fontSize, computed.fontWeight, computed.lineHeight]
+  })).toEqual(['20px', '600', '28px'])
   await detail.getByRole('button', { name: '닫기' }).last().click()
   await expect(row).toBeVisible()
 })

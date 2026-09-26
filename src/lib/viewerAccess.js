@@ -1,6 +1,7 @@
 export function createViewerProfileDraft(profile = null) {
   return {
     public_name: profile?.public_name ?? '',
+    avatar_key: profile?.avatar_key ?? 'bear',
     sharing_enabled: Boolean(profile?.sharing_enabled),
     viewer_password: '',
     viewer_password_updated_at: profile?.viewer_password_updated_at ?? null,

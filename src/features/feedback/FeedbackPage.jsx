@@ -32,16 +32,16 @@ function FeedbackCard({ item }) {
   return (
     <article className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-2.5 py-1 text-xs font-semibold">
+        <span className="type-meta rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-2.5 py-1">
           {statusLabels[item.status] ?? item.status}
         </span>
         <time className="text-xs text-[var(--muted-ink)]">{formatMoment(item.created_at)}</time>
       </div>
-      <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6">{item.body}</p>
+      <p className="type-body type-long-body mt-4 whitespace-pre-wrap break-words">{item.body}</p>
       {item.response && (
         <div className="mt-4 rounded-2xl bg-[var(--surface-2)] p-4">
-          <p className="text-xs font-semibold text-[var(--muted-ink)]">처리 답변</p>
-          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{item.response}</p>
+          <p className="type-label text-[var(--muted-ink)]">처리 답변</p>
+          <p className="type-body type-long-body mt-2 whitespace-pre-wrap break-words">{item.response}</p>
         </div>
       )}
       {item.github_issue_url && (
@@ -92,7 +92,7 @@ function AdminFeedbackCard({ item, onSaved, supabase }) {
         <span>{item.source === 'mcp' ? 'ChatGPT' : '앱'} · {item.context?.page_key || '화면 정보 없음'}</span>
         <time>{formatMoment(item.created_at)}</time>
       </div>
-      <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6">{item.body}</p>
+      <p className="type-body type-long-body mt-4 whitespace-pre-wrap break-words">{item.body}</p>
       <div className="mt-5 grid gap-4">
         <label className="grid gap-2 text-sm font-semibold">
           상태
@@ -195,15 +195,15 @@ export default function FeedbackPage({ context = {}, supabase }) {
   return (
     <section className="grid gap-5">
       <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Product feedback</p>
-        <h2 className="mt-3 text-2xl font-semibold">사용하면서 불편했던 점을 남겨주세요</h2>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--muted-ink)]">
+        <p className="type-meta text-[var(--accent)]">Product feedback</p>
+        <h2 className="type-page-title mt-3">사용하면서 불편했던 점을 남겨주세요</h2>
+        <p className="type-body type-long-body mt-3 max-w-3xl text-[var(--muted-ink)]">
           투자 판단이나 점검할 일이 아니라, Portfolio 앱 자체의 문제·개선 아이디어를 기록하는 곳입니다. 생각나는 그대로 적어도 됩니다.
         </p>
         <form className="mt-5 grid gap-3" onSubmit={handleSubmit}>
-          <label className="text-sm font-semibold" htmlFor="product-feedback-body">피드백</label>
+          <label className="type-label" htmlFor="product-feedback-body">피드백</label>
           <textarea
-            className="min-h-32 w-full resize-y rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-4 text-sm leading-6 outline-none focus:border-[var(--accent)]"
+            className="type-input min-h-32 w-full resize-y rounded-2xl border border-[var(--line)] bg-[var(--surface-2)] p-4 outline-none focus:border-[var(--accent)]"
             id="product-feedback-body"
             maxLength={4000}
             onChange={(event) => {
@@ -215,13 +215,13 @@ export default function FeedbackPage({ context = {}, supabase }) {
             value={body}
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-xs text-[var(--muted-ink)]">{body.length.toLocaleString()} / 4,000</span>
+            <span className="type-meta type-number text-[var(--muted-ink)]">{body.length.toLocaleString()} / 4,000</span>
             <button className="min-h-11 rounded-xl bg-[var(--accent)] px-5 text-sm font-semibold text-white disabled:opacity-60" disabled={saving} type="submit">
               {saving ? '접수 중…' : '피드백 등록'}
             </button>
           </div>
-          {error && <p className="rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          {message && <p className="rounded-2xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}
+          {error && <p className="type-secondary rounded-2xl border border-red-300 bg-red-50 p-3 text-red-700">{error}</p>}
+          {message && <p className="type-secondary rounded-2xl border border-emerald-300 bg-emerald-50 p-3 text-emerald-800">{message}</p>}
         </form>
       </article>
 
@@ -229,8 +229,8 @@ export default function FeedbackPage({ context = {}, supabase }) {
         <div className="grid gap-3">
           {isAdmin && <ViewTabs ariaLabel="피드백 보기" idBase="feedback-view" onChange={setView} options={viewOptions} value={view} />}
           <div>
-            <h2 className="text-lg font-semibold">{view === 'triage' ? '전체 접수' : '내가 남긴 피드백'}</h2>
-            <p className="mt-1 text-sm text-[var(--muted-ink)]">{view === 'triage' ? '접수 상태, 공개 답변과 연결된 개발 이슈를 관리합니다.' : '접수 상태와 운영자의 답변을 여기서 확인할 수 있습니다.'}</p>
+            <h2 className="type-section-title">{view === 'triage' ? '전체 접수' : '내가 남긴 피드백'}</h2>
+            <p className="type-secondary mt-1 text-[var(--muted-ink)]">{view === 'triage' ? '접수 상태, 공개 답변과 연결된 개발 이슈를 관리합니다.' : '접수 상태와 운영자의 답변을 여기서 확인할 수 있습니다.'}</p>
           </div>
           {view === 'triage' && <FilterChips ariaLabel="피드백 상태" onChange={setAdminFilter} options={filterOptions} value={adminFilter} />}
         </div>

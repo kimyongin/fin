@@ -1,19 +1,27 @@
 import { expect, test } from '@playwright/test'
-import { callRpc, openMenuTab, signInAs } from './helpers'
+import { callRpc, clickPageAction, openMenuTab, openPageActionMenu, signInAs } from './helpers'
 import { assertMutationRpcSignatures } from '../scripts/deployment-rpc-contract.mjs'
 
 test('protects an unsaved principle when cancelling its editor', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#strategy')
-  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
-  const editor = page.getByRole('dialog', { name: '원칙 추가' })
+  await clickPageAction(page, '현재 원칙', '원칙 작성')
+  const editor = page.getByRole('dialog', { name: '원칙 작성' })
   await editor.getByLabel('내용').fill('저장 전 원칙')
   await editor.getByRole('button', { name: '닫기' }).last().click()
-  await expect(editor.getByText('저장하지 않은 변경이 있습니다. 변경을 버리고 닫을까요?')).toBeVisible()
-  await editor.getByRole('button', { name: '계속 편집' }).click()
+  const discard = page.getByRole('dialog', { name: '변경 버리기' })
+  await expect(discard.getByText('저장하지 않은 변경이 있습니다. 변경을 버리고 닫을까요?')).toBeVisible()
+  expect(await editor.evaluate((element) => Boolean(element.closest('[inert]')))).toBe(true)
+  await expect(discard.getByRole('button', { name: '계속 편집' })).toBeFocused()
+  await discard.getByRole('button', { name: '계속 편집' }).click()
+  await expect(editor.getByLabel('내용')).toHaveValue('저장 전 원칙')
+  await expect(editor.getByRole('button', { name: '닫기' }).last()).toBeFocused()
+  await editor.getByRole('button', { name: '닫기' }).last().click()
+  await page.keyboard.press('Escape')
+  await expect(discard).toHaveCount(0)
   await expect(editor.getByLabel('내용')).toHaveValue('저장 전 원칙')
   await editor.getByRole('button', { name: '닫기' }).last().click()
-  await editor.getByRole('button', { name: '변경 버리기' }).click()
+  await discard.getByRole('button', { name: '변경 버리기' }).click()
   await expect(editor).toBeHidden()
 })
 
@@ -31,8 +39,16 @@ test('pages principle changes and opens the exact historical Markdown row', asyn
   await expect(page.getByRole('heading', { name: '변경 이력' })).toBeVisible()
   await expect(page.getByText('투자 기간 수정')).toBeVisible()
   await page.getByRole('button', { name: '당시 원칙 보기' }).first().click()
-  await expect(page.getByRole('dialog', { name: '당시 원칙' }).getByRole('heading', { name: '변경 내용' })).toBeVisible()
-  await page.getByRole('dialog', { name: '당시 원칙' }).getByRole('button', { name: '닫기' }).last().click()
+  const latestTitle = await page.evaluate(() => new Date('2026-09-23T12:00:00Z').toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }))
+  const latestDialog = page.getByRole('dialog', { name: latestTitle })
+  await expect(latestDialog.getByRole('heading', { name: '변경 내용' })).toBeVisible()
+  await expect(latestDialog.locator('time')).toHaveCount(0)
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(latestDialog).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await latestDialog.getByRole('button', { name: '닫기' }).last().click()
   await page.getByRole('button', { name: '이전 변경 더 보기' }).click()
   await expect(page.getByRole('region', { name: '원칙 변경 이력' }).getByText('원칙 추가')).toBeVisible()
   const dayToggle = page.getByRole('region', { name: '원칙 변경 이력' }).getByRole('button', { name: /2026년 9월 23일/ })
@@ -42,7 +58,8 @@ test('pages principle changes and opens the exact historical Markdown row', asyn
   await dayToggle.click()
   await expect(dayToggle).toHaveAttribute('aria-expanded', 'true')
   await page.getByRole('button', { name: '당시 원칙 보기' }).last().click()
-  await expect(page.getByRole('dialog', { name: '당시 원칙' }).getByRole('heading', { name: '첫 내용' })).toBeVisible()
+  const earlierTitle = await page.evaluate(() => new Date('2026-09-23T09:00:00Z').toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }))
+  await expect(page.getByRole('dialog', { name: earlierTitle }).getByRole('heading', { name: '첫 내용' })).toBeVisible()
 })
 
 test('read-only deployment check sees every required mutation RPC signature', async ({ page }) => {
@@ -114,9 +131,7 @@ test('finds a saved review by activity text on a mobile-sized screen', async ({ 
   await expect(page).toHaveURL(/#overview$/)
   await openMenuTab(page, '활동')
   await page.route('**/functions/v1/activity-search', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: '{"message":"semantic unavailable in this test"}' }))
-  await page.getByText('상세 필터').click()
   await page.getByRole('textbox', { name: '활동 검색' }).fill(headline)
-  await page.getByRole('button', { name: '검색', exact: true }).click()
   await expect(page.getByText(headline).first()).toBeVisible()
   await page.getByRole('button', { name: headline }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
@@ -143,9 +158,8 @@ test('finds an old review through activity search', async ({ page }) => {
   }))
   await page.goto('/#today')
   await expect(page).toHaveURL(/#tasks$/)
-  await page.getByText('상세 필터').click()
+  await page.getByRole('button', { name: '전체 기간' }).click()
   await page.getByRole('textbox', { name: '활동 검색' }).fill('당시 기준')
-  await page.getByRole('button', { name: '검색', exact: true }).click()
   await expect(page.getByText(oldReview.title)).toBeVisible()
   await expect(page.getByText(oldReview.body)).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
@@ -253,8 +267,9 @@ test('saves private principles and reads the current revision on mobile', async 
   await page.goto('/')
   await openMenuTab(page, '원칙')
 
-  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
-  const editor = page.getByRole('dialog', { name: '원칙 추가' })
+  await openPageActionMenu(page, '현재 원칙')
+  await page.getByRole('region', { name: '현재 원칙' }).getByRole('button', { name: /^(원칙 작성|수정)$/ }).click()
+  const editor = page.getByRole('dialog', { name: /원칙 (작성|수정)/ })
   await editor.getByLabel('내용 (마크다운)').fill('장기 투자하고 자주 매매하지 않는다.')
   await editor.getByRole('button', { name: '저장' }).click()
 
@@ -276,48 +291,54 @@ test('saves private principles and reads the current revision on mobile', async 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('revises and ends one operating principle without a second history table', async ({ page }) => {
+test('revises one operating principle without a second history table', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
   await openMenuTab(page, '원칙')
 
-  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
-  let editor = page.getByRole('dialog', { name: '원칙 추가' })
+  await openPageActionMenu(page, '현재 원칙')
+  await page.getByRole('region', { name: '현재 원칙' }).getByRole('button', { name: /^(원칙 작성|수정)$/ }).click()
+  let editor = page.getByRole('dialog', { name: /원칙 (작성|수정)/ })
   await editor.getByLabel('내용 (마크다운)').fill('## 미래에셋 XLS 잔고\n평균가는 매입금액을 수량으로 나눈다.')
   await editor.getByLabel('변경 메모 (선택)').fill('운영 원칙 추가')
   await editor.getByRole('button', { name: '저장' }).click()
 
   const ruleCard = page.locator('article').filter({ hasText: '미래에셋 XLS 잔고' }).first()
   await expect(ruleCard.getByText('평균가는 매입금액을 수량으로 나눈다.')).toBeVisible()
-  await ruleCard.getByRole('button', { name: '수정' }).click()
+  await expect(page.getByRole('button', { name: '원칙 수정' })).toHaveCount(0)
+  await expect(ruleCard.getByText('원칙', { exact: true })).toHaveCount(0)
+  await clickPageAction(page, '현재 원칙', '수정')
   editor = page.getByRole('dialog', { name: '원칙 수정' })
   await editor.getByLabel('내용 (마크다운)').fill('## 미래에셋 XLS 잔고\n매입금액과 평가금액을 구분하고 수량 0은 계산하지 않는다.')
   await editor.getByLabel('변경 메모 (선택)').fill('평가금액 구분')
   await editor.getByRole('button', { name: '저장' }).click()
   await expect(ruleCard.getByText('매입금액과 평가금액을 구분하고 수량 0은 계산하지 않는다.')).toBeVisible()
 
-  const beforeEnd = await callRpc(page, 'app_list_principles', {
+  const beforeFinalEdit = await callRpc(page, 'app_list_principles', {
     input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: false,
   })
-  const saved = beforeEnd.body.items.find((item) => item.body.includes('미래에셋 XLS 잔고'))
+  const saved = beforeFinalEdit.body.items.find((item) => item.body.includes('미래에셋 XLS 잔고'))
   expect(saved?.body).toContain('평가금액을 구분')
-  await ruleCard.getByRole('button', { name: '수정' }).click()
-  await page.getByRole('dialog', { name: '원칙 수정' }).getByLabel('변경 메모 (선택)').fill('운영 종료')
-  await page.getByRole('dialog', { name: '원칙 수정' }).getByRole('button', { name: '적용 종료' }).click()
-  await expect(page.getByRole('region', { name: '현재 적용 중인 원칙' }).getByText('미래에셋 XLS 잔고')).toHaveCount(0)
-  await expect(page.getByRole('region', { name: '원칙 변경 이력' }).getByText('운영 종료')).toBeVisible()
-  const afterEnd = await callRpc(page, 'app_list_principles', {
+  await clickPageAction(page, '현재 원칙', '수정')
+  await editor.getByLabel('내용 (마크다운)').fill('## 미래에셋 XLS 잔고\n최종 운영 기준')
+  await editor.getByLabel('변경 메모 (선택)').fill('운영 기준 재정리')
+  await editor.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByRole('region', { name: '현재 원칙' }).getByText('최종 운영 기준')).toBeVisible()
+  await expect(page.getByRole('region', { name: '원칙 변경 이력' }).getByText('운영 기준 재정리')).toBeVisible()
+  const afterFinalEdit = await callRpc(page, 'app_list_principles', {
     input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: true,
   })
-  expect(afterEnd.body.items.find((item) => item.principle_id === saved.principle_id)?.ended).toBe(true)
+  expect(afterFinalEdit.body.items).toHaveLength(1)
+  expect(afterFinalEdit.body.items[0].principle_id).toBe(saved.principle_id)
 })
 
 test('retries a principle after a lost save response without creating a second row', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#strategy')
-  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
-  const editor = page.getByRole('dialog', { name: '원칙 추가' })
+  await openPageActionMenu(page, '현재 원칙')
+  await page.getByRole('region', { name: '현재 원칙' }).getByRole('button', { name: /^(원칙 작성|수정)$/ }).click()
+  const editor = page.getByRole('dialog', { name: /원칙 (작성|수정)/ })
   const body = `E2E 재시도 원칙 ${Date.now()}`
   await editor.getByLabel('내용 (마크다운)').fill(body)
   let loseResponse = true
@@ -339,8 +360,9 @@ test('retries a principle after a lost save response without creating a second r
 test('retries only the principle list after a successful save and failed refresh', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#strategy')
-  await page.getByRole('button', { name: '원칙 추가', exact: true }).click()
-  const editor = page.getByRole('dialog', { name: '원칙 추가' })
+  await openPageActionMenu(page, '현재 원칙')
+  await page.getByRole('region', { name: '현재 원칙' }).getByRole('button', { name: /^(원칙 작성|수정)$/ }).click()
+  const editor = page.getByRole('dialog', { name: /원칙 (작성|수정)/ })
   const body = `E2E 저장 후 목록 실패 ${Date.now()}`
   await editor.getByLabel('내용 (마크다운)').fill(body)
   let failList = true
@@ -353,8 +375,8 @@ test('retries only the principle list after a successful save and failed refresh
   })
   await editor.getByRole('button', { name: '저장' }).click()
   await expect(editor).toBeHidden()
-  await expect(page.getByRole('region', { name: '현재 적용 중인 원칙' }).getByRole('alert')).toContainText('목록 실패')
-  await page.getByRole('region', { name: '현재 적용 중인 원칙' }).getByRole('button', { name: '다시 시도' }).click()
+  await expect(page.getByRole('region', { name: '현재 원칙' }).getByRole('alert')).toContainText('목록 실패')
+  await page.getByRole('region', { name: '현재 원칙' }).getByRole('button', { name: '다시 시도' }).click()
   await expect(page.getByText(body)).toBeVisible()
   expect(saveCalls).toBe(1)
 })

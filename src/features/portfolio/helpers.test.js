@@ -5,7 +5,6 @@ import {
   createHoldingLookupResult,
   createHoldingModalDraft,
   createInstrumentModalDraft,
-  createTagModalDraft,
 } from './helpers'
 
 describe('portfolio helpers', () => {
@@ -66,7 +65,6 @@ describe('portfolio helpers', () => {
           instrument_type: 'stock',
           note: 'Core position',
         },
-        latestPrice: { close_price: 123.45, price_date: '2026-07-12' },
         tagId: 4,
       }),
     ).toMatchObject({
@@ -76,17 +74,9 @@ describe('portfolio helpers', () => {
       currency: 'USD',
         instrument_type: 'market',
       note: 'Core position',
-      price: '123.45',
-      price_date: '2026-07-12',
       tag_id: '4',
-      linked_account_id: '',
     })
 
-    expect(createTagModalDraft({ nextSortOrder: 2 })).toEqual({
-      id: null,
-      name: '',
-      sort_order: '2',
-    })
   })
 
   it('creates holding drafts and lookup results from instruments and prices', () => {

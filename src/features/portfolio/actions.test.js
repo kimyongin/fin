@@ -41,13 +41,9 @@ function createParams(overrides = {}) {
     setLoadError: vi.fn(),
     setSyncMessage: vi.fn(),
     setSyncingPrices: vi.fn(),
-    setTagError: vi.fn(),
-    setTagModal: vi.fn(),
-    setTagSaving: vi.fn(),
     state: { accounts: [], holdings: [], instruments: [], tags: [] },
     supabase,
     tagMapByTicker: new Map(),
-    tagModal: null,
     today: () => '2026-07-12',
     ...overrides,
   }
@@ -106,24 +102,7 @@ describe('createPortfolioActions', () => {
     expect(params.setLoadError).toHaveBeenCalledWith(expect.stringContaining('변경은 저장됐지만'))
   })
 
-  it('saves a tag without a color', async () => {
-    const params = createParams({
-      tagModal: { id: null, name: '현금', sort_order: '1' },
-    })
-    const actions = createPortfolioActions(params)
-
-    await actions.handleSaveTag()
-
-    expect(params.supabase.rpc).toHaveBeenCalledWith('app_save_tag', {
-      input_name: '현금',
-      input_request: null,
-      input_sort_order: 1,
-      input_source: 'user',
-      input_tag_id: null,
-    })
-  })
-
-  it('saves an instrument with price and tag through the app_save_instrument RPC', async () => {
+  it('updates an instrument without writing a price', async () => {
     const params = createParams({
       instrumentModal: {
         id: 11,
@@ -131,11 +110,8 @@ describe('createPortfolioActions', () => {
         display_name: ' Apple ',
         currency: 'USD',
         instrument_type: 'stock',
-        price: '210.5',
-        price_date: '',
         tag_id: '7',
         note: ' core ',
-        linked_account_id: '',
       },
     })
     const actions = createPortfolioActions(params)
@@ -148,8 +124,8 @@ describe('createPortfolioActions', () => {
       input_display_name: 'Apple',
       input_currency: 'USD',
       input_instrument_type: 'market',
-      input_price: 210.5,
-      input_price_date: '2026-07-12',
+      input_price: null,
+      input_price_date: null,
       input_tag_id: 7,
       input_source: 'user',
       input_request: null,
@@ -157,6 +133,32 @@ describe('createPortfolioActions', () => {
     })
     expect(params.refreshState).toHaveBeenCalledOnce()
     expect(params.setInstrumentModal).toHaveBeenCalledWith(null)
+  })
+
+  it('registers a looked-up instrument without holding or price', async () => {
+    const params = createParams({
+      instrumentModal: { id: null, ticker: 'AAPL', display_name: 'Apple', currency: 'USD', instrument_type: 'market', tag_id: '', note: '' },
+      instrumentLookupResult: { ticker: 'AAPL' },
+      onInstrumentSaved: vi.fn(),
+    })
+    const actions = createPortfolioActions(params)
+    await actions.handleSaveInstrument()
+    expect(params.supabase.rpc).toHaveBeenCalledWith('app_create_instrument', {
+      input_ticker: 'AAPL', input_display_name: 'Apple', input_currency: 'USD',
+      input_instrument_type: 'market', input_tag_id: null, input_note: null,
+    })
+    expect(params.supabase.rpc).toHaveBeenCalledOnce()
+    expect(params.onInstrumentSaved).toHaveBeenCalledWith('AAPL')
+  })
+
+  it('requires a matching lookup before registering a market instrument', async () => {
+    const params = createParams({
+      instrumentModal: { id: null, ticker: 'AAPL', display_name: 'Apple', currency: 'USD', instrument_type: 'market', tag_id: '', note: '' },
+      instrumentLookupResult: { ticker: 'MSFT' },
+    })
+    await createPortfolioActions(params).handleSaveInstrument()
+    expect(params.supabase.rpc).not.toHaveBeenCalled()
+    expect(params.setInstrumentError).toHaveBeenCalledWith(expect.stringContaining('조회'))
   })
 
   it('saves a holding through the app_save_holding RPC', async () => {

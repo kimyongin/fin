@@ -42,11 +42,11 @@ select extensions.is(public.app_list_principles((clock_timestamp() at time zone 
   '분산과 현금 유지', 'the local-day view selects the latest revision');
 select extensions.is(
   public.app_save_principle('86000000-0000-0000-0000-000000000001',
-    (public.app_list_principles() #>> '{items,0,id}')::bigint, 'ignored on end', '적용 종료', true) ->> 'ended',
-  'true', 'end appends a terminal row');
-select extensions.is(public.app_list_principles() -> 'items', '[]'::jsonb, 'ended principle is not current');
+    (public.app_list_principles() #>> '{items,0,id}')::bigint, '새 기준', '세 번째 변경') ->> 'body',
+  '새 기준', 'a later edit replaces the single current document');
+select extensions.is(public.app_list_principles() #>> '{items,0,body}', '새 기준', 'latest document remains current');
 select extensions.is(jsonb_array_length(public.app_list_principles(null, 'Asia/Seoul', true) -> 'items'), 1,
-  'ended principle remains inspectable');
+  'even include-ended reads return one current document');
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000862', true);
 select extensions.is(public.app_list_principles() -> 'items', '[]'::jsonb, 'other user cannot list owner principles');
 select extensions.is((select count(*) from public.principles), 0::bigint, 'RLS hides rows');

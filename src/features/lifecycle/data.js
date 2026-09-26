@@ -154,7 +154,9 @@ export async function saveGeneralTask(supabase, task) {
       timezone: task.timezone ?? 'Asia/Seoul',
       trigger_text: task.triggerText?.trim() || null,
       recurrence_kind: task.recurrenceKind ?? 'none',
-      recurrence_start_on: task.recurrenceKind === 'daily' ? (task.recurrenceStartOn || task.dueDate || businessDate(undefined, task.timezone ?? 'Asia/Seoul')) : null,
+      recurrence_start_on: task.recurrenceKind !== 'none' ? (task.recurrenceStartOn || task.dueDate || businessDate(undefined, task.timezone ?? 'Asia/Seoul')) : null,
+      recurrence_weekdays: task.recurrenceKind === 'weekly' ? (task.recurrenceWeekdays ?? []) : [],
+      recurrence_time: task.recurrenceTime || null,
       authored_via: 'app',
     },
   })

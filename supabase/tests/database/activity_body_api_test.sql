@@ -40,13 +40,13 @@ update body_api_record set response=public.app_update_activity((response->>'id')
   '00000000-0000-0000-0000-000000009984','{"body":"수정된 본문"}'::jsonb,'app');
 select extensions.is((select response->>'body' from body_api_record),'수정된 본문','one body can be edited in place');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000982',true);
-select extensions.is((select public.app_get_activity((response->>'id')::bigint,'00000000-0000-0000-0000-000000000981') from body_api_record),null::jsonb,'new wider activity sharing defaults to deny');
+select extensions.is((select public.app_get_activity((response->>'id')::bigint,'00000000-0000-0000-0000-000000000981')->>'body' from body_api_record),'수정된 본문','whole-portfolio sharing includes activity');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000981',true);
-select extensions.is((public.app_update_sharing_policy(0,'{"activity":true}'::jsonb)->'grants'->>'activity')::boolean,true,
-  'owner explicitly enables the new activity grant');
+select extensions.is((public.set_viewer_profile('body-owner','',false,'portfolio_all')).sharing_enabled,false,
+  'owner stops all sharing');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000982',true);
 select extensions.is((select public.app_get_activity((response->>'id')::bigint,'00000000-0000-0000-0000-000000000981')->>'body' from body_api_record),
-  '수정된 본문','explicit activity grant shares readable body');
+  null::text,'stopped sharing hides body');
 select extensions.is((select public.app_get_activity((response->>'id')::bigint,'00000000-0000-0000-0000-000000000981')->>'after_data' from body_api_record),
   null::text,'shared detail omits internal payload');
 select * from extensions.finish();

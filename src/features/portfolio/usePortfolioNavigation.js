@@ -21,7 +21,7 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
       overview: features.assets,
       allocation: features.assets || features.strategy,
       tasks: features.tasks || features.activity,
-      strategy: features.strategy,
+      strategy: features.principles,
       feedback: canSubmitFeedback,
       settings: false,
       guide: true,
@@ -56,8 +56,9 @@ export function usePortfolioNavigation(canEdit, sharedFeatureAccess = null, canS
   }, [activeTab])
 
   useEffect(() => {
+    if (!canEdit && sharedFeatureAccess === null) return
     if (!tabs.some((tab) => tab.id === activeTab)) {
-      setActiveTab(!canEdit && sharedFeatureAccess === null ? 'overview' : (tabs[0]?.id ?? 'guide'))
+      setActiveTab(tabs.find((tab) => ['overview', 'allocation', 'tasks', 'strategy'].includes(tab.id))?.id ?? 'guide')
     }
   }, [activeTab, canEdit, sharedFeatureAccess, tabs])
 

@@ -8,7 +8,6 @@ if (!['127.0.0.1', 'localhost'].includes(hostname)) throw new Error('MCP contrac
 
 const anonKey = process.env.SUPABASE_ANON_KEY
 const functionUrl = `${baseUrl}/functions/v1/portfolio-mcp-oauth`
-const tokenFunctionUrl = `${baseUrl}/functions/v1/portfolio-mcp`
 const commonHeaders = { apikey: anonKey, 'Content-Type': 'application/json' }
 let userId = null
 
@@ -20,15 +19,6 @@ async function call(accessToken, method, params = {}) {
   const response = await fetch(functionUrl, {
     method: 'POST',
     headers: { ...commonHeaders, ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
-    body: JSON.stringify({ jsonrpc: '2.0', id: crypto.randomUUID(), method, params }),
-  })
-  return { response, body: await response.json().catch(() => null) }
-}
-
-async function callTokenMcp(agentToken, method, params = {}) {
-  const response = await fetch(tokenFunctionUrl, {
-    method: 'POST',
-    headers: { ...commonHeaders, Authorization: `Bearer ${agentToken}` },
     body: JSON.stringify({ jsonrpc: '2.0', id: crypto.randomUUID(), method, params }),
   })
   return { response, body: await response.json().catch(() => null) }
@@ -78,6 +68,9 @@ try {
   const listed = await call(session.access_token, 'tools/list')
   assert(listed.response.ok && listed.body?.result?.tools?.some((tool) => tool.name === 'get_profile'), 'MCP tools/list contract failed')
   const discoveredNames = new Set(listed.body.result.tools.map((tool) => tool.name))
+  assert(discoveredNames.has('list_due_general_tasks'), 'Due task tool was not discovered')
+  const dueTasks = await call(session.access_token, 'tools/call', { name: 'list_due_general_tasks', arguments: { limit: 10, offset: 0 } })
+  assert(dueTasks.body?.result?.isError === false && Array.isArray(dueTasks.body?.result?.structuredContent?.data?.items), 'Due task MCP read failed')
   for (const currentTool of ['list_principles','save_principle','get_portfolio_state','update_entity_note']) {
     assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
   }
@@ -105,7 +98,7 @@ try {
   assert(initialPrinciples.body?.result?.structuredContent?.data?.items?.length === 0, 'New MCP user unexpectedly has principles')
   const principleArgs = {
     schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
-    body: '## Long-term rule\nContract-approved long-term rule', change_note: 'Initial rule', end: false,
+    body: '## Long-term rule\nContract-approved long-term rule', change_note: 'Initial rule',
   }
   const savedPrinciple = await call(session.access_token, 'tools/call', { name: 'save_principle', arguments: principleArgs })
   assert(savedPrinciple.body?.result?.structuredContent?.data?.body === principleArgs.body, 'MCP principle save failed')
@@ -143,28 +136,17 @@ try {
   })
   assert(unsafeFeedback.body?.result?.structuredContent?.error?.code === 'validation_error', 'Unsafe feedback context did not return validation_error')
 
-  const agentToken = `fin_agent_contract_${crypto.randomUUID()}`
-  const tokenHash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(agentToken)))]
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('')
   const tokenCreated = await fetch(`${baseUrl}/rest/v1/rpc/agent_create_token`, {
     method: 'POST',
     headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}` },
-    body: JSON.stringify({ input_name: 'MCP contract token', input_token_hash: tokenHash, input_token_prefix: `${agentToken.slice(0, 18)}...` }),
+    body: JSON.stringify({ input_name: 'retired', input_token_hash: '0'.repeat(64), input_token_prefix: 'retired' }),
   })
-  assert(tokenCreated.ok, `Local agent token creation failed (${tokenCreated.status})`)
-  const tokenInitialized = await callTokenMcp(agentToken, 'initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'contract-test', version: '1' } })
-  assert(tokenInitialized.response.ok && tokenInitialized.body?.result?.protocolVersion === '2024-11-05', `Token MCP initialize contract failed (${tokenInitialized.response.status}): ${JSON.stringify(tokenInitialized.body)}`)
-  const tokenTools = await callTokenMcp(agentToken, 'tools/list')
-  assert(tokenTools.body?.result?.tools?.some((tool) => tool.name === 'get_portfolio_state'), 'Token MCP tools/list contract failed')
-  const tokenPortfolio = await callTokenMcp(agentToken, 'tools/call', { name: 'get_portfolio_state', arguments: {} })
-  assert(tokenPortfolio.response.ok && tokenPortfolio.body?.result?.content?.[0]?.text, 'Token MCP authenticated tools/call failed')
-  const invalidTokenPortfolio = await callTokenMcp(`${agentToken}-invalid`, 'tools/call', { name: 'get_portfolio_state', arguments: {} })
-  assert(invalidTokenPortfolio.body?.error, 'Token MCP accepted an invalid agent token')
+  assert(tokenCreated.status === 404, `Retired agent token issuance is still available (${tokenCreated.status})`)
 
   const policyPrincipleArgs = {
-    schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
-    body: 'Do not infer missing preferences.', end: false,
+    schema_version: 1, principle_id: principleArgs.principle_id,
+    expected_row_id: savedPrinciple.body.result.structuredContent.data.id,
+    body: `${principleArgs.body}\n\nDo not infer missing preferences.`, change_note: 'Preference clarification',
   }
   const policySaved = await call(session.access_token, 'tools/call', {
     name: 'save_principle', arguments: policyPrincipleArgs,
@@ -178,9 +160,10 @@ try {
     'Personal principle could not be read back')
 
   const operationPrincipleArgs = {
-    schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
-    end: false,
-    body: '## Reconciliation\nFor this brokerage export, distinguish acquisition and valuation amounts.',
+    schema_version: 1, principle_id: principleArgs.principle_id,
+    expected_row_id: policySaved.body.result.structuredContent.data.id,
+    change_note: 'Reconciliation rule',
+    body: `${policyPrincipleArgs.body}\n\n## Reconciliation\nFor this brokerage export, distinguish acquisition and valuation amounts.`,
   }
   const operationSaved = await call(session.access_token, 'tools/call', {
     name: 'save_principle', arguments: operationPrincipleArgs,
@@ -256,32 +239,29 @@ try {
   assert(noteRetry.body?.result?.structuredContent?.data?.note === 'Contract note', 'Instrument note retry contract failed')
   const correctionPreview = await call(session.access_token, 'tools/call', {
     name: 'preview_holding_reconciliation',
-    arguments: { holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10), confirmed_fields: [] },
+    arguments: { holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10) },
   })
   const correctionVersion = correctionPreview.body?.result?.structuredContent?.data?.holding_state_version
   assert(correctionVersion === holding.state_version, 'Holding correction estimate contract failed')
 
-  const verificationKey = crypto.randomUUID()
-  const verificationArgs = {
-    schema_version: 1, holding_id: holding.id, expected_version: holding.state_version,
-    fields: ['quantity'], verified_on: new Date().toISOString().slice(0, 10), note: 'Contract test', idempotency_key: verificationKey,
-  }
-  const verified = await call(session.access_token, 'tools/call', { name: 'verify_holdings', arguments: verificationArgs })
-  const verificationId = verified.body?.result?.structuredContent?.data?.verification_id
-  assert(verificationId, 'Holding verification contract failed')
-  assert(verified.body?.result?.structuredContent?.data?.note === 'Contract test', 'Holding verification did not return its note')
-  const integrity = await call(session.access_token, 'tools/call', { name: 'get_holding_integrity', arguments: { holding_id: holding.id } })
-  assert(integrity.body?.result?.structuredContent?.data?.last_verification?.note === 'Contract test', 'Holding integrity did not return the latest note')
   await adminWrite(`holdings?id=eq.${holding.id}`, 'PATCH', { quantity: 3, avg_price: 100 })
-  const verificationRetry = await call(session.access_token, 'tools/call', { name: 'verify_holdings', arguments: verificationArgs })
-  assert(verificationRetry.body?.result?.structuredContent?.data?.verification_id === verificationId, 'Lost verification response retry did not return the original success')
 
   const stale = await call(session.access_token, 'tools/call', {
-    name: 'reconcile_holding', arguments: { schema_version: 1, holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10), confirmed_fields: [], expected_version: correctionVersion, idempotency_key: crypto.randomUUID() },
+    name: 'reconcile_holding', arguments: { schema_version: 1, holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10), expected_version: correctionVersion, idempotency_key: crypto.randomUUID() },
   })
   assert(stale.body?.result?.structuredContent?.error?.code === 'version_conflict', 'Stale correction estimate returned the wrong recovery contract')
+  const freshPreview = await call(session.access_token, 'tools/call', {
+    name: 'preview_holding_reconciliation',
+    arguments: { holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10) },
+  })
+  const correctionArgs = { schema_version: 1, holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10), expected_version: freshPreview.body?.result?.structuredContent?.data?.holding_state_version, idempotency_key: crypto.randomUUID() }
+  const corrected = await call(session.access_token, 'tools/call', { name: 'reconcile_holding', arguments: correctionArgs })
+  const correctionActivityId = corrected.body?.result?.structuredContent?.data?.activity_id
+  assert(correctionActivityId, 'Holding correction contract failed')
+  const correctionRetry = await call(session.access_token, 'tools/call', { name: 'reconcile_holding', arguments: correctionArgs })
+  assert(correctionRetry.body?.result?.structuredContent?.data?.activity_id === correctionActivityId, 'Lost correction response retry did not return the original success')
   const keyConflict = await call(session.access_token, 'tools/call', {
-    name: 'verify_holdings', arguments: { ...verificationArgs, expected_version: holding.state_version + 1, fields: ['avg_price'] },
+    name: 'reconcile_holding', arguments: { ...correctionArgs, reason: 'Different correction' },
   })
   assert(keyConflict.body?.result?.structuredContent?.error?.code === 'idempotency_conflict', 'Idempotency key conflict returned the wrong recovery contract')
 
@@ -291,7 +271,7 @@ try {
   assert(toolError?.code === 'validation_error' && toolError?.retryable === false, 'Invalid tool input returned the wrong recovery contract')
   assert(typeof toolError?.request_id === 'string' && toolError.request_id.length > 20, 'Tool error did not include a request ID')
 
-  console.log('OAuth and token MCP initialize/discovery/authentication, workflow guides, product feedback, policy save/read, review activity save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
+  console.log('OAuth MCP initialize/discovery/authentication, retired token issuance, workflow guides, product feedback, policy save/read, review activity save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
 } finally {
   if (userId) {
     await fetch(`${baseUrl}/auth/v1/admin/users/${userId}`, {

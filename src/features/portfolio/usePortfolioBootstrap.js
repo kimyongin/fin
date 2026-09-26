@@ -54,6 +54,7 @@ export function usePortfolioBootstrap({
           mode: 'shared',
           ownerUserId: access.owner_user_id,
           ownerPublicName: access.owner_public_name ?? '',
+          ownerAvatarKey: access.owner_avatar_key ?? 'bear',
         })
         await refreshState(access.owner_user_id)
         return

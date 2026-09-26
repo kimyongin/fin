@@ -248,6 +248,13 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
+  async list_due_general_tasks(supabase, args) {
+    const data = await rpc(supabase, 'app_list_due_general_tasks', {
+      input_limit: args.limit == null ? 100 : requirePositiveInteger(args.limit, 'limit'),
+      input_offset: args.offset == null ? 0 : requireNonnegativeInteger(args.offset, 'offset'),
+    })
+    return { ok: true, data }
+  },
   async get_general_task(supabase, args) {
     const data = await rpc(supabase, 'app_get_general_task', { input_task_id: requireUuid(args.task_id, 'task_id') })
     if (!data) throw new PortfolioRpcError({ message: 'General task not found' })
@@ -330,6 +337,8 @@ const toolHandlers: Record<string, ToolHandler> = {
         trigger_text: optionalString(args.trigger_text) ?? null,
         recurrence_kind: optionalString(args.recurrence_kind) ?? 'none',
         recurrence_start_on: optionalString(args.recurrence_start_on) ?? null,
+        recurrence_weekdays: args.recurrence_weekdays == null ? [] : requireArray(args.recurrence_weekdays, 'recurrence_weekdays'),
+        recurrence_time: optionalString(args.recurrence_time) ?? null,
         authored_via: 'agent',
     }
     if (Object.hasOwn(args, 'origin_activity_id')) throw new ToolInputError('origin_activity_id is no longer supported; create an independent task')
@@ -416,7 +425,7 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_expected_row_id: args.expected_row_id == null ? null : requirePositiveInteger(args.expected_row_id, 'expected_row_id'),
       input_body: requireString(args.body, 'body'),
       input_change_note: args.change_note == null ? null : requireString(args.change_note, 'change_note'),
-      input_end: args.end === true,
+      input_end: false,
     })
     return { ok: true, data }
   },
@@ -464,17 +473,11 @@ const toolHandlers: Record<string, ToolHandler> = {
         })
     return { ok: true, data }
   },
-  async get_holding_integrity(supabase, args) {
-    return { ok: true, data: await rpc(supabase, 'app_get_holding_integrity', { input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id') }) }
-  },
-  async get_portfolio_integrity(supabase) {
-    return { ok: true, data: await rpc(supabase, 'app_get_portfolio_integrity') }
-  },
   async preview_holding_reconciliation(supabase, args) {
     const values = requireRecord(args.values, 'values')
     const normalizedValues: Record<string,string> = {}
     for (const [key, value] of Object.entries(values)) normalizedValues[key] = value === '0' ? '0' : requirePositiveDecimalString(value, `values.${key}`)
-    return { ok: true, data: await rpc(supabase, 'app_preview_holding_reconciliation', { input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id'), input_values: normalizedValues, input_reason: requireString(args.reason, 'reason'), input_effective_on: requireString(args.effective_on, 'effective_on'), input_confirmed_fields: requireArray(args.confirmed_fields, 'confirmed_fields') }) }
+    return { ok: true, data: await rpc(supabase, 'app_preview_holding_reconciliation', { input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id'), input_values: normalizedValues, input_reason: requireString(args.reason, 'reason'), input_effective_on: requireString(args.effective_on, 'effective_on') }) }
   },
   async reconcile_holding(supabase, args) {
     requireSchemaVersion(args)
@@ -485,14 +488,9 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id'),
       input_values: normalizedValues, input_reason: requireString(args.reason, 'reason'),
       input_effective_on: requireString(args.effective_on, 'effective_on'),
-      input_confirmed_fields: requireArray(args.confirmed_fields, 'confirmed_fields'),
       input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
     }) }
-  },
-  async verify_holdings(supabase, args) {
-    requireSchemaVersion(args)
-    return { ok: true, data: await rpc(supabase, 'app_verify_holding', { input_holding_id: requirePositiveInteger(args.holding_id, 'holding_id'), input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'), input_fields: requireArray(args.fields, 'fields'), input_verified_on: requireString(args.verified_on, 'verified_on'), input_note: args.note == null ? null : requireString(args.note, 'note'), input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_source: 'agent' }) }
   },
 }
 
