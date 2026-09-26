@@ -97,6 +97,7 @@ test('saves an icon on selection and restores it after a failed save', async ({ 
 test('keeps whole-sharing cards usable across screen widths', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#settings')
+  await page.evaluate(async () => { await document.fonts.ready })
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     const profileButton = page.getByRole('button', { name: '내 프로필' })
@@ -136,8 +137,16 @@ test('keeps whole-sharing cards usable across screen widths', async ({ page }) =
       expect(Math.abs(saveBox.y - givingPasswordBox.y)).toBeLessThanOrEqual(4)
       expect(Math.abs(connectBox.y - receivingPasswordBox.y)).toBeLessThanOrEqual(4)
     } else {
-      expect(saveBox.y).toBeGreaterThan(givingPasswordBox.y + givingPasswordBox.height)
-      expect(connectBox.y).toBeGreaterThan(receivingPasswordBox.y + receivingPasswordBox.height)
+      await expect.poll(async () => {
+        const button = await save.boundingBox()
+        const input = await givingFields[1].boundingBox()
+        return button.y - input.y - input.height
+      }).toBeGreaterThan(0)
+      await expect.poll(async () => {
+        const button = await connect.boundingBox()
+        const input = await receivingFields[1].boundingBox()
+        return button.y - input.y - input.height
+      }).toBeGreaterThan(0)
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
