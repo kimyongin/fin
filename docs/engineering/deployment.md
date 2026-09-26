@@ -10,6 +10,7 @@
 2. 새 DB migration은 대상 프로젝트와 적용 목록을 확인한 뒤 별도 승인 범위에서 적용한다. 과거 migration을 수정하거나 운영 DB를 reset하지 않는다.
 3. 새 Edge Function은 DB와 이전 클라이언트 양쪽에 호환되는 상태에서 별도로 배포하고 실제 endpoint 계약을 확인한다.
 4. GitHub의 `SUPABASE_SMOKE_EMAIL`·`SUPABASE_SMOKE_PASSWORD`에는 테스트 전용 인증 사용자를 설정한다. `check:deployment`가 새 프런트가 요구하는 RPC를 실제 로그인 후 호출해야 한다.
+   운영 PostgREST의 `/rest/v1/` OpenAPI 루트는 비밀 API 키가 필요하므로 공개 키로 조회하지 않는다. 운영 검사는 인증된 읽기 RPC와 OAuth MCP를 호출하고, 변경 RPC 입력 서명은 격리 DB 계약 테스트에서 확인한다.
 5. `master` 배포 workflow가 같은 commit에서 unit, Edge type check, 독립 DB/E2E, 인증된 원격 호환성 검사를 모두 통과한 뒤에만 Pages를 공개한다.
 6. 공개 후 본인 계정과 별도 친구 계정으로 로그인·사용자 격리·핵심 조회를 확인한다. 이 실사용 확인은 CI 성공과 별도로 기록한다.
 
@@ -52,6 +53,16 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 인증된 readiness 사용자와 확인 RPC(비밀번호·토큰 제외)
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
+
+### 2026-09-26 포트폴리오·공유 UI 릴리스
+
+- 앱 코드 commit: `9dd16d1` (변경 모음 `6e60451`, 운영 migration 보정 `0d153da`, 후속 CI 보정 포함). [Pages workflow](https://github.com/kimyongin/fin/actions/runs/36229110158)의 검증·배포가 모두 성공했다.
+- 운영 Supabase 프로젝트: `ubmtflglqudrvumepzij`. 미적용 migration을 순서대로 적용해 최종 번호 `20260926064607`을 확인했다. 적용 중 `20260922191112`의 한 vector 타입 선언이 운영 search path에서 실패하여 `extensions.vector`로 명시한 뒤 이어서 적용했다. 운영 DB reset은 하지 않았다.
+- Edge Function: `portfolio-mcp-oauth` v7, `portfolio-mcp` v17, `activity-search` v1, `sync-prices` v10, `lookup-ticker` v7. 기존 `chatgpt-mcp-probe`는 이번 릴리스에서 변경·삭제하지 않았다.
+- 로컬 격리 검증: DB 50파일·604건, Chromium 79건, MCP 계약·인증된 로컬 준비도 검사 통과. GitHub workflow에서 unit, 가이드, Edge 타입, 격리 DB/브라우저, 운영 테스트 계정의 읽기 RPC 5개와 OAuth MCP 발견 검사가 통과했다. 테스트 계정의 비밀번호와 토큰은 기록하지 않는다.
+- 공개 URL: <https://kimyongin.github.io/fin/> HTTP 200. 공개 번들 `index-C70fHM3A.js` HTTP 200에서 새 프로필 배지를 확인했다.
+- 새 전체 포트폴리오 공유 migration은 기존 공유를 한 번 껐다. 공유가 필요하면 설정에서 범위를 확인하고 다시 저장해야 한다. 실제 본인·친구 Google 로그인과 ChatGPT 웹·모바일 사용은 이 배포에서 수동 검증하지 않았다.
+- 이전 정상 공개 앱 commit은 `9b479e7`이나 새 DB와의 역호환은 검증하지 않았다. 장애 시 DB 이력을 되돌리지 말고 영향 범위에 맞는 전진 수정 또는 호환성을 확인한 프런트 복구를 선택한다.
 
 ### 2026-09-22 제품 피드백
 
