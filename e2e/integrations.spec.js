@@ -210,9 +210,9 @@ test('unlocks a seeded shared portfolio through Supabase', async ({ browser, pag
   const owner = await browser.newPage()
   await signInAs(owner, 'e2e-owner@example.com')
   await owner.goto('/')
-  expect((await callRpc(owner, 'set_viewer_profile', {
+  expect((await callRpc(owner, 'app_save_sharing_profile', {
     input_public_name: 'e2e-owner', input_viewer_password: 'e2e-password',
-    input_sharing_enabled: true, input_share_scope: 'portfolio_all',
+    input_sharing_enabled: true,
   })).status).toBe(200)
   await owner.close()
   await page.goto('/')
@@ -241,9 +241,9 @@ test('rejects an invalid password for the shared portfolio', async ({ browser, p
   const owner = await browser.newPage()
   await signInAs(owner, 'e2e-owner@example.com')
   await owner.goto('/')
-  expect((await callRpc(owner, 'set_viewer_profile', {
+  expect((await callRpc(owner, 'app_save_sharing_profile', {
     input_public_name: 'e2e-owner', input_viewer_password: 'e2e-password',
-    input_sharing_enabled: true, input_share_scope: 'portfolio_all',
+    input_sharing_enabled: true,
   })).status).toBe(200)
   await owner.close()
   await page.goto('/')

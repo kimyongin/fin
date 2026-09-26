@@ -1,6 +1,6 @@
 # [CRUD 검증] HTTP·OAuth 계약표와 실제 도구 발견·배포 게이트
 
-2026-09-26 · [#158](https://github.com/kimyongin/fin/issues/158) · 설계 완료, 구현 전.
+2026-09-26 · [#158](https://github.com/kimyongin/fin/issues/158) · 로컬 계약·발견 게이트 구현, 운영 검증 전.
 
 ## 목적
 “함수는 있는데 에이전트는 못 찾는다”와 인터페이스 한쪽 누락이 재발하지 않도록 실제 호출로 완료를 판정한다.
@@ -18,17 +18,19 @@ OAuth 코드에는 delete_activity가 있지만 이 세션의 연결 카탈로�
 - 과거 #58/#63~65/#67 및 기능 티켓의 실클라이언트 미검증을 새 코드 완료로 닫지 않는다. 겹치는 검증 근거는 링크로 연결하고 별도 남은 요구를 보존한다.
 
 ## 수용 조건
-- [ ] 매트릭스의 모든 사용자 데이터가 양쪽 작업/증거 또는 명시적 승인 예외에 연결.
-- [ ] 도구별 discover → read → write → 반대 인터페이스 read → delete → 미존재 확인.
-- [ ] owner/타인/친구/익명 권한, 실패/동시성/재시도 자동 테스트.
-- [ ] 폐기 도구를 안내하지 않는 schema/description/workflow guide.
+- [x] `docs/design/contracts/agent/domain-crud-parity-matrix.md`에 도메인별 양쪽 경로·자동 증거·승인된 시세 예외·미검증 범위를 명시.
+- [ ] 일부 주요 시나리오의 discover → MCP write → HTTP read → delete는 자동화했으나 모든 도메인·전체 필드·반대 방향을 망라하지 않음.
+- [ ] owner/타인/친구/익명 및 재시도 주요 경계는 자동 테스트에 있으나 모든 동시성·실공급자 실패는 미검증.
+- [x] 도구 목록·가이드 참조 검증, 모든 `delete_*`와 reset/remove의 destructiveHint, 미저장 preview의 readOnlyHint 검증.
 - [ ] 운영 DB·Edge·웹 및 ChatGPT 웹·모바일 결과를 각각 기록; 접근 불가 항목은 미검증으로 유지.
 - [ ] 사용자 확정 예외인 시세·환율은 직접 CRUD 대신 조회·갱신의 양쪽 동작으로 판정.
 
 ## 공통 계약과 진행 상태
 
 - 설계 정본: https://github.com/kimyongin/fin/blob/master/docs/design/domain-crud-parity.md
-- 상태: 설계·티켓 작성, 구현 전. 로컬 문서는 아직 원격 Git에 없을 수 있다.
+- 상태: 로컬 매트릭스·OAuth 발견/호출·배포 준비 검사 연결. 운영 배포 및 실제 ChatGPT 웹·모바일 평가는 아직 미수행.
+- `scripts/test-mcp-contract.mjs`가 격리 테스트 사용자로 initialize, tools/list, 목적별 호출, 공유/친구 및 자산/피드백/원칙의 교차 조회를 실행한다. `scripts/check-deployment-readiness.mjs`는 OAuth 주소와 핵심 RPC 및 현재 도구 목록을 점검한다. `portfolio-tools.test.ts`는 annotation과 공유 가이드 참조를 확인한다. 2026-09-27 로컬 재검증: pgtap 696개, Vitest 114개, Chromium E2E 83개 모두 통과. 브라우저 테스트의 RPC 시드/조회는 페이지 이동과 독립된 API 요청으로 실행해 불확실한 금융 쓰기 재시도를 피한다.
+- 원격 URL 검사와 ChatGPT 연결 목록 비교는 배포 후 테스트 계정으로 수행한다. 현재 사용 중인 연결이 오래된 것처럼 보이더라도 서버 endpoint·배포 버전을 확인하기 전 캐시로 단정하지 않는다. 운영 파괴 CRUD와 사용자 실데이터 테스트는 하지 않는다.
 - 관련 문서: docs/START-HERE.md → PRD/ADR-0008 → docs/design/domain-crud-parity.md.
 - DB·목적별 RPC·필요 UI·OAuth·테스트·런타임 MCP 가이드를 한 수직 slice로 구현/검증/커밋한다.
 - 사용자 설정과 기존 데이터를 보존하며 보편 CRUD 엔진/의무 이력을 만들지 않는다.

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { callRpc, signInAs } from './helpers'
+import { callRpc, seedProviderPrice, signInAs } from './helpers'
 
 test('aligns asset list headers and values across screen sizes', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
@@ -12,12 +12,13 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
   const name = `장기 투자 목록에서 이름이 길어지는 종목 ${suffix}`
   const instrument = await callRpc(page, 'app_save_instrument', {
     input_currency: 'USD', input_display_name: name, input_instrument_id: null,
-    input_instrument_type: 'market', input_note: null, input_price: 12.5,
-    input_price_date: '2026-09-24', input_price_source: 'manual', input_request: null,
+    input_instrument_type: 'market', input_note: null, input_price: null,
+    input_price_date: null, input_price_source: 'manual', input_request: null,
     input_source: 'user', input_tag_id: state.body.tags[0]?.id ?? null,
     input_ticker: ticker,
   })
   expect(instrument.status).toBe(200)
+  await seedProviderPrice(page, ticker, 12.5, '2026-09-24')
   const holding = await callRpc(page, 'app_save_holding', {
     input_account_id: state.body.accounts[0].id, input_avg_price: 10,
     input_holding_id: null, input_quantity: 2.25, input_request: null,

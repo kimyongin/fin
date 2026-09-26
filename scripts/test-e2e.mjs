@@ -103,6 +103,7 @@ try {
       E2E_PORT: process.env.E2E_PORT ?? '4174',
       VITE_SUPABASE_ANON_KEY: localEnv.ANON_KEY,
       VITE_SUPABASE_URL: localEnv.API_URL,
+      E2E_SUPABASE_SERVICE_ROLE_KEY: localEnv.SERVICE_ROLE_KEY,
     },
   })
 } catch (error) {

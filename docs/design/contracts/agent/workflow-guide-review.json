@@ -1,47 +1,51 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-26",
-  "review_reason": "Reviewed OAuth price sync, service-only quote writes, and retirement of legacy direct price inputs (#157).",
+  "review_reason": "Verified destructive and idempotent hints for CRUD parity tools (#158).",
   "topics": {
     "assets": {
       "revision": "fnv1a32:e535c5a9",
-      "contract_digest": "f7d57ef64afef63869ed7cef72ba92f0f3db64bcdb79e2e343ee7983805cda9f"
+      "contract_digest": "1d2bb6a5fe75e84e446e1c3aea9b3c6b77787545158a2de4b2aed809a024ea0d"
     },
     "policy": {
       "revision": "fnv1a32:f720a938",
-      "contract_digest": "15e052ff32ce4173cf5a0f7c83b4df022134cbbe78bf2ebf04239ce2ba9ee0d3"
+      "contract_digest": "c9045cef8b6e086e11ee316359b6468e960ed3960679d33e56cab6d25cdaf07f"
     },
     "holding_thesis": {
       "revision": "fnv1a32:4c4ae963",
-      "contract_digest": "39039f5b4a3ed4e2b465a6c2705e7344f645fde79f14a6d3af5c6c55de59e70c"
+      "contract_digest": "f4702b391b884842d54efa8e887fb4b06c9c9b19d1b3bf3b0070e6f963fad593"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "07a929881322998a60a54539e4e7ab366f3edc5b18966d41d648e2f2b06a04c6"
+      "contract_digest": "3013769e6728a8c63d9f598260a05512278dc4ca6ba1ad5e2fd16b9cfba5899f"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "9f3d6078b07f8d4f0b4789d32e98980b052baed4d0c62e1a34bf87ada7158a7e"
+      "contract_digest": "120d76749f605a93260a16d1312fe12f23c37c3008f7ff12009b43c1919da2e0"
     },
     "trade_entry": {
       "revision": "fnv1a32:e542a131",
-      "contract_digest": "f49a8f012a50c090be250c8a34ee7294f9688db276e88f8bf8c2e1889d661b62"
+      "contract_digest": "859355415800ae7bea26fbd8508e39c211da2cc54fddf9c93235c8f6be4cebdd"
     },
     "reconciliation": {
       "revision": "fnv1a32:4c885520",
-      "contract_digest": "cf3e1e0b4d71a374f06fea99ffffb114f9179450711ba9e0b1a3dd25eb07d6bd"
+      "contract_digest": "9437d3bcdc782a7ccb80cd761b66d498c3e09169d374ab791cd4b1ed8ea4e8a4"
     },
     "todo": {
       "revision": "fnv1a32:4dd20a2f",
-      "contract_digest": "5cdedf6e7987baea7e565438c42dbea8e75037239b7cd59185fd2202821adb45"
+      "contract_digest": "e25ba2a34f98358b28823af3f896e34a3a102275c18f727ce1bbb9101ebac6fb"
     },
     "activity_report": {
       "revision": "fnv1a32:e4aa34cd",
-      "contract_digest": "86d8ebcde2418c6c82215ebf729f2267b6ac4b3e99c264e7d1b76d13aff19cd9"
+      "contract_digest": "754eac336d558a9c0a32542703895eb6485b024ca0541c2cad2cec962d36d1ec"
     },
     "product_feedback": {
       "revision": "fnv1a32:76d431a2",
-      "contract_digest": "8999c74481d1e3024db5429f119c301218b878bfbae03a621a5ac9963d3afcfe"
+      "contract_digest": "c308e22e08d39a5e2b81525bd55fb24ff0980b854f3adec29c7f776ff79542de"
+    },
+    "sharing": {
+      "revision": "fnv1a32:aaaec76a",
+      "contract_digest": "1945bcd24202750bfc06ddd270df69f1c3c9711719e16f62c37116f4f2d63b11"
     }
   }
 }

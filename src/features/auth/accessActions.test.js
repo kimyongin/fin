@@ -45,12 +45,12 @@ describe('access actions', () => {
       session: { user: { id: 'owner-1' } },
       viewerProfileDraft: { public_name: 'owner', viewer_password: 'secret', sharing_enabled: false },
     })
-    input.supabase.rpc = vi.fn(async (name) => name === 'set_viewer_profile'
+    input.supabase.rpc = vi.fn(async (name) => name === 'app_save_sharing_profile'
       ? { data: { public_name: 'owner', sharing_enabled: false, viewer_password_updated_at: '2026-09-23' }, error: null }
       : { data: null, error: null })
     await createAccessActions(input).handleSaveViewerProfile()
-    expect(input.supabase.rpc).toHaveBeenCalledWith('set_viewer_profile', {
-      input_public_name: 'owner', input_sharing_enabled: false, input_share_scope: 'portfolio_all', input_viewer_password: 'secret',
+    expect(input.supabase.rpc).toHaveBeenCalledWith('app_save_sharing_profile', {
+      input_public_name: 'owner', input_sharing_enabled: false, input_viewer_password: 'secret',
     })
     expect(input.setViewerProfileSchemaReady).toHaveBeenCalledWith(true)
     expect(input.setViewerProfile.mock.calls.at(-1)[0](createViewerProfileDraft()).public_name).toBe('owner')
@@ -63,8 +63,8 @@ describe('access actions', () => {
     })
     input.supabase.rpc = vi.fn(async () => ({ data: { public_name: 'owner', sharing_enabled: true, viewer_password_updated_at: '2026-09-26' }, error: null }))
     await createAccessActions(input).handleSaveViewerProfile()
-    expect(input.supabase.rpc).toHaveBeenCalledWith('set_viewer_profile', {
-      input_public_name: 'owner', input_sharing_enabled: true, input_share_scope: 'portfolio_all', input_viewer_password: 'secret',
+    expect(input.supabase.rpc).toHaveBeenCalledWith('app_save_sharing_profile', {
+      input_public_name: 'owner', input_sharing_enabled: true, input_viewer_password: 'secret',
     })
     expect(input.setViewerProfileDraft.mock.calls.at(-1)[0](input.viewerProfileDraft)).toMatchObject({ sharing_enabled: true, viewer_password: '' })
   })
@@ -77,8 +77,8 @@ describe('access actions', () => {
     })
     input.supabase.rpc = vi.fn(async () => ({ data: { public_name: 'saved-name', sharing_enabled: false, viewer_password_updated_at: '2026-09-23' }, error: null }))
     await createAccessActions(input).handleSaveViewerProfile()
-    expect(input.supabase.rpc).toHaveBeenCalledWith('set_viewer_profile', {
-      input_public_name: 'new-name', input_sharing_enabled: false, input_share_scope: 'portfolio_all', input_viewer_password: 'new-password',
+    expect(input.supabase.rpc).toHaveBeenCalledWith('app_save_sharing_profile', {
+      input_public_name: 'new-name', input_sharing_enabled: false, input_viewer_password: 'new-password',
     })
     const mergeDraft = input.setViewerProfileDraft.mock.calls.at(-1)[0]
     expect(mergeDraft(input.viewerProfileDraft)).toMatchObject({ public_name: 'saved-name', viewer_password: '', avatar_key: 'fox', sharing_enabled: false })
@@ -95,8 +95,8 @@ describe('access actions', () => {
     const input = params({ viewerProfileDraft: createViewerProfileDraft() })
     input.supabase.rpc = vi.fn(async () => ({ data: { public_name: null, sharing_enabled: false }, error: null }))
     await createAccessActions(input).handleSaveViewerProfile()
-    expect(input.supabase.rpc).toHaveBeenCalledWith('set_viewer_profile', {
-      input_public_name: '', input_sharing_enabled: false, input_share_scope: 'portfolio_all', input_viewer_password: '',
+    expect(input.supabase.rpc).toHaveBeenCalledWith('app_save_sharing_profile', {
+      input_public_name: '', input_sharing_enabled: false, input_viewer_password: '',
     })
   })
 
@@ -106,13 +106,25 @@ describe('access actions', () => {
       viewerProfile: { public_name: 'owner', sharing_enabled: false, viewer_password_updated_at: '2026-09-23' },
       viewerProfileDraft: { public_name: 'owner', sharing_enabled: true, viewer_password: '', avatar_key: 'bear' },
     })
-    input.supabase.rpc = vi.fn(async () => ({ data: null, error: { message: 'network error' } }))
-    input.supabase.from = vi.fn(() => ({ select: () => ({ limit: async () => ({ data: [{ public_name: 'owner', sharing_enabled: true, viewer_password_updated_at: '2026-09-23' }], error: null }) }) }))
+    input.supabase.rpc = vi.fn(async (name) => name === 'app_get_sharing_profile'
+      ? { data: { public_name: 'owner', sharing_enabled: true, viewer_password_updated_at: '2026-09-23' }, error: null }
+      : { data: null, error: { message: 'network error' } })
     await createAccessActions(input).handleSaveViewerProfile()
-    expect(input.supabase.rpc).toHaveBeenCalledTimes(1)
+    expect(input.supabase.rpc).toHaveBeenCalledTimes(2)
     expect(input.setViewerProfile).toHaveBeenCalledWith(expect.any(Function))
     expect(input.setViewerProfile.mock.calls.at(-1)[0](input.viewerProfile).sharing_enabled).toBe(true)
     expect(input.setViewerProfileDraft).not.toHaveBeenCalled()
+  })
+
+  it('resets sharing through the safe RPC and clears the local draft', async () => {
+    const input = params({
+      viewerProfile: { public_name: 'owner', sharing_enabled: true, viewer_password_updated_at: '2026-09-26', avatar_key: 'fox' },
+    })
+    input.supabase.rpc = vi.fn(async () => ({ data: { public_name: null, sharing_enabled: false, viewer_password_updated_at: null, avatar_key: 'fox' }, error: null }))
+    await createAccessActions(input).handleResetViewerProfile()
+    expect(input.supabase.rpc).toHaveBeenCalledWith('app_reset_sharing_profile')
+    expect(input.setViewerProfile).toHaveBeenCalledWith(expect.objectContaining({ public_name: '', sharing_enabled: false, avatar_key: 'fox' }))
+    expect(input.setViewerProfileDraft).toHaveBeenCalledWith(expect.objectContaining({ viewer_password: '', sharing_enabled: false }))
   })
 
   it('rejects an invalid guest password without switching owners', async () => {

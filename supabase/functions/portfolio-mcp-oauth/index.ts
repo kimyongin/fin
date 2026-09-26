@@ -5,7 +5,7 @@ import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^
 import {
   actionTaskToolNames, activityReportToolNames, assetCrudToolNames, dailyReviewToolNames, decisionActivityToolNames, entityNoteToolNames, holdingIntegrityToolNames,
   investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames,
-  productFeedbackToolNames, workflowGuideToolNames,
+  productFeedbackToolNames, workflowGuideToolNames, sharingToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
 import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
 import { type ToolHandler, validateToolRegistry } from '../_shared/mcp/registry.ts'
@@ -172,6 +172,51 @@ const toolHandlers: Record<string, ToolHandler> = {
       ...(data.user.email ? { email: data.user.email } : {}),
       nickname: 'Portfolio account',
     }
+  },
+  async get_sharing_profile(supabase) {
+    return { ok: true, data: await rpc(supabase, 'app_get_sharing_profile') }
+  },
+  async save_sharing_profile(supabase, args) {
+    requireSchemaVersion(args)
+    if (typeof args.sharing_enabled !== 'boolean' || typeof args.public_name !== 'string' || typeof args.viewer_password !== 'string') throw new ToolInputError('public_name, viewer_password, and sharing_enabled are required')
+    return { ok: true, data: await rpc(supabase, 'app_save_sharing_profile', {
+      input_public_name: args.public_name, input_viewer_password: args.viewer_password, input_sharing_enabled: args.sharing_enabled,
+    }) }
+  },
+  async reset_sharing_profile(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_reset_sharing_profile') }
+  },
+  async set_profile_avatar(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: { avatar_key: await rpc(supabase, 'app_set_profile_avatar', { input_avatar_key: requireString(args.avatar_key, 'avatar_key') }) } }
+  },
+  async list_friends(supabase) {
+    return { ok: true, data: await rpc(supabase, 'list_friends') }
+  },
+  async connect_friend(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'add_friend', {
+      input_public_name: requireString(args.public_name, 'public_name'), input_viewer_password: requireString(args.viewer_password, 'viewer_password'),
+    }) }
+  },
+  async remove_friend(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: { removed: await rpc(supabase, 'remove_friend', { input_owner_user_id: requireUuid(args.owner_user_id, 'owner_user_id') }) } }
+  },
+  async list_portfolio_viewers(supabase, args) {
+    return { ok: true, data: await rpc(supabase, 'app_list_portfolio_viewers', {
+      input_limit: args.limit == null ? 50 : requirePositiveInteger(args.limit, 'limit'),
+      input_offset: args.offset == null ? 0 : requireNonnegativeInteger(args.offset, 'offset'),
+    }) }
+  },
+  async get_shared_portfolio_state(supabase, args) {
+    const ownerUserId = requireUuid(args.owner_user_id, 'owner_user_id')
+    const friends = await rpc(supabase, 'list_friends')
+    if (!Array.isArray(friends) || !friends.some((friend) => friend.owner_user_id === ownerUserId)) {
+      throw new ToolInputError('Selected friend connection is not active')
+    }
+    return { ok: true, data: await rpc(supabase, 'app_get_portfolio_state', { input_owner_user_id: ownerUserId }) }
   },
   async get_portfolio_state(supabase) {
     return await rpc(supabase, 'app_get_portfolio_state', { input_owner_user_id: null })
@@ -667,6 +712,7 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   workflowGuides: workflowGuideToolNames,
   productFeedback: productFeedbackToolNames,
   entityNotes: entityNoteToolNames,
+  sharing: sharingToolNames,
   assets: assetCrudToolNames,
   dailyReview: dailyReviewToolNames,
   decisionActivities: decisionActivityToolNames,

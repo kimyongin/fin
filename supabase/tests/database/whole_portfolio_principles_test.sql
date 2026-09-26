@@ -10,7 +10,7 @@ insert into public.friendships(viewer_user_id,owner_user_id)
 values('00000000-0000-0000-0000-000000002452','00000000-0000-0000-0000-000000002451');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000002451',true);
 set local role authenticated;
-select extensions.is((public.set_viewer_profile('whole-owner','secret',false,'portfolio_all')).sharing_enabled,false,'credentials leave sharing off');
+select extensions.is((public.app_save_sharing_profile('whole-owner','secret',false)->>'sharing_enabled')::boolean,false,'credentials leave sharing off');
 select extensions.is(public.app_save_principle(null,null,'첫 원칙','처음') ->> 'body','첫 원칙','owner saves first revision');
 select extensions.is(public.app_save_principle(
   (public.app_list_principles() #>> '{items,0,principle_id}')::uuid,
@@ -22,7 +22,7 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000002452'
 select extensions.throws_ok($$select public.app_list_principles(null,'Asia/Seoul',false,'00000000-0000-0000-0000-000000002451')$$,
   'P0001','Principles are not shared','OFF blocks linked friend');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000002451',true);
-select extensions.is((public.set_viewer_profile('whole-owner','',true,'portfolio_all')).sharing_enabled,true,'owner opts into whole sharing');
+select extensions.is((public.app_save_sharing_profile('whole-owner','',true)->>'sharing_enabled')::boolean,true,'owner opts into whole sharing');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000002452',true);
 select extensions.is(public.app_list_principles(null,'Asia/Seoul',false,'00000000-0000-0000-0000-000000002451') #>> '{items,0,body}',
   '수정 원칙','friend reads current document');

@@ -305,7 +305,7 @@ function App() {
     },
   })
 
-  const { handleGuestUnlock, handleSaveViewerProfile, signOut } = createAccessActions({
+  const { handleGuestUnlock, handleSaveViewerProfile, handleResetViewerProfile, signOut } = createAccessActions({
     canEdit, createGuestUnlockDraft, createViewerProfileDraft, guestUnlockDraft, refreshState, session,
     setAuthStatus, setGuestUnlockDraft, setGuestUnlockError, setGuestUnlockSaving, setSession,
     setViewContext, setViewerProfile, setViewerProfileDraft, setViewerProfileError,
@@ -502,6 +502,7 @@ function App() {
             onViewFriend={handlePortfolioChange}
             onViewerProfileChange={changeViewerProfileDraft}
             onViewerProfileSave={handleSaveViewerProfile}
+            onViewerProfileReset={async () => { await handleResetViewerProfile(); await loadPortfolioViewers() }}
             onViewerProfileReload={loadViewerProfile}
             onAvatarSelect={handleAvatarSelect}
             avatarSaving={avatarSaving}

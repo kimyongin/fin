@@ -9,6 +9,7 @@ export const workflowGuideTopics = [
   'todo',
   'activity_report',
   'product_feedback',
+  'sharing',
 ] as const
 
 export type WorkflowGuideTopic = typeof workflowGuideTopics[number]
@@ -430,6 +431,24 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'If classification or consent is genuinely ambiguous, ask one short question before writing.',
     ],
     unavailable_steps: ['Automatic public GitHub issue creation, transcript capture, attachments, comments, voting, and background detection are not available.'],
+  },
+  sharing: {
+    topic: 'sharing', guide_id: 'portfolio.sharing-and-friends',
+    purpose: 'Manage my whole-portfolio sharing and friend connections with explicit consent and safe reads.',
+    scenario_ids: ['SH01', 'SH02', 'SH03'],
+    related_tools: ['get_sharing_profile','save_sharing_profile','reset_sharing_profile','set_profile_avatar','list_friends','connect_friend','remove_friend','list_portfolio_viewers','get_shared_portfolio_state'],
+    source_paths: ['supabase/functions/_shared/mcp/portfolio-tools.ts','supabase/functions/portfolio-mcp-oauth/index.ts','supabase/migrations/20260926162000_safe_sharing_profile.sql','src/features/auth/accessActions.js','src/features/settings/SettingsPage.jsx'],
+    steps: [
+      { id: 'read-mine', title: 'Read my sharing state', instruction: 'Call get_sharing_profile. It never returns a viewer password or hash. Sharing covers the whole read-only portfolio; there are no per-feature switches.', tools: ['get_sharing_profile'] },
+      { id: 'configure', title: 'Change only approved settings', instruction: 'After explicit request, use save_sharing_profile for public name, an optional replacement password, and on/off. Empty password means keep it. Use set_profile_avatar for an approved icon change. Re-read rather than blindly retrying an uncertain save.', tools: ['save_sharing_profile','set_profile_avatar'] },
+      { id: 'reset', title: 'Remove sharing credentials', instruction: 'Only after confirmation, call reset_sharing_profile to remove name/password, turn sharing off, and revoke incoming connections and viewer sessions; it does not delete investments or the auth account.', tools: ['reset_sharing_profile'] },
+      { id: 'friends', title: 'Manage my friend connections', instruction: 'Use list_friends to find selected owner IDs. With credentials supplied by the user, connect_friend creates or reauthorizes a relation. On explicit request, remove_friend disconnects only my relation.', tools: ['list_friends','connect_friend','remove_friend'] },
+      { id: 'read-friend', title: 'Read a selected friend portfolio', instruction: 'Call get_shared_portfolio_state with an owner ID from list_friends. The server checks current relationship and sharing; this never grants write permission or updates last web-view time.', tools: ['list_friends','get_shared_portfolio_state'] },
+      { id: 'incoming', title: 'Inspect friends viewing mine', instruction: 'Call list_portfolio_viewers for the safe incoming list and last successful web-view time. Absence of a time does not prove a friend never saw the portfolio through another interface.', tools: ['list_portfolio_viewers'] },
+    ],
+    boundaries: ['Never guess, repeat, log, or reveal passwords or tokens.', 'A friend owner ID is a read selector, not write authority.', 'Do not enable sharing, connect, reset, or disconnect without explicit user intent.'],
+    recovery: ['After an uncertain write, re-read settings or friends before retrying.', 'After sharing is turned off, reset, or a friendship is removed, verify that old access is denied.'],
+    unavailable_steps: ['The agent cannot retrieve a forgotten viewer password; the owner must set a replacement.'],
   },
 }
 

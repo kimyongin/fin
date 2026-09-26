@@ -10,6 +10,7 @@ import {
   investmentPolicyToolNames,
   portfolioToolDefinitions,
   productFeedbackToolNames,
+  sharingToolNames,
   tradeEntryToolNames,
   workflowGuideToolNames,
 } from './portfolio-tools.ts'
@@ -34,6 +35,7 @@ describe('portfolio MCP tool definitions', () => {
     expect(tradeEntryToolNames.every((name) => names.includes(name))).toBe(true)
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
     expect(productFeedbackToolNames.every((name) => names.includes(name))).toBe(true)
+    expect(sharingToolNames.every((name) => names.includes(name))).toBe(true)
     expect(workflowGuideToolNames.every((name) => names.includes(name))).toBe(true)
   })
 
@@ -75,7 +77,7 @@ describe('portfolio MCP tool definitions', () => {
 
   it('publishes every reviewed multi-step topic from one validated guide registry', () => {
     expect(workflowGuideTopics).toEqual([
-      'assets', 'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation', 'todo', 'activity_report', 'product_feedback',
+      'assets', 'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation', 'todo', 'activity_report', 'product_feedback', 'sharing',
     ])
     for (const topic of workflowGuideTopics) {
       const guide = getWorkflowGuide(topic)!
@@ -95,6 +97,21 @@ describe('portfolio MCP tool definitions', () => {
     expect((submit.inputSchema as any).properties.context.additionalProperties).toBe(false)
     expect(submit.description).toContain('first summarize one proposed feedback item and ask once')
     expect(getWorkflowGuide('product_feedback')?.boundaries.join(' ')).toContain('cannot guarantee')
+  })
+
+  it('advertises destructive operations and unsaved previews with accurate hints', () => {
+    for (const definition of portfolioToolDefinitions) {
+      if (definition.name.startsWith('delete_') || ['remove_friend','reset_sharing_profile'].includes(definition.name)) {
+        expect(definition.annotations.destructiveHint, definition.name).toBe(true)
+        expect(definition.annotations.readOnlyHint, definition.name).toBe(false)
+      }
+    }
+    for (const name of ['preview_trade_entry','preview_holding_reconciliation','get_shared_portfolio_state','list_portfolio_viewers']) {
+      expect(tool(name).annotations.readOnlyHint, name).toBe(true)
+    }
+    expect(tool('sync_prices').annotations.openWorldHint).toBe(true)
+    expect((tool('sync_prices').inputSchema as any).properties).toEqual({ schema_version: { const: 1 } })
+    expect(getWorkflowGuide('sharing')?.related_tools).toEqual([...sharingToolNames])
   })
 
   it('labels current context as a read-only operation', () => {
@@ -194,7 +211,7 @@ describe('portfolio MCP tool definitions', () => {
   })
 
   it('separates trade preview, confirmation, and brokerage actions', () => {
-    expect(tool('preview_trade_entry').annotations).toMatchObject({ readOnlyHint: false, idempotentHint: false })
+    expect(tool('preview_trade_entry').annotations).toMatchObject({ readOnlyHint: true, idempotentHint: true })
     expect(tool('log_completed_trade').annotations).toMatchObject({ readOnlyHint: false, idempotentHint: true })
     expect(tool('list_transactions').annotations.readOnlyHint).toBe(true)
     expect((tool('preview_trade_entry').inputSchema as any).properties.quantity.type).toBe('string')
@@ -202,7 +219,7 @@ describe('portfolio MCP tool definitions', () => {
   })
 
   it('exposes only absolute correction, without verification status', () => {
-    expect(tool('preview_holding_reconciliation').annotations.idempotentHint).toBe(false)
+    expect(tool('preview_holding_reconciliation').annotations.idempotentHint).toBe(true)
     expect(tool('reconcile_holding').annotations.idempotentHint).toBe(true)
     expect((tool('reconcile_holding').inputSchema as any).properties).not.toHaveProperty('confirmed_fields')
     expect(portfolioToolDefinitions.some((definition) => ['verify_holdings','get_holding_integrity','get_portfolio_integrity'].includes(definition.name))).toBe(false)

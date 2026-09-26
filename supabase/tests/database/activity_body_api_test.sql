@@ -42,7 +42,7 @@ select extensions.is((select response->>'body' from body_api_record),'수정된 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000982',true);
 select extensions.is((select public.app_get_activity((response->>'id')::bigint,'00000000-0000-0000-0000-000000000981')->>'body' from body_api_record),'수정된 본문','whole-portfolio sharing includes activity');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000981',true);
-select extensions.is((public.set_viewer_profile('body-owner','',false,'portfolio_all')).sharing_enabled,false,
+select extensions.is((public.app_save_sharing_profile('body-owner','',false)->>'sharing_enabled')::boolean,false,
   'owner stops all sharing');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000982',true);
 select extensions.is((select public.app_get_activity((response->>'id')::bigint,'00000000-0000-0000-0000-000000000981')->>'body' from body_api_record),

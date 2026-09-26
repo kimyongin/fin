@@ -43,6 +43,11 @@ const destructiveWriteAnnotations = {
   openWorldHint: false,
 }
 
+const destructiveIdempotentWriteAnnotations = {
+  ...destructiveWriteAnnotations,
+  idempotentHint: true,
+}
+
 const profileOutputSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   type: 'object',
@@ -238,7 +243,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'get_workflow_guide',
     title: 'Portfolio workflow guide',
-    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for asset management, a policy interview, holding reason, daily review, decision/follow-up, completed trade entry, balance correction, activity report, or product-feedback flow. This guide does not read user data, perform the workflow, or replace explicit save intent.',
+    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for assets, principles, holding reason, daily review, decision/follow-up, completed trade, balance correction, activities, product feedback, or sharing/friends. This guide does not read user data, perform the workflow, or replace explicit save intent.',
     inputSchema: {
       type: 'object',
       properties: { topic: { type: 'string', enum: workflowGuideTopics } },
@@ -256,6 +261,62 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: profileOutputSchema,
     annotations: readOnlyAnnotations,
     _meta: { 'openai/profile': true },
+  },
+  {
+    name: 'get_sharing_profile', title: 'Read my sharing settings',
+    description: 'Read only my public name, on/off state, password last-changed time, and avatar. The password and hash are never returned. This does not read a friend\'s settings.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'save_sharing_profile', title: 'Save my whole-portfolio sharing settings',
+    description: 'After explicit user confirmation, save my public name, optional replacement viewer password, and on/off state together. Sharing covers the whole read-only portfolio, not individual categories. An empty password keeps the existing password; it never clears it. To remove credentials use reset_sharing_profile. Never guess, repeat, log, or expose passwords. Re-read after an uncertain result before retrying.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, public_name: { type: 'string' }, viewer_password: { type: 'string' }, sharing_enabled: { type: 'boolean' },
+    }, required: ['schema_version','public_name','viewer_password','sharing_enabled'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: contextAnnotations,
+  },
+  {
+    name: 'reset_sharing_profile', title: 'Remove my sharing credentials and access',
+    description: 'Only after explicit confirmation, atomically turn sharing off, remove public name and viewer password, revoke viewer sessions and incoming friend connections. Investment data, auth account, and avatar remain. Friends must reconnect with new credentials after future sharing is enabled.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 } }, required: ['schema_version'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
+  },
+  {
+    name: 'set_profile_avatar', title: 'Choose my profile icon',
+    description: 'On explicit request, set my icon to one supported key. This does not change sharing access or a friend\'s profile.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, avatar_key: { type: 'string', enum: ['bear','cat','fox','dog','rabbit','panda','penguin','owl','frog','turtle','apple','cherry','lemon','peach','strawberry','grape','watermelon','banana','pineapple','kiwi'] } }, required: ['schema_version','avatar_key'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: contextAnnotations,
+  },
+  {
+    name: 'list_friends', title: 'List my connected shared portfolios',
+    description: 'List owners I connected to. A listed connection does not guarantee current access; use get_shared_portfolio_state with the selected owner ID to check. No password is returned.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'connect_friend', title: 'Connect or reauthorize a shared portfolio',
+    description: 'After explicit user request with the friend-provided public name and password, create or reauthorize my connection. Never guess or disclose credentials. A password is required even for an existing relationship; this does not grant write access to their portfolio.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, public_name: { type: 'string', minLength: 1 }, viewer_password: { type: 'string', minLength: 1 } }, required: ['schema_version','public_name','viewer_password'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'remove_friend', title: 'Disconnect a shared portfolio',
+    description: 'Only after explicit confirmation, remove my connection to the selected owner. This does not delete the owner account or their investment records.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, owner_user_id: idSchema }, required: ['schema_version','owner_user_id'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
+  },
+  {
+    name: 'list_portfolio_viewers', title: 'List friends who connected to my portfolio',
+    description: 'Read my incoming connected friends and the last successful web portfolio view time, if any. Reading through MCP does not silently update that time. No email, password, token, or private identity is returned.',
+    inputSchema: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 50 }, offset: { type: 'integer', minimum: 0 } }, additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'get_shared_portfolio_state', title: 'Read a selected friend portfolio',
+    description: 'Read the current read-only portfolio state of an explicitly selected connected owner. First list_friends to obtain owner_user_id. The server checks current sharing and relationship access. Owner selection never grants write access and does not update last web-view time.',
+    inputSchema: { type: 'object', properties: { owner_user_id: idSchema }, required: ['owner_user_id'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
   },
   {
     name: 'get_portfolio_state',
@@ -326,7 +387,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     name: 'delete_holding', title: 'Delete one account holding',
     description: 'After explicit confirmation, delete one owned current holding row after reading its state_version. This removes the current position from that account and writes an activity, but does not delete its instrument, undo past trades, or erase past records. The version check prevents deletion after a concurrent edit; retry an uncertain result only with the same key and inputs.',
     inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, holding_id: { type: 'integer', minimum: 1 }, expected_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','holding_id','expected_version','idempotency_key'], additionalProperties: false },
-    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
+    outputSchema: successEnvelopeSchema, annotations: destructiveIdempotentWriteAnnotations,
   },
   {
     name: 'delete_instrument', title: 'Delete an unheld instrument',
@@ -568,7 +629,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     name: 'delete_activity_tag', title: 'Delete an activity tag',
     description: 'Delete one owner activity tag after reading its current version. Its tag links are removed, but activities, tasks, financial data, and allocation tags remain.',
     inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, tag_id: { type: 'string', format: 'uuid' }, expected_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','tag_id','expected_version','idempotency_key'], additionalProperties: false },
-    outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+    outputSchema: successEnvelopeSchema, annotations: destructiveIdempotentWriteAnnotations,
   },
   {
     name: 'set_activity_tags', title: 'Set tags on a performed activity',
@@ -614,7 +675,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       schema_version: { const: 1 }, task_id: { type: 'string', format: 'uuid' },
       expected_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
     }, required: ['schema_version','task_id','expected_version','idempotency_key'], additionalProperties: false },
-    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
+    outputSchema: successEnvelopeSchema, annotations: destructiveIdempotentWriteAnnotations,
   },
   {
     name: 'transition_general_task',
@@ -775,7 +836,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
-    annotations: contextAnnotations,
+    annotations: readOnlyAnnotations,
   },
   {
     name: 'log_completed_trade',
@@ -824,7 +885,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     description: 'Calculate an unsaved estimate for replacing one holding with user-supplied actual values. Return the holding version for direct confirmation; the server rechecks it under a lock. Send non-negative decimals as strings, not JSON numbers. Market requires quantity and avg_price; valuation requires purchase_amount and valuation_amount; cash requires valuation_amount. Zero market quantity still requires avg_price, which is discarded in the resulting zero balance. This does not modify the holding.',
     inputSchema: { type: 'object', properties: {
       holding_id: { type: 'integer', minimum: 1 }, values: holdingCorrectionValuesSchema, reason: { type: 'string', minLength: 1, maxLength: 1000 }, effective_on: { type: 'string', format: 'date' },
-    }, required: ['holding_id','values','reason','effective_on'], additionalProperties: false }, outputSchema: reconciliationPreviewOutputSchema, annotations: contextAnnotations,
+    }, required: ['holding_id','values','reason','effective_on'], additionalProperties: false }, outputSchema: reconciliationPreviewOutputSchema, annotations: readOnlyAnnotations,
   },
   {
     name: 'reconcile_holding', title: 'Apply an absolute holding correction',
@@ -846,6 +907,8 @@ export const workflowGuideToolNames = ['get_workflow_guide'] as const
 export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_product_feedback', 'get_my_product_feedback', 'update_my_product_feedback', 'delete_my_product_feedback', 'list_product_feedback_admin', 'update_product_feedback_admin'] as const
 
 export const entityNoteToolNames = ['update_entity_note'] as const
+
+export const sharingToolNames = ['get_sharing_profile','save_sharing_profile','reset_sharing_profile','set_profile_avatar','list_friends','connect_friend','remove_friend','list_portfolio_viewers','get_shared_portfolio_state'] as const
 
 export const assetCrudToolNames = ['save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','sync_prices'] as const
 

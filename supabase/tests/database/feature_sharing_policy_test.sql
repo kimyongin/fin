@@ -11,13 +11,13 @@ insert into friendships(viewer_user_id,owner_user_id)
 values('00000000-0000-0000-0000-000000001002','00000000-0000-0000-0000-000000001001');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001001',true);
 set local role authenticated;
-select extensions.throws_ok($$select public.set_viewer_profile('owner','secret',true)$$,
-  'P0001','Refresh the app to enable whole-portfolio sharing','old client cannot expand sharing');
-select extensions.throws_ok($$select public.set_viewer_profile('owner','secret',true,'old_scope')$$,
-  'P0001','Whole-portfolio share scope is required','new client must name full scope');
-select extensions.is((public.set_viewer_profile('owner','secret',false,'portfolio_all')).sharing_enabled,
+select extensions.ok(not has_function_privilege('authenticated','public.set_viewer_profile(text,text,boolean)','EXECUTE'),
+  'old raw profile writer is unavailable to clients');
+select extensions.ok(not has_function_privilege('authenticated','public.set_viewer_profile(text,text,boolean,text)','EXECUTE'),
+  'raw full-scope profile writer is unavailable to clients');
+select extensions.is((public.app_save_sharing_profile('owner','secret',false)->>'sharing_enabled')::boolean,
   false,'credentials alone do not turn sharing on');
-select extensions.is((public.set_viewer_profile('owner','',true,'portfolio_all')).sharing_enabled,
+select extensions.is((public.app_save_sharing_profile('owner','',true)->>'sharing_enabled')::boolean,
   true,'explicit full-scope request turns sharing on');
 select extensions.lives_ok($$select public.app_create_activity('11111111-1111-4111-8111-111111111111',
   '{"title":"공유 기록","body":"사용자가 공개할 본문"}'::jsonb)$$,'owner records an activity');

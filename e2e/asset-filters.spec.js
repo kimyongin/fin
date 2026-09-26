@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { callRpc, signInAs } from './helpers'
+import { callRpc, seedProviderPrice, signInAs } from './helpers'
 
 test('filters asset rows and summary together, then removes a newly tagged holding from untagged results', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
@@ -9,11 +9,12 @@ test('filters asset rows and summary together, then removes a newly tagged holdi
   const ticker = `FLT${Date.now().toString(36).slice(-6).toUpperCase()}`
   const instrument = await callRpc(page, 'app_save_instrument', {
     input_currency: 'KRW', input_display_name: `필터 테스트 ${ticker}`, input_instrument_id: null,
-    input_instrument_type: 'market', input_note: null, input_price: 1000,
-    input_price_date: '2026-09-25', input_price_source: 'manual', input_request: null,
+    input_instrument_type: 'market', input_note: null, input_price: null,
+    input_price_date: null, input_price_source: 'manual', input_request: null,
     input_source: 'user', input_tag_id: null, input_ticker: ticker,
   })
   expect(instrument.status).toBe(200)
+  await seedProviderPrice(page, ticker, 1000, '2026-09-25')
   expect((await callRpc(page, 'app_save_holding', {
     input_account_id: state.body.accounts[0].id, input_avg_price: 900,
     input_holding_id: null, input_quantity: 2, input_request: null,

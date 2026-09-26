@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { appVersion } from '../../lib/version'
+import { ConfirmDialog } from '../../components/ModalShell'
 import { profileAvatars } from '../../lib/profileAvatar'
 import SharingSwitch from './SharingSwitch'
 import { profileAvatar } from '../../lib/profileAvatar'
@@ -27,11 +29,12 @@ export default function SettingsPage({
   portfolioViewers = [], portfolioViewersError = '', portfolioViewersLoading = false, portfolioViewersNextOffset = null,
   onPortfolioViewersReload, onPortfolioViewersMore,
   onAddFriend, onFriendChange, onRemoveFriend,
-  onViewerProfileChange, onViewerProfileSave, onViewerProfileReload,
+  onViewerProfileChange, onViewerProfileSave, onViewerProfileReset, onViewerProfileReload,
   onAvatarSelect, avatarSaving = false, avatarError = '',
   viewerProfile, viewerProfileDraft, viewerProfileError, viewerProfileErrorTarget, viewerProfileLoaded,
   viewerProfileMessage, viewerProfileSaving, viewerProfileSchemaReady, onViewFriend,
 }) {
+  const [confirmReset, setConfirmReset] = useState(false)
   const sharingDirty = viewerProfileDraft.public_name !== viewerProfile.public_name
     || Boolean(viewerProfileDraft.viewer_password)
     || Boolean(viewerProfileDraft.sharing_enabled) !== Boolean(viewerProfile.sharing_enabled)
@@ -68,6 +71,7 @@ export default function SettingsPage({
             </div>
             {viewerProfileError && !['public_name', 'viewer_password'].includes(viewerProfileErrorTarget) && <p className="type-secondary mt-2 text-red-200" role="alert">{viewerProfileError}</p>}
             {viewerProfileMessage && <p className="type-secondary mt-2 text-emerald-200" role="status">{viewerProfileMessage}</p>}
+            {(viewerProfile.public_name || viewerProfile.viewer_password_updated_at || viewerProfile.sharing_enabled) && <button className="type-action mt-3 min-h-11 rounded-xl border border-[var(--line)] px-3 text-red-200 disabled:opacity-50" disabled={viewerProfileSaving} onClick={() => setConfirmReset(true)} type="button">공유 설정 초기화</button>}
             <div className="mt-6 border-t border-[var(--line)] pt-5">
               <h3 className="type-item-title">공유받는 친구</h3>
               {portfolioViewersError && <div className="mt-3 flex flex-wrap items-center gap-3"><p className="type-secondary text-red-200" role="alert">{portfolioViewersError}</p><button className="type-action min-h-11 rounded-xl border border-[var(--line)] px-3" onClick={onPortfolioViewersReload} type="button">다시 조회</button></div>}
@@ -94,6 +98,7 @@ export default function SettingsPage({
       </SettingsSection>
 
       <p className="pb-2 text-center text-xs text-[var(--muted-ink)]">버전 {appVersion}</p>
+      {confirmReset && <ConfirmDialog cancelLabel="유지" confirmLabel="초기화" danger description="공개 이름과 보기 비밀번호를 지우고 공유를 끕니다. 기존 친구 연결과 보기 세션도 해제됩니다. 투자 데이터와 프로필 아이콘은 유지됩니다." onCancel={() => setConfirmReset(false)} onConfirm={async () => { setConfirmReset(false); await onViewerProfileReset() }} pending={viewerProfileSaving} title="공유 설정 초기화" />}
     </section>
   )
 }

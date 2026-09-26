@@ -39,4 +39,7 @@ accountActions.js, instrumentActions.js, AssetDetailModal.jsx와 app_create_inst
 - OAuth에 `save_account`, `delete_account`, `create_instrument`, `save_asset_detail`, `delete_holding`, `delete_instrument`를 공개했다. 자산 가이드를 추가했다. 등록/조회/삭제와 원자 상세 저장은 기존 웹 RPC를 공유한다. `save_asset_detail`은 수동 시세 필드를 거부한다.
 - 보유 삭제에 `app_delete_holding_checked`를 추가하고 웹도 사용한다. 현재 state_version 검사, 동일 키 재시도, 소유자 경계를 DB에서 검증했다. 실제 금융값 변경은 기존 `app_save_asset_detail_current`의 원자 저장·receipt를 사용한다.
 - OAuth 계약 테스트에서 계좌·종목 생성 → 시장형 계좌 보유 생성/재시도 → 보유 삭제/재시도 → 종목·계좌 삭제를 통과했다. DB 전체 635개, 단위 110개, 웹 빌드, Deno 타입 검사 및 격리 브라우저 스모크를 통과했다.
-- 아직 남음: 평가형/현금성·복수 계좌와 태그/메모 교차 시나리오, 대상별 단건/페이지 조회 효율, 기존 직접 HTTP 쓰기 우회 감사, 모바일/데스크톱 삭제 확인 화면 검증. 구 `app_save_instrument`의 직접 시세 쓰기 가능성은 #157의 가격 경계 정리와 함께 차단해야 한다. 운영 배포/실 ChatGPT는 #158에서 확인한다.
+- `20260926163000_asset_write_rpc_boundary.sql`에서 계좌·보유·종목·자산 태그의 authenticated 직접 DML 권한을 회수했다. 읽기는 RLS 아래 유지하고 기존 목적별 SECURITY DEFINER RPC 쓰기는 유지한다. `asset_write_boundary_test.sql`은 테이블 4개의 직접 C/U/D 거부와 R 허용을 검사한다. 기존 수동 시세 저장은 #157에서 이미 차단했다.
+- 격리 OAuth 계약을 평가형·현금성 및 2개 계좌의 생성→원자 보유 저장→HTTP 조회→개별 보유/종목/계좌 삭제까지 확장했다. 기존 시장형 동일 키 재시도, 자산 태그/목표 설정·초기화, 웹 자산 상세의 반응형 화면 테스트도 함께 실행한다.
+- 2026-09-27 전체 격리 재검증: pgtap 696개, Vitest 114개, Chromium E2E 83개 통과. 보유 삭제 화면은 확인 모달 종료 뒤 결과를 조회하도록 검증했다. 웹 상세 모달과 자산 필터의 360/390/768/1024/1440px 화면 테스트를 포함한다.
+- 남음: 전체 필드에 걸친 웹→OAuth 반대 방향 교차, 대규모 목록의 대상별 단건/페이지 조회 효율, 실제 모바일 기기 삭제 확인. 운영 배포/실 ChatGPT는 #158에서 확인한다.

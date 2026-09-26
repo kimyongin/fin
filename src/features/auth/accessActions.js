@@ -69,10 +69,9 @@ export function createAccessActions({
     setViewerProfileMessage('')
     setViewerProfileErrorTarget('credentials')
     try {
-      const { data, error } = await supabase.rpc('set_viewer_profile', {
+      const { data, error } = await supabase.rpc('app_save_sharing_profile', {
         input_public_name: publicName,
         input_sharing_enabled: sharingEnabled,
-        input_share_scope: 'portfolio_all',
         input_viewer_password: password,
       })
       if (error) throw error
@@ -122,9 +121,36 @@ export function createAccessActions({
     }
   }
 
+  async function resetViewerProfile() {
+    if (!canEdit || profileWriteRef.current) return
+    profileWriteRef.current = true
+    setViewerProfileSaving(true)
+    setViewerProfileError('')
+    setViewerProfileMessage('')
+    try {
+      const { data, error } = await supabase.rpc('app_reset_sharing_profile')
+      if (error) throw error
+      const nextProfile = createViewerProfileDraft(data)
+      setViewerProfile(nextProfile)
+      setViewerProfileDraft(nextProfile)
+      setViewerProfileMessage('공유 설정을 초기화하고 기존 연결을 해제했습니다.')
+    } catch (error) {
+      try {
+        const actual = createViewerProfileDraft(await fetchViewerProfile(supabase))
+        setViewerProfile(actual)
+        setViewerProfileDraft(actual)
+      } catch { /* Keep the error visible when the result cannot be confirmed. */ }
+      setViewerProfileError(formatSupabaseError(error, '공유 설정을 초기화하지 못했습니다.'))
+    } finally {
+      profileWriteRef.current = false
+      setViewerProfileSaving(false)
+    }
+  }
+
   return {
     handleGuestUnlock,
     handleSaveViewerProfile: saveViewerProfile,
+    handleResetViewerProfile: resetViewerProfile,
     signOut,
   }
 }

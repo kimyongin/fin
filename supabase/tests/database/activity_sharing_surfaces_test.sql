@@ -28,7 +28,7 @@ select extensions.is(jsonb_array_length(public.app_search_activities(input_owner
 select extensions.is(jsonb_array_length(public.app_list_action_timeline(input_owner_user_id=>'00000000-0000-0000-0000-000000001971')->'days'),0,
   'default denial hides timeline');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001971',true);
-select public.set_viewer_profile('activity-owner','secret',true,'portfolio_all');
+select public.app_save_sharing_profile('activity-owner','secret',true);
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001972',true);
 select extensions.is(public.app_get_activity((select id from activity_target),
   '00000000-0000-0000-0000-000000001971')->>'body','확인한 공개 사실','explicit grant exposes readable body');

@@ -9,7 +9,7 @@ if (!['127.0.0.1', 'localhost'].includes(hostname)) throw new Error('MCP contrac
 const anonKey = process.env.SUPABASE_ANON_KEY
 const functionUrl = `${baseUrl}/functions/v1/portfolio-mcp-oauth`
 const commonHeaders = { apikey: anonKey, 'Content-Type': 'application/json' }
-let userId = null
+const userIds = []
 
 function assert(condition, message) {
   if (!condition) throw new Error(message)
@@ -53,14 +53,14 @@ try {
   })
   assert(createdUser.ok, `Local contract user creation failed (${createdUser.status})`)
   const createdUserData = await createdUser.json()
-  userId = createdUserData.id
+  userIds.push(createdUserData.id)
   const signup = await fetch(`${baseUrl}/auth/v1/token?grant_type=password`, {
     method: 'POST', headers: commonHeaders, body: JSON.stringify({ email, password }),
   })
   assert(signup.ok, `Local contract sign-in failed (${signup.status})`)
   const session = await signup.json()
   assert(session.access_token && session.user?.id, 'Local contract sign-in returned no session')
-  userId = session.user.id
+  const userId = session.user.id
 
   const initialized = await call(session.access_token, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'contract-test', version: '1' } })
   assert(initialized.response.ok && initialized.body?.result?.protocolVersion === '2025-06-18', 'MCP initialize contract failed')
@@ -75,7 +75,7 @@ try {
   assert(discoveredNames.has('list_due_general_tasks'), 'Due task tool was not discovered')
   const dueTasks = await call(session.access_token, 'tools/call', { name: 'list_due_general_tasks', arguments: { limit: 10, offset: 0 } })
   assert(dueTasks.body?.result?.isError === false && Array.isArray(dueTasks.body?.result?.structuredContent?.data?.items), 'Due task MCP read failed')
-  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','sync_prices','update_entity_note','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','get_my_product_feedback','update_my_product_feedback','delete_my_product_feedback','list_product_feedback_admin','update_product_feedback_admin']) {
+  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','sync_prices','update_entity_note','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','get_my_product_feedback','update_my_product_feedback','delete_my_product_feedback','list_product_feedback_admin','update_product_feedback_admin','get_sharing_profile','save_sharing_profile','reset_sharing_profile','set_profile_avatar','list_friends','connect_friend','remove_friend','list_portfolio_viewers','get_shared_portfolio_state']) {
     assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
   }
   for (const legacyTool of ['get_news_state','get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis','list_private_holding_notes','save_private_holding_note']) {
@@ -97,6 +97,67 @@ try {
 
   const profile = await call(session.access_token, 'tools/call', { name: 'get_profile', arguments: {} })
   assert(profile.response.ok && profile.body?.result?.isError === false, 'Authenticated MCP tools/call failed')
+  const initialSharing = await call(session.access_token, 'tools/call', { name: 'get_sharing_profile', arguments: {} })
+  assert(initialSharing.body?.result?.structuredContent?.data?.sharing_enabled === false, 'Initial sharing profile read failed')
+  const sharingName = `contract-${crypto.randomUUID().slice(0, 12)}`
+  const sharingSaved = await call(session.access_token, 'tools/call', { name: 'save_sharing_profile', arguments: {
+    schema_version: 1, public_name: sharingName, viewer_password: 'contract-secret', sharing_enabled: true,
+  } })
+  const safeSharing = sharingSaved.body?.result?.structuredContent?.data
+  assert(safeSharing?.sharing_enabled === true && !JSON.stringify(safeSharing).includes('contract-secret') && !('viewer_password_hash' in safeSharing), 'Sharing save exposed credentials or failed')
+  const profileHttp = await fetch(`${baseUrl}/rest/v1/rpc/app_get_sharing_profile`, {
+    method: 'POST', headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}` }, body: '{}',
+  })
+  const profileHttpData = await profileHttp.json()
+  assert(profileHttp.ok && profileHttpData.public_name === sharingName && !('viewer_password_hash' in profileHttpData), 'HTTP could not read MCP sharing write safely')
+  const avatarSaved = await call(session.access_token, 'tools/call', { name: 'set_profile_avatar', arguments: { schema_version: 1, avatar_key: 'cherry' } })
+  assert(avatarSaved.body?.result?.structuredContent?.data?.avatar_key === 'cherry', 'OAuth avatar update failed')
+
+  const friendEmail = `mcp-friend-${crypto.randomUUID()}@example.com`
+  const friendPassword = `Friend-${crypto.randomUUID()}`
+  const friendCreated = await fetch(`${baseUrl}/auth/v1/admin/users`, {
+    method: 'POST', headers: { ...commonHeaders, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
+    body: JSON.stringify({ email: friendEmail, password: friendPassword, email_confirm: true }),
+  })
+  assert(friendCreated.ok, 'Local friend contract user creation failed')
+  userIds.push((await friendCreated.json()).id)
+  const friendLogin = await fetch(`${baseUrl}/auth/v1/token?grant_type=password`, {
+    method: 'POST', headers: commonHeaders, body: JSON.stringify({ email: friendEmail, password: friendPassword }),
+  })
+  assert(friendLogin.ok, 'Local friend contract sign-in failed')
+  const friendSession = await friendLogin.json()
+  const connected = await call(friendSession.access_token, 'tools/call', { name: 'connect_friend', arguments: {
+    schema_version: 1, public_name: sharingName, viewer_password: 'contract-secret',
+  } })
+  assert(connected.body?.result?.isError === false, 'Friend could not connect over OAuth')
+  const friendList = await call(friendSession.access_token, 'tools/call', { name: 'list_friends', arguments: {} })
+  assert(friendList.body?.result?.structuredContent?.data?.some((item) => item.owner_user_id === session.user.id), 'Friend connection not listed')
+  const friendPortfolio = await call(friendSession.access_token, 'tools/call', { name: 'get_shared_portfolio_state', arguments: { owner_user_id: session.user.id } })
+  assert(friendPortfolio.body?.result?.isError === false, 'Friend could not read shared portfolio')
+  const incoming = await call(session.access_token, 'tools/call', { name: 'list_portfolio_viewers', arguments: {} })
+  assert(incoming.body?.result?.structuredContent?.data?.items?.some((item) => item.viewer_user_id === friendSession.user.id), 'Owner cannot read incoming connected friend')
+  const resetSharing = await call(session.access_token, 'tools/call', { name: 'reset_sharing_profile', arguments: { schema_version: 1 } })
+  assert(resetSharing.body?.result?.structuredContent?.data?.sharing_enabled === false, 'OAuth sharing reset failed')
+  const friendAfterReset = await call(friendSession.access_token, 'tools/call', { name: 'get_shared_portfolio_state', arguments: { owner_user_id: session.user.id } })
+  assert(friendAfterReset.body?.result?.isError === true, 'Old friend can still read after owner reset')
+  const sharingReenabled = await call(session.access_token, 'tools/call', { name: 'save_sharing_profile', arguments: {
+    schema_version: 1, public_name: sharingName, viewer_password: 'new-contract-secret', sharing_enabled: true,
+  } })
+  assert(sharingReenabled.body?.result?.structuredContent?.data?.sharing_enabled === true, 'Sharing could not be reenabled after reset')
+  const reconnected = await call(friendSession.access_token, 'tools/call', { name: 'connect_friend', arguments: {
+    schema_version: 1, public_name: sharingName, viewer_password: 'new-contract-secret',
+  } })
+  assert(reconnected.body?.result?.isError === false, 'Friend could not reconnect with new credentials')
+  const reauthorized = await call(friendSession.access_token, 'tools/call', { name: 'connect_friend', arguments: {
+    schema_version: 1, public_name: sharingName, viewer_password: 'new-contract-secret',
+  } })
+  assert(reauthorized.body?.result?.isError === false, 'Existing friend reauthentication failed')
+  const removedFriend = await call(friendSession.access_token, 'tools/call', { name: 'remove_friend', arguments: {
+    schema_version: 1, owner_user_id: session.user.id,
+  } })
+  assert(removedFriend.body?.result?.structuredContent?.data?.removed === true, 'Friend removal failed')
+  const friendAfterRemoval = await call(friendSession.access_token, 'tools/call', { name: 'get_shared_portfolio_state', arguments: { owner_user_id: session.user.id } })
+  assert(friendAfterRemoval.body?.result?.isError === true, 'Removed friend can still read')
   const emptyPriceSync = await call(session.access_token, 'tools/call', { name: 'sync_prices', arguments: { schema_version: 1 } })
   assert(emptyPriceSync.body?.result?.structuredContent?.data?.status === 'success' && emptyPriceSync.body.result.structuredContent.data.total_count === 0, 'OAuth price sync did not match empty web refresh')
 
@@ -342,6 +403,11 @@ try {
   } })
   const newAccountId = newAccount.body?.result?.structuredContent?.data?.[0]?.account_id
   assert(newAccountId, 'OAuth account creation failed')
+  const secondAccount = await call(session.access_token, 'tools/call', { name: 'save_account', arguments: {
+    schema_version: 1, account_id: null, name: 'MCP CRUD Second Account', broker: null, note: null,
+  } })
+  const secondAccountId = secondAccount.body?.result?.structuredContent?.data?.[0]?.account_id
+  assert(secondAccountId, 'OAuth second account creation failed')
   const savedTag = await call(session.access_token, 'tools/call', { name: 'save_asset_tag', arguments: {
     schema_version: 1, tag_id: null, name: 'MCP CRUD Tag', sort_order: 0,
   } })
@@ -387,8 +453,47 @@ try {
   assert(holdingDeleteRetry.body?.result?.structuredContent?.data?.holding_id === newHolding.id, 'Holding delete retry failed')
   const instrumentDeleted = await call(session.access_token, 'tools/call', { name: 'delete_instrument', arguments: { schema_version: 1, instrument_id: newInstrumentId } })
   assert(instrumentDeleted.body?.result?.structuredContent?.data?.[0]?.instrument_id === newInstrumentId, 'OAuth instrument delete failed')
+  for (const variant of [
+    { type: 'valuation', ticker: 'VALUATION:MCP-CRUD-TEST', holdings: [
+      { id: null, account_id: newAccountId, purchase_amount: '100', valuation_amount: '120' },
+      { id: null, account_id: secondAccountId, purchase_amount: '200', valuation_amount: '210' },
+    ] },
+    { type: 'cash', ticker: 'CASH:MCP-CRUD-TEST', holdings: [
+      { id: null, account_id: newAccountId, valuation_amount: '500' },
+    ] },
+  ]) {
+    const created = await call(session.access_token, 'tools/call', { name: 'create_instrument', arguments: {
+      schema_version: 1, ticker: variant.ticker, display_name: `MCP ${variant.type}`, currency: 'KRW', instrument_type: variant.type, tag_id: null, note: null,
+    } })
+    const instrumentId = created.body?.result?.structuredContent?.data?.[0]?.instrument_id
+    assert(instrumentId, `OAuth ${variant.type} instrument creation failed`)
+    const currentFields = { display_name: `MCP ${variant.type}`, currency: 'KRW', instrument_type: variant.type, note: null, tag_id: null }
+    const saved = await call(session.access_token, 'tools/call', { name: 'save_asset_detail', arguments: {
+      schema_version: 1, instrument_id: instrumentId, expected: currentFields, instrument: currentFields,
+      holdings: variant.holdings, idempotency_key: crypto.randomUUID(), reason: `Contract ${variant.type} balance`,
+    } })
+    const rows = saved.body?.result?.structuredContent?.data?.holdings
+    assert(rows?.length === variant.holdings.length, `OAuth ${variant.type} holding save failed`)
+    const httpState = await fetch(`${baseUrl}/rest/v1/rpc/app_get_portfolio_state`, {
+      method: 'POST', headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ input_owner_user_id: null }),
+    })
+    const httpData = await httpState.json()
+    assert(httpState.ok && httpData.holdings.filter((item) => item.ticker === variant.ticker).length === variant.holdings.length,
+      `HTTP could not read OAuth ${variant.type} holdings`)
+    for (const row of rows) {
+      const deleted = await call(session.access_token, 'tools/call', { name: 'delete_holding', arguments: {
+        schema_version: 1, holding_id: row.id, expected_version: row.state_version, idempotency_key: crypto.randomUUID(),
+      } })
+      assert(deleted.body?.result?.isError === false, `OAuth ${variant.type} holding deletion failed`)
+    }
+    const deletedInstrument = await call(session.access_token, 'tools/call', { name: 'delete_instrument', arguments: { schema_version: 1, instrument_id: instrumentId } })
+    assert(deletedInstrument.body?.result?.isError === false, `OAuth ${variant.type} instrument deletion failed`)
+  }
   const accountDeleted = await call(session.access_token, 'tools/call', { name: 'delete_account', arguments: { schema_version: 1, account_id: newAccountId } })
   assert(accountDeleted.body?.result?.structuredContent?.data?.[0]?.account_id === newAccountId, 'OAuth account delete failed')
+  const secondAccountDeleted = await call(session.access_token, 'tools/call', { name: 'delete_account', arguments: { schema_version: 1, account_id: secondAccountId } })
+  assert(secondAccountDeleted.body?.result?.isError === false, 'OAuth second account delete failed')
 
   const invalid = await call(session.access_token, 'tools/call', { name: 'log_completed_trade', arguments: {} })
   const toolError = invalid.body?.result?.structuredContent?.error
@@ -396,9 +501,9 @@ try {
   assert(toolError?.code === 'validation_error' && toolError?.retryable === false, 'Invalid tool input returned the wrong recovery contract')
   assert(typeof toolError?.request_id === 'string' && toolError.request_id.length > 20, 'Tool error did not include a request ID')
 
-  console.log('OAuth MCP initialize/discovery/authentication, retired token issuance, workflow guides, product feedback, policy save/read, review activity save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
+  console.log('OAuth MCP initialize/discovery/authentication, sharing/friend reset boundaries, retired token issuance, workflow guides, product feedback, policy save/read, review activity save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
 } finally {
-  if (userId) {
+  for (const userId of userIds) {
     await fetch(`${baseUrl}/auth/v1/admin/users/${userId}`, {
       method: 'DELETE',
       headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },

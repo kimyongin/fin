@@ -105,11 +105,7 @@ export async function fetchSharedFeatureAccess(supabase, ownerUserId) {
 }
 
 export async function fetchViewerProfile(supabase) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('public_name, sharing_enabled, viewer_password_updated_at, avatar_key')
-    .limit(1)
-
+  const { data, error } = await supabase.rpc('app_get_sharing_profile')
   if (error) throw error
-  return Array.isArray(data) ? data[0] ?? null : data
+  return data
 }

@@ -30,7 +30,7 @@ select extensions.is((public.app_get_general_task_for_owner('00000000-0000-0000-
   (select id from shared_task_target))->'history')::text,
   (public.app_get_general_task((select id from shared_task_target))->'history')::text,
   'owner keeps own history');
-select public.set_viewer_profile('shared-task-owner','secret',false,'portfolio_all');
+select public.app_save_sharing_profile('shared-task-owner','secret',false);
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001992',true);
 select extensions.is(public.app_get_general_task_for_owner('00000000-0000-0000-0000-000000001991',
@@ -39,7 +39,7 @@ select extensions.is(public.app_get_activity((select id from shared_task_activit
   '00000000-0000-0000-0000-000000001991')->>'origin_task',null::text,
   'share OFF hides activity');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001991',true);
-select extensions.is((public.set_viewer_profile('shared-task-owner','',true,'portfolio_all')).sharing_enabled,true,'owner enables whole sharing');
+select extensions.is((public.app_save_sharing_profile('shared-task-owner','',true)->>'sharing_enabled')::boolean,true,'owner enables whole sharing');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001992',true);
 select extensions.is(public.app_get_general_task_for_owner('00000000-0000-0000-0000-000000001991',
   (select id from shared_task_target))->>'title','다음 주 점검','friend can read general task detail');

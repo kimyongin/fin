@@ -14,6 +14,11 @@ const session = await authResponse.json()
 if (!session.access_token) throw new Error('Authenticated readiness login returned no access token')
 
 const rpcChecks = [
+  ['app_get_portfolio_state', { input_owner_user_id: null }],
+  ['app_get_strategy_state', { input_owner_user_id: null }],
+  ['app_get_sharing_profile', {}],
+  ['list_friends', {}],
+  ['app_list_portfolio_viewers', { input_limit: 1, input_offset: 0 }],
   ['app_get_daily_context', { input_subject_tickers: null, input_timezone: 'Asia/Seoul' }],
   ['app_search_activities', { input_owner_user_id: null, input_query: null, input_from: null, input_to: null,
     input_record_state: 'done', input_instrument_id: null,
@@ -69,6 +74,26 @@ for (const requiredTool of [
   'update_entity_note',
   'submit_product_feedback',
   'list_my_product_feedback',
+  'get_my_product_feedback',
+  'update_my_product_feedback',
+  'delete_my_product_feedback',
+  'get_principle_row',
+  'correct_principle_row',
+  'delete_principle_row',
+  'delete_general_task',
+  'save_asset_detail',
+  'delete_holding',
+  'save_allocation_targets',
+  'sync_prices',
+  'get_sharing_profile',
+  'save_sharing_profile',
+  'reset_sharing_profile',
+  'set_profile_avatar',
+  'list_friends',
+  'connect_friend',
+  'remove_friend',
+  'list_portfolio_viewers',
+  'get_shared_portfolio_state',
 ]) {
   if (!toolNames.has(requiredTool)) throw new Error(`OAuth MCP is missing required tool: ${requiredTool}`)
 }

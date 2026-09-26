@@ -18,8 +18,8 @@ test('saves one asset detail across accounts atomically and retries after a reje
   expect(second.status).toBe(200)
   expect((await callRpc(page, 'app_save_instrument', {
     input_currency: 'USD', input_display_name: `Detail ${suffix}`, input_instrument_id: null,
-    input_instrument_type: 'market', input_note: null, input_price: 10,
-    input_price_date: '2026-09-24', input_price_source: 'manual', input_request: null,
+    input_instrument_type: 'market', input_note: null, input_price: null,
+    input_price_date: null, input_price_source: 'manual', input_request: null,
     input_source: 'user', input_tag_id: null, input_ticker: ticker,
   })).status).toBe(200)
   expect((await callRpc(page, 'app_save_holding', {
@@ -92,7 +92,7 @@ test('saves one asset detail across accounts atomically and retries after a reje
   expect(saved.body.holdings.find((item) => item.ticker === ticker && Number(item.account_id) === Number(first.body[0].account_id)).quantity).toBe(3)
   const updatedEditor = page.getByRole('dialog', { name: `Updated ${suffix}` })
   let rejectDeleteOnce = true
-  await page.route('**/rest/v1/rpc/app_delete_holding', async (route) => {
+  await page.route('**/rest/v1/rpc/app_delete_holding_checked', async (route) => {
     if (!rejectDeleteOnce) return route.continue()
     rejectDeleteOnce = false
     await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ message: '시험 삭제 오류' }) })
@@ -103,11 +103,12 @@ test('saves one asset detail across accounts atomically and retries after a reje
   await page.getByRole('dialog', { name: '보유 삭제' }).getByRole('button', { name: '보유 삭제' }).click()
   await expect(page.getByRole('dialog', { name: '보유 삭제' }).getByRole('alert')).toContainText('시험 삭제 오류')
   await page.getByRole('dialog', { name: '보유 삭제' }).getByRole('button', { name: '보유 삭제' }).click()
+  await expect(page.getByRole('dialog', { name: '보유 삭제' })).toBeHidden()
   await expect(page.getByRole('dialog', { name: `Updated ${suffix}` })).toBeVisible()
   const afterDelete = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(afterDelete.body.holdings.filter((item) => item.ticker === ticker)).toHaveLength(1)
   await page.unroute('**/rest/v1/rpc/app_save_asset_detail_current')
-  await page.unroute('**/rest/v1/rpc/app_delete_holding')
+  await page.unroute('**/rest/v1/rpc/app_delete_holding_checked')
 })
 
 test('edits only the shared instrument memo in the asset detail', async ({ page }) => {
@@ -202,8 +203,8 @@ test('creates portfolio entities and records the owner activity', async ({ page 
     input_instrument_id: null,
     input_instrument_type: 'market',
     input_note: 'Created by Playwright',
-    input_price: 200,
-    input_price_date: '2026-07-19',
+    input_price: null,
+    input_price_date: null,
     input_price_source: 'manual',
     input_request: 'E2E instrument create',
     input_source: 'user',
@@ -246,7 +247,7 @@ test('edits and deletes portfolio entities while enforcing holding dependencies'
   const tagId = tag.body[0].tag_id
   const instrument = await callRpc(page, 'app_save_instrument', {
     input_currency: 'USD', input_display_name: 'E2E Lifecycle Instrument', input_instrument_id: null, input_instrument_type: 'market', input_note: null,
-    input_price: 100, input_price_date: '2026-07-19', input_price_source: 'manual', input_request: null, input_source: 'user', input_tag_id: tagId, input_ticker: 'E2ELIFE',
+    input_price: null, input_price_date: null, input_price_source: 'manual', input_request: null, input_source: 'user', input_tag_id: tagId, input_ticker: 'E2ELIFE',
   })
   const instrumentId = instrument.body[0].instrument_id
   const holding = await callRpc(page, 'app_save_holding', {
@@ -264,7 +265,7 @@ test('edits and deletes portfolio entities while enforcing holding dependencies'
   expect(updatedTag.body[0]).toMatchObject({ tag_id: tagId, name: 'E2E Lifecycle Tag Updated' })
   const updatedInstrument = await callRpc(page, 'app_save_instrument', {
     input_currency: 'USD', input_display_name: 'E2E Lifecycle Instrument Updated', input_instrument_id: instrumentId, input_instrument_type: 'market', input_note: 'Updated note',
-    input_price: 110, input_price_date: '2026-07-19', input_price_source: 'manual', input_request: null, input_source: 'user', input_tag_id: tagId, input_ticker: 'E2ELIFE',
+    input_price: null, input_price_date: null, input_price_source: 'manual', input_request: null, input_source: 'user', input_tag_id: tagId, input_ticker: 'E2ELIFE',
   })
   expect(updatedInstrument.body[0]).toMatchObject({ instrument_id: instrumentId, display_name: 'E2E Lifecycle Instrument Updated' })
   const updatedHolding = await callRpc(page, 'app_save_holding', {
@@ -296,7 +297,7 @@ test('deleting a tag unlinks it from its instrument without deleting the instrum
   const ticker = `E2EU${suffix}`
   const instrument = await callRpc(page, 'app_save_instrument', {
     input_currency: 'USD', input_display_name: 'E2E Unlinked Instrument', input_instrument_id: null, input_instrument_type: 'market', input_note: null,
-    input_price: 1, input_price_date: '2026-07-19', input_price_source: 'manual', input_request: null, input_source: 'user', input_tag_id: tagId, input_ticker: ticker,
+    input_price: null, input_price_date: null, input_price_source: 'manual', input_request: null, input_source: 'user', input_tag_id: tagId, input_ticker: ticker,
   })
   expect(instrument.status).toBe(200)
   expect((await callRpc(page, 'app_delete_tag', { input_request: null, input_source: 'user', input_tag_id: tagId })).status).toBe(200)
@@ -311,9 +312,9 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   await ownerPage.goto('/')
   expect((await callRpc(ownerPage, 'app_set_profile_avatar', { input_avatar_key: 'fox' })).body).toBe('fox')
   expect((await callRpc(ownerPage, 'app_set_profile_avatar', { input_avatar_key: 'invalid' })).status).toBeGreaterThanOrEqual(400)
-  const enabledShare = await callRpc(ownerPage, 'set_viewer_profile', {
+  const enabledShare = await callRpc(ownerPage, 'app_save_sharing_profile', {
     input_public_name: 'e2e-owner', input_viewer_password: 'e2e-password',
-    input_sharing_enabled: true, input_share_scope: 'portfolio_all',
+    input_sharing_enabled: true,
   })
   expect(enabledShare.status).toBe(200)
   const originalPrinciples = await callRpc(ownerPage, 'app_list_principles', {
@@ -433,9 +434,9 @@ test('adds a friend and grants only that user shared portfolio access', async ({
   await expect(friendPage.getByText('stale shared error')).toHaveCount(0)
   await friendPage.unroute('**/rest/v1/rpc/app_list_action_timeline')
 
-  expect((await callRpc(ownerPage, 'set_viewer_profile', {
+  expect((await callRpc(ownerPage, 'app_save_sharing_profile', {
     input_public_name: 'e2e-owner', input_viewer_password: '',
-    input_sharing_enabled: false, input_share_scope: 'portfolio_all',
+    input_sharing_enabled: false,
   })).status).toBe(200)
   expect((await callRpc(friendPage, 'app_list_action_timeline', {
     input_cursor: null, input_filter: 'all', input_limit: 20,

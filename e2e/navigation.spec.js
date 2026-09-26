@@ -21,7 +21,7 @@ test('navigates the authenticated browser through strategy, activity, and settin
   const originallyEnabled = await masterSharing.getAttribute('aria-checked') === 'true'
   const saveSharing = page.getByRole('button', { name: '저장하기', exact: true })
   let sharingWrites = 0
-  page.on('request', (request) => { if (request.url().includes('/rpc/set_viewer_profile')) sharingWrites += 1 })
+  page.on('request', (request) => { if (request.url().includes('/rpc/app_save_sharing_profile')) sharingWrites += 1 })
   await expect(saveSharing).toBeDisabled()
   await masterSharing.click()
   await expect(saveSharing).toBeEnabled()
@@ -31,14 +31,14 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await expect(masterSharing).toHaveAttribute('aria-checked', originallyEnabled ? 'false' : 'true')
   await expect(saveSharing).toBeEnabled()
   await expect(page.getByRole('switch')).toHaveCount(1)
-  await page.route('**/rest/v1/rpc/set_viewer_profile', (route) => route.fulfill({
+  await page.route('**/rest/v1/rpc/app_save_sharing_profile', (route) => route.fulfill({
     status: 503, contentType: 'application/json', body: JSON.stringify({ message: '임시 공유 저장 실패' }),
   }))
   await saveSharing.click()
   await expect(page.getByText('임시 공유 저장 실패')).toBeVisible()
   await expect(masterSharing).toHaveAttribute('aria-checked', originallyEnabled ? 'false' : 'true')
   await expect(saveSharing).toBeEnabled()
-  await page.unroute('**/rest/v1/rpc/set_viewer_profile')
+  await page.unroute('**/rest/v1/rpc/app_save_sharing_profile')
   await saveSharing.click()
   await expect(saveSharing).toBeDisabled()
   expect(sharingWrites).toBe(2)
@@ -170,17 +170,17 @@ test('connects and removes a shared portfolio from the receiving card', async ({
   const owner = await browser.newPage()
   await signInAs(owner, 'e2e-owner@example.com')
   await owner.goto('/#settings')
-  expect((await callRpc(owner, 'set_viewer_profile', {
+  expect((await callRpc(owner, 'app_save_sharing_profile', {
     input_public_name: 'e2e-owner', input_viewer_password: 'e2e-password',
-    input_sharing_enabled: true, input_share_scope: 'portfolio_all',
+    input_sharing_enabled: true,
   })).status).toBe(200)
 
   const viewer = await browser.newPage()
   await signInAs(viewer, 'e2e-friend@example.com')
   await viewer.goto('/#settings')
-  expect((await callRpc(viewer, 'set_viewer_profile', {
+  expect((await callRpc(viewer, 'app_save_sharing_profile', {
     input_public_name: 'e2e-friend', input_viewer_password: '',
-    input_sharing_enabled: false, input_share_scope: 'portfolio_all',
+    input_sharing_enabled: false,
   })).status).toBe(200)
   await viewer.getByRole('textbox', { name: '공개 이름' }).last().fill('e2e-owner')
   await viewer.getByRole('textbox', { name: '보기 비밀번호' }).last().fill('e2e-password')
