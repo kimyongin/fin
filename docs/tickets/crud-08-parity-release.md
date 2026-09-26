@@ -1,6 +1,6 @@
 # [CRUD 검증] HTTP·OAuth 계약표와 실제 도구 발견·배포 게이트
 
-2026-09-26 · [#158](https://github.com/kimyongin/fin/issues/158) · 로컬 계약·발견 게이트 구현, 운영 검증 전.
+2026-09-26 · [#158](https://github.com/kimyongin/fin/issues/158) · 계약·발견 게이트 배포, 실클라이언트 검증 전.
 
 ## 목적
 “함수는 있는데 에이전트는 못 찾는다”와 인터페이스 한쪽 누락이 재발하지 않도록 실제 호출로 완료를 판정한다.
@@ -28,7 +28,7 @@ OAuth 코드에는 delete_activity가 있지만 이 세션의 연결 카탈로�
 ## 공통 계약과 진행 상태
 
 - 설계 정본: https://github.com/kimyongin/fin/blob/master/docs/design/domain-crud-parity.md
-- 상태: 로컬 매트릭스·OAuth 발견/호출·배포 준비 검사 연결. 운영 배포 및 실제 ChatGPT 웹·모바일 평가는 아직 미수행.
+- 상태: 로컬 매트릭스·OAuth 발견/호출·배포 준비 검사 연결. 운영 DB·Edge·웹은 `d1c8103`으로 배포됐고 인증된 원격 준비도와 공개 번들을 확인했다. 근거는 `docs/engineering/deployment.md`의 2026-09-27 기록에 있다. 실제 ChatGPT 웹·모바일 도구 호출 평가는 아직 미수행.
 - `scripts/test-mcp-contract.mjs`가 격리 테스트 사용자로 initialize, tools/list, 목적별 호출, 공유/친구 및 자산/피드백/원칙의 교차 조회를 실행한다. `scripts/check-deployment-readiness.mjs`는 OAuth 주소와 핵심 RPC 및 현재 도구 목록을 점검한다. `portfolio-tools.test.ts`는 annotation과 공유 가이드 참조를 확인한다. 2026-09-27 로컬 재검증: pgtap 696개, Vitest 114개, Chromium E2E 83개 모두 통과. 브라우저 테스트의 RPC 시드/조회는 페이지 이동과 독립된 API 요청으로 실행해 불확실한 금융 쓰기 재시도를 피한다.
 - 원격 URL 검사와 ChatGPT 연결 목록 비교는 배포 후 테스트 계정으로 수행한다. 현재 사용 중인 연결이 오래된 것처럼 보이더라도 서버 endpoint·배포 버전을 확인하기 전 캐시로 단정하지 않는다. 운영 파괴 CRUD와 사용자 실데이터 테스트는 하지 않는다.
 - 관련 문서: docs/START-HERE.md → PRD/ADR-0008 → docs/design/domain-crud-parity.md.

@@ -1,6 +1,6 @@
 # [CRUD 동등성] 프로필·공유 설정·친구 연결의 목적별 API 제공
 
-2026-09-26 · [#156](https://github.com/kimyongin/fin/issues/156) · 로컬 수직 슬라이스 구현, 운영 검증 전.
+2026-09-26 · [#156](https://github.com/kimyongin/fin/issues/156) · 운영 배포, 실사용 검증 전.
 
 ## 목적
 개인 설정과 공유 관계도 웹과 OAuth에서 같은 범위로 관리한다. 모든 설정 테이블의 직접 CRUD는 제공하지 않는다.
@@ -26,7 +26,7 @@ src/features/auth/accessActions.js / useSharingProfile.js의 set_viewer_profile,
 ## 공통 계약과 진행 상태
 
 - 설계 정본: https://github.com/kimyongin/fin/blob/master/docs/design/domain-crud-parity.md
-- 상태: 로컬 DB·웹·OAuth·가이드 연결 및 자동 검증 중. 운영 DB/Edge/웹 배포와 실제 ChatGPT 웹·모바일 평가는 미수행.
+- 상태: DB·웹·OAuth·가이드 연결 및 자동 검증 후 `d1c8103`으로 운영 배포. 배포 근거는 `docs/engineering/deployment.md`의 2026-09-27 기록에 있다. 실제 본인·친구 로그인과 ChatGPT 웹·모바일 평가는 미수행.
 - 구현: `20260926162000_safe_sharing_profile.sql`, `20260926162500_sharing_anonymous_guard.sql`. 웹의 공유 저장은 안전 DTO RPC로 변경하고 확인 단계가 있는 초기화 버튼을 추가했다. OAuth는 설정/아이콘/친구/선택한 친구 포트폴리오 전용 도구 9개를 광고한다.
 - 검증: 로컬 pgtap 696개 통과, Vitest 114개 통과, Edge Deno check 및 Vite build 통과. 격리 OAuth/HTTP 계약은 설정 변경→반대쪽 조회, 친구 연결/재인증/해제, 초기화 후 접근 차단까지 통과했다. 전체 Chromium E2E 83개가 통과했고, 공유 초기화 화면은 360/390/768/1024/1440px에서 확인했다. 실제 모바일 기기와 운영 배포는 미검증이다.
 - 의도적 경계: 기존 `add_friend`는 매 호출마다 비밀번호를 재검증하므로 동일 관계 U는 재인증으로 해석한다. 별명/관계 이력 컬럼은 추가하지 않았다. 마지막 열람 시각은 성공한 웹 보기만 갱신한다.

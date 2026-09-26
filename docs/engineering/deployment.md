@@ -54,6 +54,15 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-27 도메인 CRUD 동등성 배포
+
+- 앱 commit: `d1c8103` (#151~#158의 로컬 수직 슬라이스와 검증 게이트). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36253675690)와 후속 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36254028217) 성공. 공개 <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-CGCApIbh.js` HTTP 200 및 원칙 이력 삭제·피드백 삭제·공유 설정 초기화 문구 확인.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`: 9개 migration을 순서대로 적용했고 최종 번호는 `20260926163000`이다. `--include-seed`나 DB reset은 실행하지 않았다. 적용 전 `public` 스키마와 데이터를 로컬 임시 경로에 별도 덤프했다.
+- Edge Function: `portfolio-mcp-oauth` v8, `portfolio-mcp` v18, `sync-prices` v11. 나머지 함수는 이번 배포에서 변경하지 않았다. 인증된 원격 readiness가 읽기 RPC 10개와 OAuth MCP 도구 발견을 통과했고, 운영 DB security advisor의 error 수준 지적은 없었다.
+- 검증: 로컬 pgtap 696개·Vitest 114개·Chromium E2E 83개 통과. CI의 unit·가이드·Edge 타입·원격 인증 호환성·격리 DB/MCP/브라우저·빌드 단계도 성공했다. 이는 실사용 본인·친구 Google 로그인과 ChatGPT 웹/모바일 도구 호출 검증을 대신하지 않는다.
+- 승인된 예외: 시세·환율 직접 CRUD는 제공하지 않는다. 웹과 MCP 모두 가격 갱신 경로를 사용한다. 자산 전체 필드의 완전한 양방향 교차와 대규모 목록 조회 효율도 해당 티켓의 미검증 항목으로 유지한다.
+- 직전 정상 공개 앱 비교 기준은 `480a2db`. DB 권한·RPC가 바뀌었으므로 앱만 되돌리기 전 현행 서버와의 호환성을 확인한다. migration 이력을 삭제해 복구하지 않는다.
+
 ### 2026-09-26 자산 목록 환율 기준 표시
 
 - 앱 commit: `480a2db`. 자산 목록 하단에 현재 목록의 외화 보유에 필요한 최신 저장 환율·각 기준일을 표시한다. 누락·오래된 환율은 구분하며 DB/API 계약은 변경하지 않았다.
