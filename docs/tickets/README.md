@@ -2,6 +2,23 @@
 
 티켓은 목적·계약·검증 근거의 원본이다. OPEN/CLOSED만으로 구현·배포 상태를 추정하지 않는다. 최신 원격 본문과 작업 트리를 함께 확인한다.
 
+## 웹 HTTP · OAuth MCP CRUD 동등성
+
+2026-09-26 재검토: [현황·목표·삭제 계약](../design/domain-crud-parity.md). 아래는 새 구현 티켓이며 기존 OPEN 이슈가 모두 미구현이라는 뜻은 아니다.
+
+| 티켓 | 수직 슬라이스 | 명세 |
+| --- | --- | --- |
+| [#151](https://github.com/kimyongin/fin/issues/151) | 원칙 이력 조회·정정·삭제 | [CRUD-01](./crud-01-principles.md) |
+| [#152](https://github.com/kimyongin/fin/issues/152) | 할 일 삭제·활동 원자 편집 | [CRUD-02](./crud-02-tasks-activities.md) |
+| [#153](https://github.com/kimyongin/fin/issues/153) | 계좌·종목·보유 | [CRUD-03](./crud-03-assets.md) |
+| [#154](https://github.com/kimyongin/fin/issues/154) | 자산 태그·목표 배분 초기화 | [CRUD-04](./crud-04-tags-allocation.md) |
+| [#155](https://github.com/kimyongin/fin/issues/155) | 피드백 수정·삭제 | [CRUD-05](./crud-05-feedback.md) |
+| [#156](https://github.com/kimyongin/fin/issues/156) | 프로필·공유·친구 연결 | [CRUD-06](./crud-06-sharing-profile.md) |
+| [#157](https://github.com/kimyongin/fin/issues/157) | 시세·환율 조회와 가격 갱신 | [CRUD-07](./crud-07-prices.md) |
+| [#158](https://github.com/kimyongin/fin/issues/158) | 양쪽 교차 CRUD·실제 도구 발견·릴리스 | [CRUD-08](./crud-08-parity-release.md) |
+
+원칙부터 작은 수직 슬라이스로 진행한다. #158은 첫 슬라이스부터 검사하고 마지막에 전수 검증한다. 시세·환율은 사용자 재확정에 따라 직접 CRUD를 제공하지 않고 웹/MCP의 동일 가격 갱신을 제공한다.
+
 ## 현재 리팩토링
 
 | 티켓 | 범위 | 상태 원본 |
