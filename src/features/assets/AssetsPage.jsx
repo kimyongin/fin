@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatKrw, formatMoney, formatNumber, formatSignedPercent, formatUnitPrice, returnToneClass } from '../../lib/format'
-import { effectiveKrwValue, fxTickerForCurrency } from '../../lib/portfolioMath'
+import { effectiveKrwValue } from '../../lib/portfolioMath'
 import { PagePanel, pagePanelActionClass } from '../../components/PageControls'
 import TagChip from '../../components/TagChip'
 import SpreadsheetEditor from './SpreadsheetEditor'
 import AssetDetailModal from './AssetDetailModal'
 import { filterAssetRows, positionsForAssetRows, UNTAGGED_FILTER } from './filterAssets'
+import { exchangeRatesForPositions } from './exchangeRates'
 
 const actionControl = 'type-action min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3'
 const holdingColumns = 'grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-2 sm:gap-x-4'
+const exchangeRateFormatter = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 4 })
 
 function scopedRows(positions, instruments, accountId, latestPriceByTicker) {
   if (accountId === 'all') return instruments
@@ -86,7 +88,9 @@ export default function AssetsPage({
   }, 0)
   const unknownCount = visiblePositions.filter((row) => row.valuation_status === 'missing').length
   const staleCount = visiblePositions.filter((row) => row.valuation_status === 'stale').length
-  const latestQuoteDate = useMemo(() => visibleRows.flatMap((row) => [row.ticker, fxTickerForCurrency(row.currency)].filter(Boolean).map((ticker) => latestPriceByTicker.get(ticker)?.price_date)).filter(Boolean).sort().at(-1), [visibleRows, latestPriceByTicker])
+  const hasMarketRows = visibleRows.some((row) => row.instrument_type === 'market')
+  const latestQuoteDate = useMemo(() => visibleRows.filter((row) => row.instrument_type === 'market').map((row) => latestPriceByTicker.get(row.ticker)?.price_date).filter(Boolean).sort().at(-1), [visibleRows, latestPriceByTicker])
+  const exchangeRates = useMemo(() => exchangeRatesForPositions(visiblePositions, latestPriceByTicker), [visiblePositions, latestPriceByTicker])
   const filtered = Boolean(query.trim() || selectedTags.length)
   function toggleTag(id) {
     setFilterNotice('')
@@ -142,7 +146,10 @@ export default function AssetsPage({
               </> : <><strong className="type-value block">{row.accountCount === 0 ? '보유 없음' : row.instrument_type === 'valuation' ? '평가형' : '현금성'}</strong>{row.accountCount > 0 && row.instrument_type === 'valuation' && <span className="type-secondary type-number block break-words text-[var(--muted-ink)]">매입 {formatUnitPrice(row.cost_basis_native, row.currency)}</span>}</>}</span>
               {row.accountCount === 0 ? <span className="type-number text-right"><strong className="type-value block">{formatMoney(0, row.currency)}</strong><span className="type-secondary text-[var(--muted-ink)]">—</span></span> : <PositionValue row={row} />}
             </button>)}
-            {visibleRows.some((row) => row.instrument_type === 'market') && <p className="type-secondary px-3 py-3 text-[var(--muted-ink)] sm:px-4">{latestQuoteDate ? `가장 최근 시세 기준일 ${latestQuoteDate} · ` : '시세 기준일 없음 · '}수익률은 평균가 대비 현재가 기준이며 수수료·세금·배당·환율 변동은 반영하지 않습니다.</p>}
+            {(hasMarketRows || exchangeRates.length > 0) && <div className="type-secondary grid gap-1 px-3 py-3 text-[var(--muted-ink)] sm:px-4">
+              {hasMarketRows && <p>{latestQuoteDate ? `가장 최근 시세 기준일 ${latestQuoteDate} · ` : '시세 기준일 없음 · '}수익률은 평균가 대비 현재가 기준이며 수수료·세금·배당·환율 변동은 반영하지 않습니다.</p>}
+              {exchangeRates.length > 0 && <p className="flex flex-wrap gap-x-2 gap-y-1"><span>환율 기준</span>{exchangeRates.map(({ currency, rate, date, stale }) => <span key={currency}>{`· 1 ${currency} = ${rate === null ? '환율 없음' : `${exchangeRateFormatter.format(rate)}원${date ? ` (${date})` : ' (기준일 없음)'}`}`}{stale ? ' · 오래됨' : ''}</span>)}</p>}
+            </div>}
           </div>}
       </section>
     {sheetOpen && canEdit && <SpreadsheetEditor accounts={sheetAccounts} canSave={canEdit} csvCopied={csvCopied} holdings={holdings} instrumentTags={instrumentTags} instruments={sheetInstruments} onClose={() => setSheetOpen(false)} onCopyCsv={onCopyCsv} onDirtyChange={onSheetDirtyChange} onSave={onSpreadsheetSave} saving={spreadsheetSaving} tags={tags} />}

@@ -69,6 +69,8 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
   await expect(row.getByText('+25.0%')).toBeVisible()
   await expect(row.getByText(/환산/)).toBeVisible()
   await expect(list.getByText(/수익률은 평균가 대비 현재가 기준/)).toBeVisible()
+  await expect(list).toContainText('환율 기준')
+  await expect(list).toContainText('1 USD = 1,400원 (2026-09-26)')
   await expect(row.getByText('2026-09-24')).toHaveCount(0)
   const valuationRow = list.getByRole('button', { name: /직접 평가 자산/ })
   await expect(valuationRow.getByText('평가형')).toBeVisible()
