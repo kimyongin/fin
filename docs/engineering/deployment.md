@@ -54,6 +54,14 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-26 리팩토링·문서 릴리스
+
+- 앱 commit: `05c156f` (#147/#148/#150 로컬 리팩토링과 #149 문서 정리 포함). [검증·Pages 배포](https://github.com/kimyongin/fin/actions/runs/36237408755)가 같은 commit에서 성공했고, 뒤따른 [Pages build/deployment](https://github.com/kimyongin/fin/actions/runs/36237693835)도 성공했다.
+- 공개 URL: <https://kimyongin.github.io/fin/> HTTP 200. 새 번들 `/fin/assets/index-Ca6B67Hj.js`가 HTTP 200으로 제공됨을 확인했다.
+- 검증 gate: unit, MCP workflow guide, Edge 타입, 운영 테스트 계정의 인증된 읽기 RPC 호환성, 격리 DB·브라우저 테스트와 빌드 통과. 이는 CI 결과이며 실제 본인·친구 로그인 또는 ChatGPT 웹·모바일 사용 확인은 별도다.
+- 운영 Supabase: 이번 commit 범위에 새 migration·Edge Function 변경 없음. DB/Edge는 아래 9dd16d1 릴리스의 적용 상태를 유지하며 다시 배포하지 않았다.
+- #148/#150 티켓에 남은 수동 viewport·초점·실패 경로 검증은 배포 성공으로 완료 처리하지 않았다. 이전 공개 앱 commit 9dd16d1을 이 기록의 비교 기준으로 보되, 현재 DB와 함께 되돌리는 호환성은 따로 확인해야 한다.
+
 ### 2026-09-26 포트폴리오·공유 UI 릴리스
 
 - 앱 코드 commit: `9dd16d1` (변경 모음 `6e60451`, 운영 migration 보정 `0d153da`, 후속 CI 보정 포함). [Pages workflow](https://github.com/kimyongin/fin/actions/runs/36229110158)의 검증·배포가 모두 성공했다.
