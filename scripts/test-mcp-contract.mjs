@@ -236,17 +236,29 @@ try {
       schema_version: 1,
       idempotency_key: crypto.randomUUID(),
       title: 'Contract test review', body: 'External research was intentionally omitted. Insufficient data.',
-      occurred_at: null, timezone: 'Asia/Seoul', task_id: null,
+      occurred_at: null, timezone: 'Asia/Seoul', task_id: savedTask.id,
       instrument_id: null, tag_ids: [],
     },
   })
   const savedData = saved.body?.result?.structuredContent?.data
   assert(saved.body?.result?.isError === false && savedData?.id && savedData?.body?.includes('Insufficient data.'), `Activity save contract failed: ${JSON.stringify(saved.body?.result?.structuredContent?.error ?? savedData)}`)
+  const revised = await call(session.access_token, 'tools/call', { name: 'update_activity', arguments: {
+    schema_version: 1, activity_id: savedData.id, expected_version: savedData.version,
+    idempotency_key: crypto.randomUUID(), patch: { body: 'Corrected contract test body' }, tag_ids: [],
+  } })
+  assert(revised.body?.result?.structuredContent?.data?.body === 'Corrected contract test body', 'Atomic activity detail update failed')
 
   const briefingPage = await call(session.access_token, 'tools/call', {
     name: 'search_activities', arguments: { query: 'Contract test review', from: null, to: null, record_state: 'done', instrument_id: null, tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul' },
   })
   assert(briefingPage.body?.result?.structuredContent?.data?.items?.[0]?.activity_id === savedData.id, 'Saved activity search contract failed')
+  const taskDeleteArgs = { schema_version: 1, task_id: savedTask.id, expected_version: savedTask.version, idempotency_key: crypto.randomUUID() }
+  const deletedTask = await call(session.access_token, 'tools/call', { name: 'delete_general_task', arguments: taskDeleteArgs })
+  assert(deletedTask.body?.result?.structuredContent?.data?.deleted === true, 'Task deletion contract failed')
+  const deletedTaskRetry = await call(session.access_token, 'tools/call', { name: 'delete_general_task', arguments: taskDeleteArgs })
+  assert(deletedTaskRetry.body?.result?.structuredContent?.data?.deleted === true, 'Task deletion retry failed')
+  const retainedActivity = await call(session.access_token, 'tools/call', { name: 'get_activity', arguments: { activity_id: savedData.id } })
+  assert(retainedActivity.body?.result?.structuredContent?.data?.task_id == null, 'Task deletion did not detach retained activity')
   const tradePage = await call(session.access_token, 'tools/call', {
     name: 'list_transactions', arguments: { limit: 1, cursor: null },
   })

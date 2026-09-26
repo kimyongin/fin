@@ -342,12 +342,20 @@ const toolHandlers: Record<string, ToolHandler> = {
         authored_via: 'agent',
     }
     if (Object.hasOwn(args, 'origin_activity_id')) throw new ToolInputError('origin_activity_id is no longer supported; create an independent task')
-    if (tagIds.length > 0 && taskId != null) throw new ToolInputError('tag_ids are accepted only when creating a task')
-    const data = await rpc(supabase, taskId == null ? 'app_create_general_task_with_tags' : 'app_save_general_task', {
+    const editingTags = taskId != null && Object.hasOwn(args, 'tag_ids')
+    const data = await rpc(supabase, taskId == null ? 'app_create_general_task_with_tags' : editingTags ? 'app_save_general_task_detail' : 'app_save_general_task', {
       input_idempotency_key: idempotencyKey, input_payload: payload,
-      ...(taskId == null ? { input_tag_ids: tagIds } : { input_task_id: taskId, input_expected_version: expectedVersion }),
+      ...(taskId == null ? { input_tag_ids: tagIds } : { input_task_id: taskId, input_expected_version: expectedVersion, ...(editingTags ? { input_tag_ids: tagIds } : {}) }),
     })
     return { ok: true, data }
+  },
+  async delete_general_task(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_delete_general_task', {
+      input_task_id: requireUuid(args.task_id, 'task_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
+    }) }
   },
   async transition_general_task(supabase, args) {
     requireSchemaVersion(args)
@@ -385,11 +393,15 @@ const toolHandlers: Record<string, ToolHandler> = {
     const patch = requireRecord(args.patch, 'patch')
     const allowed = new Set(['title', 'body', 'occurred_at', 'timezone', 'task_id', 'instrument_id'])
     for (const key of Object.keys(patch)) if (!allowed.has(key)) throw new ToolInputError(`patch.${key} is not editable`)
-    const data = await rpc(supabase, 'app_update_activity', {
+    const hasTagIds = Object.hasOwn(args, 'tag_ids')
+    if (!hasTagIds && Object.keys(patch).length === 0) throw new ToolInputError('patch or tag_ids is required')
+    const tagIds = hasTagIds ? requireArray(args.tag_ids, 'tag_ids').map((value, index) => requireUuid(value, `tag_ids[${index}]`)) : null
+    const data = await rpc(supabase, hasTagIds ? 'app_save_activity_detail' : 'app_update_activity', {
       input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),
       input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
       input_patch: patch,
+      ...(hasTagIds ? { input_tag_ids: tagIds } : {}),
       input_authored_via: 'agent',
     })
     return { ok: true, data }

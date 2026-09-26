@@ -8,6 +8,9 @@ export const requiredMutationSignatures = {
   app_delete_principle_row: ['input_expected_body', 'input_expected_change_note', 'input_expected_current_row_id', 'input_row_id'],
   app_save_allocation_targets: ['input_expected_targets', 'input_targets'],
   app_set_activity_tags: ['input_activity_id', 'input_expected_version', 'input_idempotency_key', 'input_tag_ids'],
+  app_save_activity_detail: ['input_activity_id', 'input_authored_via', 'input_expected_version', 'input_idempotency_key', 'input_patch', 'input_tag_ids'],
+  app_save_general_task_detail: ['input_expected_version', 'input_idempotency_key', 'input_payload', 'input_tag_ids', 'input_task_id'],
+  app_delete_general_task: ['input_expected_version', 'input_idempotency_key', 'input_task_id'],
   app_transition_general_task: ['input_action', 'input_authored_via', 'input_expected_version', 'input_idempotency_key', 'input_occurrence_on', 'input_reason', 'input_result', 'input_task_id'],
 }
 

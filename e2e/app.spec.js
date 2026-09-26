@@ -281,6 +281,29 @@ test('keeps a decision and an independent future task without implying a trade',
   }
 })
 
+test('deletes a task from its detail without deleting past records', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#tasks')
+  const title = `E2E 삭제할 할 일 ${Date.now()}`
+  const created = await callRpc(page, 'app_create_general_task_with_tags', {
+    input_idempotency_key: crypto.randomUUID(), input_tag_ids: [],
+    input_payload: { title, subject: { kind: 'portfolio' }, timezone: 'Asia/Seoul', authored_via: 'app' },
+  })
+  expect(created.status, JSON.stringify(created.body)).toBe(200)
+  await page.reload()
+  await page.getByRole('button', { name: new RegExp(title) }).first().click()
+  const detail = page.getByRole('dialog', { name: '할 일 상세' })
+  await expect(detail).toBeVisible()
+  await detail.getByRole('button', { name: '할 일 삭제' }).click()
+  await expect(page.getByRole('dialog', { name: '할 일 삭제' })).toBeVisible()
+  await page.getByRole('dialog', { name: '할 일 삭제' }).getByRole('button', { name: '할 일 삭제' }).click()
+  await expect(detail).toHaveCount(0)
+  await expect(page.getByRole('button', { name: new RegExp(title) })).toHaveCount(0)
+  const missing = await callRpc(page, 'app_get_general_task', { input_task_id: created.body.id })
+  expect(missing.body).toBeNull()
+})
+
 test('retries the combined work queue after a read error', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   let calls = 0

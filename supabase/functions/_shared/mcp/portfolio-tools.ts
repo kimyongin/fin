@@ -478,7 +478,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'save_general_task',
     title: 'Save a general portfolio task',
-    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. Recurrence is none, daily, or weekly with ISO weekdays 1=Mon through 7=Sun; optional local recurrence_time HH:MM makes the task due at that time in its timezone. On creation, optional tag_ids are saved atomically with the task; a retry must keep the same key, content, and tags. This stores intent only and never runs or completes the work.',
+    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. Recurrence is none, daily, or weekly with ISO weekdays 1=Mon through 7=Sun; optional local recurrence_time HH:MM makes the task due at that time in its timezone. On edits, omit tag_ids to keep the current tags; pass an empty array to clear them. Fields and provided tags save atomically. A retry must keep the same key and inputs. This stores intent only and never runs or completes the work.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -492,13 +492,22 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         recurrence_start_on: { type: ['string', 'null'], format: 'date' },
         recurrence_weekdays: { type: 'array', uniqueItems: true, maxItems: 7, items: { type: 'integer', minimum: 1, maximum: 7 } },
         recurrence_time: { type: ['string', 'null'], pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' },
-        tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Optional tags for a new task; omit when editing.' },
+        tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'For a new task, initial tags. For an edit, omit to preserve tags; [] clears all. Saved atomically with fields.' },
       },
       required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','recurrence_kind','recurrence_start_on'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
     annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'delete_general_task', title: 'Delete a general portfolio task',
+    description: 'Only after explicit user confirmation, delete a current general task after reading its version. Existing performed records remain, but their optional task link is detached; the task no longer appears in the due queue. A recurring task can instead be ended with transition_general_task action cancel to retain its definition. Retry an uncertain result with the same idempotency_key and arguments.',
+    inputSchema: { type: 'object', properties: {
+      schema_version: { const: 1 }, task_id: { type: 'string', format: 'uuid' },
+      expected_version: { type: 'integer', minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
+    }, required: ['schema_version','task_id','expected_version','idempotency_key'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
   },
   {
     name: 'transition_general_task',
@@ -540,14 +549,15 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'update_activity',
     title: 'Update a performed activity',
-    description: 'Revise one activity’s readable title, Markdown body, date or navigational references after reading get_activity and its version. This does not reverse a trade, change a holding, or complete/reopen a task. Financial and task execution receipts remain independent. Use existing tags separately until the one-save detail contract is available through MCP.',
+    description: 'Revise one activity’s readable title, Markdown body, date, navigational references and optional tags after reading get_activity and its version. Omit tag_ids to keep tags; [] clears all. Provided fields and tags save atomically, with an empty patch allowed for tags-only edits. This never reverses a trade, changes a holding, or completes/reopens a task.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 }, activity_id: { type: 'integer', minimum: 1 }, expected_version: { type: 'integer', minimum: 1 },
         idempotency_key: { type: 'string', format: 'uuid' },
+        tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Omit to preserve tags; [] clears all.' },
         patch: {
-          type: 'object', minProperties: 1,
+          type: 'object',
           properties: {
             title: { type: 'string', minLength: 1, maxLength: 500 }, body: { type: ['string', 'null'], maxLength: 25000 },
             occurred_at: { type: 'string', format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
@@ -576,7 +586,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
-    annotations: idempotentWriteAnnotations,
+    annotations: destructiveWriteAnnotations,
   },
   {
     name: 'get_activity_report_context',
@@ -744,6 +754,7 @@ export const actionTaskToolNames = [
   'set_activity_tags',
   'set_general_task_tags',
   'save_general_task',
+  'delete_general_task',
   'transition_general_task',
   'record_manual_activity',
   'update_activity',

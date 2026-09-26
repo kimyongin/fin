@@ -13,6 +13,7 @@ import {
   fetchActivityTags,
   fetchPortfolioTask,
   deleteActivityTag,
+  deleteGeneralTask,
   recordManualActivity,
   saveActivityTag,
   saveGeneralTask,
@@ -125,6 +126,12 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
       subject: task.subject, timezone: task.timezone,
     })
     setDetail((current) => current?.item?.id === task.id ? { ...current, item: saved } : current)
+    setActionRefreshKey((value) => value + 1)
+  }
+
+  async function removeTaskDetail(task, idempotencyKey) {
+    await deleteGeneralTask(supabase, task, idempotencyKey)
+    dismissDetail()
     setActionRefreshKey((value) => value + 1)
   }
 
@@ -244,7 +251,7 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
           supabase={supabase}
         /> : null}
       </div>
-      {detail && <GeneralTaskDetail availableTags={activityTags} entry={detail} historyGuardRef={taskHistoryGuard} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onRetryTags={reloadActivityTags} onSaveTask={ownerUserId ? null : saveTaskDetail} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
+      {detail && <GeneralTaskDetail availableTags={activityTags} entry={detail} historyGuardRef={taskHistoryGuard} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onDeleteTask={ownerUserId ? null : removeTaskDetail} onRetryTags={reloadActivityTags} onSaveTask={ownerUserId ? null : saveTaskDetail} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
       {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onRetryTags={reloadActivityTags} onSave={saveGeneralAction} saving={savingGeneral} supabase={supabase} tags={activityTags} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
       {tagManagerOpen && !ownerUserId && <TagManagerModal deleteImpact="기록과 할 일의 태그 연결이 해제되지만 원본 내용은 남습니다." historyGuardRef={tagManagerHistoryGuard} onClose={requestTagManagerClose} onDelete={(tag, key) => deleteActivityTag(supabase, { ...tag, idempotencyKey: key })} onRefresh={refreshManagedTags} onSave={(tag, key) => saveActivityTag(supabase, { ...tag, idempotencyKey: key })} showSearch={false} tags={activityTags} title="활동 태그 관리" />}

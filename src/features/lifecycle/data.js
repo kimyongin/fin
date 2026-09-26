@@ -175,6 +175,14 @@ export async function transitionGeneralTask(supabase, task, action, { result = n
   })
 }
 
+export async function deleteGeneralTask(supabase, task, idempotencyKey) {
+  return rpc(supabase, 'app_delete_general_task', {
+    input_task_id: task.id,
+    input_expected_version: task.version,
+    input_idempotency_key: idempotencyKey,
+  })
+}
+
 export async function recordManualActivity(supabase, activity) {
   return rpc(supabase, 'app_create_activity_with_tags', {
     input_idempotency_key: activity.idempotencyKey,

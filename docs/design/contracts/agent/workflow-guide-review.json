@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-26",
-  "review_reason": "Reviewed principle-history CRUD additions: policy guide now describes row correction and deletion; other workflow steps retain their existing meanings.",
+  "review_reason": "Review task delete and atomic tag-edit OAuth contracts after validation guard",
   "topics": {
     "policy": {
       "revision": "fnv1a32:f720a938",
-      "contract_digest": "085c8a6f8b2d8f12b50175937f4550a8ee8c1b7cf2bfb1c221872d1342fcf9da"
+      "contract_digest": "112e7f68d2630fcea1e665894725429390ed7112770a119d3cc14d1c8d26f6c2"
     },
     "holding_thesis": {
       "revision": "fnv1a32:4c4ae963",
-      "contract_digest": "62372e4f13e183ba4dfb38f909440b96e03eff857463dc7fa66259dc6d802f69"
+      "contract_digest": "b60c5d9a43a77c5188854f2bef6ec1ba713547014905af8f015b9291b4de2b7b"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "cca309bebe4072e8bc5c396d50519163c40d8dbe82a5a986850adfd1bbc740ed"
+      "contract_digest": "0a0d1aca83b97fa335f1aec14853d7e4e94f90f0dd407404b5b86ffb3c76bd47"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "d9f63c5e1ec088a503b2bf6f9b868811ced12b86ad841e565e6564a7245b9745"
+      "contract_digest": "f55898a4c8f8eed14a30268cf9ade3aae850e975438c5eb426f8deec527d75ec"
     },
     "trade_entry": {
       "revision": "fnv1a32:e542a131",
-      "contract_digest": "ed7c57d38cb235ef0f4b599c667d70c2aadf7ba37ab155771519e37f5c02763a"
+      "contract_digest": "bbd12f3a8a1fca2daf26fc3ec36d5499fcfb0cba31b1723bc07a95709d75c0ae"
     },
     "reconciliation": {
       "revision": "fnv1a32:4c885520",
-      "contract_digest": "38f5cd2d6c8fb26be9046e08b64a578fde57f785da9910c36f607fa3aecec45a"
+      "contract_digest": "d9af04227f17f0f98174b2308444b53cd83d834870baf21cb3e0bd72143f7fc2"
     },
     "todo": {
-      "revision": "fnv1a32:4fa9efff",
-      "contract_digest": "5e17902aac8830c08a7cd3c3be1c60cec59fe8281bdce6ba2db4e3e1f603455f"
+      "revision": "fnv1a32:4dd20a2f",
+      "contract_digest": "f97f18e6b8ecc49e06ddb983a6c94639a2212a38d4d720311fe7c44c8b3f6083"
     },
     "activity_report": {
       "revision": "fnv1a32:e4aa34cd",
-      "contract_digest": "0326c981a1815ca8dfc6946cc35b7ad45030ef30dd98c596c7b93ae92820b37d"
+      "contract_digest": "9f09bbf8d38f88e20cd626ee3f1a063adf275029976d4becdbc808cc330fa7c5"
     },
     "product_feedback": {
       "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "efa1774da658e67f612ed1b9c12c80714c20fe3c4a4c06d2821ffb764a56db41"
+      "contract_digest": "7198f6b3eb625cf2ea77154a106d2b5f93af3d8fc4efeb9ab94f19703adb3522"
     }
   }
 }
