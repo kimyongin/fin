@@ -300,6 +300,26 @@ const toolHandlers: Record<string, ToolHandler> = {
     })
     return { ok: true, data }
   },
+  async get_my_product_feedback(supabase, args) {
+    return { ok: true, data: await rpc(supabase, 'app_get_my_product_feedback', {
+      input_feedback_id: requireUuid(args.feedback_id, 'feedback_id'),
+    }) }
+  },
+  async update_my_product_feedback(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_update_my_product_feedback', {
+      input_feedback_id: requireUuid(args.feedback_id, 'feedback_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_body: requireString(args.body, 'body'),
+    }) }
+  },
+  async delete_my_product_feedback(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_delete_my_product_feedback', {
+      input_feedback_id: requireUuid(args.feedback_id, 'feedback_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+    }) }
+  },
   async get_daily_context(supabase, args) {
     requireSchemaVersion(args)
     const timezone = requireString(args.timezone, 'timezone')
@@ -354,6 +374,23 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_tag_id: tagId, input_expected_version: expectedVersion,
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
       input_name: requireString(args.name, 'name'),
+    }) }
+  },
+  async list_product_feedback_admin(supabase, args) {
+    return { ok: true, data: await rpc(supabase, 'app_list_product_feedback_admin', {
+      input_cursor: args.cursor == null ? null : requireRecord(args.cursor, 'cursor'),
+      input_limit: Math.min(Math.max(Number(args.limit) || 20, 1), 50),
+      input_status: args.status == null ? null : requireString(args.status, 'status'),
+    }) }
+  },
+  async update_product_feedback_admin(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_update_product_feedback_admin', {
+      input_feedback_id: requireUuid(args.feedback_id, 'feedback_id'),
+      input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
+      input_status: requireString(args.status, 'status'),
+      input_response: args.response == null ? null : requireString(args.response, 'response'),
+      input_github_issue_url: args.github_issue_url == null ? null : requireString(args.github_issue_url, 'github_issue_url'),
     }) }
   },
   async delete_activity_tag(supabase, args) {

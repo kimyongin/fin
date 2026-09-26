@@ -71,7 +71,7 @@ try {
   assert(discoveredNames.has('list_due_general_tasks'), 'Due task tool was not discovered')
   const dueTasks = await call(session.access_token, 'tools/call', { name: 'list_due_general_tasks', arguments: { limit: 10, offset: 0 } })
   assert(dueTasks.body?.result?.isError === false && Array.isArray(dueTasks.body?.result?.structuredContent?.data?.items), 'Due task MCP read failed')
-  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','update_entity_note','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets']) {
+  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','update_entity_note','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','get_my_product_feedback','update_my_product_feedback','delete_my_product_feedback','list_product_feedback_admin','update_product_feedback_admin']) {
     assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
   }
   for (const legacyTool of ['get_news_state','get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis','list_private_holding_notes','save_private_holding_note']) {
@@ -136,6 +136,32 @@ try {
     arguments: { ...feedbackArgs, idempotency_key: crypto.randomUUID(), context: { email: 'not-allowed@example.com' } },
   })
   assert(unsafeFeedback.body?.result?.structuredContent?.error?.code === 'validation_error', 'Unsafe feedback context did not return validation_error')
+
+  const feedbackDetail = await call(session.access_token, 'tools/call', { name: 'get_my_product_feedback', arguments: { feedback_id: feedbackData.id } })
+  assert(feedbackDetail.body?.result?.structuredContent?.data?.body === feedbackArgs.body, 'MCP feedback detail failed')
+  const feedbackUpdated = await call(session.access_token, 'tools/call', { name: 'update_my_product_feedback', arguments: {
+    schema_version: 1, feedback_id: feedbackData.id, expected_version: feedbackData.version, body: 'Corrected product feedback.',
+  } })
+  assert(feedbackUpdated.body?.result?.structuredContent?.data?.body === 'Corrected product feedback.', 'MCP feedback correction failed')
+  const adminDenied = await call(session.access_token, 'tools/call', { name: 'list_product_feedback_admin', arguments: {} })
+  assert(adminDenied.body?.result?.isError === true, 'Non-admin could read feedback triage')
+  await adminWrite('product_feedback_admins', 'POST', { user_id: userId })
+  const adminPage = await call(session.access_token, 'tools/call', { name: 'list_product_feedback_admin', arguments: { limit: 10, cursor: null, status: null } })
+  assert(adminPage.body?.result?.structuredContent?.data?.items?.some((item) => item.id === feedbackData.id), 'Allowlisted admin could not read triage queue')
+  const adminUpdated = await call(session.access_token, 'tools/call', { name: 'update_product_feedback_admin', arguments: {
+    schema_version: 1, feedback_id: feedbackData.id, expected_version: feedbackUpdated.body.result.structuredContent.data.version,
+    status: 'reviewing', response: null, github_issue_url: null,
+  } })
+  const adminVersion = adminUpdated.body?.result?.structuredContent?.data?.version
+  assert(adminVersion > feedbackUpdated.body.result.structuredContent.data.version, 'Allowlisted admin triage update failed')
+  const feedbackDeleted = await call(session.access_token, 'tools/call', { name: 'delete_my_product_feedback', arguments: {
+    schema_version: 1, feedback_id: feedbackData.id, expected_version: adminVersion,
+  } })
+  assert(feedbackDeleted.body?.result?.structuredContent?.data?.deleted === true, 'MCP feedback removal failed')
+  const feedbackGone = await call(session.access_token, 'tools/call', { name: 'get_my_product_feedback', arguments: { feedback_id: feedbackData.id } })
+  assert(feedbackGone.body?.result?.isError === true, 'Deleted feedback remained readable')
+  const feedbackAfterDeleteRetry = await call(session.access_token, 'tools/call', { name: 'submit_product_feedback', arguments: feedbackArgs })
+  assert(feedbackAfterDeleteRetry.body?.result?.isError === true, 'Old feedback submission retry resurrected deleted text')
 
   const tokenCreated = await fetch(`${baseUrl}/rest/v1/rpc/agent_create_token`, {
     method: 'POST',

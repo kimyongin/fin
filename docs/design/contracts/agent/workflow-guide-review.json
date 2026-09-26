@@ -1,47 +1,47 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-26",
-  "review_reason": "Reviewed asset tag CRUD and full allocation target clear semantics for OAuth/web parity (#154). Other topics unchanged.",
+  "review_reason": "Reviewed final feedback owner CRUD and allowlisted administrator triage tool/guide contract (#155).",
   "topics": {
     "assets": {
       "revision": "fnv1a32:7c299e97",
-      "contract_digest": "9b9e11915af91a77bfc932b054a1d5c911e3f1dec9509bbe1297e055ff3bf8ad"
+      "contract_digest": "3691a7685e3854ac77fad514e01b4d5c08ca0a831e8fd69d45f5574381602ccb"
     },
     "policy": {
       "revision": "fnv1a32:f720a938",
-      "contract_digest": "fc20a07f12bbbfa91823ea1e63b1f4f9a4056f0709b3affeb04295c72603167e"
+      "contract_digest": "b35247f3878bfe5f1f3c04807d3d2cd46b5db56a8f8a1796e3805806592e8970"
     },
     "holding_thesis": {
       "revision": "fnv1a32:4c4ae963",
-      "contract_digest": "b082e53dbfaf2a5abd41264d536a2b92e4e73af0016015d74a6b806ee0ba59fb"
+      "contract_digest": "87e8c76572cfc836e3bc133d0553c89cd56c6312e3bde4c890c30e299b3e0e51"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "69f11ca9d851f228252a9c3037b3080aff56d8341440f184a744fb30a3d82217"
+      "contract_digest": "f854480caf04f62fa2be39944a520f7927f06d24981593579e94d1ea8e2ab73f"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "acb1eba389b3c310b6c307f5c8a87ce6a7c02586d87d36a695d7263b4bd41034"
+      "contract_digest": "6215c965340c1f90d11ddffe7852dd36c6026bdb60c7dfd403803bdef6fb85c2"
     },
     "trade_entry": {
       "revision": "fnv1a32:e542a131",
-      "contract_digest": "9a44e90c2d08cf6346403b9b85ee6d79c4318787c80998cb66a8f68b6482d59c"
+      "contract_digest": "2691de5c1ad72b2b94ed2f49ba64e6381f1169b25a9b0b535e53801224406183"
     },
     "reconciliation": {
       "revision": "fnv1a32:4c885520",
-      "contract_digest": "ff13cb4ba7357bb70042e216331aa8bfd8c4e4f12940b96895370f5152ac3989"
+      "contract_digest": "30eb98b1dcdb4c5694829ac83848561b2022cf8ebcb9b1aafff9a4bcfe6a6c85"
     },
     "todo": {
       "revision": "fnv1a32:4dd20a2f",
-      "contract_digest": "d669fa4d3f0cc03ca1b877aa9611cbff97061e3a20087b7d8c6fe205345cfb76"
+      "contract_digest": "6d1623d9e91c463be8acd5d89b29dc9c237989351636f887fdfb3958ec337611"
     },
     "activity_report": {
       "revision": "fnv1a32:e4aa34cd",
-      "contract_digest": "2fa6f953e5462b6e4eb559f16058786c07311752a80671618f787522a3b20a46"
+      "contract_digest": "e1329b61531125d15ae7156214cde5641c1a7137f67609392d26344d2a6959a5"
     },
     "product_feedback": {
-      "revision": "fnv1a32:fc0bd71b",
-      "contract_digest": "2505c77358066c383f5fb03d6ae6aff6364eb46e896131df1075ed335aa9c87d"
+      "revision": "fnv1a32:76d431a2",
+      "contract_digest": "4663ed4695c546661dab5429dbb0420c61d22a807c7851867d033fb90d1ca7ec"
     }
   }
 }

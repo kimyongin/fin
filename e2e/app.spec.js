@@ -148,6 +148,17 @@ test('submits product feedback and lets an allowlisted operator return a result'
   await expect(page.getByText('다음 배포에서 모바일 탐색을 개선했습니다.')).toBeVisible()
   await expect(page.getByRole('link', { name: '연결된 개발 이슈 보기' })).toHaveAttribute('href', 'https://github.com/kimyongin/fin/issues/68')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  const myCard = page.locator('article').filter({ hasText: body })
+  await myCard.getByRole('button', { name: '수정', exact: true }).click()
+  const corrected = `${body} 수정됨`
+  await myCard.getByRole('textbox', { name: '피드백 내용' }).fill(corrected)
+  await myCard.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(page.getByText(corrected, { exact: true })).toBeVisible()
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.locator('article').filter({ hasText: corrected }).getByRole('button', { name: '삭제', exact: true }).click()
+  await expect(page.getByText('연결된 GitHub 이슈는 닫히거나 삭제되지 않습니다.', { exact: false })).toBeVisible()
+  await page.getByRole('dialog').getByRole('button', { name: '피드백 삭제' }).click()
+  await expect(page.getByText(corrected, { exact: true })).toHaveCount(0)
 })
 
 test('finds a saved review by activity text on a mobile-sized screen', async ({ page }) => {

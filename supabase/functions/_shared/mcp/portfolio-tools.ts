@@ -427,6 +427,36 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     annotations: readOnlyAnnotations,
   },
   {
+    name: 'get_my_product_feedback', title: 'Read one of my product feedback items',
+    description: 'Read one private feedback submission by ID, including its current version, before correcting or deleting it. Other users and shared portfolio viewers cannot read it.',
+    inputSchema: { type: 'object', properties: { feedback_id: idSchema }, required: ['feedback_id'], additionalProperties: false },
+    outputSchema: feedbackOutputSchema, annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'update_my_product_feedback', title: 'Correct my product feedback text',
+    description: 'After explicit user request, replace only the body of one owned feedback item using the version from get_my_product_feedback. Status, operator response and linked issue are not editable by the reporter. A version conflict requires a fresh read. The former submission retry key cannot revert a correction.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, feedback_id: idSchema, expected_version: { type: 'integer', minimum: 1 }, body: { type: 'string', minLength: 1, maxLength: 4000 } }, required: ['schema_version','feedback_id','expected_version','body'], additionalProperties: false },
+    outputSchema: feedbackOutputSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
+    name: 'delete_my_product_feedback', title: 'Remove my product feedback',
+    description: 'Only on explicit request after reading this owned item, remove the Portfolio feedback submission at its expected version. This also removes internal triage events and redacts the saved submission receipt, but does not close or delete a linked GitHub issue. Tell the user about a linked issue before deletion.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, feedback_id: idSchema, expected_version: { type: 'integer', minimum: 1 } }, required: ['schema_version','feedback_id','expected_version'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
+  },
+  {
+    name: 'list_product_feedback_admin', title: 'List feedback for an authorized product-feedback administrator',
+    description: 'Administrator-only triage queue. The server verifies the separate feedback-admin allowlist; ordinary users and portfolio friends cannot call it. Read entries before updating status, response, or linked GitHub issue.',
+    inputSchema: { type: 'object', properties: { cursor: { type: ['object','null'] }, limit: { type: 'integer', minimum: 1, maximum: 50 }, status: { type: ['string','null'], enum: ['received','reviewing','planned','resolved','deferred',null] } }, additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: readOnlyAnnotations,
+  },
+  {
+    name: 'update_product_feedback_admin', title: 'Update administrator triage for a feedback item',
+    description: 'Administrator-only; server checks the separate allowlist and expected version. Change status, public response, and optional GitHub issue URL only, after explicit admin intent. Never edit reporter text or manage admin membership. Linking an issue does not create, close, or edit that GitHub issue.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, feedback_id: idSchema, expected_version: { type: 'integer', minimum: 1 }, status: { type: 'string', enum: ['received','reviewing','planned','resolved','deferred'] }, response: { type: ['string','null'], maxLength: 4000 }, github_issue_url: { type: ['string','null'] } }, required: ['schema_version','feedback_id','expected_version','status','response','github_issue_url'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
     name: 'get_daily_context',
     title: 'Prepare daily review context',
     description: 'Read current owner-only holdings, common instrument notes, principles, open tasks, and recent activities for a requested review. These are not pre-classified as reviews or decisions. This does not create a stored snapshot, save an analysis, or mark a review complete. ChatGPT researches current external news itself.',
@@ -806,7 +836,7 @@ export const dailyReviewToolNames = [
 
 export const workflowGuideToolNames = ['get_workflow_guide'] as const
 
-export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_product_feedback'] as const
+export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_product_feedback', 'get_my_product_feedback', 'update_my_product_feedback', 'delete_my_product_feedback', 'list_product_feedback_admin', 'update_product_feedback_admin'] as const
 
 export const entityNoteToolNames = ['update_entity_note'] as const
 

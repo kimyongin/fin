@@ -26,6 +26,25 @@ export async function fetchMyProductFeedback(supabase, { cursor = null, limit = 
   }
 }
 
+export async function getMyProductFeedback(supabase, id) {
+  const { data, error } = await supabase.rpc('app_get_my_product_feedback', { input_feedback_id: id })
+  return unwrap(data, error)
+}
+
+export async function updateMyProductFeedback(supabase, { id, expectedVersion, body }) {
+  const { data, error } = await supabase.rpc('app_update_my_product_feedback', {
+    input_feedback_id: id, input_expected_version: expectedVersion, input_body: body,
+  })
+  return unwrap(data, error)
+}
+
+export async function deleteMyProductFeedback(supabase, { id, expectedVersion }) {
+  const { data, error } = await supabase.rpc('app_delete_my_product_feedback', {
+    input_feedback_id: id, input_expected_version: expectedVersion,
+  })
+  return unwrap(data, error)
+}
+
 export async function fetchProductFeedbackAdmin(supabase, { cursor = null, limit = 20, status = null } = {}) {
   const { data, error } = await supabase.rpc('app_list_product_feedback_admin', {
     input_cursor: cursor,

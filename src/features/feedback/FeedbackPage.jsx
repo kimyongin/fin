@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 
 import { createRequestGate } from '../../lib/requestGate'
 import { FilterChips, ViewTabs } from '../../components/PageControls'
+import { ConfirmDialog } from '../../components/ModalShell'
 import {
+  deleteMyProductFeedback,
   fetchMyProductFeedback,
   fetchProductFeedbackAdmin,
   submitProductFeedback,
+  updateMyProductFeedback,
   updateProductFeedbackAdmin,
 } from './data'
 
@@ -28,16 +31,42 @@ function formatMoment(value) {
   return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
-function FeedbackCard({ item }) {
+function FeedbackCard({ item, onDeleted, onSaved, supabase }) {
+  const [draft, setDraft] = useState(item.body)
+  const [editing, setEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+
+  async function save() {
+    setPending(true); setError('')
+    try {
+      const updated = await updateMyProductFeedback(supabase, { id: item.id, expectedVersion: item.version, body: draft.trim() })
+      onSaved(updated); setEditing(false)
+    } catch (cause) { setError(cause.message ?? '피드백을 수정하지 못했습니다. 최신 내용을 다시 확인해 주세요.') }
+    finally { setPending(false) }
+  }
+
+  async function remove() {
+    setPending(true); setError('')
+    try {
+      await deleteMyProductFeedback(supabase, { id: item.id, expectedVersion: item.version })
+      onDeleted(item.id); setConfirmDelete(false)
+    } catch (cause) { setError(cause.message ?? '피드백을 삭제하지 못했습니다. 최신 내용을 다시 확인해 주세요.') }
+    finally { setPending(false) }
+  }
+
   return (
     <article className="rounded-[24px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]">
+      {confirmDelete && <ConfirmDialog title="피드백 삭제" description={`이 피드백을 삭제할까요?${item.github_issue_url ? ' 연결된 GitHub 이슈는 닫히거나 삭제되지 않습니다.' : ''}`} confirmLabel="피드백 삭제" danger error={error} pending={pending} onCancel={() => { setConfirmDelete(false); setError('') }} onConfirm={remove} />}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="type-meta rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-2.5 py-1">
           {statusLabels[item.status] ?? item.status}
         </span>
         <time className="text-xs text-[var(--muted-ink)]">{formatMoment(item.created_at)}</time>
       </div>
-      <p className="type-body type-long-body mt-4 whitespace-pre-wrap break-words">{item.body}</p>
+      {editing ? <label className="mt-4 grid gap-2"><span className="type-label">피드백 내용</span><textarea className="type-input min-h-28 w-full resize-y rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-3" maxLength={4000} onChange={(event) => setDraft(event.target.value)} value={draft} /></label>
+        : <p className="type-body type-long-body mt-4 whitespace-pre-wrap break-words">{item.body}</p>}
       {item.response && (
         <div className="mt-4 rounded-2xl bg-[var(--surface-2)] p-4">
           <p className="type-label text-[var(--muted-ink)]">처리 답변</p>
@@ -49,6 +78,11 @@ function FeedbackCard({ item }) {
           연결된 개발 이슈 보기
         </a>
       )}
+      {error && !confirmDelete && <p className="type-secondary mt-3 text-red-300" role="alert">{error}</p>}
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
+        {editing ? <><button className="min-h-11 rounded-xl border border-[var(--line)] px-4" disabled={pending} onClick={() => { setDraft(item.body); setEditing(false); setError('') }} type="button">취소</button><button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 font-semibold text-white disabled:opacity-50" disabled={pending || !draft.trim() || draft.trim() === item.body} onClick={save} type="button">저장</button></>
+          : <><button className="min-h-11 rounded-xl border border-[var(--line)] px-4" onClick={() => { setDraft(item.body); setEditing(true); setError('') }} type="button">수정</button><button className="min-h-11 rounded-xl border border-red-400/40 px-4 text-red-200" onClick={() => { setError(''); setConfirmDelete(true) }} type="button">삭제</button></>}
+      </div>
     </article>
   )
 }
@@ -241,7 +275,7 @@ export default function FeedbackPage({ context = {}, supabase }) {
         ) : (
           <div className="grid gap-3">{items.map((item) => view === 'triage'
             ? <AdminFeedbackCard item={item} key={item.id} onSaved={(updated) => setItems((current) => current.map((entry) => entry.id === updated.id ? updated : entry))} supabase={supabase} />
-            : <FeedbackCard item={item} key={item.id} />)}</div>
+            : <FeedbackCard item={item} key={item.id} onDeleted={(id) => setItems((current) => current.filter((entry) => entry.id !== id))} onSaved={(updated) => setItems((current) => current.map((entry) => entry.id === updated.id ? updated : entry))} supabase={supabase} />)}</div>
         )}
         {nextCursor && (
           <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm font-semibold disabled:opacity-60" disabled={loadingMore} onClick={() => load({ append: true, cursor: nextCursor })} type="button">
