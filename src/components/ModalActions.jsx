@@ -4,12 +4,15 @@ import { ConfirmDialog } from './ModalShell'
 export default function ModalActions({
   canDelete,
   deleteConfirmMessage = '삭제하면 되돌릴 수 없습니다. 계속할까요?',
+  deleteDialogTitle = '삭제 확인',
   deleteError,
   deleteLabel,
   disabled,
   dirty = false,
   onClose,
   onDelete,
+  onDeleteCancel,
+  onDeleteOpen,
   onSave,
   saveDisabled = false,
   saveLabel,
@@ -24,7 +27,7 @@ export default function ModalActions({
           <button
             className="type-action min-h-11 w-full rounded-2xl border border-red-200 px-4 text-red-400 transition hover:bg-red-950/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             disabled={disabled}
-            onClick={() => setConfirmingDelete(true)}
+            onClick={() => { onDeleteOpen?.(); setConfirmingDelete(true) }}
             type="button"
           >
             {deleteLabel}
@@ -50,7 +53,7 @@ export default function ModalActions({
         </button>
       </div>
     </div>
-    {confirmingDelete && <ConfirmDialog title="삭제 확인" description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}${deleteConfirmMessage}`} error={deleteError} confirmLabel={deleteLabel} danger pending={disabled} onCancel={() => setConfirmingDelete(false)} onConfirm={onDelete} />}
+    {confirmingDelete && <ConfirmDialog title={deleteDialogTitle} description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}${deleteConfirmMessage}`} error={deleteError} confirmLabel={deleteLabel} danger pending={disabled} onCancel={() => { setConfirmingDelete(false); onDeleteCancel?.() }} onConfirm={onDelete} />}
     </>
   )
 }

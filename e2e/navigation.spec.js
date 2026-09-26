@@ -98,7 +98,7 @@ test('keeps whole-sharing cards usable across screen widths', async ({ page }) =
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#settings')
   await page.evaluate(async () => { await document.fonts.ready })
-  for (const width of [360, 390, 768, 1024, 1440]) {
+  for (const width of [360, 390, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 900 })
     const profileButton = page.getByRole('button', { name: '내 프로필' })
     const badge = profileButton.getByTestId('self-profile-badge')
@@ -229,7 +229,15 @@ test('keeps the four primary page controls readable across viewport widths', asy
     ]) {
       await page.goto(`/#${hash}`)
       await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
-      if (hash === 'overview') await expect(page.getByRole('region', { name: '자산 종목' })).toBeVisible()
+      if (hash === 'overview') {
+        await expect(page.getByRole('region', { name: '자산 종목' })).toBeVisible()
+        const searchStyle = await page.getByRole('searchbox', { name: '종목 검색' }).evaluate((element) => ({
+          height: element.getBoundingClientRect().height,
+          radius: getComputedStyle(element).borderRadius,
+          fontSize: getComputedStyle(element).fontSize,
+        }))
+        expect(searchStyle).toEqual({ height: 48, radius: '12px', fontSize: '16px' })
+      }
       if (hash === 'allocation') await expect(page.getByRole('heading', { name: '태그별 배분' })).toBeVisible()
       if (hash === 'tasks') {
         await expect(page.getByRole('textbox', { name: '활동 검색' })).toBeVisible()
@@ -502,10 +510,16 @@ test('keeps shared page controls and editing surfaces consistent', async ({ page
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#overview')
 
+  await openPageActionMenu(page, '자산')
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: '자산 작업 메뉴' })).toBeFocused()
+  await expect(page.getByRole('group', { name: '자산 작업' })).toBeHidden()
+
   await clickPageAction(page, '자산', '표 편집')
   await expect(page).toHaveURL(/#overview$/)
   const spreadsheet = page.getByRole('dialog', { name: '표 편집' })
   await expect(spreadsheet).toBeVisible()
+  await expect(page.getByRole('button', { name: '자산 작업 메뉴' })).not.toBeFocused()
   await expect(page.getByRole('region', { name: '자산 종목' })).toBeVisible()
   await expect(page.getByRole('button', { name: '전체 화면으로 표 편집' })).toHaveCount(0)
   for (const width of [360, 390, 768, 1024, 1440]) {

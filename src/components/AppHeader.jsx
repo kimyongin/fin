@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { profileAvatar } from '../lib/profileAvatar'
+import { MenuGlyph, menuSurfaceClass, menuTriggerClass } from './MenuPresentation'
 
 const primaryIds = ['overview', 'allocation', 'tasks', 'strategy']
 const secondaryIds = ['settings', 'guide', 'feedback']
@@ -45,7 +46,7 @@ export default function AppHeader({ activeTab, friends = [], onPortfolioChange, 
       })}
       {friends.length > 0 && <p className="type-secondary border-t border-[var(--line)] px-3 pt-2 text-[var(--muted-ink)]">내 공개 이름과 최근 열람 시각이 상대방에게 표시됩니다.</p>}
     </div>}
-    {open === 'menu' && <div aria-label="보조 메뉴" className="absolute bottom-[calc(100%+0.5rem)] right-2 grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-2 shadow-2xl" role="group">
+    {open === 'menu' && <div aria-label="보조 메뉴" className={`absolute bottom-[calc(100%+0.5rem)] right-2 ${menuSurfaceClass}`} role="group">
       {secondaryIds.map((id) => tabs.find((tab) => tab.id === id)).filter(Boolean).map((tab) => <button aria-current={activeTab === tab.id ? 'page' : undefined} className="type-action min-h-11 rounded-xl px-3 text-left hover:bg-[var(--surface-2)]" key={tab.id} onClick={() => { setOpen(null); onTabChange(tab.id) }} type="button">{tab.label}</button>)}
       <button className="type-action min-h-11 rounded-xl px-3 text-left hover:bg-[var(--surface-2)]" onClick={onSignOut} type="button">{signOutLabel}</button>
     </div>}
@@ -55,7 +56,7 @@ export default function AppHeader({ activeTab, friends = [], onPortfolioChange, 
         const tab = tabs.find((item) => item.id === id)
         return tab ? <button aria-current={activeTab === id ? 'page' : undefined} className={`type-action min-h-11 min-w-0 rounded-xl px-0.5 text-center ${activeTab === id ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted-ink)] hover:bg-[var(--surface-2)]'}`} key={id} onClick={() => { setOpen(null); onTabChange(id) }} type="button">{tab.label}</button> : <span aria-hidden="true" key={id} />
       })}
-      <button aria-expanded={open === 'menu'} aria-label="메뉴 열기" className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-xl hover:bg-[var(--surface-2)]" onClick={() => setOpen((current) => current === 'menu' ? null : 'menu')} ref={menuRef} type="button"><span className="h-0.5 w-4 rounded-full bg-current" /><span className="h-0.5 w-4 rounded-full bg-current" /><span className="h-0.5 w-4 rounded-full bg-current" /></button>
+      <button aria-expanded={open === 'menu'} aria-label="메뉴 열기" className={menuTriggerClass} onClick={() => setOpen((current) => current === 'menu' ? null : 'menu')} ref={menuRef} type="button"><MenuGlyph /></button>
     </div>
     <span className="sr-only">현재 화면: {pageTitle}</span>
   </nav>

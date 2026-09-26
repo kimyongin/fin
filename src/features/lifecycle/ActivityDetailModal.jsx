@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import ModalShell, { ConfirmDialog } from '../../components/ModalShell'
+import ModalShell from '../../components/ModalShell'
+import ModalActions from '../../components/ModalActions'
 import TagChip from '../../components/TagChip'
 import ReadOnlyField from '../../components/ReadOnlyField'
 import CalendarDateField from '../../components/CalendarDateField'
@@ -23,7 +24,6 @@ function formatDateTime(value) {
 export default function ActivityDetailModal({ activity, availableTags = [], historyGuardRef, loading, onClose, onDeleted, onRetryTags, onSaved, ownerUserId, supabase, tagsError = '', tagsLoading = false }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [confirmDelete, setConfirmDelete] = useState(false)
   const [draft, setDraft] = useState({ title: '', body: '', occurredOn: '', taskId: null, instrumentId: null })
   const previousActivityId = useRef(null)
   const previousActivityVersion = useRef(null)
@@ -56,7 +56,6 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       instrumentId: activity.instrument_id ?? null,
     })
     if (changedActivity) {
-      setConfirmDelete(false)
       setError('')
     }
     if (changedActivity || refreshed || !tagsDirty) setSelectedTagIds((activity.tags ?? []).map((tag) => tag.id))
@@ -96,22 +95,24 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
     } finally { setSaving(false) }
   }
 
-  const footer = !loading && activity && !ownerUserId ? (requestClose) => (
-    <fieldset className="grid min-w-0 gap-3" disabled={saving}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-            <button className="min-h-11 rounded-2xl border border-red-400/40 px-4 text-sm font-semibold text-red-200 disabled:opacity-50" onClick={() => { setError(''); setConfirmDelete(true) }} type="button">기록 삭제</button>
-        </div>
-        <div className="ml-auto grid grid-cols-2 gap-2 sm:flex">
-          <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" onClick={requestClose} type="button">닫기</button>
-          <button className="min-h-11 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={!dirty || saving || tagsLoading || Boolean(tagsError) || (editable.has('title') && !draft.title.trim())} onClick={save} type="button">{saving ? '저장 중' : '저장'}</button>
-        </div>
-      </div>
-    </fieldset>
-  ) : undefined
+  const footer = !loading && activity && !ownerUserId ? (requestClose) => <ModalActions
+    canDelete
+    deleteConfirmMessage="이 기록을 삭제해도 관련 할 일이나 실제 잔고는 바뀌지 않습니다."
+    deleteDialogTitle="기록 삭제"
+    deleteError={error}
+    deleteLabel="기록 삭제"
+    disabled={saving}
+    dirty={dirty}
+    onClose={requestClose}
+    onDelete={removeActivity}
+    onDeleteCancel={() => setError('')}
+    onDeleteOpen={() => setError('')}
+    onSave={save}
+    saveDisabled={!dirty || tagsLoading || Boolean(tagsError) || (editable.has('title') && !draft.title.trim())}
+    saveLabel={saving ? '저장 중' : '저장'}
+  /> : undefined
 
   return <ModalShell closeDisabled={saving} dirty={dirty} footer={footer} historyGuardRef={historyGuardRef} onClose={onClose} title="기록 상세">
-    {confirmDelete && <ConfirmDialog title="기록 삭제" description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}이 기록을 삭제해도 관련 할 일이나 실제 잔고는 바뀌지 않습니다.`} confirmLabel="기록 삭제" danger error={error} pending={saving} onCancel={() => { setConfirmDelete(false); setError('') }} onConfirm={removeActivity} />}
     <fieldset className="min-w-0" disabled={saving}>
     {loading || !activity ? <p className="py-8 text-sm text-[var(--muted-ink)]">활동을 불러오는 중입니다.</p> : <div className="grid gap-6">
       {error && <p className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}

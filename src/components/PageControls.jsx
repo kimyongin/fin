@@ -1,3 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
+import { MenuGlyph, menuSurfaceClass, menuTriggerClass } from './MenuPresentation'
+
 function moveTabFocus(event, options, onChange) {
   const currentIndex = options.findIndex((option) => option.id === event.currentTarget.dataset.value)
   if (currentIndex < 0) return
@@ -44,11 +47,10 @@ function PageActionMenu({ title, children }) {
   }, [open])
 
   return <div className="page-panel__actions" ref={rootRef}>
-    <button aria-expanded={open} aria-label={`${title} 작업 메뉴`} className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-xl hover:bg-[var(--surface-2)]" onClick={() => setOpen((value) => !value)} ref={triggerRef} type="button"><span className="h-0.5 w-4 rounded-full bg-current" /><span className="h-0.5 w-4 rounded-full bg-current" /><span className="h-0.5 w-4 rounded-full bg-current" /></button>
-    <div aria-label={`${title} 작업`} className="page-panel__menu grid min-w-40 gap-1 rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-2 shadow-2xl" hidden={!open} onClickCapture={(event) => {
+    <button aria-expanded={open} aria-label={`${title} 작업 메뉴`} className={menuTriggerClass} onClick={() => setOpen((value) => !value)} ref={triggerRef} type="button"><MenuGlyph /></button>
+    <div aria-label={`${title} 작업`} className={`page-panel__menu ${menuSurfaceClass}`} hidden={!open} onClickCapture={(event) => {
       if (!rootRef.current?.contains(event.target) || !event.target.closest('button')) return
       setOpen(false)
-      triggerRef.current?.focus()
     }} role="group">{children}</div>
   </div>
 }
@@ -112,5 +114,3 @@ export function FilterChips({ ariaLabel, onChange, options, value }) {
     </div>
   )
 }
-
-import { useEffect, useRef, useState } from 'react'

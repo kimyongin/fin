@@ -7,7 +7,7 @@ import SpreadsheetEditor from './SpreadsheetEditor'
 import AssetDetailModal from './AssetDetailModal'
 import { filterAssetRows, positionsForAssetRows, UNTAGGED_FILTER } from './filterAssets'
 
-const control = 'min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3'
+const actionControl = 'type-action min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3'
 const holdingColumns = 'grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-2 sm:gap-x-4'
 
 function scopedRows(positions, instruments, accountId, latestPriceByTicker) {
@@ -119,16 +119,16 @@ export default function AssetsPage({
         {syncMessage && <p aria-live="polite" role="status">{syncMessage}</p>}
       </>}>
           <div className="grid gap-3 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)]">
-            <label><span className="sr-only">계좌 선택</span><select className={`${control} type-input w-full`} onChange={(event) => onSelectedAccountIdChange(event.target.value)} value={accountId}><option value="all">전체 계좌</option>{accounts.map((account) => <option key={account.id} value={String(account.id)}>{account.name}</option>)}</select></label>
-            <input aria-label="종목 검색" className={`${control} type-input w-full`} onChange={(event) => onQueryChange(event.target.value)} placeholder="종목명 또는 티커 검색" type="search" value={query} />
+            <label><span className="sr-only">계좌 선택</span><select className="form-control" onChange={(event) => onSelectedAccountIdChange(event.target.value)} value={accountId}><option value="all">전체 계좌</option>{accounts.map((account) => <option key={account.id} value={String(account.id)}>{account.name}</option>)}</select></label>
+            <input aria-label="종목 검색" className="form-control" onChange={(event) => onQueryChange(event.target.value)} placeholder="종목명 또는 티커 검색" type="search" value={query} />
           </div>
           <div><p className="type-label mb-2 text-[var(--muted-ink)]">대표 태그</p><div aria-label="대표 태그 필터" className="flex flex-wrap gap-2" role="group"><TagChip onClick={() => { setSelectedTags([]); setFilterNotice('') }} selected={selectedTags.length === 0}>전체</TagChip><TagChip onClick={() => toggleTag(UNTAGGED_FILTER)} selected={selectedTags.includes(UNTAGGED_FILTER)}>태그 없음</TagChip>{tags.map((tag) => <TagChip key={tag.id} onClick={() => toggleTag(String(tag.id))} selected={selectedTags.includes(String(tag.id))}>{tag.name}</TagChip>)}</div></div>
           {filterNotice && <p aria-live="polite" className="type-secondary text-[var(--muted-ink)]" role="status">{filterNotice}</p>}
-          {selectedAccount && canEdit && <div className="flex flex-wrap items-center justify-between gap-2"><span className="type-secondary">{selectedAccount.name} · {scopedPositions.length}개 보유</span><button className={control} onClick={() => onEditAccount(selectedAccount)} type="button">계좌 수정</button></div>}
+          {selectedAccount && canEdit && <div className="flex flex-wrap items-center justify-between gap-2"><span className="type-secondary">{selectedAccount.name} · {scopedPositions.length}개 보유</span><button className={actionControl} onClick={() => onEditAccount(selectedAccount)} type="button">계좌 수정</button></div>}
       </PagePanel>
       <section aria-label="자산 종목" className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)]" ref={listRef} tabIndex={-1}>
-        {!rows.length ? <div className="grid gap-3 p-5 text-sm"><p>{selectedAccount ? '이 계좌에 보유한 종목이 없습니다. 전체 계좌에서 종목을 선택해 보유를 추가할 수 있습니다.' : '아직 등록한 종목이 없습니다.'}</p>{canEdit && <button className={control} onClick={selectedAccount ? () => onSelectedAccountIdChange('all') : onCreateInstrument} type="button">{selectedAccount ? '전체 계좌 보기' : '종목 추가'}</button>}</div>
-          : !visibleRows.length ? <div className="flex flex-wrap items-center justify-between gap-2 p-5"><p className="type-secondary text-[var(--muted-ink)]">조건에 맞는 종목이 없습니다.</p><button className={control} onClick={() => { setSelectedTags([]); onQueryChange('') }} type="button">검색·태그 해제</button></div>
+        {!rows.length ? <div className="grid gap-3 p-5 text-sm"><p>{selectedAccount ? '이 계좌에 보유한 종목이 없습니다. 전체 계좌에서 종목을 선택해 보유를 추가할 수 있습니다.' : '아직 등록한 종목이 없습니다.'}</p>{canEdit && <button className={actionControl} onClick={selectedAccount ? () => onSelectedAccountIdChange('all') : onCreateInstrument} type="button">{selectedAccount ? '전체 계좌 보기' : '종목 추가'}</button>}</div>
+          : !visibleRows.length ? <div className="flex flex-wrap items-center justify-between gap-2 p-5"><p className="type-secondary text-[var(--muted-ink)]">조건에 맞는 종목이 없습니다.</p><button className={actionControl} onClick={() => { setSelectedTags([]); onQueryChange('') }} type="button">검색·태그 해제</button></div>
           : <div className="divide-y divide-[var(--line)]">
             <div className={`${holdingColumns} list-column-header type-label px-3 text-[var(--muted-ink)] sm:px-4`}>
               <span>종목</span><span className="text-right">보유</span><span className="text-right">평가</span>
