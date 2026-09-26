@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import ModalShell, { ConfirmDialog } from '../../components/ModalShell'
+import SaveActivityConfirm from '../../components/SaveActivityConfirm'
 import { createRequestGate } from '../../lib/requestGate'
 import { businessDate } from '../../lib/businessDate'
 import MarkdownContent from '../../components/MarkdownContent'
@@ -26,13 +27,15 @@ export default function PrincipleJournal({ canEdit = true, onSharedViewReady, ow
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [collapsedDays, setCollapsedDays] = useState(new Set())
   const [editing, setEditing] = useState(undefined)
-  const [draft, setDraft] = useState({ principleId: null, body: '', changeNote: '' })
+  const [draft, setDraft] = useState({ principleId: null, body: '' })
+  const [confirmSave, setConfirmSave] = useState(false)
+  const [contextResetKey, setContextResetKey] = useState(0)
   const [initialDraft, setInitialDraft] = useState(null)
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState('')
   const currentGate = useRef(createRequestGate())
   const changesGate = useRef(createRequestGate())
-  const dirty = initialDraft !== null && (draft.body !== initialDraft.body || draft.changeNote !== initialDraft.changeNote)
+  const dirty = initialDraft !== null && draft.body !== initialDraft.body
 
   async function loadCurrent() {
     const request = currentGate.current.begin()
@@ -79,13 +82,13 @@ export default function PrincipleJournal({ canEdit = true, onSharedViewReady, ow
 
   function open(row = null) {
     setFormError('')
-    const nextDraft = { principleId: row?.principle_id ?? crypto.randomUUID(), body: row?.body ?? '', changeNote: '' }
+    const nextDraft = { principleId: row?.principle_id ?? crypto.randomUUID(), body: row?.body ?? '' }
     setDraft(nextDraft)
     setInitialDraft(nextDraft)
     setEditing(row)
   }
 
-  async function persist() {
+  async function persist({ changeNote, activityTagIds }) {
     if (!draft.body.trim()) { setFormError('내용을 입력해 주세요.'); return }
     setBusy(true)
     setFormError('')
@@ -95,9 +98,12 @@ export default function PrincipleJournal({ canEdit = true, onSharedViewReady, ow
         expectedRowId: editing?.id ?? null,
         expectedBody: editing?.body ?? null,
         expectedChangeNote: editing?.change_note ?? null,
-        ...draft,
         body: draft.body,
+        changeNote,
+        activityTagIds,
       })
+      setConfirmSave(false)
+      setContextResetKey((value) => value + 1)
       setEditing(undefined)
       await Promise.all([loadCurrent(), loadChanges()])
     } catch (cause) {
@@ -175,13 +181,13 @@ export default function PrincipleJournal({ canEdit = true, onSharedViewReady, ow
       {nextCursor && <button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" disabled={loadingMore} onClick={() => loadChanges({ append: true, cursor: nextCursor })} type="button">{loadingMore ? '불러오는 중' : '이전 변경 더 보기'}</button>}
     </section>
     {canEdit && editing !== undefined && <ModalShell closeDisabled={busy} dirty={dirty} title={editing ? '원칙 수정' : '원칙 작성'} onClose={() => setEditing(undefined)} footer={(requestClose) => <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="ml-auto grid grid-cols-2 gap-2"><button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" disabled={busy} onClick={requestClose} type="button">닫기</button><button className="min-h-11 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" disabled={busy} onClick={() => persist()} type="button">{busy ? '저장 중…' : '저장'}</button></div>
+      <div className="ml-auto grid grid-cols-2 gap-2"><button className="min-h-11 rounded-2xl border border-[var(--line)] px-4 text-sm font-semibold" disabled={busy} onClick={requestClose} type="button">닫기</button><button className="min-h-11 rounded-2xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" disabled={busy || !dirty || !draft.body.trim()} onClick={() => { setFormError(''); setConfirmSave(true) }} type="button">{busy ? '저장 중…' : '저장'}</button></div>
     </div>}>
       <fieldset className="grid gap-4 border-0 p-1" disabled={busy}>
         {formError && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100" role="alert">{formError}</p>}
         <label className={labelClass}>내용 (마크다운)<textarea className={`${inputClass} min-h-64`} maxLength={10000} value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} /></label>
-        <label className={labelClass}>변경 메모 (선택)<input className={inputClass} maxLength={1000} value={draft.changeNote} onChange={(event) => setDraft({ ...draft, changeNote: event.target.value })} /></label>
       </fieldset>
+      <SaveActivityConfirm description="현재 원칙을 변경 이력과 활동에 함께 저장할까요?" error={formError} onCancel={() => { setConfirmSave(false); setFormError('') }} onConfirm={persist} open={confirmSave} pending={busy} resetKey={contextResetKey} supabase={supabase} />
     </ModalShell>}
     {selectedChange && <ModalShell title={formatDateTime(selectedChange.effective_at)} onClose={() => { setSelectedChange(null); setFormError('') }} footer={(requestClose) => <div className="flex flex-wrap justify-end gap-2">
       {canEdit && <button className="type-action min-h-11 rounded-2xl border border-red-400/40 px-4 text-red-200" onClick={() => { setFormError(''); setConfirmDelete(true) }} type="button">이력 삭제</button>}

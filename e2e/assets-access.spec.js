@@ -56,7 +56,7 @@ test('saves one asset detail across accounts atomically and retries after a reje
   }
 
   let rejectOnce = true
-  await page.route('**/rest/v1/rpc/app_save_asset_detail_current', async (route) => {
+  await page.route('**/rest/v1/rpc/app_save_asset_detail_with_activity', async (route) => {
     if (!rejectOnce) return route.continue()
     rejectOnce = false
     const payload = route.request().postDataJSON()
@@ -68,7 +68,7 @@ test('saves one asset detail across accounts atomically and retries after a reje
   await editorBody.evaluate((element) => { element.scrollTop = 120 })
   const beforeConfirmScroll = await editorBody.evaluate((element) => element.scrollTop)
   await editor.getByRole('button', { name: '저장', exact: true }).click()
-  const confirmation = page.getByRole('dialog', { name: '보유값 변경 확인' })
+  const confirmation = page.getByRole('dialog', { name: '변경 내용 저장' })
   expect(await editor.evaluate((element) => Boolean(element.closest('[inert]')))).toBe(true)
   await expect(editor.getByLabel('수량').first()).toHaveValue('3')
   expect(await editorBody.evaluate((element) => element.scrollTop)).toBe(beforeConfirmScroll)
@@ -77,7 +77,7 @@ test('saves one asset detail across accounts atomically and retries after a reje
     await expect(confirmation).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
-  await confirmation.getByLabel('변경 사유 (선택)').fill('계좌별 현재값 확인')
+  await confirmation.getByLabel('변경 메모 (선택)').fill('계좌별 현재값 확인')
   await confirmation.getByRole('button', { name: '저장', exact: true }).click()
   await expect(confirmation.getByRole('alert')).toBeVisible()
   const rolledBack = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
@@ -107,7 +107,7 @@ test('saves one asset detail across accounts atomically and retries after a reje
   await expect(page.getByRole('dialog', { name: `Updated ${suffix}` })).toBeVisible()
   const afterDelete = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(afterDelete.body.holdings.filter((item) => item.ticker === ticker)).toHaveLength(1)
-  await page.unroute('**/rest/v1/rpc/app_save_asset_detail_current')
+  await page.unroute('**/rest/v1/rpc/app_save_asset_detail_with_activity')
   await page.unroute('**/rest/v1/rpc/app_delete_holding_checked')
 })
 
@@ -127,6 +127,7 @@ test('edits only the shared instrument memo in the asset detail', async ({ page 
   await expect(editor.getByLabel('계좌 메모 · 공유 가능')).toHaveCount(0)
   await editor.getByLabel('메모', { exact: true }).fill('장기 서비스 성장성을 보고 보유한다.')
   await editor.getByRole('button', { name: '저장', exact: true }).click()
+  await page.getByRole('dialog', { name: '변경 내용 저장' }).getByRole('button', { name: '저장', exact: true }).click()
   await expect(page.getByText('저장되었습니다.')).toBeVisible()
   const publicState = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(publicState.body.instruments.find((item) => item.id === instrument.id).note).toBe('장기 서비스 성장성을 보고 보유한다.')
@@ -148,9 +149,9 @@ test('edits current holdings in place without a separate verification flow', asy
   await editor.getByLabel('수량').first().fill('4')
   await editor.getByLabel('평균가').first().fill('125')
   await editor.getByRole('button', { name: '저장', exact: true }).click()
-  const confirmation = page.getByRole('dialog', { name: '보유값 변경 확인' })
+  const confirmation = page.getByRole('dialog', { name: '변경 내용 저장' })
   await expect(confirmation.getByText(/수량:/)).toBeVisible()
-  await confirmation.getByLabel('변경 사유 (선택)').fill('증권사 현재값 확인')
+  await confirmation.getByLabel('변경 메모 (선택)').fill('증권사 현재값 확인')
   await confirmation.getByRole('button', { name: '저장', exact: true }).click()
   await expect(page.getByText('저장되었습니다.')).toBeVisible()
   const state=await callRpc(page,'app_get_portfolio_state',{input_owner_user_id:null})

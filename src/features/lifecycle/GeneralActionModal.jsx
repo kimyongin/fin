@@ -4,7 +4,7 @@ import ModalShell from '../../components/ModalShell'
 import ModalActions from '../../components/ModalActions'
 import CalendarDateField from '../../components/CalendarDateField'
 import { businessDate } from '../../lib/businessDate'
-import ActivityTagPicker from './ActivityTagPicker'
+import ActivityTagPicker from '../../components/ActivityTagPicker'
 import ActivityReferences from './ActivityReferences'
 import TaskScheduleFields from './TaskScheduleFields'
 

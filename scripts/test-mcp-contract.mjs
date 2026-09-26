@@ -1,3 +1,5 @@
+import { assertMutationRpcSignatures } from './deployment-rpc-contract.mjs'
+
 const required = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']
 const missing = required.filter((name) => !process.env[name])
 if (missing.length) throw new Error(`Missing local MCP contract environment: ${missing.join(', ')}`)
@@ -61,6 +63,11 @@ try {
   const session = await signup.json()
   assert(session.access_token && session.user?.id, 'Local contract sign-in returned no session')
   const userId = session.user.id
+  const openApi = await fetch(`${baseUrl}/rest/v1/`, {
+    headers: { apikey: anonKey, Authorization: `Bearer ${session.access_token}`, Accept: 'application/openapi+json' },
+  })
+  assert(openApi.ok, 'Authenticated RPC discovery failed')
+  assertMutationRpcSignatures(await openApi.json())
 
   const initialized = await call(session.access_token, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'contract-test', version: '1' } })
   assert(initialized.response.ok && initialized.body?.result?.protocolVersion === '2025-06-18', 'MCP initialize contract failed')
@@ -163,13 +170,23 @@ try {
 
   const initialPrinciples = await call(session.access_token, 'tools/call', { name: 'list_principles', arguments: {} })
   assert(initialPrinciples.body?.result?.structuredContent?.data?.items?.length === 0, 'New MCP user unexpectedly has principles')
+  const activityTagSaved = await call(session.access_token, 'tools/call', { name: 'save_activity_tag', arguments: {
+    schema_version: 1, tag_id: null, expected_version: null, idempotency_key: crypto.randomUUID(), name: 'Contract change',
+  } })
+  const activityTagId = activityTagSaved.body?.result?.structuredContent?.data?.id
+  assert(activityTagId, 'Activity tag creation for domain saves failed')
+  const activityTags = await call(session.access_token, 'tools/call', { name: 'list_activity_tags', arguments: { query: null } })
+  assert(activityTags.body?.result?.structuredContent?.data?.some((tag) => tag.id === activityTagId), 'Activity tag lookup before domain save failed')
   const principleArgs = {
     schema_version: 1, principle_id: crypto.randomUUID(), expected_row_id: null,
     expected_body: null, expected_change_note: null,
-    body: '## Long-term rule\nContract-approved long-term rule', change_note: 'Initial rule',
+    body: '## Long-term rule\nContract-approved long-term rule', change_note: 'Initial rule', activity_tag_ids: [activityTagId],
   }
   const savedPrinciple = await call(session.access_token, 'tools/call', { name: 'save_principle', arguments: principleArgs })
   assert(savedPrinciple.body?.result?.structuredContent?.data?.body === principleArgs.body, 'MCP principle save failed')
+  const principleActivityId = savedPrinciple.body?.result?.structuredContent?.data?.activity_id
+  const principleActivity = await call(session.access_token, 'tools/call', { name: 'get_activity', arguments: { activity_id: principleActivityId } })
+  assert(principleActivityId && principleActivity.body?.result?.structuredContent?.data?.tags?.some((tag) => tag.id === activityTagId), 'MCP principle activity tag was not readable')
   const listedPrinciples = await call(session.access_token, 'tools/call', { name: 'list_principles', arguments: {} })
   assert(listedPrinciples.body?.result?.structuredContent?.data?.items?.some((item) => item.principle_id === principleArgs.principle_id), 'MCP principle readback failed')
 
@@ -344,7 +361,7 @@ try {
   const briefingPage = await call(session.access_token, 'tools/call', {
     name: 'search_activities', arguments: { query: 'Contract test review', from: null, to: null, record_state: 'done', instrument_id: null, tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul' },
   })
-  assert(briefingPage.body?.result?.structuredContent?.data?.items?.[0]?.activity_id === savedData.id, 'Saved activity search contract failed')
+  assert(briefingPage.body?.result?.structuredContent?.data?.items?.[0]?.activity_id === savedData.id, `Saved activity search contract failed: ${JSON.stringify(briefingPage.body?.result?.structuredContent ?? briefingPage.body)}`)
   const taskDeleteArgs = { schema_version: 1, task_id: savedTask.id, expected_version: savedTask.version, idempotency_key: crypto.randomUUID() }
   const deletedTask = await call(session.access_token, 'tools/call', { name: 'delete_general_task', arguments: taskDeleteArgs })
   assert(deletedTask.body?.result?.structuredContent?.data?.deleted === true, 'Task deletion contract failed')
@@ -415,8 +432,12 @@ try {
   assert(tagId, 'OAuth asset tag creation failed')
   const savedTargets = await call(session.access_token, 'tools/call', { name: 'save_allocation_targets', arguments: {
     schema_version: 1, targets: [{ tag_id: tagId, target_percentage: 100 }], expected_targets: [],
+    change_note: 'Target review', activity_tag_ids: [activityTagId], idempotency_key: crypto.randomUUID(),
   } })
   assert(savedTargets.body?.result?.structuredContent?.data?.configured === true, 'OAuth allocation save failed')
+  const allocationActivityId = savedTargets.body?.result?.structuredContent?.data?.activity_id
+  const allocationActivity = await call(session.access_token, 'tools/call', { name: 'get_activity', arguments: { activity_id: allocationActivityId } })
+  assert(allocationActivityId && allocationActivity.body?.result?.structuredContent?.data?.tags?.some((tag) => tag.id === activityTagId), 'MCP allocation activity tag was not readable')
   const blockedTagDelete = await call(session.access_token, 'tools/call', { name: 'delete_asset_tag', arguments: {
     schema_version: 1, tag_id: tagId,
   } })
@@ -439,11 +460,14 @@ try {
     expected: { display_name: 'MCP CRUD Asset', currency: 'KRW', instrument_type: 'market', note: null, tag_id: null },
     instrument: { display_name: 'MCP CRUD Asset', currency: 'KRW', instrument_type: 'market', note: null, tag_id: null },
     holdings: [{ id: null, account_id: newAccountId, quantity: '2', avg_price: '100' }],
-    idempotency_key: crypto.randomUUID(), reason: 'Contract test current value',
+    idempotency_key: crypto.randomUUID(), reason: 'Contract test current value', activity_tag_ids: [activityTagId],
   }
   const assetSaved = await call(session.access_token, 'tools/call', { name: 'save_asset_detail', arguments: assetArgs })
   const newHolding = assetSaved.body?.result?.structuredContent?.data?.holdings?.[0]
   assert(newHolding?.id && Number(newHolding.quantity) === 2, 'OAuth asset detail save failed')
+  const assetActivityId = assetSaved.body?.result?.structuredContent?.data?.activity_id
+  const assetActivity = await call(session.access_token, 'tools/call', { name: 'get_activity', arguments: { activity_id: assetActivityId } })
+  assert(assetActivityId && assetActivity.body?.result?.structuredContent?.data?.tags?.some((tag) => tag.id === activityTagId), 'MCP asset activity tag was not readable')
   const assetRetried = await call(session.access_token, 'tools/call', { name: 'save_asset_detail', arguments: assetArgs })
   assert(assetRetried.body?.result?.structuredContent?.data?.holdings?.[0]?.id === newHolding.id, 'Asset detail retry duplicated a holding')
   const deleteHoldingArgs = { schema_version: 1, holding_id: newHolding.id, expected_version: newHolding.state_version, idempotency_key: crypto.randomUUID() }

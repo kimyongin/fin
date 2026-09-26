@@ -1,4 +1,4 @@
-import TagChip from '../../components/TagChip'
+import TagChip from './TagChip'
 
 export default function ActivityTagPicker({ disabled = false, onChange, selectedIds = [], tags = [] }) {
   function toggle(id) {

@@ -370,7 +370,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'save_asset_detail', title: 'Save one instrument and its account holdings',
-    description: 'Read get_portfolio_state first, then save one owned instrument’s name, currency, type, note, representative tag and up to 40 current account-holding values atomically. expected must match its current fields exactly; each existing holding supplies its ID, account ID and state version. Decimal holding amounts should be strings. A missing holding from the array is not deleted: use delete_holding explicitly. Changed financial values are an absolute correction, not a brokerage trade; show the changes and optional reason to the user. Retry a lost response with the identical idempotency key and payload. Manual prices are forbidden here; use price sync.',
+    description: 'Read get_portfolio_state first, then save one owned instrument and its current account holdings atomically with one activity. expected must match current fields; each existing holding supplies its ID, account ID and state version. Decimal amounts should be strings. Missing holdings are not deleted. Changed financial values are an absolute correction, not a trade; show the changes and optional reason. Optional activity_tag_ids attach existing activity-search tags to this save, not the representative asset tag. Read list_activity_tags first when tags are requested. Retry a lost response with the identical idempotency key and payload. Manual prices are forbidden; use price sync.',
     inputSchema: { type: 'object', properties: {
       schema_version: { const: 1 }, instrument_id: { type: 'integer', minimum: 1 },
       expected: { type: 'object', properties: { display_name: { type: 'string' }, currency: { type: 'string' }, instrument_type: { type: 'string' }, note: { type: ['string','null'] }, tag_id: { type: ['integer','null'] } }, required: ['display_name','currency','instrument_type','note','tag_id'], additionalProperties: false },
@@ -379,7 +379,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         id: { type: ['integer','null'] }, account_id: { type: 'integer', minimum: 1 }, expected_account_id: { type: ['integer','null'] }, expected_state_version: { type: ['integer','null'] },
         quantity: { type: ['string','null'] }, avg_price: { type: ['string','null'] }, purchase_amount: { type: ['string','null'] }, valuation_amount: { type: ['string','null'] },
       }, required: ['id','account_id'], additionalProperties: false } },
-      idempotency_key: { type: 'string', format: 'uuid' }, reason: { type: ['string','null'], maxLength: 1000 },
+      idempotency_key: { type: 'string', format: 'uuid' }, reason: { type: ['string','null'], maxLength: 1000 }, activity_tag_ids: { type: 'array', maxItems: 30, uniqueItems: true, items: { type: 'string', format: 'uuid' } },
     }, required: ['schema_version','instrument_id','expected','instrument','holdings','idempotency_key','reason'], additionalProperties: false },
     outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
@@ -409,8 +409,8 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   },
   {
     name: 'save_allocation_targets', title: 'Save or clear all asset-tag allocation targets',
-    description: 'Replace the complete owned tag target set only after explicit user approval and reading get_strategy_state. Targets must be distinct owned tag IDs with two-decimal percentages summing to exactly 100.00. To remove the complete configuration, pass targets:[]; this returns configured=false and does not delete tags, holdings or prices. expected_targets must be the current sorted target rows; stale values are rejected. An identical set or already-empty state is a no-op. This is a target, not an order recommendation or trade.',
-    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, targets: { type: 'array', items: { type: 'object', properties: { tag_id: { type: 'integer', minimum: 1 }, target_percentage: { type: 'number', minimum: 0, maximum: 100 } }, required: ['tag_id','target_percentage'], additionalProperties: false } }, expected_targets: { type: 'array', items: { type: 'object', properties: { tag_id: { type: 'integer', minimum: 1 }, target_percentage: { type: 'number', minimum: 0, maximum: 100 } }, required: ['tag_id','target_percentage'], additionalProperties: false } } }, required: ['schema_version','targets','expected_targets'], additionalProperties: false },
+    description: 'Replace the complete owned asset-tag target set only after explicit user approval and reading get_strategy_state. Targets must be distinct owned tag IDs totaling exactly 100.00%. targets:[] clears configuration without deleting assets. expected_targets must be the current sorted rows; stale values are rejected. An identical set is a no-op. Optional change_note and activity_tag_ids label the one automatic activity; read list_activity_tags first if tags are requested. Supply idempotency_key for safe lost-response retries and reuse it with identical inputs. Existing calls without context remain valid. This is a target, not an order or trade.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, targets: { type: 'array', items: { type: 'object', properties: { tag_id: { type: 'integer', minimum: 1 }, target_percentage: { type: 'number', minimum: 0, maximum: 100 } }, required: ['tag_id','target_percentage'], additionalProperties: false } }, expected_targets: { type: 'array', items: { type: 'object', properties: { tag_id: { type: 'integer', minimum: 1 }, target_percentage: { type: 'number', minimum: 0, maximum: 100 } }, required: ['tag_id','target_percentage'], additionalProperties: false } }, change_note: { type: ['string','null'], maxLength: 1000 }, activity_tag_ids: { type: 'array', maxItems: 30, uniqueItems: true, items: { type: 'string', format: 'uuid' } }, idempotency_key: { type: 'string', format: 'uuid' } }, required: ['schema_version','targets','expected_targets'], additionalProperties: false },
     outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },
   {
@@ -777,11 +777,11 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'save_principle',
     title: 'Save the approved principles document',
-    description: 'Save one complete owner-only Markdown document only after explicit user approval. Read list_principles first. For the initial document generate one UUID and use null expected_row_id, expected_body, and expected_change_note; for edits reuse current principle_id, row id, exact body and change note. This appends an in-table history row. Preserve unrelated rules. Optional change_note explains the edit in history but is not part of policy. Never save model suggestions as user-approved rules. Does not alter holdings, allocation targets, or trades.',
+    description: 'Save one complete owner-only Markdown document only after explicit user approval. Read list_principles first. For the initial document generate one UUID and use null expected values; for edits reuse current principle_id, row id, exact body and note. An actual change appends one principle revision and one activity in the same transaction. Optional change_note appears in both; optional activity_tag_ids attach existing activity-search tags. Read list_activity_tags when tags are requested. Preserve unrelated rules. Retry an uncertain response only after reading current state; never invent approved rules. Does not alter holdings, targets, or trades.',
     inputSchema: { type: 'object', properties: {
       schema_version: { const: 1 }, principle_id: { type: 'string', format: 'uuid' }, expected_row_id: { type: ['integer','null'], minimum: 1 },
       expected_body: { type: ['string','null'] }, expected_change_note: { type: ['string','null'] },
-      body: { type: 'string', minLength: 1, maxLength: 10000 }, change_note: { type: ['string','null'], maxLength: 1000 },
+      body: { type: 'string', minLength: 1, maxLength: 10000 }, change_note: { type: ['string','null'], maxLength: 1000 }, activity_tag_ids: { type: 'array', maxItems: 30, uniqueItems: true, items: { type: 'string', format: 'uuid' } },
     }, required: ['schema_version','principle_id','expected_row_id','expected_body','expected_change_note','body'], additionalProperties: false },
     outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
   },

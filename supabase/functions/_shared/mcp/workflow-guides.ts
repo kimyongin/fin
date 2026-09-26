@@ -42,7 +42,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     topic: 'assets', guide_id: 'portfolio.asset-management',
     purpose: 'Manage owner accounts, registered instruments, and account holdings without changing prices or claiming brokerage execution.',
     scenario_ids: ['A01', 'A02', 'A03'],
-    related_tools: ['get_portfolio_state','get_strategy_state','find_holdings','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','sync_prices'],
+    related_tools: ['get_portfolio_state','get_strategy_state','find_holdings','list_activity_tags','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets','sync_prices'],
     source_paths: [
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
@@ -50,14 +50,15 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/migrations/20260924152000_decouple_asset_detail_from_legacy_notes.sql',
       'supabase/migrations/20260926133725_checked_holding_delete.sql',
       'supabase/migrations/20260926135123_clear_allocation_targets.sql',
+      'supabase/migrations/20260926171459_activity_tags_on_domain_save.sql',
     ],
     steps: [
       { id: 'read', title: 'Read current assets', instruction: 'Read get_portfolio_state and use find_holdings for ambiguous positions. A registered instrument with no holding is not owned quantity; distinguish zero quantity from no holding row.', tools: ['get_portfolio_state','find_holdings'] },
       { id: 'account', title: 'Manage an account', instruction: 'Use save_account only for an approved new or changed name, broker, or note. Delete an empty account with delete_account only after showing the target and confirming. Re-read after uncertain legacy create/delete responses.', tools: ['save_account','delete_account'] },
       { id: 'instrument', title: 'Register or remove a stock identity', instruction: 'A lookup never registers a ticker. Use create_instrument on explicit request; it creates no holding or price. Use delete_instrument only when no holding rows remain and after confirmation.', tools: ['create_instrument','delete_instrument'] },
-      { id: 'detail', title: 'Save current holdings and common fields', instruction: 'For an approved change, provide the exact current instrument expected fields and every edited holding’s account ID and state version to save_asset_detail. Show numeric before/after values and retain the same idempotency key for retries. Use delete_holding separately for explicit removal of one account row.', tools: ['get_portfolio_state','save_asset_detail','delete_holding'] },
+      { id: 'detail', title: 'Save current holdings and common fields', instruction: 'For an approved change, provide the exact current instrument expected fields and every edited holding’s account ID and state version to save_asset_detail. Show numeric before/after values and retain the same idempotency key for retries. If the user supplied a reason or activity tags, include them in this save; read list_activity_tags to resolve requested tags. Its activity_id identifies the one automatic record. Use delete_holding separately for explicit removal of one account row.', tools: ['get_portfolio_state','list_activity_tags','save_asset_detail','delete_holding'] },
       { id: 'tags', title: 'Manage representative asset tags', instruction: 'Read current tags before creating or renaming with save_asset_tag. Link one representative tag to an instrument through save_asset_detail. Confirm delete_asset_tag because it unlinks instruments; a positive allocation target blocks deletion.', tools: ['get_portfolio_state','save_asset_tag','save_asset_detail','delete_asset_tag'] },
-      { id: 'allocation', title: 'Set or clear target percentages', instruction: 'Read get_strategy_state. Save the complete owned-tag target set totaling 100.00 with save_allocation_targets and exact expected_targets. An explicit empty targets array clears configuration; it never changes assets or tags.', tools: ['get_strategy_state','save_allocation_targets'] },
+      { id: 'allocation', title: 'Set or clear target percentages', instruction: 'Read get_strategy_state. Save the complete owned-tag target set totaling 100.00 with save_allocation_targets and exact expected_targets. An explicit empty targets array clears configuration; it never changes assets or tags. Include an optional user-provided change_note and activity_tag_ids in the same call; read list_activity_tags to resolve requested tags. Reuse an explicit idempotency_key with identical inputs for uncertain retries.', tools: ['get_strategy_state','list_activity_tags','save_allocation_targets'] },
       { id: 'quotes', title: 'Refresh market quotes and FX rates', instruction: 'On explicit request, call sync_prices with no custom ticker/date/price payload. It uses the same owner-scoped refresh as the web app. Inspect per-target failures and re-read get_portfolio_state; a partial result is not full success. Never write guessed prices or FX rates.', tools: ['sync_prices','get_portfolio_state'] },
       { id: 'verify', title: 'Read back the result', instruction: 'Read get_portfolio_state again. Report account, instrument, and holding changes distinctly. A saved current value is not a completed brokerage order or live market quote.', tools: ['get_portfolio_state'] },
     ],
@@ -70,7 +71,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
     guide_id: 'portfolio.policy-interview',
     purpose: 'Interview only missing preferences, show a reviewable Markdown draft, and save explicitly approved principles with simple revision history.',
     scenario_ids: ['W02', 'S02', 'S03', 'S04'],
-    related_tools: ['list_principles', 'save_principle', 'list_principle_changes', 'get_principle_row', 'correct_principle_row', 'delete_principle_row'],
+    related_tools: ['list_principles', 'list_activity_tags', 'save_principle', 'list_principle_changes', 'get_principle_row', 'correct_principle_row', 'delete_principle_row'],
     source_paths: [
       'supabase/functions/_shared/mcp/portfolio-tools.ts',
       'supabase/functions/portfolio-mcp-oauth/index.ts',
@@ -80,6 +81,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/migrations/20260924174000_single_current_principle.sql',
       'supabase/migrations/20260926045349_whole_portfolio_sharing.sql',
       'supabase/migrations/20260926130343_principle_history_crud.sql',
+      'supabase/migrations/20260926171459_activity_tags_on_domain_save.sql',
       'src/features/strategy/data.js',
     ],
     steps: [
@@ -110,8 +112,8 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       {
         id: 'save-patch',
         title: 'Save the approved text',
-        instruction: 'Call save_principle for the complete approved Markdown document. For an edit, reuse its stable principle_id, latest row id, exact current body and change note as expected values, and preserve unrelated text. For the first document, generate one UUID and keep it for any retry; use null expected values. Add a short optional change_note only from the user-stated reason, never invent one. Retry a lost response only after reading current state.',
-        tools: ['save_principle'],
+        instruction: 'Call save_principle for the complete approved Markdown document. For an edit, reuse its stable principle_id, latest row id, exact current body and change note as expected values, and preserve unrelated text. For the first document, generate one UUID and keep it for any retry; use null expected values. Add optional change_note and activity_tag_ids only when the user supplied them; read list_activity_tags to resolve requested tags. An actual change creates one principle revision and one tagged activity in the same save. Retry a lost response only after reading current state.',
+        tools: ['list_activity_tags','save_principle'],
       },
       {
         id: 'verify-result',

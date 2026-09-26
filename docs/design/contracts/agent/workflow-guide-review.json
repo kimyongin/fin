@@ -1,51 +1,51 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-26",
-  "review_reason": "Verified destructive and idempotent hints for CRUD parity tools (#158).",
+  "review_reason": "Issue #159: reviewed optional activity tags and change notes on asset, allocation, and principle saves; other guide behavior unchanged after shared tool contract hash update.",
   "topics": {
     "assets": {
-      "revision": "fnv1a32:e535c5a9",
-      "contract_digest": "1d2bb6a5fe75e84e446e1c3aea9b3c6b77787545158a2de4b2aed809a024ea0d"
+      "revision": "fnv1a32:7cb56e0d",
+      "contract_digest": "2ebfa9a440f9393738b7b1bde0927881f2e031f059f48928cf66fd797b177e0c"
     },
     "policy": {
-      "revision": "fnv1a32:f720a938",
-      "contract_digest": "c9045cef8b6e086e11ee316359b6468e960ed3960679d33e56cab6d25cdaf07f"
+      "revision": "fnv1a32:e37e506e",
+      "contract_digest": "d193a88ef2287e7f6e25fbe246693f90c0d17887ab0ed240898f0d5a292194f5"
     },
     "holding_thesis": {
       "revision": "fnv1a32:4c4ae963",
-      "contract_digest": "f4702b391b884842d54efa8e887fb4b06c9c9b19d1b3bf3b0070e6f963fad593"
+      "contract_digest": "40a9493741b1943b950a0dfec64d917821ad48c9c93e34c0d2d396381c5fcbc4"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "3013769e6728a8c63d9f598260a05512278dc4ca6ba1ad5e2fd16b9cfba5899f"
+      "contract_digest": "0c77b090c32c34fac43eaccb0c90e5966bf19ec77d93454f4e4cf98f09827099"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "120d76749f605a93260a16d1312fe12f23c37c3008f7ff12009b43c1919da2e0"
+      "contract_digest": "6c704f40487d52037344a622a4eaaf4b4967cb7500fda939854603773ec6b2e4"
     },
     "trade_entry": {
       "revision": "fnv1a32:e542a131",
-      "contract_digest": "859355415800ae7bea26fbd8508e39c211da2cc54fddf9c93235c8f6be4cebdd"
+      "contract_digest": "cb3dd2d9cf44ef9c850d1992f3de1f52b85e77c67402548d4fb3b0333ec5f382"
     },
     "reconciliation": {
       "revision": "fnv1a32:4c885520",
-      "contract_digest": "9437d3bcdc782a7ccb80cd761b66d498c3e09169d374ab791cd4b1ed8ea4e8a4"
+      "contract_digest": "65327308426100d222a506f1756d2295a7f04a3869478bc9f08fec291e3959f1"
     },
     "todo": {
       "revision": "fnv1a32:4dd20a2f",
-      "contract_digest": "e25ba2a34f98358b28823af3f896e34a3a102275c18f727ce1bbb9101ebac6fb"
+      "contract_digest": "53b70b4589ea56138dae952868a73cede2ef857a248b906dc507975485fc8a66"
     },
     "activity_report": {
       "revision": "fnv1a32:e4aa34cd",
-      "contract_digest": "754eac336d558a9c0a32542703895eb6485b024ca0541c2cad2cec962d36d1ec"
+      "contract_digest": "d76c1cdf7f0430ee83d7dddc77238b9278bfc4f34a40087d8da718743606edf1"
     },
     "product_feedback": {
       "revision": "fnv1a32:76d431a2",
-      "contract_digest": "c308e22e08d39a5e2b81525bd55fb24ff0980b854f3adec29c7f776ff79542de"
+      "contract_digest": "7361bb0f7d4bfabdf5df8d20f1064e6f65d5b0fda5f62956362f607134e738b0"
     },
     "sharing": {
       "revision": "fnv1a32:aaaec76a",
-      "contract_digest": "1945bcd24202750bfc06ddd270df69f1c3c9711719e16f62c37116f4f2d63b11"
+      "contract_digest": "7041e010a6ccf892f1b5a63cd99557b56df2c0940775a80d431817e31a219c25"
     }
   }
 }

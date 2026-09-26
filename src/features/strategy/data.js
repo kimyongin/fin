@@ -12,18 +12,24 @@ export async function fetchStrategyState(supabase, ownerUserId = null) {
   return { ...createEmptyStrategyState(), ...(data ?? {}) }
 }
 
-export async function saveAllocationTargets(supabase, { targets, expectedTargets }) {
-  const { data, error } = await supabase.rpc('app_save_allocation_targets', {
+export async function saveAllocationTargets(supabase, { targets, expectedTargets, changeNote = null, activityTagIds = [], idempotencyKey }) {
+  const { data, error } = await supabase.rpc('app_save_allocation_targets_with_activity', {
     input_targets: targets,
     input_expected_targets: expectedTargets,
+    input_change_note: changeNote,
+    input_activity_tag_ids: activityTagIds,
+    input_idempotency_key: idempotencyKey,
   })
   if (error) throw error
   return { ...createEmptyStrategyState(), ...(data ?? {}) }
 }
 
-export async function clearAllocationTargets(supabase, expectedTargets) {
-  const { data, error } = await supabase.rpc('app_clear_allocation_targets', {
+export async function clearAllocationTargets(supabase, { expectedTargets, changeNote = null, activityTagIds = [], idempotencyKey }) {
+  const { data, error } = await supabase.rpc('app_clear_allocation_targets_with_activity', {
     input_expected_targets: expectedTargets,
+    input_change_note: changeNote,
+    input_activity_tag_ids: activityTagIds,
+    input_idempotency_key: idempotencyKey,
   })
   if (error) throw error
   return { ...createEmptyStrategyState(), ...(data ?? {}) }
@@ -50,14 +56,15 @@ export async function fetchPrincipleChanges(supabase, { cursor = null, limit = 2
   return { items: data?.items ?? [], nextCursor: data?.next_cursor ?? null }
 }
 
-export async function savePrinciple(supabase, { principleId, expectedRowId = null, expectedBody = null, expectedChangeNote = null, body, changeNote = null }) {
-  const { data, error } = await supabase.rpc('app_save_principle_checked', {
+export async function savePrinciple(supabase, { principleId, expectedRowId = null, expectedBody = null, expectedChangeNote = null, body, changeNote = null, activityTagIds = [] }) {
+  const { data, error } = await supabase.rpc('app_save_principle_with_activity', {
     input_principle_id: principleId,
     input_expected_row_id: expectedRowId,
     input_expected_body: expectedBody,
     input_expected_change_note: expectedChangeNote,
     input_body: body,
     input_change_note: changeNote?.trim() || null,
+    input_activity_tag_ids: activityTagIds,
   })
   if (error) throw error
   return data

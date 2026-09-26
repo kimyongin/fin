@@ -4,7 +4,7 @@ import ModalShell from '../../components/ModalShell'
 import ModalActions from '../../components/ModalActions'
 import TagChip from '../../components/TagChip'
 import ReadOnlyField from '../../components/ReadOnlyField'
-import ActivityTagPicker from './ActivityTagPicker'
+import ActivityTagPicker from '../../components/ActivityTagPicker'
 import TaskScheduleFields, { scheduleSummary } from './TaskScheduleFields'
 
 function taskStatusLabel(task) {

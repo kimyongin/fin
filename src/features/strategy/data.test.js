@@ -21,11 +21,11 @@ describe('principle revision data adapter', () => {
 
   it('appends one approved revision with a stable ID and expected row', async () => {
     const supabase = { rpc: vi.fn().mockResolvedValue({ data: { id: 3 }, error: null }) }
-    await expect(savePrinciple(supabase, { principleId: 'stable-id', expectedRowId: 2, expectedBody: '현금 유지', expectedChangeNote: '첫 작성', body: ' 손실 제한 ', changeNote: ' 변경 ' })).resolves.toEqual({ id: 3 })
-    expect(supabase.rpc).toHaveBeenCalledWith('app_save_principle_checked', {
+    await expect(savePrinciple(supabase, { principleId: 'stable-id', expectedRowId: 2, expectedBody: '현금 유지', expectedChangeNote: '첫 작성', body: ' 손실 제한 ', changeNote: ' 변경 ', activityTagIds: ['tag-id'] })).resolves.toEqual({ id: 3 })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_save_principle_with_activity', {
       input_principle_id: 'stable-id', input_expected_row_id: 2,
       input_expected_body: '현금 유지', input_expected_change_note: '첫 작성',
-      input_body: ' 손실 제한 ', input_change_note: '변경',
+      input_body: ' 손실 제한 ', input_change_note: '변경', input_activity_tag_ids: ['tag-id'],
     })
   })
 
@@ -47,13 +47,13 @@ describe('allocation target data adapter', () => {
   it('sends the complete target set and expected current set to one RPC', async () => {
     const supabase = { rpc: vi.fn().mockResolvedValue({ data: { configured: true, targets: [{ tag_id: 1, target_percentage: 100 }] }, error: null }) }
     const targets = [{ tag_id: 1, target_percentage: 100 }]
-    await expect(saveAllocationTargets(supabase, { targets, expectedTargets: [] })).resolves.toEqual({ configured: true, targets })
-    expect(supabase.rpc).toHaveBeenCalledWith('app_save_allocation_targets', { input_targets: targets, input_expected_targets: [] })
+    await expect(saveAllocationTargets(supabase, { targets, expectedTargets: [], changeNote: '재배분', activityTagIds: ['tag-id'], idempotencyKey: 'retry-key' })).resolves.toEqual({ configured: true, targets })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_save_allocation_targets_with_activity', { input_targets: targets, input_expected_targets: [], input_change_note: '재배분', input_activity_tag_ids: ['tag-id'], input_idempotency_key: 'retry-key' })
   })
   it('clears the whole target set with the same concurrency guard', async () => {
     const supabase = { rpc: vi.fn().mockResolvedValue({ data: { configured: false, targets: [] }, error: null }) }
     const expectedTargets = [{ tag_id: 1, target_percentage: 100 }]
-    await expect(clearAllocationTargets(supabase, expectedTargets)).resolves.toEqual({ configured: false, targets: [] })
-    expect(supabase.rpc).toHaveBeenCalledWith('app_clear_allocation_targets', { input_expected_targets: expectedTargets })
+    await expect(clearAllocationTargets(supabase, { expectedTargets, idempotencyKey: 'retry-key' })).resolves.toEqual({ configured: false, targets: [] })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_clear_allocation_targets_with_activity', { input_expected_targets: expectedTargets, input_change_note: null, input_activity_tag_ids: [], input_idempotency_key: 'retry-key' })
   })
 })

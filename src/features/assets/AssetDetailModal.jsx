@@ -3,6 +3,7 @@ import ModalShell, { ConfirmDialog } from '../../components/ModalShell'
 import ModalActions from '../../components/ModalActions'
 import TagChip, { SingleTagPicker } from '../../components/TagChip'
 import ReadOnlyField from '../../components/ReadOnlyField'
+import SaveActivityConfirm from '../../components/SaveActivityConfirm'
 import { formatUnitPrice } from '../../lib/format'
 
 const input = 'form-control'
@@ -43,7 +44,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
   const [draft, setDraft] = useState(initial.current)
   const [stage, setStage] = useState(null)
   const [confirming, setConfirming] = useState(false)
-  const [reason, setReason] = useState('')
+  const [contextResetKey, setContextResetKey] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -71,7 +72,6 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
     setMessage('')
     setDraft((current) => ({ ...current, instrument: { ...current.instrument, [key]: value } }))
   }
-  function changeReason(value) { retryKey.current = null; setReason(value) }
   function changeHolding(index, key, value) {
     retryKey.current = null
     setMessage('')
@@ -84,7 +84,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
       quantity: '', avg_price: '', purchase_amount: '', valuation_amount: '',
     }] }))
   }
-  async function save() {
+  async function save({ changeNote, activityTagIds }) {
     if (!dirty || saving) return true
     if (!draft.instrument.display_name.trim()) { setError('종목명을 입력해 주세요.'); return false }
     setSaving(true)
@@ -96,14 +96,15 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
       tag_id: draft.instrument.tag_id ? Number(draft.instrument.tag_id) : null,
     }
     try {
-      const { data, error: rpcError } = await supabase.rpc('app_save_asset_detail_current', {
+      const { data, error: rpcError } = await supabase.rpc('app_save_asset_detail_with_activity', {
         input_instrument_id: instrument.id, input_expected: expected.current,
         input_instrument: instrumentPayload, input_holdings: draft.holdings.map((holding) => ({
           id: holding.id, account_id: holding.account_id, expected_account_id: holding.expected_account_id,
           expected_state_version: holding.expected_state_version, quantity: holding.quantity,
           avg_price: holding.avg_price, purchase_amount: holding.purchase_amount,
           valuation_amount: holding.valuation_amount,
-        })), input_reason: reason.trim() || null,
+        })), input_reason: changeNote,
+        input_activity_tag_ids: activityTagIds,
         input_idempotency_key: retryKey.current,
       })
       if (rpcError) throw rpcError
@@ -125,7 +126,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
       }
       setDraft(next)
       retryKey.current = null
-      setReason('')
+      setContextResetKey((value) => value + 1)
       setConfirming(false)
       setMessage('저장되었습니다.')
       try { await onRefresh() } catch (refreshError) { setMessage(`저장은 완료됐지만 화면을 새로 불러오지 못했습니다. ${refreshError.message}`) }
@@ -175,13 +176,12 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
   function openStage(next) { setError(''); setStage(next) }
 
   const setInstrument = (key) => (value) => changeInstrument(key, value)
-  return <ModalShell closeDisabled={saving} dirty={dirty} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={() => { setError(''); financialChanges.length ? setConfirming(true) : save() }} saveDisabled={!dirty} saveLabel={saving ? '저장 중' : '저장'} />} onClose={onClose} title={instrument.display_name ?? instrument.ticker}>
+  return <ModalShell closeDisabled={saving} dirty={dirty} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={() => { setError(''); if (!draft.instrument.display_name.trim()) { setError('종목명을 입력해 주세요.'); return } if (dirty) setConfirming(true) }} saveDisabled={!dirty} saveLabel={saving ? '저장 중' : '저장'} />} onClose={onClose} title={instrument.display_name ?? instrument.ticker}>
     {stage?.kind === 'deleteHolding' && <ConfirmDialog title="보유 삭제" description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}${accounts.find((account) => Number(account.id) === Number(stage.holding.account_id))?.name}의 ${instrument.display_name} 보유를 삭제할까요? 이 계좌의 현재 보유값이 제거됩니다.`} confirmLabel="보유 삭제" danger error={error} pending={saving} onCancel={() => { setStage(null); setError('') }} onConfirm={() => deleteHolding(stage.holding)} />}
     {stage?.kind === 'deleteInstrument' && <ConfirmDialog title="종목 삭제" description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}종목과 연결된 태그·가격 이력을 삭제할까요? 보유가 있는 종목은 삭제할 수 없습니다.`} confirmLabel="종목 삭제" danger error={error} pending={saving} onCancel={() => { setStage(null); setError('') }} onConfirm={deleteInstrument} />}
-    {confirming && <ConfirmDialog title="보유값 변경 확인" description="현재 보유값을 다음과 같이 바꿉니다. 매매나 증권사 확인 완료로 자동 분류하지 않습니다." confirmLabel="저장" cancelLabel="계속 편집" error={error} pending={saving} onCancel={() => { setConfirming(false); setError('') }} onConfirm={save}>
+    <SaveActivityConfirm description={financialChanges.length ? '현재 보유값을 다음과 같이 바꿉니다. 매매나 증권사 확인 완료로 자동 분류하지 않습니다.' : '종목 정보 변경을 저장할까요?'} error={error} onCancel={() => { setConfirming(false); setError('') }} onConfirm={save} onContextChange={() => { retryKey.current = null }} open={confirming} pending={saving} resetKey={contextResetKey} supabase={supabase}>
       {financialChanges.map(({ holding, before, keys }, index) => <div className="rounded-xl border border-[var(--line)] p-3" key={holding.id ?? `new-${index}`}><strong>{accounts.find((account) => String(account.id) === String(holding.account_id))?.name ?? '계좌'}</strong>{keys.map((key) => <p className="mt-1" key={key}>{({ quantity: '수량', avg_price: '평균가', purchase_amount: '매입금액', valuation_amount: '평가금액/잔액' })[key]}: {before?.[key] || '—'} → {holding[key] || '—'}</p>)}</div>)}
-      <label className="form-field"><span className="form-label">변경 사유 (선택)</span><textarea className={input} maxLength={1000} onChange={(event) => changeReason(event.target.value)} rows={3} value={reason} /></label>
-    </ConfirmDialog>}
+    </SaveActivityConfirm>
     <div className="type-body grid gap-6">
       {canEdit ? <>
         <section className="grid gap-4"><h3 className="type-item-title">종목 정보</h3>

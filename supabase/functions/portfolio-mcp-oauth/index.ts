@@ -259,12 +259,13 @@ const toolHandlers: Record<string, ToolHandler> = {
     requireSchemaVersion(args)
     const instrument = requireRecord(args.instrument, 'instrument')
     if ('manual_price' in instrument || 'manual_price_date' in instrument) throw new ToolInputError('Prices are updated only by price sync')
-    return { ok: true, data: await rpc(supabase, 'app_save_asset_detail_current', {
+    return { ok: true, data: await rpc(supabase, 'app_save_asset_detail_with_activity', {
       input_instrument_id: requirePositiveInteger(args.instrument_id, 'instrument_id'),
       input_expected: requireRecord(args.expected, 'expected'), input_instrument: instrument,
       input_holdings: requireArray(args.holdings, 'holdings'),
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
       input_reason: optionalString(args.reason) ?? null,
+      input_activity_tag_ids: args.activity_tag_ids == null ? [] : requireArray(args.activity_tag_ids, 'activity_tag_ids').map((value, index) => requireUuid(value, `activity_tag_ids[${index}]`)),
     }) }
   },
   async delete_holding(supabase, args) {
@@ -301,8 +302,13 @@ const toolHandlers: Record<string, ToolHandler> = {
     requireSchemaVersion(args)
     const targets = requireArray(args.targets, 'targets')
     const expected = requireArray(args.expected_targets, 'expected_targets')
-    return { ok: true, data: await rpc(supabase, targets.length === 0 ? 'app_clear_allocation_targets' : 'app_save_allocation_targets',
-      targets.length === 0 ? { input_expected_targets: expected } : { input_targets: targets, input_expected_targets: expected }) }
+    const context = {
+      input_change_note: optionalString(args.change_note) ?? null,
+      input_activity_tag_ids: args.activity_tag_ids == null ? [] : requireArray(args.activity_tag_ids, 'activity_tag_ids').map((value, index) => requireUuid(value, `activity_tag_ids[${index}]`)),
+      input_idempotency_key: args.idempotency_key == null ? crypto.randomUUID() : requireUuid(args.idempotency_key, 'idempotency_key'),
+    }
+    return { ok: true, data: await rpc(supabase, targets.length === 0 ? 'app_clear_allocation_targets_with_activity' : 'app_save_allocation_targets_with_activity',
+      targets.length === 0 ? { input_expected_targets: expected, ...context } : { input_targets: targets, input_expected_targets: expected, ...context }) }
   },
   async update_entity_note(supabase, args) {
     requireSchemaVersion(args)
@@ -596,13 +602,14 @@ const toolHandlers: Record<string, ToolHandler> = {
     requireSchemaVersion(args)
     if (args.expected_body !== null && typeof args.expected_body !== 'string') throw new ToolInputError('expected_body must be a string or null')
     if (args.expected_change_note !== null && typeof args.expected_change_note !== 'string') throw new ToolInputError('expected_change_note must be a string or null')
-    const data = await rpc(supabase, 'app_save_principle_checked', {
+    const data = await rpc(supabase, 'app_save_principle_with_activity', {
       input_principle_id: requireUuid(args.principle_id, 'principle_id'),
       input_expected_row_id: args.expected_row_id == null ? null : requirePositiveInteger(args.expected_row_id, 'expected_row_id'),
       input_expected_body: args.expected_body,
       input_expected_change_note: args.expected_change_note,
       input_body: requireString(args.body, 'body'),
       input_change_note: args.change_note == null ? null : requireString(args.change_note, 'change_note'),
+      input_activity_tag_ids: args.activity_tag_ids == null ? [] : requireArray(args.activity_tag_ids, 'activity_tag_ids').map((value, index) => requireUuid(value, `activity_tag_ids[${index}]`)),
     })
     return { ok: true, data }
   },

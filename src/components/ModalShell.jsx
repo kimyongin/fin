@@ -154,10 +154,10 @@ export default function ModalShell({ children, closeDisabled = false, compact = 
   )
 }
 
-export function ConfirmDialog({ cancelLabel = '취소', confirmLabel, danger = false, description, error, onCancel, onConfirm, pending = false, title, children }) {
+export function ConfirmDialog({ cancelLabel = '취소', confirmDisabled = false, confirmLabel, danger = false, description, error, onCancel, onConfirm, pending = false, title, children }) {
   return createPortal(<ModalShell closeDisabled={pending} compact layer="confirmation" onClose={onCancel} title={title} footer={<div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
     <button className="type-action min-h-11 rounded-2xl border border-[var(--line)] px-4" disabled={pending} onClick={onCancel} type="button">{cancelLabel}</button>
-    <button className={`type-action min-h-11 rounded-2xl px-4 text-white disabled:opacity-50 ${danger ? 'bg-red-700' : 'bg-[var(--accent)]'}`} disabled={pending} onClick={onConfirm} type="button">{pending ? '처리 중…' : confirmLabel}</button>
+    <button className={`type-action min-h-11 rounded-2xl px-4 text-white disabled:opacity-50 ${danger ? 'bg-red-700' : 'bg-[var(--accent)]'}`} disabled={pending || confirmDisabled} onClick={onConfirm} type="button">{pending ? '처리 중…' : confirmLabel}</button>
   </div>}>
     <div className="type-body grid min-w-0 gap-3">
       {description && <p className="break-words text-[var(--muted-ink)]">{description}</p>}

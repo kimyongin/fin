@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import AssetViewToolbar from '../assets/AssetViewToolbar'
 import PrincipleJournal from './PrincipleJournal'
 import { clearAllocationTargets, createEmptyStrategyState, fetchStrategyState, saveAllocationTargets } from './data'
 import { formatKrw, formatPercent } from '../../lib/format'
 import { PagePanel } from '../../components/PageControls'
-import { ConfirmDialog } from '../../components/ModalShell'
+import SaveActivityConfirm from '../../components/SaveActivityConfirm'
 
 function cents(value) {
   const text = String(value ?? '').trim()
@@ -50,7 +50,10 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [targetConflict, setTargetConflict] = useState(false)
-  const [clearConfirm, setClearConfirm] = useState(false)
+  const [confirmKind, setConfirmKind] = useState(null)
+  const [contextResetKey, setContextResetKey] = useState(0)
+  const retryKey = useRef(null)
+  const lastConfirmKind = useRef(null)
   const tagRows = useMemo(() => {
     const byId = new Map(tags.map((tag) => [String(tag.id), tag]))
     for (const target of state.targets) if (!byId.has(String(target.tag_id))) byId.set(String(target.tag_id), { id: target.tag_id, name: target.tag_name })
@@ -94,30 +97,45 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
     return () => { window.removeEventListener('beforeunload', warn); window.removeEventListener('hashchange', guardTab) }
   }, [dirty])
 
-  async function save() {
+  async function save({ changeNote, activityTagIds }) {
     if (targetConflict) { setError('다른 곳에서 목표 비중이 변경됐습니다. 최신 목표를 불러온 뒤 다시 입력해 주세요.'); return }
     if (invalid || totalCents !== 10000) { setError('목표 비중을 0~100%, 소수점 둘째 자리까지 입력하고 합계를 100%로 맞춰 주세요.'); return }
     setSaving(true)
     setError('')
     try {
       const targets = tagRows.map((tag) => ({ tag_id: Number(tag.id), target_percentage: cents(draft[String(tag.id)] ?? savedDraft[String(tag.id)]) / 100 }))
-      const next = await saveAllocationTargets(supabase, { targets, expectedTargets: expectedTargets(state) })
+      retryKey.current ||= crypto.randomUUID()
+      const next = await saveAllocationTargets(supabase, { targets, expectedTargets: expectedTargets(state), changeNote, activityTagIds, idempotencyKey: retryKey.current })
       setState(next)
       setDraft(draftFromState(next, tagRows))
+      setConfirmKind(null)
+      setContextResetKey((value) => value + 1)
+      retryKey.current = null
     } catch (cause) { setError(cause.message ?? '배분 목표를 저장하지 못했습니다.') }
     finally { setSaving(false) }
   }
 
-  async function clearTargets() {
+  async function clearTargets({ changeNote, activityTagIds }) {
     if (saving || targetConflict) return
     setSaving(true); setError('')
     try {
-      const next = await clearAllocationTargets(supabase, expectedTargets(state))
+      retryKey.current ||= crypto.randomUUID()
+      const next = await clearAllocationTargets(supabase, { expectedTargets: expectedTargets(state), changeNote, activityTagIds, idempotencyKey: retryKey.current })
       setState(next)
       setDraft(draftFromState(next, tagRows))
-      setClearConfirm(false)
+      setConfirmKind(null)
+      setContextResetKey((value) => value + 1)
+      retryKey.current = null
     } catch (cause) { setError(cause.message ?? '목표를 초기화하지 못했습니다.') }
     finally { setSaving(false) }
+  }
+
+  function openSaveConfirm(kind) {
+    if (lastConfirmKind.current && lastConfirmKind.current !== kind) setContextResetKey((value) => value + 1)
+    lastConfirmKind.current = kind
+    setError('')
+    retryKey.current = null
+    setConfirmKind(kind)
   }
 
   async function refreshAfterTagChange() {
@@ -142,7 +160,7 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
   if (error && !loaded && showStrategy) return <PagePanel title="태그별 배분" supporting={<div className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}<button className="ml-3 min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => setRefreshKey((value) => value + 1)} type="button">다시 시도</button></div>} />
 
   return <section className="grid gap-5">
-    {clearConfirm && <ConfirmDialog title="목표 비중 초기화" description={`설정한 모든 목표 비중을 지우고 미설정 상태로 돌릴까요? 태그와 자산은 그대로 남습니다.${dirty ? ' 저장하지 않은 입력은 버려집니다.' : ''}`} confirmLabel="목표 초기화" danger error={error} pending={saving} onCancel={() => { setClearConfirm(false); setError('') }} onConfirm={clearTargets} />}
+    <SaveActivityConfirm title={confirmKind === 'clear' ? '목표 비중 초기화' : '변경 내용 저장'} description={confirmKind === 'clear' ? `설정한 모든 목표 비중을 지우고 미설정 상태로 돌릴까요? 태그와 자산은 그대로 남습니다.${dirty ? ' 저장하지 않은 입력은 버려집니다.' : ''}` : '입력한 목표 비중을 저장할까요?'} danger={confirmKind === 'clear'} error={error} onCancel={() => { setConfirmKind(null); setError('') }} onConfirm={confirmKind === 'clear' ? clearTargets : save} onContextChange={() => { retryKey.current = null }} open={Boolean(confirmKind)} pending={saving} resetKey={contextResetKey} supabase={supabase} />
     <PagePanel title="태그별 배분" actions={canEdit ? assetToolbar : null} status={ownerUserId ? '공유 · 읽기 전용' : null} supporting={<>
       <p>전체 계좌 · {showAssets ? `확인 가능한 평가액 ${formatKrw(totalValue)}` : '현재 자산은 공유되지 않았습니다.'}</p>
       {showAssets && valuationQuality?.isComplete === false && <p className="mt-2 text-sm text-amber-200">시세 또는 환율이 빠져 현재 비중과 차이를 정확히 계산할 수 없습니다.</p>}
@@ -172,7 +190,7 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
     </section>
     {canEdit && showStrategy && <footer className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
       <p className={`type-value type-number ${totalCents === 10000 ? 'text-[var(--ink)]' : 'text-amber-200'}`}>목표 합계 {totalCents === null ? '입력 확인 필요' : `${(totalCents / 100).toFixed(2)}%`} / 100%</p>
-      <div className="flex flex-wrap gap-2">{state.configured && <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={saving || targetConflict} onClick={() => { setError(''); setClearConfirm(true) }} type="button">목표 초기화</button>}{(dirty || saving) && <><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={saving} onClick={() => { setDraft(savedDraft); setTargetConflict(false); setError('') }} type="button">취소</button><button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" disabled={saving || targetConflict || tagRows.length === 0 || invalid || totalCents !== 10000} onClick={save} type="button">{saving ? '저장 중…' : '저장'}</button></>}</div>
+      <div className="flex flex-wrap gap-2">{state.configured && <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={saving || targetConflict} onClick={() => openSaveConfirm('clear')} type="button">목표 초기화</button>}{(dirty || saving) && <><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={saving} onClick={() => { setDraft(savedDraft); setTargetConflict(false); setError(''); retryKey.current = null; setContextResetKey((value) => value + 1) }} type="button">취소</button><button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" disabled={saving || targetConflict || tagRows.length === 0 || invalid || totalCents !== 10000} onClick={() => openSaveConfirm('save')} type="button">{saving ? '저장 중…' : '저장'}</button></>}</div>
     </footer>}
   </section>
 }
