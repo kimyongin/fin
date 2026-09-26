@@ -1,4 +1,3 @@
-import { normalizeTickerInput, today } from '../../lib/portfolioMath'
 import { normalizeEditableInstrumentType } from '../../constants/portfolio'
 
 function escapeCsvCell(value) {
@@ -58,49 +57,5 @@ export function createInstrumentModalDraft({ instrument = null, tagId = '' }) {
     instrument_type: normalizeEditableInstrumentType(instrument?.instrument_type),
     note: instrument?.note ?? '',
     tag_id: tagId ? String(tagId) : '',
-  }
-}
-
-export function createHoldingLookupResult({ instrument = null, latestPrice = null, ticker = '' }) {
-  if (!ticker) return null
-
-  return {
-    ticker,
-    display_name: instrument?.display_name ?? ticker,
-    currency: instrument?.currency ?? 'KRW',
-    instrument_type: normalizeEditableInstrumentType(instrument?.instrument_type),
-    price: Number.isFinite(latestPrice?.close_price) ? latestPrice.close_price : null,
-    price_date: latestPrice?.price_date ?? today(),
-    source: instrument ? 'existing' : 'manual',
-  }
-}
-
-export function createHoldingModalDraft({
-  accountId = null,
-  holding = null,
-  instruments = [],
-  latestPriceByTicker,
-  ticker = '',
-}) {
-  const initialTicker = normalizeTickerInput(holding?.ticker ?? ticker ?? '')
-  const initialInstrument =
-    instruments.find((item) => item.ticker === initialTicker) ?? holding?.instruments ?? null
-  const initialLatestPrice = initialTicker ? latestPriceByTicker.get(initialTicker) : null
-
-  return {
-    draft: {
-      id: holding?.id ?? null,
-      account_id: String(holding?.account_id ?? accountId ?? ''),
-      ticker: initialTicker,
-      quantity: holding?.quantity?.toString?.() ?? '',
-      avg_price: holding?.avg_price?.toString?.() ?? '',
-      purchase_amount: holding?.purchase_amount?.toString?.() ?? '',
-      valuation_amount: holding?.valuation_amount?.toString?.() ?? '',
-    },
-    lookupResult: createHoldingLookupResult({
-      instrument: initialInstrument,
-      latestPrice: initialLatestPrice,
-      ticker: initialTicker,
-    }),
   }
 }

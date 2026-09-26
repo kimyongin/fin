@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   buildPortfolioCsv,
   createAccountModalDraft,
-  createHoldingLookupResult,
-  createHoldingModalDraft,
   createInstrumentModalDraft,
 } from './helpers'
 
@@ -79,30 +77,4 @@ describe('portfolio helpers', () => {
 
   })
 
-  it('creates holding drafts and lookup results from instruments and prices', () => {
-    const latestPriceByTicker = new Map([['AAPL', { close_price: 200, price_date: '2026-07-12' }]])
-    const instruments = [{ ticker: 'AAPL', display_name: 'Apple', currency: 'USD', instrument_type: 'stock' }]
-
-    expect(createHoldingLookupResult({ ticker: '' })).toBeNull()
-    expect(createHoldingModalDraft({ accountId: 5, instruments, latestPriceByTicker, ticker: ' aapl ' })).toEqual({
-      draft: {
-        id: null,
-        account_id: '5',
-        ticker: 'AAPL',
-        quantity: '',
-        avg_price: '',
-        purchase_amount: '',
-        valuation_amount: '',
-      },
-      lookupResult: {
-        ticker: 'AAPL',
-        display_name: 'Apple',
-        currency: 'USD',
-        instrument_type: 'market',
-        price: 200,
-        price_date: '2026-07-12',
-        source: 'existing',
-      },
-    })
-  })
 })

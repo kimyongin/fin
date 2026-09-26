@@ -1,9 +1,7 @@
 import { createAccountActions } from './accountActions'
-import { createHoldingActions } from './holdingActions'
 import { createInstrumentActions } from './instrumentActions'
 import {
   createAccountModalDraft,
-  createHoldingModalDraft,
   createInstrumentModalDraft,
 } from './helpers'
 import { portfolioMessages } from './messages'
@@ -21,23 +19,14 @@ export function createPortfolioActions(params) {
   const {
     accountModal,
     canEdit,
-    holdingLookupResult,
-    holdingModal,
     holdingsByAccountId,
     holdingsByTicker,
     instrumentModal,
     instrumentLookupResult,
-    latestPriceByTicker,
     refreshState,
     setAccountError,
     setAccountModal,
     setAccountSaving,
-    setHoldingError,
-    setHoldingLookupError,
-    setHoldingLookupResult,
-    setHoldingLookupSaving,
-    setHoldingModal,
-    setHoldingSaving,
     setInstrumentError,
     setInstrumentLookupError,
     setInstrumentLookupResult,
@@ -50,7 +39,6 @@ export function createPortfolioActions(params) {
     state,
     supabase,
     tagMapByTicker,
-    today,
     onInstrumentSaved,
   } = params
   const callRpc = createRpcCaller(supabase)
@@ -80,19 +68,6 @@ export function createPortfolioActions(params) {
     setInstrumentModal(createInstrumentModalDraft({ instrument, tagId }))
   }
 
-  function openHolding(options = {}) {
-    if (!canEdit) return
-    setHoldingError('')
-    setHoldingLookupError('')
-    const { draft, lookupResult } = createHoldingModalDraft({
-      ...options,
-      instruments: state.instruments,
-      latestPriceByTicker,
-    })
-    setHoldingLookupResult(lookupResult)
-    setHoldingModal(draft)
-  }
-
   async function handleSyncPrices() {
     if (!canEdit) return
     setSyncingPrices(true)
@@ -112,11 +87,9 @@ export function createPortfolioActions(params) {
 
   return {
     ...createAccountActions({ accountModal, callRpc, canEdit, holdingsByAccountId, refreshAfterMutation, setAccountError, setAccountModal, setAccountSaving }),
-    ...createHoldingActions({ callRpc, canEdit, holdingLookupResult, holdingModal, latestPriceByTicker, refreshAfterMutation, refreshState, setHoldingError, setHoldingLookupError, setHoldingLookupResult, setHoldingLookupSaving, setHoldingModal, setHoldingSaving, state, supabase }),
     ...createInstrumentActions({ callRpc, canEdit, holdingsByTicker, instrumentModal, instrumentLookupResult, onInstrumentSaved, refreshAfterMutation, setInstrumentError, setInstrumentLookupError, setInstrumentLookupResult, setInstrumentLookupSaving, setInstrumentModal, setInstrumentSaving, state, supabase }),
     handleSyncPrices,
     openAccount,
-    openHolding,
     openInstrument,
   }
 }

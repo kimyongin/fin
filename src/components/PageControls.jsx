@@ -113,12 +113,4 @@ export function FilterChips({ ariaLabel, onChange, options, value }) {
   )
 }
 
-export function PageToolbar({ children, secondary }) {
-  return (
-    <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
-      <div className="min-w-0">{children}</div>
-      {secondary && <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">{secondary}</div>}
-    </div>
-  )
-}
 import { useEffect, useRef, useState } from 'react'

@@ -283,7 +283,6 @@ function App() {
     setAssetAccountId('all')
     setAssetQuery('')
     editor.setAccountModal(null)
-    editor.setHoldingModal(null)
     editor.setInstrumentModal(null)
     if (ownerUserId === 'owner') {
       setViewContext(createOwnerViewContext(session.user.id))
@@ -441,16 +440,12 @@ function App() {
 
   const {
     handleDeleteAccount,
-    handleDeleteHolding,
     handleDeleteInstrument,
     handleLookupInstrumentTicker,
-    handleLookupHoldingTicker,
     handleSaveAccount,
-    handleSaveHolding,
     handleSaveInstrument,
     handleSyncPrices,
     openAccount: openAccountModal,
-    openHolding: openHoldingModal,
     openInstrument: openInstrumentModal,
   } = createPortfolioActions({
     canEdit,
@@ -607,7 +602,6 @@ function App() {
             registeredTicker={registeredTicker}
             onRegisteredTickerHandled={() => setRegisteredTicker(null)}
             onEditAccount={(account) => openAccountModal(account)}
-            onEditHolding={(holding) => openHoldingModal({ holding })}
             onEditInstrument={(instrument) => openInstrumentModal(instrument)}
             onSpreadsheetSave={handleSpreadsheetSave}
             onSheetDirtyChange={setSheetDirty}
@@ -716,12 +710,9 @@ function App() {
           accounts={state.accounts}
           instruments={state.instruments}
           onDeleteAccount={handleDeleteAccount}
-          onDeleteHolding={handleDeleteHolding}
           onDeleteInstrument={handleDeleteInstrument}
-          onLookupHoldingTicker={handleLookupHoldingTicker}
           onLookupInstrumentTicker={handleLookupInstrumentTicker}
           onSaveAccount={handleSaveAccount}
-          onSaveHolding={handleSaveHolding}
           onSaveInstrument={handleSaveInstrument}
           tags={state.tags}
         />

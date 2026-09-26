@@ -37,7 +37,3 @@ export async function listTransactionPage(supabase, { accountId = null, cursor =
   if (error) throw error
   return { items: Array.isArray(data?.items) ? data.items : [], nextCursor: data?.next_cursor ?? null }
 }
-
-export async function listTransactions(supabase, filters = {}) {
-  return (await listTransactionPage(supabase, filters)).items
-}

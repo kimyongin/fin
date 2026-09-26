@@ -19,22 +19,13 @@ function createParams(overrides = {}) {
   return {
     accountModal: null,
     canEdit: true,
-    holdingLookupResult: null,
-    holdingModal: null,
     holdingsByAccountId: new Map(),
     holdingsByTicker: new Map(),
     instrumentModal: null,
-    latestPriceByTicker: new Map(),
     refreshState: vi.fn(async () => {}),
     setAccountError: vi.fn(),
     setAccountModal: vi.fn(),
     setAccountSaving: vi.fn(),
-    setHoldingError: vi.fn(),
-    setHoldingLookupError: vi.fn(),
-    setHoldingLookupResult: vi.fn(),
-    setHoldingLookupSaving: vi.fn(),
-    setHoldingModal: vi.fn(),
-    setHoldingSaving: vi.fn(),
     setInstrumentError: vi.fn(),
     setInstrumentModal: vi.fn(),
     setInstrumentSaving: vi.fn(),
@@ -44,7 +35,6 @@ function createParams(overrides = {}) {
     state: { accounts: [], holdings: [], instruments: [], tags: [] },
     supabase,
     tagMapByTicker: new Map(),
-    today: () => '2026-07-12',
     ...overrides,
   }
 }
@@ -159,95 +149,6 @@ describe('createPortfolioActions', () => {
     await createPortfolioActions(params).handleSaveInstrument()
     expect(params.supabase.rpc).not.toHaveBeenCalled()
     expect(params.setInstrumentError).toHaveBeenCalledWith(expect.stringContaining('조회'))
-  })
-
-  it('saves a holding through the app_save_holding RPC', async () => {
-    const params = createParams({
-      holdingModal: {
-        id: null,
-        account_id: '2',
-        ticker: ' msft ',
-        quantity: '3.5',
-        avg_price: '100',
-      },
-      state: {
-        accounts: [],
-        holdings: [],
-        instruments: [{ ticker: 'MSFT', display_name: 'Microsoft', currency: 'USD', instrument_type: 'stock' }],
-        tags: [],
-      },
-    })
-    const actions = createPortfolioActions(params)
-
-    await actions.handleSaveHolding()
-
-    expect(params.supabase.rpc).toHaveBeenCalledWith('app_save_holding', {
-      input_holding_id: null,
-      input_account_id: 2,
-      input_ticker: 'MSFT',
-      input_quantity: 3.5,
-      input_avg_price: 100,
-      input_source: 'user',
-      input_request: null,
-    })
-    expect(params.refreshState).toHaveBeenCalledOnce()
-    expect(params.setHoldingModal).toHaveBeenCalledWith(null)
-    expect(params.setHoldingLookupResult).toHaveBeenCalledWith(null)
-  })
-
-  it('saves a valuation holding without quantity or average price', async () => {
-    const params = createParams({
-      holdingModal: {
-        id: 19,
-        account_id: '2',
-        ticker: 'VALUATION:BOND',
-        quantity: '',
-        avg_price: '',
-        purchase_amount: '17914440',
-        valuation_amount: '19319396',
-      },
-      state: {
-        accounts: [], holdings: [],
-        instruments: [{ ticker: 'VALUATION:BOND', display_name: '단기채', currency: 'KRW', instrument_type: 'valuation' }],
-        tags: [],
-      },
-    })
-    const actions = createPortfolioActions(params)
-
-    await actions.handleSaveHolding()
-
-    expect(params.supabase.rpc).toHaveBeenCalledWith('app_save_valuation_holding', {
-      input_holding_id: 19,
-      input_account_id: 2,
-      input_ticker: 'VALUATION:BOND',
-      input_purchase_amount: 17914440,
-      input_valuation_amount: 19319396,
-      input_source: 'user',
-      input_request: null,
-    })
-  })
-
-  it('saves a cash holding as a balance without average price', async () => {
-    const params = createParams({
-      holdingModal: { id: null, account_id: '2', ticker: 'KRW', quantity: '', avg_price: '', valuation_amount: '3000000' },
-      state: {
-        accounts: [], holdings: [],
-        instruments: [{ ticker: 'KRW', display_name: '예수금', currency: 'KRW', instrument_type: 'cash' }],
-        tags: [],
-      },
-    })
-    const actions = createPortfolioActions(params)
-
-    await actions.handleSaveHolding()
-
-    expect(params.supabase.rpc).toHaveBeenCalledWith('app_save_cash_holding', {
-      input_holding_id: null,
-      input_account_id: 2,
-      input_ticker: 'KRW',
-      input_balance: 3000000,
-      input_source: 'user',
-      input_request: null,
-    })
   })
 
   it('invokes sync-prices and refreshes the saved prices', async () => {

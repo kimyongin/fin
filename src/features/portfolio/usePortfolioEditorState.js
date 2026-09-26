@@ -10,12 +10,6 @@ export function usePortfolioEditorState() {
   const [instrumentLookupSaving, setInstrumentLookupSaving] = useState(false)
   const [instrumentLookupError, setInstrumentLookupError] = useState('')
   const [instrumentLookupResult, setInstrumentLookupResult] = useState(null)
-  const [holdingModal, setHoldingModal] = useState(null)
-  const [holdingSaving, setHoldingSaving] = useState(false)
-  const [holdingError, setHoldingError] = useState('')
-  const [holdingLookupSaving, setHoldingLookupSaving] = useState(false)
-  const [holdingLookupError, setHoldingLookupError] = useState('')
-  const [holdingLookupResult, setHoldingLookupResult] = useState(null)
   const [syncingPrices, setSyncingPrices] = useState(false)
   const [syncMessage, setSyncMessage] = useState('')
 
@@ -23,12 +17,6 @@ export function usePortfolioEditorState() {
     accountError,
     accountModal,
     accountSaving,
-    holdingError,
-    holdingLookupError,
-    holdingLookupResult,
-    holdingLookupSaving,
-    holdingModal,
-    holdingSaving,
     instrumentError,
     instrumentLookupSaving,
     instrumentLookupError,
@@ -38,12 +26,6 @@ export function usePortfolioEditorState() {
     setAccountError,
     setAccountModal,
     setAccountSaving,
-    setHoldingError,
-    setHoldingLookupError,
-    setHoldingLookupResult,
-    setHoldingLookupSaving,
-    setHoldingModal,
-    setHoldingSaving,
     setInstrumentError,
     setInstrumentLookupSaving,
     setInstrumentLookupError,
