@@ -35,6 +35,7 @@ test('filters asset rows and summary together, then removes a newly tagged holdi
   const detail = page.getByRole('dialog', { name: `필터 테스트 ${ticker}` })
   await detail.getByRole('button', { name: 'E2E Tag' }).click()
   await detail.getByRole('button', { name: '저장' }).click()
+  await page.getByRole('dialog', { name: '변경 내용 저장' }).getByRole('button', { name: '저장' }).click()
   await expect(detail.getByText('저장되었습니다.')).toBeVisible()
   await detail.getByRole('button', { name: '닫기' }).last().click()
   await expect(row).toHaveCount(0)

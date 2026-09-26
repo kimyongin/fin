@@ -144,7 +144,11 @@ test('submits product feedback and lets an allowlisted operator return a result'
   await card.getByLabel('상태').selectOption('resolved')
   await card.getByLabel('사용자에게 보일 답변').fill('다음 배포에서 모바일 탐색을 개선했습니다.')
   await card.getByLabel('GitHub 이슈 주소 (선택)').fill('https://github.com/kimyongin/fin/issues/68')
-  await card.getByRole('button', { name: '처리 결과 저장', exact: true }).click()
+  await Promise.all([
+    page.waitForResponse((response) => response.url().includes('/rpc/app_update_product_feedback_admin') && response.ok()),
+    card.getByRole('button', { name: '처리 결과 저장', exact: true }).click(),
+  ])
+  await expect(card.getByRole('button', { name: '처리 결과 저장', exact: true })).toBeEnabled()
   await page.getByRole('tab', { name: '내 피드백', exact: true }).click()
   await expect(page.getByText('처리 완료')).toBeVisible()
   await expect(page.getByText('다음 배포에서 모바일 탐색을 개선했습니다.')).toBeVisible()
@@ -429,7 +433,7 @@ test('retries a principle after a lost save response without creating a second r
   await editor.getByRole('button', { name: '저장' }).click()
   const saveConfirm = page.getByRole('dialog', { name: '변경 내용 저장' })
   await saveConfirm.getByRole('button', { name: '저장' }).click()
-  await expect(page.getByRole('alert').getByText('응답 유실')).toBeVisible()
+  await expect(saveConfirm.getByRole('alert').getByText('응답 유실')).toBeVisible()
   await saveConfirm.getByRole('button', { name: '저장' }).click()
   await expect(editor).toBeHidden()
   const current = await callRpc(page, 'app_list_principles', { input_on: null, input_timezone: 'Asia/Seoul', input_include_ended: true })

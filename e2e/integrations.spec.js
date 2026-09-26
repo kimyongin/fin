@@ -91,7 +91,7 @@ test('registers a zero-holding instrument, then adds its first holding from deta
   await detail.getByLabel('수량').fill('2')
   await detail.getByLabel('평균가').fill('100')
   await detail.getByRole('button', { name: '저장', exact: true }).click()
-  await page.getByRole('dialog', { name: '보유값 변경 확인' }).getByRole('button', { name: '저장' }).click()
+  await page.getByRole('dialog', { name: '변경 내용 저장' }).getByRole('button', { name: '저장' }).click()
   await expect(detail.getByText('저장되었습니다.')).toBeVisible()
   const after = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(after.body.holdings.find((item) => item.ticker === ticker)?.quantity).toBe(2)
