@@ -54,6 +54,14 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-27 저장 확인에서 활동 태그 지정 (#159)
+
+- 앱 commit: `0d6a0db` (`946d703` 기능, `0d6a0db` 전체 브라우저 검사 보정). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36261743665)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36262093209) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-Crnp0iif.js` HTTP 200 및 새 `app_save_principle_with_activity` 호출 포함 확인.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`: 추가 migration `20260926171459_activity_tags_on_domain_save.sql` 한 개 적용. 적용 후 원격 dry-run에서 미적용 migration 없음. seed·DB reset·기존 migration 수정은 하지 않았다.
+- Edge Function: `portfolio-mcp-oauth` v9 배포, `verify_jwt=false` 설정 유지. 기존 토큰 MCP 함수와 시세 함수는 이번에 변경하지 않았다. 인증된 운영 RPC 호환성 검사와 Edge 타입 검사가 CI에서 통과했다.
+- 로컬 DB 713건, 단위 114건, OAuth MCP 저장·조회 계약과 자산·배분·원칙의 임시 계정 Chromium 저장 확인을 통과했다. CI에서는 격리 DB/MCP·Chromium 84건, 가이드·Edge 타입·빌드·운영 인증 호환성이 통과했다. 보안 advisor에서 이번 새 함수의 익명 실행 허용 항목은 없었다.
+- 실제 본인/친구 Google 로그인, ChatGPT 웹·모바일 저장 호출, 모바일 실기기 및 0/30개·긴 활동 태그 상태는 아직 수동 확인하지 않았다. 직전 정상 공개 앱 비교 기준은 `d1c8103`이며, 서버 migration은 additive로 유지한다.
+
 ### 2026-09-27 도메인 CRUD 동등성 배포
 
 - 앱 commit: `d1c8103` (#151~#158의 로컬 수직 슬라이스와 검증 게이트). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36253675690)와 후속 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36254028217) 성공. 공개 <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-CGCApIbh.js` HTTP 200 및 원칙 이력 삭제·피드백 삭제·공유 설정 초기화 문구 확인.
