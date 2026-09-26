@@ -54,6 +54,13 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-26 자산 목록 환율 기준 표시
+
+- 앱 commit: `480a2db`. 자산 목록 하단에 현재 목록의 외화 보유에 필요한 최신 저장 환율·각 기준일을 표시한다. 누락·오래된 환율은 구분하며 DB/API 계약은 변경하지 않았다.
+- [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36242060303)와 후속 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36242345788) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 새 번들 `/fin/assets/index-DgDziE-t.js` HTTP 200 및 `환율 기준` 문구 확인.
+- 로컬 단위 테스트 22파일/109건, 빌드·인코딩·diff 검사, 격리 자산 목록 E2E 통과. CI의 unit·가이드·Edge 타입·인증된 운영 읽기 RPC·격리 DB/브라우저 검사도 통과했다. 실제 사용자 계정·친구 보기·모바일 실기기 확인은 별도로 남아 있다.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`: 새 migration·Edge Function 변경 없음. 마지막 정상 공개 앱 비교 기준은 `41a8ef7`이며 복귀 전 현행 DB와의 호환성을 확인한다.
+
 ### 2026-09-26 직접평가·현금성 경고 수정
 
 - 앱 commit: `41a8ef7`. 평가형·현금성에 남은 과거 종목 가격이 `stale_price`로 표시되던 화면 계산을 서버 판정과 일치시켰다. 실제 환산에 필요한 오래된 외화 환율 경고는 유지한다.
