@@ -135,6 +135,36 @@ test('renders saved holdings, account scope, allocation and spreadsheet', async 
   await expect(page.locator('input[value="E2E Apple"]')).toBeVisible()
 })
 
+test('retries a failed spreadsheet save and refreshes the asset list after success', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  await page.goto('/#overview')
+  await clickPageAction(page, '자산', '표 편집')
+  const spreadsheet = page.getByRole('dialog', { name: '표 편집' })
+  const name = spreadsheet.getByRole('textbox', { name: '종목명' }).first()
+  await expect(name).toHaveValue('E2E Apple')
+  await name.fill('E2E Apple revised')
+  await page.route('**/rest/v1/rpc/app_bulk_save_portfolio_rows', (route) => route.fulfill({
+    status: 503, contentType: 'application/json', body: JSON.stringify({ message: '임시 저장 실패' }),
+  }))
+  await spreadsheet.getByRole('button', { name: '표 저장' }).click()
+  await expect(spreadsheet.getByText('임시 저장 실패')).toBeVisible()
+  await expect(name).toHaveValue('E2E Apple revised')
+  await page.unroute('**/rest/v1/rpc/app_bulk_save_portfolio_rows')
+  await spreadsheet.getByRole('button', { name: '표 저장' }).click()
+  await expect(spreadsheet.getByText(/계좌 .*개, 종목 .*개, 보유내역 .*개를 저장했습니다/)).toBeVisible()
+  await spreadsheet.getByRole('button', { name: '닫기' }).click()
+  await expect(page.getByRole('button', { name: /E2E Apple revised/ })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('button', { name: /E2E Apple revised/ })).toBeVisible()
+  await clickPageAction(page, '자산', '표 편집')
+  const restoredSpreadsheet = page.getByRole('dialog', { name: '표 편집' })
+  await restoredSpreadsheet.getByRole('textbox', { name: '종목명' }).first().fill('E2E Apple')
+  await restoredSpreadsheet.getByRole('button', { name: '표 저장' }).click()
+  await expect(restoredSpreadsheet.getByText(/계좌 .*개, 종목 .*개, 보유내역 .*개를 저장했습니다/)).toBeVisible()
+  await restoredSpreadsheet.getByRole('button', { name: '닫기' }).click()
+  await expect(page.getByRole('button', { name: /E2E Apple/ })).toBeVisible()
+})
+
 test('aggregates one ticker across accounts and preserves the chosen scope after detail and allocation', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#overview')

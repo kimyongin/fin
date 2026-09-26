@@ -31,9 +31,17 @@ test('navigates the authenticated browser through strategy, activity, and settin
   await expect(masterSharing).toHaveAttribute('aria-checked', originallyEnabled ? 'false' : 'true')
   await expect(saveSharing).toBeEnabled()
   await expect(page.getByRole('switch')).toHaveCount(1)
+  await page.route('**/rest/v1/rpc/set_viewer_profile', (route) => route.fulfill({
+    status: 503, contentType: 'application/json', body: JSON.stringify({ message: '임시 공유 저장 실패' }),
+  }))
+  await saveSharing.click()
+  await expect(page.getByText('임시 공유 저장 실패')).toBeVisible()
+  await expect(masterSharing).toHaveAttribute('aria-checked', originallyEnabled ? 'false' : 'true')
+  await expect(saveSharing).toBeEnabled()
+  await page.unroute('**/rest/v1/rpc/set_viewer_profile')
   await saveSharing.click()
   await expect(saveSharing).toBeDisabled()
-  expect(sharingWrites).toBe(1)
+  expect(sharingWrites).toBe(2)
   await page.reload()
   await expect(masterSharing).toHaveAttribute('aria-checked', originallyEnabled ? 'false' : 'true')
   await masterSharing.click()
@@ -92,6 +100,9 @@ test('saves an icon on selection and restores it after a failed save', async ({ 
   await expect(page.getByRole('button', { name: '내 프로필' })).toContainText(target.symbol)
   await expect(page.getByRole('alert')).toContainText('저장 실패')
   await page.unroute('**/rest/v1/rpc/app_set_profile_avatar')
+  await page.getByRole('button', { name: '메뉴 열기' }).click()
+  await page.getByRole('group', { name: '보조 메뉴' }).getByRole('button', { name: '로그아웃' }).click()
+  await expect(page.getByRole('heading', { name: '포트폴리오' })).toBeVisible()
 })
 
 test('keeps whole-sharing cards usable across screen widths', async ({ page }) => {
@@ -219,7 +230,7 @@ test('guides a new user from empty assets through OAuth setup and first review',
 
 test('keeps the four primary page controls readable across viewport widths', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
-  for (const width of [360, 390, 768, 1024, 1440]) {
+  for (const width of [360, 390, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 900 })
     for (const [hash, title] of [
       ['overview', '자산'],
