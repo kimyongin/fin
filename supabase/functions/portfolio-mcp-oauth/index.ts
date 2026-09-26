@@ -231,6 +231,28 @@ const toolHandlers: Record<string, ToolHandler> = {
       input_source: 'agent', input_request: null,
     }) }
   },
+  async save_asset_tag(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_save_tag', {
+      input_tag_id: args.tag_id == null ? null : requirePositiveInteger(args.tag_id, 'tag_id'),
+      input_name: requireString(args.name, 'name'),
+      input_sort_order: requireNonnegativeInteger(args.sort_order, 'sort_order'),
+      input_source: 'agent', input_request: null,
+    }) }
+  },
+  async delete_asset_tag(supabase, args) {
+    requireSchemaVersion(args)
+    return { ok: true, data: await rpc(supabase, 'app_delete_tag', {
+      input_tag_id: requirePositiveInteger(args.tag_id, 'tag_id'), input_source: 'agent', input_request: null,
+    }) }
+  },
+  async save_allocation_targets(supabase, args) {
+    requireSchemaVersion(args)
+    const targets = requireArray(args.targets, 'targets')
+    const expected = requireArray(args.expected_targets, 'expected_targets')
+    return { ok: true, data: await rpc(supabase, targets.length === 0 ? 'app_clear_allocation_targets' : 'app_save_allocation_targets',
+      targets.length === 0 ? { input_expected_targets: expected } : { input_targets: targets, input_expected_targets: expected }) }
+  },
   async update_entity_note(supabase, args) {
     requireSchemaVersion(args)
     const entityType = requireString(args.entity_type, 'entity_type')

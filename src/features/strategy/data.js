@@ -21,6 +21,14 @@ export async function saveAllocationTargets(supabase, { targets, expectedTargets
   return { ...createEmptyStrategyState(), ...(data ?? {}) }
 }
 
+export async function clearAllocationTargets(supabase, expectedTargets) {
+  const { data, error } = await supabase.rpc('app_clear_allocation_targets', {
+    input_expected_targets: expectedTargets,
+  })
+  if (error) throw error
+  return { ...createEmptyStrategyState(), ...(data ?? {}) }
+}
+
 export async function fetchPrinciples(supabase, { onDate = null, includeEnded = false, ownerUserId = null } = {}) {
   const { data, error } = await supabase.rpc('app_list_principles', {
     input_on: onDate,

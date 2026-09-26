@@ -71,7 +71,7 @@ try {
   assert(discoveredNames.has('list_due_general_tasks'), 'Due task tool was not discovered')
   const dueTasks = await call(session.access_token, 'tools/call', { name: 'list_due_general_tasks', arguments: { limit: 10, offset: 0 } })
   assert(dueTasks.body?.result?.isError === false && Array.isArray(dueTasks.body?.result?.structuredContent?.data?.items), 'Due task MCP read failed')
-  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','update_entity_note','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument']) {
+  for (const currentTool of ['list_principles','save_principle','list_principle_changes','get_principle_row','correct_principle_row','delete_principle_row','get_portfolio_state','update_entity_note','save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets']) {
     assert(discoveredNames.has(currentTool), `${currentTool} was not advertised`)
   }
   for (const legacyTool of ['get_news_state','get_investment_policy','save_investment_policy','get_holding_thesis','save_holding_thesis','link_task_to_holding_thesis','list_private_holding_notes','save_private_holding_note']) {
@@ -310,6 +310,27 @@ try {
   } })
   const newAccountId = newAccount.body?.result?.structuredContent?.data?.[0]?.account_id
   assert(newAccountId, 'OAuth account creation failed')
+  const savedTag = await call(session.access_token, 'tools/call', { name: 'save_asset_tag', arguments: {
+    schema_version: 1, tag_id: null, name: 'MCP CRUD Tag', sort_order: 0,
+  } })
+  const tagId = savedTag.body?.result?.structuredContent?.data?.[0]?.tag_id
+  assert(tagId, 'OAuth asset tag creation failed')
+  const savedTargets = await call(session.access_token, 'tools/call', { name: 'save_allocation_targets', arguments: {
+    schema_version: 1, targets: [{ tag_id: tagId, target_percentage: 100 }], expected_targets: [],
+  } })
+  assert(savedTargets.body?.result?.structuredContent?.data?.configured === true, 'OAuth allocation save failed')
+  const blockedTagDelete = await call(session.access_token, 'tools/call', { name: 'delete_asset_tag', arguments: {
+    schema_version: 1, tag_id: tagId,
+  } })
+  assert(blockedTagDelete.body?.result?.isError === true, 'Positive allocation target did not block tag deletion')
+  const clearedTargets = await call(session.access_token, 'tools/call', { name: 'save_allocation_targets', arguments: {
+    schema_version: 1, targets: [], expected_targets: [{ tag_id: tagId, target_percentage: 100 }],
+  } })
+  assert(clearedTargets.body?.result?.structuredContent?.data?.configured === false, 'OAuth allocation clear failed')
+  const deletedTag = await call(session.access_token, 'tools/call', { name: 'delete_asset_tag', arguments: {
+    schema_version: 1, tag_id: tagId,
+  } })
+  assert(deletedTag.body?.result?.isError === false, 'OAuth asset tag deletion failed')
   const newInstrument = await call(session.access_token, 'tools/call', { name: 'create_instrument', arguments: {
     schema_version: 1, ticker: 'MCP-CRUD-TEST', display_name: 'MCP CRUD Asset', currency: 'KRW', instrument_type: 'market', tag_id: null, note: null,
   } })

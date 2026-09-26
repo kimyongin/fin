@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { correctPrincipleRow, deletePrincipleRow, fetchPrincipleChanges, fetchPrinciples, saveAllocationTargets, savePrinciple } from './data'
+import { clearAllocationTargets, correctPrincipleRow, deletePrincipleRow, fetchPrincipleChanges, fetchPrinciples, saveAllocationTargets, savePrinciple } from './data'
 
 describe('principle revision data adapter', () => {
   it('pages real changes using the server cursor', async () => {
@@ -49,5 +49,11 @@ describe('allocation target data adapter', () => {
     const targets = [{ tag_id: 1, target_percentage: 100 }]
     await expect(saveAllocationTargets(supabase, { targets, expectedTargets: [] })).resolves.toEqual({ configured: true, targets })
     expect(supabase.rpc).toHaveBeenCalledWith('app_save_allocation_targets', { input_targets: targets, input_expected_targets: [] })
+  })
+  it('clears the whole target set with the same concurrency guard', async () => {
+    const supabase = { rpc: vi.fn().mockResolvedValue({ data: { configured: false, targets: [] }, error: null }) }
+    const expectedTargets = [{ tag_id: 1, target_percentage: 100 }]
+    await expect(clearAllocationTargets(supabase, expectedTargets)).resolves.toEqual({ configured: false, targets: [] })
+    expect(supabase.rpc).toHaveBeenCalledWith('app_clear_allocation_targets', { input_expected_targets: expectedTargets })
   })
 })

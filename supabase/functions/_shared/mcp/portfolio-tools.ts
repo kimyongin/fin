@@ -328,6 +328,24 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
     outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
   },
   {
+    name: 'save_asset_tag', title: 'Create or rename an asset tag',
+    description: 'Create an owned asset tag with tag_id:null or edit its name and order by ID after explicit save intent. These are representative instrument tags, not activity search tags. Read get_portfolio_state first. This does not set allocation targets or change a holding.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, tag_id: { type: ['integer','null'], minimum: 1 }, name: { type: 'string', minLength: 1 }, sort_order: { type: 'integer', minimum: 0 } }, required: ['schema_version','tag_id','name','sort_order'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: contextAnnotations,
+  },
+  {
+    name: 'delete_asset_tag', title: 'Delete an asset tag',
+    description: 'Only after explicit confirmation, delete one owned asset tag. This unlinks instruments but never deletes them or their holdings. A positive allocation target blocks deletion; first move targets or explicitly clear the complete target set. Zero targets may be removed with the tag.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, tag_id: { type: 'integer', minimum: 1 } }, required: ['schema_version','tag_id'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: destructiveWriteAnnotations,
+  },
+  {
+    name: 'save_allocation_targets', title: 'Save or clear all asset-tag allocation targets',
+    description: 'Replace the complete owned tag target set only after explicit user approval and reading get_strategy_state. Targets must be distinct owned tag IDs with two-decimal percentages summing to exactly 100.00. To remove the complete configuration, pass targets:[]; this returns configured=false and does not delete tags, holdings or prices. expected_targets must be the current sorted target rows; stale values are rejected. An identical set or already-empty state is a no-op. This is a target, not an order recommendation or trade.',
+    inputSchema: { type: 'object', properties: { schema_version: { const: 1 }, targets: { type: 'array', items: { type: 'object', properties: { tag_id: { type: 'integer', minimum: 1 }, target_percentage: { type: 'number', minimum: 0, maximum: 100 } }, required: ['tag_id','target_percentage'], additionalProperties: false } }, expected_targets: { type: 'array', items: { type: 'object', properties: { tag_id: { type: 'integer', minimum: 1 }, target_percentage: { type: 'number', minimum: 0, maximum: 100 } }, required: ['tag_id','target_percentage'], additionalProperties: false } } }, required: ['schema_version','targets','expected_targets'], additionalProperties: false },
+    outputSchema: successEnvelopeSchema, annotations: idempotentWriteAnnotations,
+  },
+  {
     name: 'update_entity_note',
     title: 'Update an existing portfolio entity note',
     description: 'Update only the note attached to one existing account or instrument after the user explicitly asks to remember, revise, or clear target-specific information. Read get_portfolio_state first and pass the exact current note as expected_note; use null for an empty note. A conflict means the note changed after it was read, so re-read instead of overwriting it. This does not change quantities, costs, prices, tags, strategy, verification status, or activity outside the note audit event. Do not force a portfolio-wide instruction into an arbitrary entity note.',
@@ -792,7 +810,7 @@ export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_pro
 
 export const entityNoteToolNames = ['update_entity_note'] as const
 
-export const assetCrudToolNames = ['save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument'] as const
+export const assetCrudToolNames = ['save_account','delete_account','create_instrument','save_asset_detail','delete_holding','delete_instrument','save_asset_tag','delete_asset_tag','save_allocation_targets'] as const
 
 export const decisionActivityToolNames = [] as const
 

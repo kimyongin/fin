@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 
 import AssetViewToolbar from '../assets/AssetViewToolbar'
 import PrincipleJournal from './PrincipleJournal'
-import { createEmptyStrategyState, fetchStrategyState, saveAllocationTargets } from './data'
+import { clearAllocationTargets, createEmptyStrategyState, fetchStrategyState, saveAllocationTargets } from './data'
 import { formatKrw, formatPercent } from '../../lib/format'
 import { PagePanel } from '../../components/PageControls'
+import { ConfirmDialog } from '../../components/ModalShell'
 
 function cents(value) {
   const text = String(value ?? '').trim()
@@ -49,6 +50,7 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [targetConflict, setTargetConflict] = useState(false)
+  const [clearConfirm, setClearConfirm] = useState(false)
   const tagRows = useMemo(() => {
     const byId = new Map(tags.map((tag) => [String(tag.id), tag]))
     for (const target of state.targets) if (!byId.has(String(target.tag_id))) byId.set(String(target.tag_id), { id: target.tag_id, name: target.tag_name })
@@ -106,6 +108,18 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
     finally { setSaving(false) }
   }
 
+  async function clearTargets() {
+    if (saving || targetConflict) return
+    setSaving(true); setError('')
+    try {
+      const next = await clearAllocationTargets(supabase, expectedTargets(state))
+      setState(next)
+      setDraft(draftFromState(next, tagRows))
+      setClearConfirm(false)
+    } catch (cause) { setError(cause.message ?? '목표를 초기화하지 못했습니다.') }
+    finally { setSaving(false) }
+  }
+
   async function refreshAfterTagChange() {
     const nextTags = await onRefreshTags()
     const next = await fetchStrategyState(supabase, ownerUserId)
@@ -128,6 +142,7 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
   if (error && !loaded && showStrategy) return <PagePanel title="태그별 배분" supporting={<div className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}<button className="ml-3 min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => setRefreshKey((value) => value + 1)} type="button">다시 시도</button></div>} />
 
   return <section className="grid gap-5">
+    {clearConfirm && <ConfirmDialog title="목표 비중 초기화" description={`설정한 모든 목표 비중을 지우고 미설정 상태로 돌릴까요? 태그와 자산은 그대로 남습니다.${dirty ? ' 저장하지 않은 입력은 버려집니다.' : ''}`} confirmLabel="목표 초기화" danger error={error} pending={saving} onCancel={() => { setClearConfirm(false); setError('') }} onConfirm={clearTargets} />}
     <PagePanel title="태그별 배분" actions={canEdit ? assetToolbar : null} status={ownerUserId ? '공유 · 읽기 전용' : null} supporting={<>
       <p>전체 계좌 · {showAssets ? `확인 가능한 평가액 ${formatKrw(totalValue)}` : '현재 자산은 공유되지 않았습니다.'}</p>
       {showAssets && valuationQuality?.isComplete === false && <p className="mt-2 text-sm text-amber-200">시세 또는 환율이 빠져 현재 비중과 차이를 정확히 계산할 수 없습니다.</p>}
@@ -157,7 +172,7 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
     </section>
     {canEdit && showStrategy && <footer className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
       <p className={`type-value type-number ${totalCents === 10000 ? 'text-[var(--ink)]' : 'text-amber-200'}`}>목표 합계 {totalCents === null ? '입력 확인 필요' : `${(totalCents / 100).toFixed(2)}%`} / 100%</p>
-      {(dirty || saving) && <div className="flex gap-2"><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={saving} onClick={() => { setDraft(savedDraft); setTargetConflict(false); setError('') }} type="button">취소</button><button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" disabled={saving || targetConflict || tagRows.length === 0 || invalid || totalCents !== 10000} onClick={save} type="button">{saving ? '저장 중…' : '저장'}</button></div>}
+      <div className="flex flex-wrap gap-2">{state.configured && <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={saving || targetConflict} onClick={() => { setError(''); setClearConfirm(true) }} type="button">목표 초기화</button>}{(dirty || saving) && <><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={saving} onClick={() => { setDraft(savedDraft); setTargetConflict(false); setError('') }} type="button">취소</button><button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" disabled={saving || targetConflict || tagRows.length === 0 || invalid || totalCents !== 10000} onClick={save} type="button">{saving ? '저장 중…' : '저장'}</button></>}</div>
     </footer>}
   </section>
 }
