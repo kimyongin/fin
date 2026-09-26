@@ -453,11 +453,11 @@ test('shows incomplete valuation explicitly and suppresses allocation amounts', 
   await expect(page.getByRole('heading', { name: '리밸런싱 제안' })).toHaveCount(0)
 })
 
-test('keeps four primary destinations usable without horizontal overflow', async ({ page }) => {
+test('keeps four primary destinations aligned with the content width', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/')
 
-  for (const width of [360, 390, 768, 1024, 1440]) {
+  for (const width of [360, 390, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 900 })
     const primary = page.locator('nav[aria-label="주요 메뉴"]:visible')
     await expect(primary.getByRole('button')).toHaveCount(6)
@@ -483,7 +483,7 @@ test('keeps four primary destinations usable without horizontal overflow', async
         position: getComputedStyle(element).position,
         width: Math.round(box.width),
       }
-    })).toEqual({ bottom: 900, left: 0, position: 'fixed', width })
+    })).toEqual({ bottom: 900, left: Math.round((width - Math.min(width, 1152)) / 2), position: 'fixed', width: Math.min(width, 1152) })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
 

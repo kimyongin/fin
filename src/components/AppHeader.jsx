@@ -37,7 +37,7 @@ export default function AppHeader({ activeTab, friends = [], onPortfolioChange, 
     requestAnimationFrame(() => profileRef.current?.focus())
   }
 
-  return <nav aria-label="주요 메뉴" className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--line)] bg-[var(--surface-3)] px-2 pt-2 shadow-2xl" ref={navRef} style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+  return <nav aria-label="주요 메뉴" className="fixed bottom-0 left-1/2 z-50 w-full max-w-6xl -translate-x-1/2 border-t border-[var(--line)] bg-[var(--surface-3)] px-2 pt-2 shadow-2xl xl:rounded-t-2xl xl:border-x" ref={navRef} style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
     {open === 'profile' && <div aria-label="포트폴리오 선택" className="absolute bottom-[calc(100%+0.5rem)] left-2 max-h-[min(60vh,24rem)] min-w-48 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl border border-[var(--line)] bg-[var(--surface-3)] p-2 shadow-2xl" role="group">
       {[{ id: 'owner', name: '나', avatar: ownerAvatarKey }, ...friends.map((friend) => ({ id: friend.owner_user_id, name: friend.owner_public_name || '이름 없는 친구', avatar: friend.owner_avatar_key }))].map((item) => {
         const selected = (viewContext.mode === 'owner' && item.id === 'owner') || viewContext.ownerUserId === item.id
