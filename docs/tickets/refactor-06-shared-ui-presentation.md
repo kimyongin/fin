@@ -40,3 +40,4 @@ GitHub: [#148](https://github.com/kimyongin/fin/issues/148). #149 → #147 이�
 - 상단·푸터 메뉴의 햄버거 형태, 트리거·메뉴 표면 스타일을 `MenuPresentation`으로 공유한다. 항목 선택 시 상단 트리거로 강제 초점 복귀하지 않도록 수정했으며 Escape는 기존 초점 복귀를 유지한다.
 - `npm test` 21파일/105개 통과, `npm run build` 및 encoding 680파일 통과. 격리 E2E DB 50파일/604개, OAuth MCP 계약·readiness, 브라우저 3개 + 추가 2개 통과. 360/390/768/1024/1440/1920px에서 1차 화면의 가로 넘침 없음과 자산 검색의 실제 48px 높이·12px 모서리·16px 글자를 확인했다. 기록 삭제 확인과 초안 보존, 상단 메뉴 Escape·모달 개방 시 초점도 확인했다.
 - 2차 메뉴 바깥 클릭, 삭제 실패의 실제 네트워크 경로, 모든 폭에서 긴 텍스트와 모든 모달의 실측 간격은 별도로 검증하지 않았다. 기능 계약·서버·MCP 도구 설명은 변경하지 않아 가이드 갱신 대상이 없다.
+- 커밋: `7d3bb2b refactor: align shared page and modal presentation`. 푸시·운영 배포는 수행하지 않았다.

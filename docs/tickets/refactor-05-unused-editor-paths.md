@@ -1,6 +1,6 @@
 # [리팩토링] 구 보유 편집 경로와 미사용 웹 코드 제거
 
-2026-09-26 · P2 · 설계 완료, 구현 대기 · 검토 기준: 82826e6.
+2026-09-26 · P2 · 구현 및 선택 회귀 검증 완료 · 검토 기준: 82826e6.
 
 GitHub: [#147](https://github.com/kimyongin/fin/issues/147). #149 문서 기준 정리 후 시작하며 #148/#150보다 먼저 진행한다.
 
@@ -30,7 +30,7 @@ GitHub: [#147](https://github.com/kimyongin/fin/issues/147). #149 문서 기준 
 - [x] 현재 자산 상세의 다계좌·삭제·평가형/현금성·표 편집 회귀가 통과한다. 종목 등록/공유 읽기의 별도 브라우저 검증은 이번 선택 E2E에 포함하지 않았다.
 - [x] 공개 MCP 도구와 서버 API가 유지됨을 확인한다. 웹 전용 코드 정리의 MCP/가이드 영향 없음 근거를 기록한다.
 - [x] npm test, npm run build, npm run check:encoding, git diff --check 및 관련 E2E 결과를 기록한다. E2E는 격리 환경만 사용한다.
-- [ ] 완료 단위로 커밋하고 로컬 검증과 운영 배포를 구분한다.
+- [x] 완료 단위로 커밋하고 로컬 검증과 운영 배포를 구분한다.
 
 ## 구현 기록 (2026-09-26)
 
@@ -43,3 +43,5 @@ GitHub: [#147](https://github.com/kimyongin/fin/issues/147). #149 문서 기준 
 | `normalizeTickerInput` | 별도 유틸 테스트 소비자 | 유지 |
 
 정적 소비자 검색, `npm test` 21파일/105건, `npm run build`와 prebuild 인코딩 검사(679파일) 통과. 격리 E2E는 DB 50파일/604건, OAuth MCP 계약/인증된 조회, 자산 브라우저 3건(다계좌 원자 저장과 재시도·종목/계좌 삭제 제약·평가형/현금성 보유와 표 가져오기)이 통과했다. DB/migration/API/MCP 코드는 변경하지 않았다. 실제 Google OAuth·실기기·운영 배포는 이번 검사에 포함하지 않았다.
+
+커밋: `f324518 refactor: remove unused holding editor paths`. 푸시·운영 배포는 수행하지 않았다.
