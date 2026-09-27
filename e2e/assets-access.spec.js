@@ -43,7 +43,8 @@ test('saves one asset detail across accounts atomically and retries after a reje
   await editor.getByRole('combobox', { name: '계좌', exact: true }).last().selectOption(String(second.body[0].account_id))
   await editor.getByLabel('수량').last().fill('1')
   await editor.getByLabel('평균가').last().fill('9')
-  await editor.getByLabel('배분에 포함').last().uncheck()
+  await expect(editor.getByLabel('배분에서 제외').last()).not.toBeChecked()
+  await editor.getByLabel('배분에서 제외').last().check()
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: width < 768 ? 844 : 900 })
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)

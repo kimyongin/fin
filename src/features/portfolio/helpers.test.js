@@ -27,11 +27,11 @@ describe('portfolio helpers', () => {
 
     const lines = csv.split('\r\n')
     expect(lines).toHaveLength(3)
-    expect(lines[1]).toBe('Alpha,,"Needs, Quote ""Here""",AAA,market,2,USD,10,,,,false,20.5,20.5,105')
-    expect(lines[2]).toBe('Beta,,Plain,BBB,market,10,KRW,1,,,,true,10,2,100')
+    expect(lines[1]).toBe('Alpha,,"Needs, Quote ""Here""",AAA,market,2,USD,10,,,,true,20.5,20.5,105')
+    expect(lines[2]).toBe('Beta,,Plain,BBB,market,10,KRW,1,,,,false,10,2,100')
     const imported = parseSpreadsheetPaste(csv)
     expect(imported.usesImportHeaders).toBe(true)
-    expect(imported.rows.map((row) => row.include_in_allocation)).toEqual(['false', 'true'])
+    expect(imported.rows.map((row) => row.exclude_from_allocation)).toEqual(['true', 'false'])
   })
 
   it('creates modal drafts with normalized defaults', () => {

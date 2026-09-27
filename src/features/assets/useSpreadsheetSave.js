@@ -13,7 +13,7 @@ function serializeRow(row) {
     purchase_amount: row.purchase_amount === '' ? null : Number(row.purchase_amount),
     valuation_amount: row.valuation_amount === '' ? null : Number(row.valuation_amount),
     tag_id: row.tag_id || null,
-    include_in_allocation: row.include_in_allocation !== 'false',
+    include_in_allocation: row.exclude_from_allocation !== 'true',
   }
 }
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  createBlankSpreadsheetRow,
+  createSpreadsheetRows,
   findMatchingSpreadsheetRow,
   parseSpreadsheetPaste,
   spreadsheetCsvHeaders,
@@ -23,13 +25,35 @@ describe('spreadsheetSchema', () => {
         instrument_type: 'market',
         quantity: '4',
         tag_id: '7',
-        include_in_allocation: '',
+        exclude_from_allocation: '',
         ticker: 'AAPL',
         purchase_amount: '',
         valuation_amount: '',
       }],
       usesImportHeaders: true,
     })
+  })
+
+  it('converts the old inclusion CSV column to the exclusion setting', () => {
+    const csv = '계좌명,종목명,티커,배분에 포함\r\nISA,Apple,AAPL,false\r\nISA,Bond,BOND,true'
+    expect(parseSpreadsheetPaste(csv).rows[0]).toMatchObject({
+      account_name: 'ISA', display_name: 'Apple', ticker: 'AAPL', exclude_from_allocation: 'true',
+    })
+    expect(parseSpreadsheetPaste(csv).rows[1].exclude_from_allocation).toBe('false')
+  })
+
+  it('shows new and included holdings as not excluded by default', () => {
+    expect(createBlankSpreadsheetRow().exclude_from_allocation).toBe('false')
+    const rows = createSpreadsheetRows({
+      accounts: [{ id: 1, name: 'ISA' }],
+      holdings: [
+        { id: 1, account_id: 1, ticker: 'AAPL' },
+        { id: 2, account_id: 1, ticker: 'BOND', include_in_allocation: false },
+      ],
+      instruments: [{ ticker: 'AAPL', display_name: 'Apple' }, { ticker: 'BOND', display_name: 'Bond' }],
+      instrumentTags: [],
+    })
+    expect(rows.map((row) => row.exclude_from_allocation)).toEqual(['false', 'true'])
   })
 
   it('matches imported rows by account and ticker without changing another account', () => {
