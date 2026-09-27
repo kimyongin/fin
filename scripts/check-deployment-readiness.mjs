@@ -112,11 +112,22 @@ const searchPage = await searchResponse.json()
 if (!Array.isArray(searchPage.items) || !['active', 'indexing'].includes(searchPage.semantic_status)) {
   throw new Error(`Activity search embedding is unavailable (${searchPage.semantic_status ?? 'unknown'})`)
 }
+if (searchPage.search_mode !== 'hybrid' || searchPage.embedding_model !== 'gte-small' ||
+    searchPage.semantic_threshold !== 0.96 || !['complete', 'partial', 'unknown'].includes(searchPage.index_status) ||
+    searchPage.fallback_reason !== null || searchPage.items.some((item) => !Array.isArray(item.matched_by))) {
+  throw new Error('Activity search evidence contract is unavailable')
+}
 const mcpSearch = await mcp('tools/call', { name: 'search_activities', arguments: searchInput })
 const mcpSearchPage = mcpSearch?.structuredContent?.data
 if (mcpSearch?.isError || !Array.isArray(mcpSearchPage?.items) ||
     !['active', 'indexing'].includes(mcpSearchPage?.semantic_status)) {
   throw new Error('OAuth MCP activity search is unavailable')
+}
+if (mcpSearchPage.search_mode !== 'hybrid' || mcpSearchPage.semantic_threshold !== 0.96 ||
+    !['complete', 'partial', 'unknown'].includes(mcpSearchPage.index_status) ||
+    mcpSearchPage.fallback_reason !== null ||
+    mcpSearchPage.items.some((item) => !Array.isArray(item.matched_by))) {
+  throw new Error('OAuth MCP search evidence contract is unavailable')
 }
 
 console.log(`Authenticated readiness passed for ${rpcChecks.length} read RPCs, OAuth MCP discovery, and both activity search routes.`)
