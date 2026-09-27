@@ -7,6 +7,10 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
 
   const state = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(state.status).toBe(200)
+  const tag = state.body.tags[0] ?? (await callRpc(page, 'app_save_tag', {
+    input_name: 'E2E 분류', input_request: null, input_sort_order: 99,
+    input_source: 'user', input_tag_id: null,
+  })).body[0]
   const suffix = Date.now().toString(36).slice(-6).toUpperCase()
   const ticker = `COL${suffix}`
   const name = `장기 투자 목록에서 이름이 길어지는 종목 ${suffix}`
@@ -14,7 +18,7 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
     input_currency: 'USD', input_display_name: name, input_instrument_id: null,
     input_instrument_type: 'market', input_note: null, input_price: null,
     input_price_date: null, input_price_source: 'manual', input_request: null,
-    input_source: 'user', input_tag_id: state.body.tags[0]?.id ?? null,
+    input_source: 'user', input_tag_id: tag.id ?? tag.tag_id,
     input_ticker: ticker,
   })
   expect(instrument.status).toBe(200)
@@ -63,6 +67,8 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
   const header = list.getByText('종목', { exact: true }).locator('..')
   const row = list.getByRole('button', { name: new RegExp(name) })
   await expect(row).toBeVisible()
+  await expect(row.locator('.type-meta')).toHaveText(`${tag.name} · ${ticker}`)
+  await expect.poll(() => list.locator('[data-asset-row]').evaluateAll((items, tickers) => items.findIndex((item) => item.dataset.ticker === tickers[0]) < items.findIndex((item) => item.dataset.ticker === tickers[1]), [ticker, cashTicker])).toBe(true)
   await expect(header.locator(':scope > span')).toHaveText(['종목', '보유', '평가'])
   await expect(row.getByText('2.25')).toBeVisible()
   await expect(row.getByText(/평균가.*USD/)).toBeVisible()

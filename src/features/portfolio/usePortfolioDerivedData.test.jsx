@@ -35,6 +35,7 @@ describe('allocation scope', () => {
     expect(result.totalValue).toBe(100)
     expect(result.allocationTotalValue).toBe(80)
     expect(result.excludedValue).toBe(20)
+    expect(result.excludedPositions.map(({ id, account_id, ticker, market_value_krw }) => [id, account_id, ticker, market_value_krw])).toEqual([[3, 2, 'CASH', 20]])
     expect(result.tagCards.map(({ name, value }) => [name, value])).toEqual([['주식', 60], ['현금', 20]])
   })
 
@@ -55,5 +56,6 @@ describe('allocation scope', () => {
     expect(result.allocationTotalValue).toBe(20)
     expect(result.allocationValuationQuality.isComplete).toBe(true)
     expect(result.excludedMissingCount).toBe(1)
+    expect(result.excludedPositions[0].valuation_status).toBe('missing')
   })
 })

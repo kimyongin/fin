@@ -108,6 +108,10 @@ export function usePortfolioDerivedData({
     () => computedPositions.filter((row) => row.include_in_allocation !== false),
     [computedPositions],
   );
+  const excludedPositions = useMemo(
+    () => computedPositions.filter((row) => row.include_in_allocation === false),
+    [computedPositions],
+  );
   const allocationTotalValue = useMemo(
     () => allocationPositions.reduce((sum, row) => {
       const value = effectiveKrwValue(row, latestPriceByTicker);
@@ -115,9 +119,9 @@ export function usePortfolioDerivedData({
     }, 0),
     [allocationPositions, latestPriceByTicker],
   );
-  const excludedCount = computedPositions.length - allocationPositions.length;
+  const excludedCount = excludedPositions.length;
   const excludedValue = totalValue - allocationTotalValue;
-  const excludedMissingCount = computedPositions.filter((row) => row.include_in_allocation === false && row.valuation_status === 'missing').length;
+  const excludedMissingCount = excludedPositions.filter((row) => row.valuation_status === 'missing').length;
   const allocationValuationQuality = useMemo(() => ({
     isComplete: allocationPositions.every((row) => row.valuation_status !== 'missing'),
     hasStaleValues: allocationPositions.some((row) => row.valuation_status === 'stale'),
@@ -325,6 +329,7 @@ export function usePortfolioDerivedData({
     holdingsByTicker,
     excludedCount,
     excludedMissingCount,
+    excludedPositions,
     excludedValue,
     instrumentRows,
     latestPriceByTicker,

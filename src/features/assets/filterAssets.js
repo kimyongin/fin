@@ -1,5 +1,19 @@
 export const UNTAGGED_FILTER = 'untagged'
 
+export function sortAssetRowsByTag(rows, tagMapByTicker) {
+  return [...rows].sort((a, b) => {
+    const leftTag = tagMapByTicker.get(a.ticker)?.name
+    const rightTag = tagMapByTicker.get(b.ticker)?.name
+    if (!leftTag || !rightTag) {
+      if (!leftTag && rightTag) return 1
+      if (leftTag && !rightTag) return -1
+    }
+    const byTag = (leftTag ?? '').localeCompare(rightTag ?? '', 'ko')
+    return byTag || (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0)
+      || String(a.display_name ?? a.ticker).localeCompare(String(b.display_name ?? b.ticker), 'ko')
+  })
+}
+
 export function filterAssetRows(rows, query, selectedTags, tagMapByTicker) {
   const term = query.trim().toLocaleLowerCase()
   return rows.filter((row) => {

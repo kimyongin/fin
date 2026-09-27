@@ -95,13 +95,27 @@ test('saves one asset detail across accounts atomically and retries after a reje
   expect(saved.body.holdings.find((item) => item.ticker === ticker && Number(item.account_id) === Number(first.body[0].account_id)).include_in_allocation).toBe(true)
   expect(saved.body.holdings.find((item) => item.ticker === ticker && Number(item.account_id) === Number(second.body[0].account_id)).include_in_allocation).toBe(false)
   const updatedEditor = page.getByRole('dialog', { name: `Updated ${suffix}` })
+  await updatedEditor.getByRole('button', { name: '닫기' }).last().click()
+  await openMenuTab(page, '배분')
+  const excluded = page.getByRole('region', { name: '배분 제외 보유' })
+  await expect(excluded).toContainText(`Detail Second ${suffix}`)
+  await expect(excluded).toContainText('평가 불가')
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 900 })
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await page.setViewportSize({ width: 390, height: 844 })
+  await excluded.getByRole('button', { name: `Updated ${suffix} · Detail Second ${suffix} 자산 상세 보기` }).click()
+  await expect(page.getByRole('heading', { name: '자산', level: 2 })).toBeVisible()
+  await expect(updatedEditor).toBeVisible()
+  await expect(updatedEditor.getByLabel('배분에서 제외').first()).toBeChecked()
   let rejectDeleteOnce = true
   await page.route('**/rest/v1/rpc/app_delete_holding_checked', async (route) => {
     if (!rejectDeleteOnce) return route.continue()
     rejectDeleteOnce = false
     await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ message: '시험 삭제 오류' }) })
   })
-  await updatedEditor.getByRole('button', { name: '보유 삭제' }).last().click()
+  await updatedEditor.getByRole('button', { name: '보유 삭제' }).first().click()
   expect(await updatedEditor.evaluate((element) => Boolean(element.closest('[inert]')))).toBe(true)
   await expect(page.getByRole('dialog', { name: '보유 삭제' })).toBeVisible()
   await page.getByRole('dialog', { name: '보유 삭제' }).getByRole('button', { name: '보유 삭제' }).click()
@@ -111,6 +125,7 @@ test('saves one asset detail across accounts atomically and retries after a reje
   await expect(page.getByRole('dialog', { name: `Updated ${suffix}` })).toBeVisible()
   const afterDelete = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })
   expect(afterDelete.body.holdings.filter((item) => item.ticker === ticker)).toHaveLength(1)
+  expect(afterDelete.body.holdings.find((item) => item.ticker === ticker)?.include_in_allocation).toBe(true)
   await page.unroute('**/rest/v1/rpc/app_save_asset_detail_with_activity')
   await page.unroute('**/rest/v1/rpc/app_delete_holding_checked')
 })

@@ -65,6 +65,7 @@ function App() {
   const [sharedFeatureAccess, setSharedFeatureAccess] = useState(null)
   const [assetAccountId, setAssetAccountId] = useState('all')
   const [assetQuery, setAssetQuery] = useState('')
+  const [assetDetailRequest, setAssetDetailRequest] = useState(null)
   const [registeredTicker, setRegisteredTicker] = useState(null)
   const [sheetDirty, setSheetDirty] = useState(false)
   const [state, setState] = useState(() => createEmptyPortfolioState())
@@ -253,6 +254,7 @@ function App() {
     holdingsByTicker,
     excludedCount,
     excludedMissingCount,
+    excludedPositions,
     excludedValue,
     tagCards,
     tagMapByTicker,
@@ -436,6 +438,8 @@ function App() {
             accounts={state.accounts}
             selectedAccountId={assetAccountId}
             onSelectedAccountIdChange={setAssetAccountId}
+            detailRequest={assetDetailRequest}
+            onDetailRequestHandled={() => setAssetDetailRequest(null)}
             query={assetQuery}
             onQueryChange={setAssetQuery}
             canEdit={canEdit}
@@ -469,6 +473,7 @@ function App() {
         )}
         {activeTab === 'allocation' && (
           <StrategyPageView
+            accountById={accountById}
             canEdit={canEdit}
             csvCopied={copied}
             onCopyCsv={handleCopyCsv}
@@ -491,7 +496,14 @@ function App() {
             totalValue={allocationTotalValue}
             excludedCount={excludedCount}
             excludedMissingCount={excludedMissingCount}
+            excludedPositions={excludedPositions}
             excludedValue={excludedValue}
+            onOpenExcludedHolding={(holding) => {
+              setAssetAccountId(String(holding.account_id))
+              setAssetQuery('')
+              setAssetDetailRequest({ ticker: holding.ticker })
+              setActiveTab('overview')
+            }}
             valuationQuality={allocationValuationQuality}
           />
         )}

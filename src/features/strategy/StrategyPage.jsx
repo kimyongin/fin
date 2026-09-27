@@ -75,7 +75,7 @@ function AllocationPieChart({ tagCards, totalValue }) {
   </section>
 }
 
-function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], tags = [], totalValue = 0, excludedCount = 0, excludedMissingCount = 0, excludedValue = 0, valuationQuality, showStrategy = true, showAssets = true, onRefreshTags, onSharedViewReady }) {
+function AllocationPage({ accountById = new Map(), canEdit, ownerUserId = null, supabase, tagCards = [], tags = [], totalValue = 0, excludedCount = 0, excludedMissingCount = 0, excludedPositions = [], excludedValue = 0, valuationQuality, showStrategy = true, showAssets = true, onOpenExcludedHolding, onRefreshTags, onSharedViewReady }) {
   const [state, setState] = useState(createEmptyStrategyState)
   const [draft, setDraft] = useState({})
   const [loading, setLoading] = useState(true)
@@ -88,6 +88,7 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
   const [contextResetKey, setContextResetKey] = useState(0)
   const retryKey = useRef(null)
   const lastConfirmKind = useRef(null)
+  const excludedRows = useMemo(() => [...excludedPositions].sort((a, b) => (b.market_value_krw ?? -Infinity) - (a.market_value_krw ?? -Infinity) || String(a.display_name).localeCompare(String(b.display_name), 'ko')), [excludedPositions])
   const tagRows = useMemo(() => {
     const byId = new Map(tags.map((tag) => [String(tag.id), tag]))
     for (const target of state.targets) if (!byId.has(String(target.tag_id))) byId.set(String(target.tag_id), { id: target.tag_id, name: target.tag_name })
@@ -196,8 +197,7 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
   return <section className="grid gap-5">
     <SaveActivityConfirm title={confirmKind === 'clear' ? '목표 비중 초기화' : '변경 내용 저장'} description={confirmKind === 'clear' ? `설정한 모든 목표 비중을 지우고 미설정 상태로 돌릴까요? 태그와 자산은 그대로 남습니다.${dirty ? ' 저장하지 않은 입력은 버려집니다.' : ''}` : '입력한 목표 비중을 저장할까요?'} danger={confirmKind === 'clear'} error={error} onCancel={() => { setConfirmKind(null); setError('') }} onConfirm={confirmKind === 'clear' ? clearTargets : save} onContextChange={() => { retryKey.current = null }} open={Boolean(confirmKind)} pending={saving} resetKey={contextResetKey} supabase={supabase} />
     <PagePanel title="태그별 배분" actions={canEdit ? assetToolbar : null} status={ownerUserId ? '공유 · 읽기 전용' : null} supporting={<>
-      <p>{showAssets ? `배분 대상 · 확인 가능한 평가액 ${formatKrw(totalValue)}${excludedCount ? ` · 제외 ${excludedMissingCount ? '확인 가능한 평가액 ' : ''}${formatKrw(excludedValue)}` : ''}` : '현재 자산은 공유되지 않았습니다.'}</p>
-      {showAssets && excludedMissingCount > 0 && <p className="mt-2 text-amber-200">제외한 보유 {excludedMissingCount}개의 시세·환율이 없어 제외 금액은 일부만 표시됩니다.</p>}
+      <p>{showAssets ? `배분 대상 · 확인 가능한 평가액 ${formatKrw(totalValue)}` : '현재 자산은 공유되지 않았습니다.'}</p>
       {showAssets && valuationQuality?.isComplete === false && <p className="mt-2 text-sm text-amber-200">시세 또는 환율이 빠져 현재 비중과 차이를 정확히 계산할 수 없습니다.</p>}
       {showAssets && valuationQuality?.hasStaleValues && <p className="mt-2 text-sm text-amber-200">오래된 시세·환율이 포함되어 있습니다. 현재 비중을 참고용으로 확인해 주세요.</p>}
       {showAssets && totalValue === 0 && <p className="mt-2 text-sm text-[var(--muted-ink)]">평가액이 없어 현재 비중을 계산할 수 없습니다. 목표는 설정할 수 있습니다.</p>}
@@ -229,6 +229,21 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
       <p className={`type-value type-number ${totalCents === 10000 ? 'text-[var(--ink)]' : 'text-amber-200'}`}>목표 합계 {totalCents === null ? '입력 확인 필요' : `${(totalCents / 100).toFixed(2)}%`} / 100%</p>
       <div className="flex flex-wrap gap-2">{state.configured && <button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={saving || targetConflict} onClick={() => openSaveConfirm('clear')} type="button">목표 초기화</button>}{(dirty || saving) && <><button className="min-h-11 rounded-xl border border-[var(--line)] px-4 text-sm" disabled={saving} onClick={() => { setDraft(savedDraft); setTargetConflict(false); setError(''); retryKey.current = null; setContextResetKey((value) => value + 1) }} type="button">취소</button><button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white" disabled={saving || targetConflict || tagRows.length === 0 || invalid || totalCents !== 10000} onClick={() => openSaveConfirm('save')} type="button">{saving ? '저장 중…' : '저장'}</button></>}</div>
     </footer>}
+    {showAssets && excludedRows.length > 0 && <section aria-label="배분 제외 보유" className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-[var(--line)] px-4 py-4 sm:px-6">
+        <h2 className="type-section-title">배분 제외 보유</h2>
+        <p className="type-secondary type-number text-[var(--muted-ink)]">{excludedCount}건 · 확인 가능한 평가액 {formatKrw(excludedValue)}</p>
+      </div>
+      {excludedMissingCount > 0 && <p className="type-secondary border-b border-[var(--line)] px-4 py-3 text-amber-200 sm:px-6">{excludedMissingCount}건은 시세·환율이 없어 제외 금액에 포함되지 않았습니다.</p>}
+      <div className="divide-y divide-[var(--line)]">{excludedRows.map((holding) => {
+        const accountName = accountById.get(Number(holding.account_id))?.name ?? `계좌 ${holding.account_id}`
+        return <button aria-label={`${holding.display_name ?? holding.ticker} · ${accountName} 자산 상세 보기`} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] sm:px-6" key={holding.id} onClick={() => onOpenExcludedHolding?.(holding)} type="button">
+          <span className="min-w-0 flex-1"><strong className="type-item-title block break-words">{holding.display_name ?? holding.ticker}</strong><span className="type-meta block break-words text-[var(--muted-ink)]">{accountName}{holding.valuation_status === 'stale' ? ' · 오래된 시세·환율' : ''}</span></span>
+          <span className="type-value type-number shrink-0 text-right">{holding.valuation_status === 'missing' ? '평가 불가' : formatKrw(holding.market_value_krw)}</span>
+          <span aria-hidden="true" className="type-secondary text-[var(--muted-ink)]">›</span>
+        </button>
+      })}</div>
+    </section>}
   </section>
 }
 

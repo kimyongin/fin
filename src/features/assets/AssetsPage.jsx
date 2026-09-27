@@ -5,7 +5,7 @@ import { PagePanel, pagePanelActionClass } from '../../components/PageControls'
 import TagChip from '../../components/TagChip'
 import SpreadsheetEditor from './SpreadsheetEditor'
 import AssetDetailModal from './AssetDetailModal'
-import { filterAssetRows, positionsForAssetRows, UNTAGGED_FILTER } from './filterAssets'
+import { filterAssetRows, positionsForAssetRows, sortAssetRowsByTag, UNTAGGED_FILTER } from './filterAssets'
 import { exchangeRatesForPositions } from './exchangeRates'
 
 const actionControl = 'type-action min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3'
@@ -26,7 +26,7 @@ function scopedRows(positions, instruments, accountId, latestPriceByTicker) {
       staleCount: row.valuation_status === 'stale' ? 1 : 0,
       market_value_krw: effectiveKrwValue(row, latestPriceByTicker),
     }
-  }).sort((a, b) => (b.market_value_krw || 0) - (a.market_value_krw || 0))
+  })
 }
 
 function PositionValue({ row }) {
@@ -46,8 +46,14 @@ export default function AssetsPage({
   onSpreadsheetSave, onSyncPrices, syncingPrices, syncMessage,
   spreadsheetSaving, sheetAccounts, sheetInstruments, holdings, instrumentTags, tagMapByTicker,
   tags, selectedAccountId, onSelectedAccountIdChange, query, onQueryChange, supabase, onTradeSaved, onSheetDirtyChange, registeredTicker, onRegisteredTickerHandled, shared = false,
+  detailRequest, onDetailRequestHandled,
 }) {
   const [selectedTicker, setSelectedTicker] = useState(null)
+  useEffect(() => {
+    if (!detailRequest || !instruments.some((item) => item.ticker === detailRequest.ticker)) return
+    setSelectedTicker(detailRequest.ticker)
+    onDetailRequestHandled?.()
+  }, [detailRequest, instruments, onDetailRequestHandled])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [detailRefreshRevision, setDetailRefreshRevision] = useState(0)
   const [selectedTags, setSelectedTags] = useState([])
@@ -68,7 +74,7 @@ export default function AssetsPage({
   }, [tags])
   const selectedAccount = accounts.find((item) => String(item.id) === String(selectedAccountId))
   const accountId = selectedAccount ? selectedAccountId : 'all'
-  const rows = useMemo(() => scopedRows(computedPositions, instruments, accountId, latestPriceByTicker), [computedPositions, instruments, accountId, latestPriceByTicker])
+  const rows = useMemo(() => sortAssetRowsByTag(scopedRows(computedPositions, instruments, accountId, latestPriceByTicker), tagMapByTicker), [computedPositions, instruments, accountId, latestPriceByTicker, tagMapByTicker])
   const visibleRows = useMemo(() => filterAssetRows(rows, query, selectedTags, tagMapByTicker), [rows, query, selectedTags, tagMapByTicker])
   useEffect(() => {
     if (!registeredTicker) return
@@ -138,7 +144,7 @@ export default function AssetsPage({
               <span>종목</span><span className="text-right">보유</span><span className="text-right">평가</span>
             </div>
             {visibleRows.map((row, index) => <button className={`${holdingColumns} min-h-16 w-full items-start px-3 py-3 text-left hover:bg-[var(--surface-2)] sm:px-4`} data-asset-row data-ticker={row.ticker} key={row.ticker} onClick={() => { openedIndex.current = index; setSelectedTicker(row.ticker) }} type="button">
-              <span className="min-w-0"><strong className="type-item-title block break-words">{row.display_name ?? row.ticker}</strong><span className="type-meta block break-words text-[var(--muted-ink)]">{row.ticker}{tagMapByTicker.get(row.ticker)?.name ? ` · ${tagMapByTicker.get(row.ticker).name}` : ''}{accountId === 'all' && row.accountCount > 1 ? ` · ${row.accountCount}개 계좌` : ''}</span></span>
+              <span className="min-w-0"><strong className="type-item-title block break-words">{row.display_name ?? row.ticker}</strong><span className="type-meta block break-words text-[var(--muted-ink)]">{tagMapByTicker.get(row.ticker)?.name ?? '태그 없음'} · {row.ticker}{accountId === 'all' && row.accountCount > 1 ? ` · ${row.accountCount}개 계좌` : ''}</span></span>
               <span className="min-w-0 text-right">{row.instrument_type === 'market' ? <>
                 <strong className="type-value type-number block break-words"><span className="sr-only">수량 </span>{formatNumber(row.quantity)}</strong>
                 <span className="type-secondary type-number block break-words text-[var(--muted-ink)]">평균가 {formatUnitPrice(row.avgCost, row.currency)}</span>
