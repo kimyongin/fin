@@ -268,7 +268,8 @@ begin
     where tasks_allowed and record_state in ('all','todo') and task.user_id=selected_owner
       and task.control_state='active' and (task.recurrence_kind<>'none' or coalesce(state.status,'open')='open')
       and (input_instrument_ticker is null or task.subject->>'instrument_ticker'=public.app_normalize_activity_ticker(input_instrument_ticker))
-      and (query_text is null or strpos(lower(concat_ws(' ',task.title,task.trigger_text,task.subject->>'instrument_ticker')),query_text)>0)
+      and (query_text is null or strpos(lower(concat_ws(' ',task.title,task.trigger_text,
+        case when assets_allowed then task.subject->>'instrument_ticker' end)),query_text)>0)
       and (cardinality(selected_tags)=0 or case when tag_match='all' then
         (select count(distinct relation.tag_id) from public.portfolio_task_activity_tags relation
           where relation.user_id=task.user_id and relation.task_id=task.id and relation.tag_id=any(selected_tags))=cardinality(selected_tags)
@@ -295,7 +296,8 @@ begin
       and (input_from is null or coalesce(event.occurrence_on,(event.occurred_at at time zone input_timezone)::date)>=input_from)
       and (input_to is null or coalesce(event.occurrence_on,(event.occurred_at at time zone input_timezone)::date)<=input_to)
       and (input_instrument_ticker is null or event.instrument_ticker=public.app_normalize_activity_ticker(input_instrument_ticker))
-      and (query_text is null or strpos(lower(concat_ws(' ',event.title,event.body,event.instrument_ticker)),query_text)>0)
+      and (query_text is null or strpos(lower(concat_ws(' ',event.title,event.body,
+        case when assets_allowed then event.instrument_ticker end)),query_text)>0)
       and (cardinality(selected_tags)=0 or case when tag_match='all' then
         (select count(distinct relation.tag_id) from public.activity_event_tags relation
           where relation.user_id=event.user_id and relation.activity_event_id=event.id and relation.tag_id=any(selected_tags))=cardinality(selected_tags)
@@ -378,7 +380,8 @@ begin
         else coalesce(occurrence.status,'open') end task_status,
       case when lower(task.title)=query_text then 100::numeric
         when lower(task.title) like query_text||'%' then 90::numeric
-        when strpos(lower(concat_ws(' ',task.title,task.trigger_text,task.subject->>'instrument_ticker')),query_text)>0 then 80::numeric
+        when strpos(lower(concat_ws(' ',task.title,task.trigger_text,
+          case when assets_allowed then task.subject->>'instrument_ticker' end)),query_text)>0 then 80::numeric
         else round((semantic.similarity*10)::numeric,6) end rank,
       jsonb_build_object('record_type','task','record_id',task.id::text,
         'record_state',case when task.control_state='cancelled' or
@@ -394,7 +397,8 @@ begin
         'instrument_ticker',case when assets_allowed then task.subject->>'instrument_ticker' end,
         'semantic_score',semantic.similarity,'excerpt',semantic.excerpt,
         'matched_by',to_jsonb(array_remove(array[
-          case when strpos(lower(concat_ws(' ',task.title,task.trigger_text,task.subject->>'instrument_ticker')),query_text)>0 then 'keyword'::text end,
+          case when strpos(lower(concat_ws(' ',task.title,task.trigger_text,
+            case when assets_allowed then task.subject->>'instrument_ticker' end)),query_text)>0 then 'keyword'::text end,
           case when semantic.similarity>=0.96 then 'semantic'::text end
         ],null::text)),
         'tags',coalesce((select jsonb_agg(jsonb_build_object('id',tag.id,'name',tag.name)
@@ -425,7 +429,8 @@ begin
         else exists(select 1 from public.portfolio_task_activity_tags rel
           where rel.user_id=task.user_id and rel.task_id=task.id
             and rel.tag_id=any(selected_tags)) end)
-      and (strpos(lower(concat_ws(' ',task.title,task.trigger_text,task.subject->>'instrument_ticker')),query_text)>0
+      and (strpos(lower(concat_ws(' ',task.title,task.trigger_text,
+        case when assets_allowed then task.subject->>'instrument_ticker' end)),query_text)>0
         or semantic.similarity>=0.96)
   ), event_rows as (
     select 'activity'::text record_type,event.id::text record_id,
@@ -433,7 +438,8 @@ begin
       'done'::text result_state,null::text task_status,
       case when lower(event.title)=query_text then 100::numeric
         when lower(event.title) like query_text||'%' then 90::numeric
-        when strpos(lower(concat_ws(' ',event.title,event.body,event.instrument_ticker)),query_text)>0 then 80::numeric
+        when strpos(lower(concat_ws(' ',event.title,event.body,
+          case when assets_allowed then event.instrument_ticker end)),query_text)>0 then 80::numeric
         else round((semantic.similarity*10)::numeric,6) end rank,
       jsonb_build_object('record_type','activity','record_id',event.id::text,
         'record_state','done','activity_id',event.id,
@@ -444,7 +450,8 @@ begin
         'instrument_ticker',case when assets_allowed then event.instrument_ticker end,
         'semantic_score',semantic.similarity,'excerpt',semantic.excerpt,
         'matched_by',to_jsonb(array_remove(array[
-          case when strpos(lower(concat_ws(' ',event.title,event.body,event.instrument_ticker)),query_text)>0 then 'keyword'::text end,
+          case when strpos(lower(concat_ws(' ',event.title,event.body,
+            case when assets_allowed then event.instrument_ticker end)),query_text)>0 then 'keyword'::text end,
           case when semantic.similarity>=0.96 then 'semantic'::text end
         ],null::text)),
         'tags',coalesce((select jsonb_agg(jsonb_build_object('id',tag.id,'name',tag.name)
@@ -476,7 +483,8 @@ begin
         else exists(select 1 from public.activity_event_tags rel
           where rel.user_id=event.user_id and rel.activity_event_id=event.id
             and rel.tag_id=any(selected_tags)) end)
-      and (strpos(lower(concat_ws(' ',event.title,event.body,event.instrument_ticker)),query_text)>0
+      and (strpos(lower(concat_ws(' ',event.title,event.body,
+        case when assets_allowed then event.instrument_ticker end)),query_text)>0
         or semantic.similarity>=0.96)
   ), combined as (
     select record_type,record_id,sort_at,record_key,result_state,rank,item from task_rows
