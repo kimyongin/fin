@@ -1,6 +1,6 @@
 # [활동 검색] 한국어 제목·본문 검색 품질과 운영 오류 복구
 
-상태: 로컬 구현·운영 DB/Edge 적용 · 웹 공개 검증 중 · 2026-09-27
+상태: 운영 DB/Edge/웹 배포 · 실제 ChatGPT/검색 품질 검증 미완료 · 2026-09-27
 GitHub: https://github.com/kimyongin/fin/issues/161
 기준: [검색 설계](../design/activity-context-search.md). #83의 후속 구현이며 과거 완료 증거를 지우지 않는다.
 
@@ -41,4 +41,6 @@ S1. `투자 이론` 태그에서 `심리`, `불안해서 팔고 싶다`처럼 �
 
 - 프로젝트 `ubmtflglqudrvumepzij`에 색인 Edge를 먼저 배포하고 `20260927095839` migration을 적용했다. 원본 활동 171건과 할 일 1건은 수정하지 않았다. Vault URL/키를 설정한 후 내부 호출의 401을 발견해 웹 공개는 보류했다.
 - 운영 Edge 기본 환경 키와 호출 키가 다른 상태를 명시적 `ACTIVITY_SEARCH_WORKER_KEY` 비밀과 `apikey` 단일 헤더로 바로잡았다. 보정 migration `20260927114341`을 적용한 뒤 운영 색인 함수의 합성 쿼리에서 `gte-small` 384차원 HTTP 200을 확인했다. 대기열 62→47, 벡터 0→15, 보관 0으로 실제 색인 진행을 확인했다.
-- `activity-search`와 `portfolio-mcp-oauth`를 새 코드로 배포했다. 사용자 인증 HTTP/OAuth 검색과 Pages CI 검증·공개 결과는 후속 기록으로 남긴다. `gte-small`의 한국어 의미 품질 제한은 배포 후에도 유효하다.
+- `activity-search`와 `portfolio-mcp-oauth`를 새 코드로 배포했다. 아래 자동 검증과 별개로 `gte-small`의 한국어 의미 품질 제한은 배포 후에도 유효하다.
+- 앱 `bbdcccb`의 [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36317038981)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36317363854)가 성공했다. 공개 사이트와 번들 HTTP 200을 확인했다. CI 단위 124건·DB 742건·브라우저 85건, 운영 테스트 계정의 인증된 웹 HTTP/OAuth MCP 검색이 통과했다. 백필 대기 0건·실패 보관 0건·벡터 62건을 확인했다.
+- 실제 본인·친구 Google 로그인과 ChatGPT 웹/모바일, 운영 검색 지연·검색 품질은 아직 검증하지 않았다. 모델 품질이 목표에 못 미치므로 이 티켓을 품질까지 완료된 것으로 닫지 않는다.

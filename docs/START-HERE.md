@@ -21,13 +21,13 @@ Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 
 
 ## 현재 인계
 
-- #161~#164: [활동 검색 후속 설계](./design/activity-context-search.md). #161의 비동기 색인·검색·키워드 fallback은 로컬 구현과 자동 검증을 거쳐 운영 DB/Edge에 적용했다. 웹 공개·실클라이언트 검증 상태는 [#161 티켓](./tickets/search-01-korean-hybrid.md)을 확인한다. 초기 `gte-small`의 한국어 의미 검색 품질은 실효 기준에 미달한다. #162 연결 맥락, #163 종목 자동완성, #164 근거 기반 에이전트 검토는 구현 전이다.
+- #161~#164: [활동 검색 후속 설계](./design/activity-context-search.md). #161의 비동기 색인·검색·키워드 fallback은 운영 DB/Edge/웹에 배포됐고, 인증된 테스트 계정의 웹 HTTP/OAuth MCP 검색이 통과했다. 초기 `gte-small`의 한국어 의미 검색 품질은 실효 기준에 미달하며 실제 ChatGPT 사용 검증은 남았다. 상세 근거는 [#161 티켓](./tickets/search-01-korean-hybrid.md)과 [배포 기록](./engineering/deployment.md). #162 연결 맥락, #163 종목 자동완성, #164 근거 기반 에이전트 검토는 구현 전이다.
 
 - #151~#158: [도메인 CRUD 동등성 설계](./design/domain-crud-parity.md), [HTTP·OAuth 계약표](./design/contracts/agent/domain-crud-parity-matrix.md), [티켓 색인](./tickets/README.md)을 따른다. 주요 웹 HTTP/OAuth MCP 경로는 2026-09-27 운영 배포됐지만, 티켓에 적힌 전체 필드 양방향·실 ChatGPT 웹/모바일 검증은 남아 있다. 시세·환율은 직접 편집 없이 동일 가격 갱신을 호출한다.
 
 - #147·#148·#150: 로컬 구현과 검증 및 커밋 기록은 각 티켓에 있다. 미체크 수동 검증은 남아 있다.
 - #149: 현재 문서와 과거 상태 설명 분리. 상세 근거·문서 검사 결과는 해당 티켓이 원본이다.
-- 마지막 확인한 운영 앱 기준은 [2026-09-27 배포 기록](./engineering/deployment.md)의 `ddc26f5` (배분 제외 목록·자산 태그순 정렬 포함)다. 이후 로컬 커밋을 운영 배포로 간주하지 않는다. 실제 Google 로그인·ChatGPT 웹/모바일 확인 등 남은 항목은 배포 기록을 따른다.
+- 마지막 확인한 운영 앱 기준은 [2026-09-27 배포 기록](./engineering/deployment.md)의 `bbdcccb` (#161 검색 포함)다. 이후 로컬 커밋을 운영 배포로 간주하지 않는다. 실제 Google 로그인·ChatGPT 웹/모바일 확인 등 남은 항목은 배포 기록을 따른다.
 - 사용자 로컬 설정과 무관한 미커밋 파일은 보존한다. 테스트·배포 명령의 대상 환경을 실행 전에 확인한다.
 
 ## 과거 기록

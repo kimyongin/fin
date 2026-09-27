@@ -69,6 +69,14 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-27 활동 검색 비동기 색인 (#161)
+
+- 앱 commit: `bbdcccb` (`28544b7` 구현, `bbdcccb` 운영 내부 인증 보정). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36317038981)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36317363854) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 새 번들 `/fin/assets/index-NhtsbsDr.js` HTTP 200을 확인했다.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`: `20260927095839` 비동기 색인과 `20260927114341` 내부 `apikey` 인증 보정을 순서대로 적용했다. 원본 활동·할 일은 수정/삭제하지 않고 파생 벡터를 백필했다. 적용 후 대기열 0건·실패 보관 0건·벡터 62건을 확인했다.
+- Edge Function: `activity-search-index` v4 (`verify_jwt=false`, 내부 키 직접 검사), `activity-search` v3, `portfolio-mcp-oauth` v13. Vault URL/키와 Edge 비밀 `ACTIVITY_SEARCH_WORKER_KEY`를 설정했고 키 값은 코드·기록에 남기지 않았다. 첫 내부 호출의 401은 공개 전에 발견해 동일 키·`apikey` 호출로 보정했다.
+- 로컬 단위 124건·빌드·가이드·Edge 타입·인코딩 및 격리 검색 화면 검사가 통과했다. CI에서 단위 124건, DB 742건, 브라우저 85건, 운영 테스트 계정의 인증된 읽기 RPC 10개와 웹 HTTP/OAuth MCP 검색 경로가 통과했다. 실제 본인·친구 Google 로그인, ChatGPT 웹·모바일 사용, 운영 검색 지연 p50/p95는 아직 확인하지 않았다.
+- `gte-small`의 한국어 의미 검색 품질은 합성 평가에서 실효 기준에 미달한다. 배포 성공을 유사 표현 검색의 품질 완료로 해석하지 않는다. 직전 정상 공개 앱 비교 기준은 `ddc26f5`; 서버 migration은 파생 색인 추가로 남기고, 문제 시 웹/검색 함수 호환성을 확인해 전진 수정한다.
+
 ### 2026-09-27 배분 제외 목록·자산 태그순 정렬
 
 - 앱 commit: `ddc26f5`. [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36307286524)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36307604437) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-Bin8yfIx.js` HTTP 200 및 `배분 제외 보유`·`태그 없음` 문구 포함 확인.
