@@ -33,7 +33,11 @@ async function requestQueryVector(query: string): Promise<QueryVector> {
     body: JSON.stringify({ kind: 'query', query }),
     signal: AbortSignal.timeout(10000),
   })
-  if (!response.ok) throw new Error(`Search embedding failed: ${response.status}`)
+  if (!response.ok) {
+    const failure = new Error('Search embedding is unavailable')
+    if ([408, 504].includes(response.status)) failure.name = 'TimeoutError'
+    throw failure
+  }
   const result = await response.json() as QueryVector
   if (result.model !== 'gte-small' || !Array.isArray(result.embedding) ||
       result.embedding.length !== 384) throw new Error('Search embedding model mismatch')
@@ -71,29 +75,41 @@ export async function hybridSearchActivities(
   const params = rpcParams(args, query)
   if (!query) {
     const page = await rpc(client, 'app_search_activities', params)
-    return { ...page, semantic_status: 'not_requested' }
+    return { ...page, search_mode: 'browse', fallback_reason: null,
+      embedding_model: null, semantic_threshold: null, index_status: 'not_checked',
+      semantic_status: 'not_requested' }
   }
   let vector: QueryVector | null = null
+  let fallbackReason: string | null = null
   try {
     if (args.cursor?.mode !== 'keyword') vector = await embedQuery(query)
   } catch (error) {
-    if (args.cursor?.mode === 'hybrid') throw error
+    if (args.cursor?.mode === 'hybrid') {
+      throw new Error('Semantic search is temporarily unavailable; retry this page or start a new search')
+    }
+    fallbackReason = error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name)
+      ? 'embedding_timeout' : 'embedding_unavailable'
   }
   const page = await rpc(client, 'app_search_activities_ranked', {
     ...params, input_query_embedding: vector ? JSON.stringify(vector.embedding) : null,
   })
-  if (!vector) return { ...page, semantic_status: 'unavailable' }
+  if (!vector) return { ...page, search_mode: 'keyword', fallback_reason: fallbackReason,
+    embedding_model: null, semantic_threshold: null, index_status: 'not_checked',
+    semantic_status: 'unavailable' }
   try {
     const coverage = await rpc(client, 'app_activity_search_index_coverage', {
       input_owner_user_id: args.owner_user_id ?? null,
     })
     return {
       ...page,
+      search_mode: 'hybrid', fallback_reason: null,
+      index_status: Number(coverage.missing_count ?? 0) > 0 ? 'partial' : 'complete',
       semantic_status: Number(coverage.missing_count ?? 0) > 0 ? 'indexing' : 'active',
       missing_count: Number(coverage.missing_count ?? 0),
       embedding_model: vector.model,
     }
   } catch {
-    return { ...page, semantic_status: 'indexing', embedding_model: vector.model }
+    return { ...page, search_mode: 'hybrid', fallback_reason: null,
+      index_status: 'unknown', semantic_status: 'indexing', embedding_model: vector.model }
   }
 }

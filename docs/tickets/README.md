@@ -4,7 +4,7 @@
 
 ## 활동 검색과 연결 맥락
 
-활동 검색 후속 설계(2026-09-27): [정본 계약](../design/activity-context-search.md). #161 비동기 색인·검색은 운영 배포 및 인증된 HTTP/OAuth 자동 검증까지 완료했지만 초기 `gte-small`의 한국어 의미 검색 품질과 실제 ChatGPT 검증은 미완료다. #162~#164는 구현 전이다. #83의 기록 첫 페이지 제약을 대체한다.
+활동 검색 후속 설계(2026-09-27): [정본 계약](../design/activity-context-search.md). #161 비동기 색인·검색은 운영 배포 및 인증된 HTTP/OAuth 자동 검증까지 완료했지만 초기 `gte-small`의 한국어 의미 검색 품질과 실제 ChatGPT 검증은 미완료다. #162~#164는 구현 전이며 #165의 검색 근거 표시는 로컬 구현·검증 중이다. #83의 기록 첫 페이지 제약을 대체한다.
 
 | 티켓 | 수직 슬라이스 | 명세 |
 | --- | --- | --- |
@@ -12,6 +12,7 @@
 | [#162](https://github.com/kimyongin/fin/issues/162) | 할 일·기록 양방향 연결 맥락 | [search-02](./search-02-linked-context.md) |
 | [#163](https://github.com/kimyongin/fin/issues/163) | 종목명·티커 자동완성 | [search-03](./search-03-instrument-autocomplete.md) |
 | [#164](https://github.com/kimyongin/fin/issues/164) | 근거 기반 에이전트 검토·교차 검증 | [search-04](./search-04-agent-grounded-review.md) |
+| [#165](https://github.com/kimyongin/fin/issues/165) | 실제 검색 방식·폴백·결과별 근거와 유사도 점수 | [search-05](./search-05-search-evidence.md) |
 
 각 슬라이스를 웹/HTTP/OAuth까지 연결하고, #164의 근거·품질 검증을 첫 슬라이스부터 수행한다. 모델 교체나 검색 결과 신뢰 전에는 [#161 검증과 한계](./search-01-korean-hybrid.md)를 확인한다.
 

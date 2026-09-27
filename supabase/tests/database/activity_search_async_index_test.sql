@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
-select extensions.plan(17);
+select extensions.plan(23);
 
 insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at)
 values ('00000000-0000-0000-0000-000000001961','authenticated','authenticated',
@@ -53,6 +53,18 @@ select extensions.is(public.app_search_activities_ranked('심리',
 select extensions.is(jsonb_array_length(public.app_search_activities_ranked('심리',
   ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
   )->'items'),2,'task and record search in one list');
+select extensions.is(public.app_search_activities_ranked('심리',
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  )->>'search_mode','hybrid','ranked response reports the actual hybrid mode');
+select extensions.is(public.app_search_activities_ranked('심리',
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  )->'items'->0->'matched_by','["keyword"]'::jsonb,'pending task is a keyword hit only');
+select extensions.is(public.app_search_activities_ranked('심리',
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  )->'items'->1->'matched_by','["keyword","semantic"]'::jsonb,'indexed record reports both match conditions');
+select extensions.is(public.app_search_activities_ranked('심리',
+  ('['||array_to_string(array[0.0::real,1.0::real]||array_fill(0.0::real,array[382]),',')||']')::extensions.vector
+  )->'items'->1->'matched_by','["keyword"]'::jsonb,'below-threshold score is not a semantic hit');
 select extensions.ok((public.app_search_activities_ranked('심리',
   ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector,
   input_limit=>1)->'next_cursor') is not null,'ranked search returns a cursor');
@@ -65,6 +77,11 @@ select extensions.is(public.app_search_activities_ranked('심리',
 select extensions.is(public.app_search_activities_ranked('두려움',
   ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
   )->'items'->0->>'record_type','activity','semantic match finds different wording');
+select extensions.is(public.app_search_activities_ranked('두려움',
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  )->'items'->0->'matched_by','["semantic"]'::jsonb,'semantic-only hit reports its actual match condition');
+select extensions.is(public.app_search_activities_ranked('심리',null)->>'search_mode','keyword',
+  'fallback response reports keyword mode');
 select extensions.is(jsonb_array_length(public.app_search_activities_ranked('심리',null,
   input_from=>date '2099-01-01')->'items'),1,
   'record period applies before ranking without restricting tasks');

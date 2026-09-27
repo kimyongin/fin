@@ -74,4 +74,26 @@ describe('decision and task data adapters', () => {
       input_tag_ids: [tagId], input_tag_match: 'any', input_limit: 30, input_cursor: null, input_timezone: 'Asia/Seoul',
     }])
   })
+
+  it('exposes search evidence from HTTP and labels the direct RPC fallback as keyword only', async () => {
+    const item = { record_type: 'activity', record_id: '7', matched_by: ['semantic'], semantic_score: 0.972 }
+    const supabase = {
+      functions: { invoke: vi.fn(async () => ({ data: { items: [item], next_cursor: null,
+        semantic_status: 'active', search_mode: 'hybrid', fallback_reason: null,
+        embedding_model: 'gte-small', semantic_threshold: 0.96, index_status: 'complete' }, error: null })) },
+      rpc: vi.fn(),
+    }
+    await expect(searchActivities(supabase, { query: '심리' })).resolves.toMatchObject({
+      searchMode: 'hybrid', semanticThreshold: 0.96, items: [item],
+    })
+
+    supabase.functions.invoke.mockResolvedValueOnce({ data: null, error: new Error('offline') })
+    supabase.rpc.mockResolvedValueOnce({ data: { items: [{ record_type: 'task', record_id: '8' }], next_cursor: null }, error: null })
+    await expect(searchActivities(supabase, { query: '심리' })).resolves.toMatchObject({
+      searchMode: 'keyword', fallbackReason: 'search_service_unavailable',
+      items: [{ matched_by: ['keyword'], semantic_score: null }],
+    })
+    supabase.functions.invoke.mockResolvedValueOnce({ data: null, error: new Error('offline') })
+    await expect(searchActivities(supabase, { query: '심리', cursor: { mode: 'hybrid' } })).rejects.toThrow('다음 페이지')
+  })
 })

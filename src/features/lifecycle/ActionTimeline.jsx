@@ -16,6 +16,36 @@ function statusLabel(task) {
   return `${scheduleSummary(task)}${state ? ` · ${state}` : ''}`
 }
 
+function SearchExplanation({ page }) {
+  if (page.searchMode === 'browse') return null
+  const hybrid = page.searchMode === 'hybrid'
+  const mode = hybrid ? `단어 포함 검색 + 유사도 검색 · ${page.embeddingModel || 'gte-small'}` : '단어 포함 검색만 사용'
+  const reason = {
+    embedding_timeout: '유사도 검색 응답 시간 초과',
+    embedding_unavailable: '유사도 검색을 사용할 수 없음',
+    search_service_unavailable: '검색 서비스에 연결하지 못함',
+  }[page.fallbackReason]
+  const hasSemanticHit = page.items.some((item) => item.matched_by?.includes('semantic'))
+  return <div className="mt-1 grid gap-1 type-secondary text-[var(--muted-ink)]">
+    <p>{mode}{reason ? ` · ${reason}` : ''}</p>
+    {page.indexStatus === 'partial' && <p>일부 자료가 색인 대기 중이며, 해당 자료에는 단어 포함 검색만 적용됩니다.</p>}
+    {page.indexStatus === 'unknown' && hybrid && <p>색인 준비 상태를 확인하지 못했습니다.</p>}
+    {hybrid && page.items.length > 0 && page.items.every((item) => Array.isArray(item.matched_by)) && !hasSemanticHit && <p>현재 표시된 결과는 모두 단어 일치로 찾았습니다.</p>}
+    {hybrid && <p>유사도는 정확도나 확률이 아닌 비교 점수입니다. 검색 기준: {page.semanticThreshold ?? '확인 불가'} · 한국어의 비슷한 표현은 놓칠 수 있습니다.</p>}
+  </div>
+}
+
+function SearchEvidence({ item, threshold }) {
+  const matches = item.matched_by || []
+  if (matches.length === 0) return null
+  const keyword = matches.includes('keyword')
+  const semantic = matches.includes('semantic')
+  const label = keyword && semantic ? '단어·유사도 일치' : semantic ? '유사도 일치' : '단어 일치'
+  const score = typeof item.semantic_score === 'number' && Number.isFinite(item.semantic_score)
+    ? ` · 유사도 ${item.semantic_score.toFixed(3)}${!semantic && typeof threshold === 'number' ? ' (기준 미달)' : ''}` : ''
+  return <span className="type-meta mt-2 block tabular-nums text-[var(--muted-ink)]">{label}{score}</span>
+}
+
 const emptySearch = () => {
   const to = businessDate()
   const from = businessDate(Date.parse(`${to}T12:00:00+09:00`) - 29 * 86400000)
@@ -44,7 +74,7 @@ export default function ActionTimeline({ availableTags = [], canManageTags = tru
   const [timelineRange, setTimelineRange] = useState(emptySearch)
   const [searchApplied, setSearchApplied] = useState(null)
   const dateInvalid = Boolean(searchDraft.from && searchDraft.to && searchDraft.from > searchDraft.to)
-  const [searchPage, setSearchPage] = useState({ items: [], nextCursor: null, semanticStatus: 'not_requested' })
+  const [searchPage, setSearchPage] = useState({ items: [], nextCursor: null, searchMode: 'browse' })
   const requestGate = useRef(createRequestGate())
   const previousTagIds = useRef(new Set())
   const latestDraft = useRef(searchDraft)
@@ -102,7 +132,7 @@ export default function ActionTimeline({ availableTags = [], canManageTags = tru
         state: 'all',
       })
       if (!request.isCurrent()) return
-      setSearchPage((current) => append ? { items: [...current.items, ...next.items], nextCursor: next.nextCursor, semanticStatus: current.semanticStatus } : next)
+      setSearchPage((current) => append ? { ...next, items: [...current.items, ...next.items], fallbackReason: current.fallbackReason ?? next.fallbackReason } : next)
       setRetryMore(false)
       if (!append && ownerUserId) onSharedViewReady?.(ownerUserId)
     } catch (nextError) {
@@ -175,7 +205,7 @@ export default function ActionTimeline({ availableTags = [], canManageTags = tru
     </PagePanel>
 
     {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100"><span>{error}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => searchApplied ? runSearch({ append: retryMore, cursor: retryMore ? searchPage.nextCursor : null, values: searchApplied }) : load({ append: retryMore, cursor: retryMore ? page.nextCursor : null })} type="button">다시 시도</button></div>}
-        {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">활동 목록을 불러오는 중입니다.</p> : searchApplied ? <section className="grid gap-3"><div><h2 className="font-semibold">검색 결과</h2>{searchPage.semanticStatus === 'active' && <p className="mt-1 type-secondary text-[var(--muted-ink)]">유사도 검색을 포함했습니다. 한국어 표현은 일부 놓칠 수 있습니다.</p>}{searchPage.semanticStatus === 'indexing' && <p className="mt-1 type-secondary text-[var(--muted-ink)]">일부 기록을 색인 중입니다. 아직 검색되지 않는 내용이 있을 수 있습니다.</p>}{searchPage.semanticStatus === 'unavailable' && <p className="mt-1 type-secondary text-[var(--muted-ink)]">현재는 입력한 단어가 포함된 결과만 찾습니다. 비슷한 표현은 검색되지 않을 수 있습니다.</p>}</div>{searchPage.items.length === 0 ? <p className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted-ink)]">조건에 맞는 활동이 없습니다.</p> : ['todo', 'done'].map((state) => <section className="grid gap-2" key={state}><h3 className="text-sm font-semibold">{state === 'todo' ? '할 일' : '기록'}</h3>{searchPage.items.filter((item) => item.record_state === state).map((item) => <article className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4" key={`${item.record_type}-${item.record_id}`}><button className="w-full text-left" onClick={() => item.record_type === 'activity' ? onOpenActivity({ id: item.activity_id }) : onOpenTask({ id: item.task_id, kind: item.task_kind })} type="button"><span className="text-xs text-[var(--muted-ink)]">{item.record_type === 'task' ? (item.record_state === 'todo' ? '할 일' : '종료된 할 일') : '기록'}{item.due_date ? ` · ${item.due_date}` : ''}</span><h4 className="mt-2 font-semibold">{item.title}</h4>{(item.excerpt || item.body) && <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm text-[var(--muted-ink)]">{item.body?.toLowerCase().includes(searchApplied.query?.toLowerCase()) ? item.body : (item.excerpt || item.body)}</p>}{item.record_type === 'task' && item.task_kind === 'general' && item.recurrence_kind && item.recurrence_kind !== 'none' && <p className="type-meta mt-2 text-[var(--muted-ink)]">{statusLabel({ ...item, status: item.task_status })}</p>}{item.tags?.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)}</div>}</button>{item.record_type === 'task' && item.task_kind === 'general' && item.record_state === 'todo' && !ownerUserId && <div className="mt-3 flex justify-end"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={{ ...item, id: item.task_id, status: item.task_status }} /></div>}</article>)}</section>)}{searchPage.nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold" disabled={loadingMore} onClick={() => runSearch({ append: true, cursor: searchPage.nextCursor, values: searchApplied })} type="button">{loadingMore ? '불러오는 중' : '더 보기'}</button>}</section> : <>
+        {loading ? <p className="py-8 text-sm text-[var(--muted-ink)]">활동 목록을 불러오는 중입니다.</p> : searchApplied ? <section className="grid gap-3"><div><h2 className="font-semibold">검색 결과</h2><SearchExplanation page={searchPage} /></div>{searchPage.items.length === 0 ? <p className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted-ink)]">조건에 맞는 활동이 없습니다.</p> : ['todo', 'done'].map((state) => <section className="grid gap-2" key={state}><h3 className="text-sm font-semibold">{state === 'todo' ? '할 일' : '기록'}</h3>{searchPage.items.filter((item) => item.record_state === state).map((item) => <article className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4" key={`${item.record_type}-${item.record_id}`}><button className="w-full text-left" onClick={() => item.record_type === 'activity' ? onOpenActivity({ id: item.activity_id }) : onOpenTask({ id: item.task_id, kind: item.task_kind })} type="button"><span className="text-xs text-[var(--muted-ink)]">{item.record_type === 'task' ? (item.record_state === 'todo' ? '할 일' : '종료된 할 일') : '기록'}{item.due_date ? ` · ${item.due_date}` : ''}</span><h4 className="mt-2 font-semibold">{item.title}</h4>{(item.excerpt || item.body) && <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm text-[var(--muted-ink)]">{item.body?.toLowerCase().includes(searchApplied.query?.toLowerCase()) ? item.body : (item.excerpt || item.body)}</p>}<SearchEvidence item={item} threshold={searchPage.semanticThreshold} />{item.record_type === 'task' && item.task_kind === 'general' && item.recurrence_kind && item.recurrence_kind !== 'none' && <p className="type-meta mt-2 text-[var(--muted-ink)]">{statusLabel({ ...item, status: item.task_status })}</p>}{item.tags?.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)}</div>}</button>{item.record_type === 'task' && item.task_kind === 'general' && item.record_state === 'todo' && !ownerUserId && <div className="mt-3 flex justify-end"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={{ ...item, id: item.task_id, status: item.task_status }} /></div>}</article>)}</section>)}{searchPage.nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold" disabled={loadingMore} onClick={() => runSearch({ append: true, cursor: searchPage.nextCursor, values: searchApplied })} type="button">{loadingMore ? '불러오는 중' : '더 보기'}</button>}</section> : <>
       <section>
         <div className="mb-3"><h2 className="type-section-title">할 일</h2></div>
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">

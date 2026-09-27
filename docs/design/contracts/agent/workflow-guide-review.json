@@ -1,51 +1,51 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-27",
-  "review_reason": "Activity search now uses an asynchronous gte-small index with explicit indexing and keyword fallback statuses; reviewed find-and-tag guidance and search tool description",
+  "review_reason": "Search mode, fallback, index coverage, and per-result evidence contract for issue 165",
   "topics": {
     "assets": {
       "revision": "fnv1a32:3a22a3ee",
-      "contract_digest": "8bc2c72289f7ad22191839b232cc3c42e11ca01ebafeef91bb44f3fd38bf1738"
+      "contract_digest": "05f846a99a7e950455f9901c4f0ee4224f5b4ed531834fe4cee6ad801865d8b7"
     },
     "policy": {
       "revision": "fnv1a32:e37e506e",
-      "contract_digest": "2ceaa6d518b7a8f14eabe6fddbe8c20ec703d36aba3e618be8177dacd6993122"
+      "contract_digest": "2bc621aa43a478f191bfa7239ad67119d7e4e21335943388a938f76f3bf9551d"
     },
     "holding_thesis": {
       "revision": "fnv1a32:4c4ae963",
-      "contract_digest": "a4ed46d0c54150ff961490630f613440469a43afd90e9adde3bc0950668701c4"
+      "contract_digest": "01d22a47c2650b8f7d149eb01d59031d791372e86b7cc92cedf95e89fc8eb3b6"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "d5733e75e104d872aab5d5da082db3db7ce89010704ccb1ed1d78ab38046321d"
+      "contract_digest": "1a37f00fe4730b7f7436d606f7e8c4027cc4e0012ab07bd1b4e9852f40bbdb60"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "c737b61a9316b5972c95ccd065b82b60c082e3b68ff65b1eba8146edd49ffdda"
+      "contract_digest": "f932b153b29bd21956beaffa202609cc5a1b6ed4b11c035e94538fdef4ef6ae3"
     },
     "trade_entry": {
       "revision": "fnv1a32:e542a131",
-      "contract_digest": "a37617b0dd6a3306a6c9ce11875089a9efe7f3e12cb9afe6ea7346a07db33462"
+      "contract_digest": "fa6523f29454351545e2cc25ff79bc72646b87d3580727599938053569ddfd2f"
     },
     "reconciliation": {
       "revision": "fnv1a32:4c885520",
-      "contract_digest": "ccdd41902bdb25c25fc9efdfc76ed6e54a54564c5b47674f2eba918212f5d53a"
+      "contract_digest": "76761f3cf436f554386f50de209ca9a7d13e92bd33d456447aadd7467e8a37c7"
     },
     "todo": {
-      "revision": "fnv1a32:fb1077df",
-      "contract_digest": "995485ea1789e4e0897ffd49f39e1a52ba6e8e80824ec696f8afc549a2044e32"
+      "revision": "fnv1a32:080bcdfb",
+      "contract_digest": "0b014aa7e0f0d1d78e8fd60320d30c8c00fd218356cd96c9e6f43ec7e0966dd8"
     },
     "activity_report": {
       "revision": "fnv1a32:e4aa34cd",
-      "contract_digest": "ebed92e806f18a3387b31518a8a15d925fdb7d6ac7fd46c34b9a9a3c1f4eb9fa"
+      "contract_digest": "56a578dbcb6494395d93f6beec65a2812a35b9176687c1626bc0868b675ee2f2"
     },
     "product_feedback": {
       "revision": "fnv1a32:76d431a2",
-      "contract_digest": "e457e948662e95ab1d9096a0dbdc45bc9d5cfac3ede4f5906c567e15ce1d6a3d"
+      "contract_digest": "08f2c5e0d502d2dbcdc0395bfa2006526cb925c3deeffd15663627c8d86c470f"
     },
     "sharing": {
       "revision": "fnv1a32:aaaec76a",
-      "contract_digest": "9369d5fd4bfdc47003f534895d320ba62ed76dda7421d7ccf1b699435a69006a"
+      "contract_digest": "6a83b01cc02700a3362977fe43a03fa9eb861b829aa3c396fc3d5d62b6e6a502"
     }
   }
 }

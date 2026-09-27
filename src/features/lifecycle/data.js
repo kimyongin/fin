@@ -124,8 +124,18 @@ export async function searchActivities(supabase, {
   }
   if (supabase.functions?.invoke) {
     const { data, error } = await supabase.functions.invoke('activity-search', { body })
-    if (!error && data) return { ...normalizePage(data), semanticStatus: data.semantic_status ?? 'unavailable' }
+    if (!error && data) return {
+      ...normalizePage(data),
+      semanticStatus: data.semantic_status ?? 'unavailable',
+      searchMode: data.search_mode ?? (body.query
+        ? (['active', 'indexing'].includes(data.semantic_status) ? 'hybrid' : 'keyword') : 'browse'),
+      fallbackReason: data.fallback_reason ?? null,
+      embeddingModel: data.embedding_model ?? null,
+      semanticThreshold: data.semantic_threshold ?? null,
+      indexStatus: data.index_status ?? 'unknown',
+    }
   }
+  if (cursor?.mode === 'hybrid') throw new Error('유사도 검색의 다음 페이지를 불러오지 못했습니다. 다시 시도하거나 새로 검색해 주세요.')
   const data = await rpc(supabase, 'app_search_activities', {
     input_owner_user_id: ownerUserId,
     input_query: query?.trim() || null,
@@ -139,7 +149,16 @@ export async function searchActivities(supabase, {
     input_cursor: cursor,
     input_timezone: timezone,
   })
-  return { ...normalizePage(data), semanticStatus: 'unavailable' }
+  return {
+    ...normalizePage(data),
+    items: (Array.isArray(data?.items) ? data.items : []).map((item) => ({
+      ...item, matched_by: body.query ? ['keyword'] : [], semantic_score: null,
+    })),
+    semanticStatus: body.query ? 'unavailable' : 'not_requested',
+    searchMode: body.query ? 'keyword' : 'browse',
+    fallbackReason: body.query ? 'search_service_unavailable' : null,
+    embeddingModel: null, semanticThreshold: null, indexStatus: 'not_checked',
+  }
 }
 
 export async function saveGeneralTask(supabase, task) {
