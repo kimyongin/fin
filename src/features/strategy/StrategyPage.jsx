@@ -41,6 +41,40 @@ function differenceLabel(current, target) {
   return `${formatPercent(Math.abs(difference))}p ${difference > 0 ? '초과' : '부족'}`
 }
 
+const allocationColors = ['#5b9cf4', '#55c997', '#f4c75e', '#ee8b97', '#a994ea', '#70c3d7', '#e9a66b', '#9bc971']
+
+function AllocationPieChart({ tagCards, totalValue }) {
+  const slices = tagCards.filter((tag) => Number(tag.value) > 0)
+  if (!slices.length) return null
+
+  let offset = 0
+  const entries = slices.map((tag, index) => {
+    const percent = Number(tag.value) / totalValue * 100
+    const start = offset
+    offset += percent
+    return { id: tag.id, name: tag.name === 'Untagged' ? '미분류' : tag.name, percent, start, end: offset, color: allocationColors[index % allocationColors.length] }
+  })
+  const background = entries.length === 1
+    ? entries[0].color
+    : `conic-gradient(${entries.map((entry) => `${entry.color} ${entry.start}% ${entry.end}%`).join(', ')})`
+
+  return <section aria-label="태그별 현재 비중" className="grid min-w-0 gap-5 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center sm:gap-8">
+    <div aria-hidden="true" className="relative mx-auto aspect-square w-40 rounded-full" style={{ background }}>
+      {entries.filter((entry) => entry.percent >= 9).map((entry) => {
+        const angle = (entry.start + entry.percent / 2) * Math.PI / 50
+        return <span className="type-label type-number absolute -translate-x-1/2 -translate-y-1/2 text-white" key={entry.id} style={{ left: `${50 + 30 * Math.sin(angle)}%`, top: `${50 - 30 * Math.cos(angle)}%` }}>{formatPercent(entry.percent)}</span>
+      })}
+    </div>
+    <ul className="min-w-0" aria-label="태그별 현재 비중 목록">
+      {entries.map((entry) => <li className="flex min-w-0 items-center gap-3 border-b border-[var(--line)] py-2 last:border-b-0" key={entry.id}>
+        <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+        <span className="type-secondary min-w-0 flex-1 break-words">{entry.name}</span>
+        <span className="type-value type-number shrink-0">{formatPercent(entry.percent)}</span>
+      </li>)}
+    </ul>
+  </section>
+}
+
 function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], tags = [], totalValue = 0, valuationQuality, showStrategy = true, showAssets = true, onRefreshTags, onSharedViewReady }) {
   const [state, setState] = useState(createEmptyStrategyState)
   const [draft, setDraft] = useState({})
@@ -167,7 +201,9 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
       {showAssets && valuationQuality?.hasStaleValues && <p className="mt-2 text-sm text-amber-200">오래된 시세·환율이 포함되어 있습니다. 현재 비중을 참고용으로 확인해 주세요.</p>}
       {showAssets && totalValue === 0 && <p className="mt-2 text-sm text-[var(--muted-ink)]">평가액이 없어 현재 비중을 계산할 수 없습니다. 목표는 설정할 수 있습니다.</p>}
       {!showStrategy && <p className="mt-2 text-sm text-[var(--muted-ink)]">목표 비중은 공유되지 않았습니다.</p>}
-    </>} />
+    </>}>
+      {currentAvailable && <AllocationPieChart tagCards={tagCards} totalValue={totalValue} />}
+    </PagePanel>
     {error && <div className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}{targetConflict && <button className="ml-3 min-h-11 rounded-xl border border-red-400/40 px-3" onClick={() => { setDraft(draftFromState(state, tagRows)); setTargetConflict(false); setError('') }} type="button">최신 목표 불러오기</button>}</div>}
     <section className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)]" aria-label="태그별 현재 및 목표 비중">
       <div className="list-column-header type-label hidden border-b border-[var(--line)] px-3 text-[var(--muted-ink)] sm:grid sm:grid-cols-[minmax(0,1fr)_7rem_8rem_7rem] sm:gap-3 sm:px-4"><span>태그</span><span>현재</span><span>목표</span><span>차이</span></div>
