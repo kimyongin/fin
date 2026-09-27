@@ -2,6 +2,19 @@
 
 티켓은 목적·계약·검증 근거의 원본이다. OPEN/CLOSED만으로 구현·배포 상태를 추정하지 않는다. 최신 원격 본문과 작업 트리를 함께 확인한다.
 
+## 활동 검색과 연결 맥락
+
+활동 검색 후속 설계(2026-09-27, 구현 전): [정본 계약](../design/activity-context-search.md). #83의 기록 첫 페이지/gte-small 제약을 대체하며 앱 코드 변경·배포 완료는 아니다.
+
+| 티켓 | 수직 슬라이스 | 명세 |
+| --- | --- | --- |
+| [#161](https://github.com/kimyongin/fin/issues/161) | 한국어 검색·운영 오류·색인과 범위 | [search-01](./search-01-korean-hybrid.md) |
+| [#162](https://github.com/kimyongin/fin/issues/162) | 할 일·기록 양방향 연결 맥락 | [search-02](./search-02-linked-context.md) |
+| [#163](https://github.com/kimyongin/fin/issues/163) | 종목명·티커 자동완성 | [search-03](./search-03-instrument-autocomplete.md) |
+| [#164](https://github.com/kimyongin/fin/issues/164) | 근거 기반 에이전트 검토·교차 검증 | [search-04](./search-04-agent-grounded-review.md) |
+
+Sol은 #161의 모델·실행 위치·비용·색인·커서 최소 계약부터 확정하고 각 슬라이스를 웹/HTTP/OAuth까지 연결한다. #164 검증은 첫 슬라이스부터 함께 시작한다.
+
 ## 저장 시 활동 기록 분류
 
 후속 설계 · 구현 전: [#160 계좌별 보유의 배분 포함 여부](https://github.com/kimyongin/fin/issues/160) — [최소 계약·수직 슬라이스](./allocation-01-holding-inclusion.md). 자산 합계는 보존하고 전체 계좌 중 포함된 보유만 배분·리밸런싱 제안 대상으로 사용한다. 계좌 자체 flag나 부분 금액 제외는 만들지 않는다.

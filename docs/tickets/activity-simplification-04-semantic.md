@@ -1,5 +1,7 @@
 # [활동 단순화] 조건·키워드·유사도 하이브리드 검색
 
+2026-09-27 후속: [#161](https://github.com/kimyongin/fin/issues/161)~[#164](https://github.com/kimyongin/fin/issues/164)와 [새 검색 계약](../design/activity-context-search.md)이 후속 구현 기준이다. 현재 한국어/할 일/연결 맥락/종목 검색 한계를 보완한다. 아래 과거 구현·검증 기록은 보존하며 새 기능 완료를 뜻하지 않는다.
+
 2026-09-23 후속: [ADR-0008](../adr/0008-minimal-portfolio-storage.md)과 저장 단순화 #86~#91이 충돌하는 저장/이력/기능 유지 요구를 대체한다. 기존 구현·검증 증거와 미검증 외부 게이트는 보존하며 새 구현은 docs/START-HERE.md에서 시작한다.
 
 상태: 로컬 구현·자동 검증 완료 · 운영 배포 전 · 2026-09-23

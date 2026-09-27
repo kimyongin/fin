@@ -21,6 +21,8 @@ Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 
 
 ## 현재 인계
 
+- #161~#164: [활동 검색 후속 설계](./design/activity-context-search.md). 한국어 의미 검색·연결 맥락·종목 자동완성·근거 기반 에이전트 검토. 문서/티켓 작성만 완료했고 구현 전이다. #161의 최소 기술 계약부터 시작하며 기존 #83의 첫 페이지/gte-small 제약을 신규 구현 요구로 유지하지 않는다.
+
 - #151~#158: [도메인 CRUD 동등성 설계](./design/domain-crud-parity.md), [HTTP·OAuth 계약표](./design/contracts/agent/domain-crud-parity-matrix.md), [티켓 색인](./tickets/README.md)을 따른다. 주요 웹 HTTP/OAuth MCP 경로는 2026-09-27 운영 배포됐지만, 티켓에 적힌 전체 필드 양방향·실 ChatGPT 웹/모바일 검증은 남아 있다. 시세·환율은 직접 편집 없이 동일 가격 갱신을 호출한다.
 
 - #147·#148·#150: 로컬 구현과 검증 및 커밋 기록은 각 티켓에 있다. 미체크 수동 검증은 남아 있다.
