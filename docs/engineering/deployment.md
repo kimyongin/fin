@@ -69,6 +69,14 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-27 활동 검색 근거 표시 (#165)
+
+- 앱 구현 `7c89358`, 인증된 운영 검색 근거 검사 `ef401e0`. [동일 commit의 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36319945424)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36320313559)가 성공했다. <https://kimyongin.github.io/fin/> 및 새 `/fin/assets/index-BsoqWsyI.js`가 HTTP 200이고 새 검색 안내 문구가 번들에 있음을 확인했다.
+- 운영 프로젝트 `ubmtflglqudrvumepzij`에 `20260927121702_activity_search_evidence.sql` 한 건을 적용했다. 기존 ranked RPC의 응답 필드를 늘리는 변경이며 저장된 할 일·기록·벡터 원본은 수정하지 않았다. 원격 migration 목록에서 적용을 확인했다.
+- Edge `activity-search` v4 (`verify_jwt=true`)와 `portfolio-mcp-oauth` v14 (`verify_jwt=false`)를 배포했다. 색인 함수와 다른 도메인 함수는 이번에 변경하지 않았다.
+- 로컬 단위 127건·빌드·인코딩·가이드·Edge 타입 검사, 격리 DB/MCP 및 활동 브라우저 25건이 통과했다. CI는 운영 테스트 계정의 인증된 HTTP·OAuth MCP 검색에서 `search_mode=hybrid`, 점수 기준·색인 상태·항목별 근거 계약을 검증했고 격리 DB/브라우저 전체 회귀 검사를 통과했다.
+- 실제 본인·친구 Google 로그인, ChatGPT 웹·모바일에서 근거/점수 표시, 200% 확대는 아직 수동 확인하지 않았다. `gte-small` 한국어 의미 검색 품질 제한도 그대로다. 직전 정상 공개 앱 비교 기준은 `bbdcccb`이며 적용된 additive 응답 필드는 이전 앱과 호환되게 유지한다.
+
 ### 2026-09-27 활동 검색 비동기 색인 (#161)
 
 - 앱 commit: `bbdcccb` (`28544b7` 구현, `bbdcccb` 운영 내부 인증 보정). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36317038981)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36317363854) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 새 번들 `/fin/assets/index-NhtsbsDr.js` HTTP 200을 확인했다.

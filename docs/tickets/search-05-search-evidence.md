@@ -1,6 +1,6 @@
 # [활동 검색] 실제 검색 방식·폴백 사유·결과별 검색 근거 표시
 
-상태: 로컬 구현·격리 검증 완료 · 운영 배포 및 실제 ChatGPT 검증 전 · 2026-09-27
+상태: 로컬 구현·운영 배포 완료 · 실제 ChatGPT/200% 확대 검증 전 · 2026-09-27
 GitHub: https://github.com/kimyongin/fin/issues/165
 선행: [#161](./search-01-korean-hybrid.md)의 배포된 비동기 색인·혼합 검색. [검색 정본](../design/activity-context-search.md)의 후속 표시 계약이다.
 
@@ -80,3 +80,9 @@ S5. 사용자와 에이전트가 검색 결과를 해석할 때, 유사도 검�
 - 활동 화면은 검색 경로·부분 색인/알 수 없는 상태·결과별 일치 근거와 점수를 표시한다. 점수는 3자리로 읽되 서버 원값이 임계값을 결정한다. MCP 도구 설명·작업 가이드와 API 계약·스키마 색인을 갱신했다.
 - `npm test` 25파일/127건, 웹 build/encoding, Edge Deno 타입 검사, workflow guide 검사 통과. `npm run test:e2e -- e2e/activity.spec.js`는 격리 `.e2e` DB를 초기화하여 DB SQL 전체, OAuth MCP 계약·인증된 readiness 및 활동 브라우저 25건을 통과했다. 바뀐 경계값 UI 사례를 추가한 뒤 동일 격리 DB/MCP 검사와 해당 브라우저 1건을 재통과했다.
 - 브라우저에서 360/390/768/1024/1440px의 정상 혼합 검색·부분 색인·점수 및 단어 폴백·임계값 미달 문구와 가로 넘침 없음을 확인했다. 실제 사용자·친구 데이터, 200% 확대, ChatGPT 웹/모바일, 운영 배포는 확인하지 않았다.
+
+## 운영 배포 · 2026-09-27
+
+- 대상 `ubmtflglqudrvumepzij`에서 migration `20260927121702` 적용을 확인하고 Edge `activity-search` v4·`portfolio-mcp-oauth` v14를 배포했다.
+- `ef401e0`을 푸시했다. [검증·gh-pages 배포](https://github.com/kimyongin/fin/actions/runs/36319945424)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36320313559)가 성공했다. 공개 HTML·새 번들의 HTTP 200과 새 검색 안내 문구를 확인했다.
+- CI 인증된 운영 테스트 사용자의 HTTP/OAuth MCP 검색이 동일한 검색 근거 응답 계약을 통과했다. 실제 사용자 계정·친구 공유 검색과 ChatGPT 웹/모바일, 200% 확대의 수동 확인은 남았다. 한국어 의미 검색 품질은 #161의 미완료 범위다.
