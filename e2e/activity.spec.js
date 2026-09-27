@@ -652,11 +652,11 @@ test('explains hybrid match evidence, score, and keyword fallback without overfl
       items: [{ record_type: 'activity', record_id: 9203, activity_id: 9203,
         record_state: 'done', title: '투자 심리 자료',
         matched_by: both ? ['keyword', 'semantic'] : ['keyword'],
-        semantic_score: hybrid ? (both ? 0.97231 : 0.91231) : null }], next_cursor: null,
+        semantic_score: hybrid ? (both ? 0.97231 : 0.71231) : null }], next_cursor: null,
       search_mode: hybrid ? 'hybrid' : 'keyword',
       fallback_reason: hybrid ? null : 'embedding_timeout',
-      embedding_model: hybrid ? 'gte-small' : null,
-      semantic_threshold: hybrid ? 0.96 : null,
+      embedding_model: hybrid ? 'multilingual-e5-large' : null,
+      semantic_threshold: hybrid ? 0.8059 : null,
       index_status: hybrid ? 'partial' : 'not_checked',
       semantic_status: hybrid ? 'indexing' : 'unavailable',
     }) })
@@ -670,7 +670,7 @@ test('explains hybrid match evidence, score, and keyword fallback without overfl
   }
   await page.getByRole('textbox', { name: '활동 검색' }).fill('손실')
   await expect(page.getByText('현재 표시된 결과는 모두 단어 일치로 찾았습니다.')).toBeVisible()
-  await expect(page.getByText('단어 일치 · 유사도 0.912 (기준 미달)')).toBeVisible()
+  await expect(page.getByText('단어 일치 · 유사도 0.712 (기준 미달)')).toBeVisible()
   await page.getByRole('textbox', { name: '활동 검색' }).fill('폭락')
   await expect(page.getByText('단어 포함 검색만 사용 · 유사도 검색 응답 시간 초과')).toBeVisible()
   await expect(page.getByText('단어 일치', { exact: true })).toBeVisible()

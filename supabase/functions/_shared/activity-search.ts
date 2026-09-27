@@ -1,4 +1,5 @@
 import { getSearchWorkerKey } from './search-worker-auth.ts'
+import { SEARCH_EMBEDDING_DIMENSIONS, SEARCH_EMBEDDING_MODEL } from './search-embedding.ts'
 
 type SupabaseClientLike = {
   rpc(name: string, params?: Record<string, unknown>): PromiseLike<{ data: unknown; error: { message?: string } | null }>
@@ -39,8 +40,9 @@ async function requestQueryVector(query: string): Promise<QueryVector> {
     throw failure
   }
   const result = await response.json() as QueryVector
-  if (result.model !== 'gte-small' || !Array.isArray(result.embedding) ||
-      result.embedding.length !== 384) throw new Error('Search embedding model mismatch')
+  if (result.model !== SEARCH_EMBEDDING_MODEL || !Array.isArray(result.embedding) ||
+      result.embedding.length !== SEARCH_EMBEDDING_DIMENSIONS ||
+      result.embedding.some((value) => !Number.isFinite(value))) throw new Error('Search embedding model mismatch')
   return result
 }
 
@@ -82,7 +84,12 @@ export async function hybridSearchActivities(
   let vector: QueryVector | null = null
   let fallbackReason: string | null = null
   try {
-    if (args.cursor?.mode !== 'keyword') vector = await embedQuery(query)
+    if (args.cursor?.mode !== 'keyword' &&
+        (embedQuery !== requestQueryVector || Deno.env.get('ACTIVITY_SEARCH_SEMANTIC_ENABLED') === 'true')) {
+      vector = await embedQuery(query)
+    } else if (args.cursor?.mode === 'hybrid') {
+      throw new Error('Semantic search is temporarily unavailable; retry this page or start a new search')
+    }
   } catch (error) {
     if (args.cursor?.mode === 'hybrid') {
       throw new Error('Semantic search is temporarily unavailable; retry this page or start a new search')
@@ -92,6 +99,7 @@ export async function hybridSearchActivities(
   }
   const page = await rpc(client, 'app_search_activities_ranked_ticker', {
     ...params, input_query_embedding: vector ? JSON.stringify(vector.embedding) : null,
+    ...(vector ? { input_query_model: vector.model } : {}),
   })
   if (!vector) return { ...page, search_mode: 'keyword', fallback_reason: fallbackReason,
     embedding_model: null, semantic_threshold: null, index_status: 'not_checked',

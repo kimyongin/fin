@@ -10,6 +10,7 @@ type SearchJob = {
   record_id: string
   chunk_no: number
   content_hash: string
+  model: string
 }
 
 Deno.serve(async (request: Request) => {
@@ -24,7 +25,15 @@ Deno.serve(async (request: Request) => {
       if (typeof body.query !== 'string' || !body.query.trim() || body.query.length > 500) {
         return new Response('Invalid query', { status: 400 })
       }
-      const embedding = await embedSearchText(body.query.slice(0, 400))
+      const embedding = await embedSearchText(body.query, 'query')
+      return Response.json({ model: SEARCH_EMBEDDING_MODEL, embedding })
+    }
+    if (body.kind === 'passage') {
+      if (typeof body.text !== 'string' || !body.text.trim() ||
+          new TextEncoder().encode(body.text).length > 900) {
+        return new Response('Invalid passage', { status: 400 })
+      }
+      const embedding = await embedSearchText(body.text, 'passage')
       return Response.json({ model: SEARCH_EMBEDDING_MODEL, embedding })
     }
     const job = body.job as SearchJob
@@ -32,7 +41,7 @@ Deno.serve(async (request: Request) => {
     if (!job || !Number.isSafeInteger(messageId) || messageId < 1 ||
         !['activity', 'task'].includes(job.record_type) ||
         typeof job.record_id !== 'string' || typeof job.content_hash !== 'string' ||
-        !Number.isInteger(job.chunk_no) || job.chunk_no < 0) {
+        !Number.isInteger(job.chunk_no) || job.chunk_no < 0 || job.model !== SEARCH_EMBEDDING_MODEL) {
       return new Response('Invalid job', { status: 400 })
     }
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, key)
@@ -41,6 +50,7 @@ Deno.serve(async (request: Request) => {
       input_record_id: job.record_id,
       input_chunk_no: job.chunk_no,
       input_content_hash: job.content_hash,
+      input_model: job.model,
     })
     if (sourceError) throw sourceError
     if (source?.stale) {
@@ -49,7 +59,9 @@ Deno.serve(async (request: Request) => {
       return Response.json({ stale: true })
     }
     const excerpt = String(source?.excerpt ?? '')
-    const embedding = await embedSearchText(excerpt)
+    const embeddingInput = String(source?.embedding_input ?? '')
+    if (!embeddingInput) throw new Error('Missing search embedding input')
+    const embedding = await embedSearchText(embeddingInput, 'passage')
     const { error } = await supabase.rpc('app_finish_activity_search_job', {
       input_message_id: messageId,
       input_user_id: source.user_id,
@@ -57,13 +69,14 @@ Deno.serve(async (request: Request) => {
       input_record_id: job.record_id,
       input_chunk_no: job.chunk_no,
       input_content_hash: job.content_hash,
+      input_model: job.model,
       input_excerpt: excerpt,
       input_embedding: JSON.stringify(embedding),
     })
     if (error) throw error
     return Response.json({ indexed: true })
   } catch (error) {
-    console.error('activity search index failed', (error as Error).message)
+    console.error('activity search index failed', error instanceof Error ? error.name : 'UnknownError')
     return Response.json({ error: 'Indexing failed' }, { status: 500 })
   }
 })

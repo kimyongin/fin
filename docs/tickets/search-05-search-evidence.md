@@ -4,6 +4,8 @@
 GitHub: https://github.com/kimyongin/fin/issues/165
 선행: [#161](./search-01-korean-hybrid.md)의 배포된 비동기 색인·혼합 검색. [검색 정본](../design/activity-context-search.md)의 후속 표시 계약이다.
 
+2026-09-27 후속: [Pinecone 전환](../design/activity-search-pinecone.md)은 #161이 담당한다. 아래 gte-small 모델명/한국어 한계 문구는 초기 배포의 예시다. 새 모델 적용 시 서버 모델명을 표시하고 구 모델 전용 경고를 갱신하되, 실제 mode·fallback·coverage·matched_by·점수의 의미는 이 티켓을 유지한다. 모델 교체 구현/검증이 완료됐다는 기록은 아니다.
+
 ## 목적과 현재 문제
 
 S5. 사용자와 에이전트가 검색 결과를 해석할 때, 유사도 검색이 실제 실행됐는지, 단어 검색으로 대체됐는지, 각각의 항목은 왜 검색됐는지 확인한다. 검색 결과가 없다는 이유만으로 관련 자료 자체가 없다고 단정하지 않는다.

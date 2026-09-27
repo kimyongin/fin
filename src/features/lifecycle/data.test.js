@@ -80,11 +80,11 @@ describe('decision and task data adapters', () => {
     const supabase = {
       functions: { invoke: vi.fn(async () => ({ data: { items: [item], next_cursor: null,
         semantic_status: 'active', search_mode: 'hybrid', fallback_reason: null,
-        embedding_model: 'gte-small', semantic_threshold: 0.96, index_status: 'complete' }, error: null })) },
+        embedding_model: 'multilingual-e5-large', semantic_threshold: 0.8059, index_status: 'complete' }, error: null })) },
       rpc: vi.fn(),
     }
     await expect(searchActivities(supabase, { query: '심리' })).resolves.toMatchObject({
-      searchMode: 'hybrid', semanticThreshold: 0.96, items: [item],
+      searchMode: 'hybrid', semanticThreshold: 0.8059, items: [item],
     })
 
     supabase.functions.invoke.mockResolvedValueOnce({ data: null, error: new Error('offline') })

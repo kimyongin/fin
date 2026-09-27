@@ -19,7 +19,7 @@ function statusLabel(task) {
 function SearchExplanation({ page }) {
   if (page.searchMode === 'browse') return null
   const hybrid = page.searchMode === 'hybrid'
-  const mode = hybrid ? `단어 포함 검색 + 유사도 검색 · ${page.embeddingModel || 'gte-small'}` : '단어 포함 검색만 사용'
+  const mode = hybrid ? `단어 포함 검색 + 유사도 검색 · ${page.embeddingModel}` : '단어 포함 검색만 사용'
   const reason = {
     embedding_timeout: '유사도 검색 응답 시간 초과',
     embedding_unavailable: '유사도 검색을 사용할 수 없음',
@@ -31,7 +31,7 @@ function SearchExplanation({ page }) {
     {page.indexStatus === 'partial' && <p>일부 자료가 색인 대기 중이며, 해당 자료에는 단어 포함 검색만 적용됩니다.</p>}
     {page.indexStatus === 'unknown' && hybrid && <p>색인 준비 상태를 확인하지 못했습니다.</p>}
     {hybrid && page.items.length > 0 && page.items.every((item) => Array.isArray(item.matched_by)) && !hasSemanticHit && <p>현재 표시된 결과는 모두 단어 일치로 찾았습니다.</p>}
-    {hybrid && <p>유사도는 정확도나 확률이 아닌 비교 점수입니다. 검색 기준: {page.semanticThreshold ?? '확인 불가'} · 한국어의 비슷한 표현은 놓칠 수 있습니다.</p>}
+    {hybrid && <p>유사도는 정확도나 확률이 아닌 비교 점수입니다. 검색 기준: {page.semanticThreshold ?? '확인 불가'} · 관련 자료가 누락될 수 있으니 원문을 확인하세요.</p>}
   </div>
 }
 

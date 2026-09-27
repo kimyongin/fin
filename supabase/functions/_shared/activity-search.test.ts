@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { hybridSearchActivities } from './activity-search.ts'
 
-const vector = { model: 'gte-small', embedding: Array(384).fill(0.01) }
+const vector = { model: 'multilingual-e5-large', embedding: Array(1024).fill(0.01) }
 
 describe('activity hybrid search', () => {
   it('never indexes documents while searching and forwards the same filters to ranked search', async () => {
@@ -17,14 +17,15 @@ describe('activity hybrid search', () => {
     }, embed)
     expect(result.semantic_status).toBe('active')
     expect(result).toMatchObject({ search_mode: 'hybrid', fallback_reason: null,
-      index_status: 'complete', embedding_model: 'gte-small' })
+      index_status: 'complete', embedding_model: 'multilingual-e5-large' })
     expect(embed).toHaveBeenCalledOnce()
     expect(rpc.mock.calls.map(([name]) => name)).toEqual([
       'app_search_activities_ranked_ticker', 'app_activity_search_index_coverage',
     ])
     expect(rpc).toHaveBeenCalledWith('app_search_activities_ranked_ticker',
       expect.objectContaining({ input_record_state: 'done', input_tag_ids: ['tag-1'],
-        input_tag_match: 'all', input_query_embedding: JSON.stringify(vector.embedding) }))
+        input_tag_match: 'all', input_query_embedding: JSON.stringify(vector.embedding),
+        input_query_model: 'multilingual-e5-large' }))
   })
 
   it('reports incomplete indexing without treating missing vectors as no history', async () => {

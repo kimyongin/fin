@@ -35,50 +35,50 @@ select set_config('test.search_content_hash',(select message->>'content_hash' fr
 set local role service_role;
 select extensions.is(public.app_get_activity_search_job('activity',
   (select id::text from public.activity_events where title='손실 심리 자료'),0,
-  current_setting('test.search_content_hash'))->>'stale','false','worker receives current document');
+  current_setting('test.search_content_hash'),'multilingual-e5-large')->>'stale','false','worker receives current document');
 select public.app_finish_activity_search_job(
   current_setting('test.search_message_id')::bigint,
   '00000000-0000-0000-0000-000000001961','activity',
   (select id::text from public.activity_events where title='손실 심리 자료'),0,
-  current_setting('test.search_content_hash'),
-  (select substr(concat_ws(E'\n',title,body),1,400) from public.activity_events where title='손실 심리 자료'),
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector);
+  current_setting('test.search_content_hash'),'multilingual-e5-large',
+  (select concat_ws(E'\n',title,body) from public.activity_events where title='손실 심리 자료'),
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector);
 
 set local role authenticated;
 select extensions.is(public.app_activity_search_index_coverage()->>'missing_count','1',
   'coverage distinguishes the pending task from the indexed record');
 select extensions.is(public.app_search_activities_ranked('심리',
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector
   )->'items'->0->>'record_type','task','title prefix ranks ahead of a body match');
 select extensions.is(jsonb_array_length(public.app_search_activities_ranked('심리',
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector
   )->'items'),2,'task and record search in one list');
 select extensions.is(public.app_search_activities_ranked('심리',
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector
   )->>'search_mode','hybrid','ranked response reports the actual hybrid mode');
 select extensions.is(public.app_search_activities_ranked('심리',
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector
   )->'items'->0->'matched_by','["keyword"]'::jsonb,'pending task is a keyword hit only');
 select extensions.is(public.app_search_activities_ranked('심리',
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector
   )->'items'->1->'matched_by','["keyword","semantic"]'::jsonb,'indexed record reports both match conditions');
 select extensions.is(public.app_search_activities_ranked('심리',
-  ('['||array_to_string(array[0.0::real,1.0::real]||array_fill(0.0::real,array[382]),',')||']')::extensions.vector
+  ('['||array_to_string(array[0.0::real,1.0::real]||array_fill(0.0::real,array[1022]),',')||']')::extensions.vector
   )->'items'->1->'matched_by','["keyword"]'::jsonb,'below-threshold score is not a semantic hit');
 select extensions.ok((public.app_search_activities_ranked('심리',
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector,
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector,
   input_limit=>1)->'next_cursor') is not null,'ranked search returns a cursor');
 select extensions.is(public.app_search_activities_ranked('심리',
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector,
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector,
   input_limit=>1,input_cursor=>public.app_search_activities_ranked('심리',
-    ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector,
+    ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector,
     input_limit=>1)->'next_cursor')->'items'->0->>'record_type','activity',
   'ranked cursor reaches the next result without duplication');
 select extensions.is(public.app_search_activities_ranked('두려움',
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector
   )->'items'->0->>'record_type','activity','semantic match finds different wording');
 select extensions.is(public.app_search_activities_ranked('두려움',
-  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[383]),',')||']')::extensions.vector
+  ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector
   )->'items'->0->'matched_by','["semantic"]'::jsonb,'semantic-only hit reports its actual match condition');
 select extensions.is(public.app_search_activities_ranked('심리',null)->>'search_mode','keyword',
   'fallback response reports keyword mode');
@@ -103,7 +103,7 @@ set local role authenticated;
 select extensions.is(public.app_activity_search_index_coverage()->>'missing_count','2',
   'edited record is pending again');
 select extensions.ok(not has_function_privilege('authenticated',
-  'public.app_get_activity_search_job(text,text,integer,text)','EXECUTE'),
+  'public.app_get_activity_search_job(text,text,integer,text,text)','EXECUTE'),
   'authenticated users cannot fetch worker source text');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001962',true);

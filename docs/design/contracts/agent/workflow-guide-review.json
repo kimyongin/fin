@@ -1,51 +1,51 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-27",
-  "review_reason": "Ticket #166: market ticker activity references replace registered instrument IDs in OAuth record and search tools; reviewed all affected guide topics and unchanged financial holding targets",
+  "review_reason": "Pinecone Korean activity search: model name and uncertain semantic results; activity filters, permissions, source reading, and tool behavior reviewed without other guide changes",
   "topics": {
     "assets": {
       "revision": "fnv1a32:3a22a3ee",
-      "contract_digest": "b0738b4657692d710fb54898e065d040ccf972fab9de061004fcdd81d02c8ece"
+      "contract_digest": "0a8af75a4b91de0ff2a51bfa3e0d404dacf219142735d93730e94453f1d85838"
     },
     "policy": {
       "revision": "fnv1a32:e37e506e",
-      "contract_digest": "f1b799eb6aa88abccec5f58b141d77cc48b2c8620630d0eeb08ce616bc0c2d4e"
+      "contract_digest": "f1b7c96222161e98e3f54ef9689608c6b0399f895d8ce6a2a48e89322f0a5d0a"
     },
     "holding_thesis": {
       "revision": "fnv1a32:4c4ae963",
-      "contract_digest": "68c27d0c36b3327622f369866f001a8f49eec26085a3fd654f99233c3602e3e4"
+      "contract_digest": "1676e4ae9d405b77b5374054639ced651a5d153daad01b3147217cee3a1c4caf"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "b5b1a940f30e23540d88f4c985f68732bcd70d85dc4558ccf36472948454d4f5"
+      "contract_digest": "b62601693fc432b5221f82103324f27f20c9b0305f9342fbb729053bc3006680"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "ef4b03bac428426877b5202497a647213041defa8d2f9810c5ad3704f9c72a61"
+      "contract_digest": "9638d8975f715eb5e143a656552accf91287190dce5ff5557c5f3b68c5ac2105"
     },
     "trade_entry": {
       "revision": "fnv1a32:e542a131",
-      "contract_digest": "cf8c73e90b08208494c6ccf56ee8bd3d99d224d29d0fb85c0cb58941a32facca"
+      "contract_digest": "e4a9ebf46327adb03ae7af142ffcba36dce51145ba37fce063b56b7284a88d0b"
     },
     "reconciliation": {
       "revision": "fnv1a32:4c885520",
-      "contract_digest": "dfe7a287903b00a6c88964b9ba9436aeb0fc6c73c7de07e2ff3a8b811aa5cce7"
+      "contract_digest": "deed27a3f44dbbe0b63db6bb97575da3df249aa92c20d3b9d83ba5090600f4c8"
     },
     "todo": {
-      "revision": "fnv1a32:76bbe067",
-      "contract_digest": "16e738d6384d9f54151aa535bec4ba9b884ddf2876b56af8de9a550dd428a353"
+      "revision": "fnv1a32:d2489182",
+      "contract_digest": "698ae79eedfe995785b05c4c7483f853376791bbb1557f0f5b04e4fa51622dee"
     },
     "activity_report": {
       "revision": "fnv1a32:e4aa34cd",
-      "contract_digest": "0791e1cee52d1b477b85d0ff653f44255f32177b52425b649ba300ed99c5ba74"
+      "contract_digest": "f1a554864aaa1f962354f4efea062d6d7d310fb1451e3de82b24f27eee26bf98"
     },
     "product_feedback": {
       "revision": "fnv1a32:76d431a2",
-      "contract_digest": "00e16d5c924831a532b190260bb72bc4a53d078da2a3d2d3be2c001fce4eb77f"
+      "contract_digest": "dd484aebd2c20ae43b2e5ee516f1cef5ac2e814015746269ab6734c20ff371c3"
     },
     "sharing": {
       "revision": "fnv1a32:aaaec76a",
-      "contract_digest": "91ef93190bc04640de2c4a7a23ac86640434eca9473adb03f1f7cf7cfd6426d8"
+      "contract_digest": "d68db9dcb6b195b90e24a616ece1bfacaf1c49ffa446f1062dfc348d759dd26d"
     }
   }
 }

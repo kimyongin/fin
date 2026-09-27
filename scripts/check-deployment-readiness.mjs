@@ -112,24 +112,23 @@ const searchResponse = await fetch(`${baseUrl}/functions/v1/activity-search`, {
 })
 if (!searchResponse.ok) throw new Error(`Authenticated activity search failed (${searchResponse.status})`)
 const searchPage = await searchResponse.json()
-if (!Array.isArray(searchPage.items) || !['active', 'indexing'].includes(searchPage.semantic_status)) {
-  throw new Error(`Activity search embedding is unavailable (${searchPage.semantic_status ?? 'unknown'})`)
+function validSearchPage(page) {
+  if (!Array.isArray(page?.items) || page.items.some((item) => !Array.isArray(item.matched_by))) return false
+  if (page.search_mode === 'hybrid') return page.embedding_model === 'multilingual-e5-large' &&
+    page.semantic_threshold === 0.8059 && ['active', 'indexing'].includes(page.semantic_status) &&
+    ['complete', 'partial', 'unknown'].includes(page.index_status) && page.fallback_reason === null
+  return page.search_mode === 'keyword' && page.semantic_status === 'unavailable' &&
+    page.index_status === 'not_checked' && page.embedding_model === null &&
+    page.semantic_threshold === null
 }
-if (searchPage.search_mode !== 'hybrid' || searchPage.embedding_model !== 'gte-small' ||
-    searchPage.semantic_threshold !== 0.96 || !['complete', 'partial', 'unknown'].includes(searchPage.index_status) ||
-    searchPage.fallback_reason !== null || searchPage.items.some((item) => !Array.isArray(item.matched_by))) {
+if (!validSearchPage(searchPage) ||
+    (process.env.ACTIVITY_SEARCH_EXPECT_SEMANTIC === 'true' && searchPage.search_mode !== 'hybrid')) {
   throw new Error('Activity search evidence contract is unavailable')
 }
 const mcpSearch = await mcp('tools/call', { name: 'search_activities', arguments: searchInput })
 const mcpSearchPage = mcpSearch?.structuredContent?.data
-if (mcpSearch?.isError || !Array.isArray(mcpSearchPage?.items) ||
-    !['active', 'indexing'].includes(mcpSearchPage?.semantic_status)) {
-  throw new Error('OAuth MCP activity search is unavailable')
-}
-if (mcpSearchPage.search_mode !== 'hybrid' || mcpSearchPage.semantic_threshold !== 0.96 ||
-    !['complete', 'partial', 'unknown'].includes(mcpSearchPage.index_status) ||
-    mcpSearchPage.fallback_reason !== null ||
-    mcpSearchPage.items.some((item) => !Array.isArray(item.matched_by))) {
+if (mcpSearch?.isError || !validSearchPage(mcpSearchPage) ||
+    (process.env.ACTIVITY_SEARCH_EXPECT_SEMANTIC === 'true' && mcpSearchPage.search_mode !== 'hybrid')) {
   throw new Error('OAuth MCP search evidence contract is unavailable')
 }
 

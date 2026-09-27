@@ -66,6 +66,7 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SMOKE_EMAIL: ${{ secrets.SUPABASE_SMOKE_EMAIL }}
           SUPABASE_SMOKE_PASSWORD: ${{ secrets.SUPABASE_SMOKE_PASSWORD }}
+          ACTIVITY_SEARCH_EXPECT_SEMANTIC: 'true'
 
       - name: Run isolated database and browser tests
         run: npm run test:e2e
