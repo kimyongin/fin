@@ -54,6 +54,14 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-27 계좌별 보유의 배분 제외 (#160)
+
+- 앱 commit: `78cae5b` (기능 `83a0777`, CSV 왕복 `ea9a273`, 기본 포함 UI `fb279fe`, Edge 타입 보정 `5b9cd2b`, 가이드 검토 기록 `78cae5b`). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36304646723)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36304966790) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-B_qEFJPA.js` HTTP 200 및 `배분에서 제외` 문구 확인.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`: 적용 전 `public` 스키마·데이터를 로컬 임시 경로 `fin-prod-backup-20260927-160`에 덤프했다. `20260927062326_holding_allocation_inclusion.sql` 한 개만 적용했고 원격 dry-run에서 미적용 migration 없음. seed·DB reset·기존 데이터 삭제 없음.
+- Edge Function `portfolio-mcp-oauth` v11 배포. `verify_jwt=false` 유지. 기존 토큰 MCP·시세 함수는 변경하지 않았다. 운영 security advisor의 error 수준 지적 없음.
+- 로컬 단위 118건·빌드·인코딩·가이드 검사를 통과했다. CI에서 단위·가이드·Edge 타입·인증된 운영 RPC 호환성·격리 DB/브라우저·빌드가 통과했다. 첫 두 실행은 Edge 타입 선언과 가이드 검토 manifest 누락으로 웹 게시 전에 실패했고 수정 후 전체 재검증했다.
+- 실제 본인·친구 Google 로그인, ChatGPT 웹·모바일의 제외/재포함, 모바일 실기기 조작은 수동 확인하지 않았다. 직전 정상 공개 앱 비교 기준은 `2cf700c`이며, 새 DB 컬럼은 기존 앱에서 생략해도 기본 포함으로 호환된다.
+
 ### 2026-09-27 배분 태그 비중 파이 차트
 
 - 앱 commit: `2cf700c` (`2643e20` 차트와 문서, `2cf700c` 날짜 고정 브라우저 테스트 보정). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36293839875)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36294146980) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-yyxT89LN.js` HTTP 200 및 차트 코드·범례 문구 포함 확인.
