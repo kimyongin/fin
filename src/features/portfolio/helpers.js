@@ -1,4 +1,5 @@
 import { normalizeEditableInstrumentType } from '../../constants/portfolio'
+import { createSpreadsheetRows, spreadsheetColumns, spreadsheetCsvHeaders } from '../assets/spreadsheetSchema'
 
 function escapeCsvCell(value) {
   const normalized = value == null ? '' : String(value)
@@ -13,29 +14,27 @@ function formatCsvNumber(value, digits = 2) {
   return Number(value).toFixed(digits).replace(/\.?0+$/, '')
 }
 
-export function buildPortfolioCsv(computedPositions, accountById) {
-  const header = ['계좌', '종목', '티커', '통화', '평가금액', '평균가', '현재가', '수익률', '배분에 포함']
-  const rows = computedPositions
+export function buildPortfolioCsv({ accounts, holdings, instrumentTags, instruments, computedPositions }) {
+  const computedById = new Map(computedPositions.map((row) => [String(row.id), row]))
+  const header = [...spreadsheetCsvHeaders, '현재 평가액', '현재가', '수익률']
+  const rows = createSpreadsheetRows({ accounts, holdings, instrumentTags, instruments })
+    .filter((row) => row.account_name && row.display_name)
     .slice()
     .sort((a, b) => {
-      const accountNameA = accountById.get(a.account_id)?.name ?? ''
-      const accountNameB = accountById.get(b.account_id)?.name ?? ''
-      const byAccount = accountNameA.localeCompare(accountNameB, 'ko')
+      const byAccount = a.account_name.localeCompare(b.account_name, 'ko')
       if (byAccount !== 0) return byAccount
 
-      return (b.market_value_krw ?? 0) - (a.market_value_krw ?? 0)
+      return (computedById.get(String(b.id))?.market_value_krw ?? 0) - (computedById.get(String(a.id))?.market_value_krw ?? 0)
     })
-    .map((position) => [
-      accountById.get(position.account_id)?.name ?? '',
-      position.display_name ?? position.ticker,
-      position.ticker ?? '',
-      position.currency ?? 'KRW',
-      formatCsvNumber(position.market_value_native),
-      formatCsvNumber(position.avgCost),
-      formatCsvNumber(position.latestPrice),
-      formatCsvNumber(position.priceChangePercent),
-      position.include_in_allocation === false ? '제외' : '포함',
-    ])
+    .map((row) => {
+      const position = computedById.get(String(row.id))
+      return [
+        ...spreadsheetColumns.map(([field]) => row[field]),
+        formatCsvNumber(position?.market_value_native),
+        formatCsvNumber(position?.latestPrice),
+        formatCsvNumber(position?.priceChangePercent),
+      ]
+    })
 
   return [header, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\r\n')
 }

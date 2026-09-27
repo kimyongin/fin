@@ -264,7 +264,10 @@ function App() {
   })
 
   async function handleCopyCsv() {
-    await writeClipboard(buildPortfolioCsv(computedPositions, accountById))
+    await writeClipboard(buildPortfolioCsv({
+      accounts: state.accounts, holdings: state.holdings, instrumentTags: state.instrumentTags,
+      instruments: state.instruments, computedPositions,
+    }))
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1200)
   }

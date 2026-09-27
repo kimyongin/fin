@@ -60,7 +60,7 @@ GitHub: [#160](https://github.com/kimyongin/fin/issues/160).
 
 ### S2 · 기존 입력 경로 보존과 경계 검증
 
-- [x] 표 편집/CSV 출력에 포함 설정을 넣고, 기존 bulk 입력의 필드 생략은 false를 유지한다. 직접 매매·보정·종목 수정 등은 기존 보유 행의 필드를 건드리지 않는다.
+- [x] 표 편집/CSV 출력에 포함 설정을 넣고, CSV 복사 형식을 표 편집의 입력 열과 호환시켜 붙여넣기 왕복을 검증한다. 기존 bulk 입력의 필드 생략은 false를 유지한다. 직접 매매·보정·종목 수정 등은 기존 보유 행의 필드를 건드리지 않는다.
 - [x] 같은 종목의 계좌별 차이, 제외 보유의 누락 시세, 전체·배분 대상·제외 합계, 상태 버전·멱등 재시도를 검증한다.
 - [x] 자산 필터와 독립된 배분 목록 계산을 유지하고, 상세 모달의 360/390/768/1024/1440px 저장 경로를 E2E로 확인한다.
 - [x] schema OVERVIEW, PRD/페이지 패널 가이드/계약표, MCP 도구 설명·작업 가이드·review manifest를 갱신한다.
@@ -75,6 +75,7 @@ GitHub: [#160](https://github.com/kimyongin/fin/issues/160).
 - `holdings.include_in_allocation`이 정본이다. `app_get_portfolio_state`의 기존 `holdings[]`에 이 값이 포함되고, 새 `allocation` 객체가 `known_total_krw`, `known_included_krw`, `known_excluded_krw`, 범위별 보유/누락 수, `included_is_complete`, 포함분 `tag_values`를 제공한다. 숫자는 확인 가능한 평가액이며 누락 상태는 별도 필드로 판단한다.
 - 자산 상세 `app_save_asset_detail_with_activity`와 표 편집 `app_bulk_save_portfolio_rows`에 optional boolean을 연결했다. 새 행은 true, 기존 행은 생략 시 이전 값 유지, 명시적 null/다른 타입은 거부한다. 상태 버전 트리거와 활동 저장은 기존 계약을 사용한다.
 - 웹 배분 파이·목표 대비 현재 비중은 보유 행 필터링 후 태그별 집계한다. `find_holdings` MCP 읽기도 보유 flag를 노출한다. MCP `save_asset_detail`은 같은 HTTP RPC를 호출한다.
+- `CSV 복사`는 표 편집의 입력 열을 먼저 내보내고, 현재 평가액·현재가·수익률을 읽기 전용 참고 열로 뒤에 붙인다. 붙여넣기는 참고 열을 무시하고 입력 열의 `true`/`false` 설정을 복원한다.
 - 단위 검사: 24 파일/116 테스트 통과. 격리된 DB: 기존 58 파일/713 테스트와 신규 `holding_allocation_inclusion_test.sql` 12 테스트. OAuth MCP 계약, 배포 준비 검사, 자산 E2E 10건 통과. `npm run check:edge`는 이 환경에 Deno 실행 파일이 없어 직접 실행하지 못했으며, MCP 계약 검사는 격리 E2E에서 통과했다.
 - 남은 실사용 확인: 배포 후 실제 계정의 공유 화면, 실제 ChatGPT OAuth, 외화·평가형·미분류·전부 제외·목표만 있는 태그의 시각 상태, Excel 왕복, 모바일 실기기. 자동 테스트는 해당 상태를 모두 대체하지 않는다.
 

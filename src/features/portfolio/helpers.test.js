@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { parseSpreadsheetPaste } from '../assets/spreadsheetSchema'
 import {
   buildPortfolioCsv,
   createAccountModalDraft,
@@ -7,42 +8,30 @@ import {
 
 describe('portfolio helpers', () => {
   it('builds CSV rows sorted by account and market value', () => {
-    const accounts = new Map([
-      [1, { id: 1, name: 'Beta' }],
-      [2, { id: 2, name: 'Alpha' }],
-    ])
-    const csv = buildPortfolioCsv(
-      [
-        {
-          account_id: 1,
-          display_name: 'Plain',
-          ticker: 'BBB',
-          currency: 'KRW',
-          market_value_native: 10,
-          avgCost: 1,
-          latestPrice: 2,
-          priceChangePercent: 100,
-          market_value_krw: 10,
-        },
-        {
-          account_id: 2,
-          display_name: 'Needs, Quote "Here"',
-          ticker: 'AAA',
-          currency: 'USD',
-          market_value_native: 20.5,
-          avgCost: 10,
-          latestPrice: 20.5,
-          priceChangePercent: 105,
-          market_value_krw: 30000,
-        },
+    const csv = buildPortfolioCsv({
+      accounts: [{ id: 1, name: 'Beta' }, { id: 2, name: 'Alpha' }],
+      holdings: [
+        { id: 1, account_id: 1, ticker: 'BBB', quantity: 10, avg_price: 1, include_in_allocation: true },
+        { id: 2, account_id: 2, ticker: 'AAA', quantity: 2, avg_price: 10, include_in_allocation: false },
       ],
-      accounts,
-    )
+      instruments: [
+        { ticker: 'BBB', display_name: 'Plain', currency: 'KRW', instrument_type: 'market' },
+        { ticker: 'AAA', display_name: 'Needs, Quote "Here"', currency: 'USD', instrument_type: 'market' },
+      ],
+      instrumentTags: [],
+      computedPositions: [
+        { id: 1, market_value_native: 10, latestPrice: 2, priceChangePercent: 100, market_value_krw: 10 },
+        { id: 2, market_value_native: 20.5, latestPrice: 20.5, priceChangePercent: 105, market_value_krw: 30000 },
+      ],
+    })
 
     const lines = csv.split('\r\n')
     expect(lines).toHaveLength(3)
-    expect(lines[1]).toBe('Alpha,"Needs, Quote ""Here""",AAA,USD,20.5,10,20.5,105,포함')
-    expect(lines[2]).toBe('Beta,Plain,BBB,KRW,10,1,2,100,포함')
+    expect(lines[1]).toBe('Alpha,,"Needs, Quote ""Here""",AAA,market,2,USD,10,,,,false,20.5,20.5,105')
+    expect(lines[2]).toBe('Beta,,Plain,BBB,market,10,KRW,1,,,,true,10,2,100')
+    const imported = parseSpreadsheetPaste(csv)
+    expect(imported.usesImportHeaders).toBe(true)
+    expect(imported.rows.map((row) => row.include_in_allocation)).toEqual(['false', 'true'])
   })
 
   it('creates modal drafts with normalized defaults', () => {
