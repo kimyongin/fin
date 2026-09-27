@@ -69,6 +69,15 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-28 Pinecone 활동 의미 검색 (#161)
+
+- 사용자 요청으로 실모델 품질 게이트 미달 상태에서 의미 검색을 활성화했다. 합성 검증은 24문항 중 23문항 적중, 지정 후반부 3/4, 무관 질문 오탐 1/6이다. 배포 성공을 검색 품질 인수 완료로 표시하지 않는다.
+- 앱 commit `5c3deec`. [동일 commit 검증·gh-pages 배포](https://github.com/kimyongin/fin/actions/runs/36330375757)와 [Pages 게시](https://github.com/kimyongin/fin/actions/runs/36330784463)가 성공했다. 공개 <https://kimyongin.github.io/fin/>와 `/fin/assets/index-B_eVIyPZ.js`는 HTTP 200이다. CI에서 단위 131건, 격리 DB 783건, 브라우저 86건, 인증된 운영 읽기 RPC 11개와 HTTP/OAuth MCP 의미 검색 계약을 통과했다.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`에 `20260927160000_activity_search_pinecone_context.sql` 한 건을 적용했다. 적용 전 `public` 스키마·데이터는 `%TEMP%/fin-prod-backup-20260928-161/`에 보관했다. 색인 cron을 멈추고 진행 작업 0건을 확인한 뒤 검색/OAuth/색인 함수를 교체했다. 현재 Edge 버전은 `activity-search` v9 (`verify_jwt=true`), `portfolio-mcp-oauth` v19 및 `activity-search-index` v8 (둘 다 `verify_jwt=false`)이다.
+- Pinecone 무료 조직의 `Default` 프로젝트에서 별도 키로 `multilingual-e5-large` 1024차원 호출을 확인했다. 무료 플랜은 `DataPlaneEditor` 키를 허용하지 않아 별도 `ProjectEditor` 키를 사용했다. `PINECONE_API_KEY`는 운영 Edge 비밀에만 설정했고 값을 코드·배포 기록에 남기지 않았다. `ACTIVITY_SEARCH_SEMANTIC_ENABLED=true`로 질의 기능을 켰다.
+- 적용 전후 활동 172건·할 일 1건을 유지했다. 검색 가능한 원본 38건의 예상 청크 75개와 현재 1024차원 벡터 75개가 일치하고, 미완료 원본·구 모델/차원 벡터·대기열·실패 보관·최근 cron 실패는 모두 0건이다. 원격 migration dry-run에서도 미적용 항목이 없다.
+- 실제 본인·친구 Google 로그인, ChatGPT 웹·모바일 사용, 200% 확대, 운영 지연 p50/p95, 실제 사용 질문의 관련성은 아직 수동 확인하지 않았다. 문제가 생기면 먼저 `ACTIVITY_SEARCH_SEMANTIC_ENABLED=false`로 질의 임베딩을 끄고 키워드 검색을 유지한다. 색인 오류에는 `cron.alter_job(1, active := false)`로 작업을 멈춘다. 384차원 worker나 구 migration만 되돌리지 않는다. 직전 공개 앱 비교 기준은 `fa7a20c`다.
+
 ### 2026-09-27 활동 시장 종목 티커 참조 (#166)
 
 - 앱 commit `fa7a20c`. [검증·gh-pages 배포](https://github.com/kimyongin/fin/actions/runs/36324852263)와 [Pages 게시](https://github.com/kimyongin/fin/actions/runs/36325252457)가 성공했다. <https://kimyongin.github.io/fin/>와 새 번들 `/fin/assets/index-Cf4Eb6Pl.js`가 HTTP 200이고 새 티커 RPC 호출을 포함한다.
