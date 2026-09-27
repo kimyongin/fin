@@ -104,6 +104,25 @@ export function usePortfolioDerivedData({
     [computedPositions, latestPriceByTicker],
   );
 
+  const allocationPositions = useMemo(
+    () => computedPositions.filter((row) => row.include_in_allocation !== false),
+    [computedPositions],
+  );
+  const allocationTotalValue = useMemo(
+    () => allocationPositions.reduce((sum, row) => {
+      const value = effectiveKrwValue(row, latestPriceByTicker);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0),
+    [allocationPositions, latestPriceByTicker],
+  );
+  const excludedCount = computedPositions.length - allocationPositions.length;
+  const excludedValue = totalValue - allocationTotalValue;
+  const excludedMissingCount = computedPositions.filter((row) => row.include_in_allocation === false && row.valuation_status === 'missing').length;
+  const allocationValuationQuality = useMemo(() => ({
+    isComplete: allocationPositions.every((row) => row.valuation_status !== 'missing'),
+    hasStaleValues: allocationPositions.some((row) => row.valuation_status === 'stale'),
+  }), [allocationPositions]);
+
   const computedValuationQuality = useMemo(
     () => ({
       totalPositionCount: computedPositions.length,
@@ -257,7 +276,7 @@ export function usePortfolioDerivedData({
   ]);
 
   const tagCards = useMemo(() => {
-    const rows = instrumentRows.filter((row) => row.accountCount > 0);
+    const rows = allocationPositions;
     const byTag = new Map();
     for (const row of rows) {
       const tag = tagMapByTicker.get(row.ticker) ?? {
@@ -271,14 +290,14 @@ export function usePortfolioDerivedData({
         holdings: [],
         unknownCount: 0,
       };
-      current.value += row.market_value_krw ?? 0;
+      current.value += Number.isFinite(row.market_value_krw) ? row.market_value_krw : 0;
       const convertedCost = nativeToKrw(
         row.cost_basis_native ?? 0,
         row.currency,
         latestPriceByTicker,
       );
       if (Number.isFinite(convertedCost)) current.costBasisKrw += convertedCost;
-      current.unknownCount += row.unknownCount ?? 0;
+      current.unknownCount += row.valuation_status === 'missing' ? 1 : 0;
       current.holdings.push(row);
       byTag.set(tag.id, current);
     }
@@ -295,13 +314,18 @@ export function usePortfolioDerivedData({
         ),
       }))
       .sort((a, b) => b.value - a.value);
-  }, [instrumentRows, tagMapByTicker, latestPriceByTicker]);
+  }, [allocationPositions, tagMapByTicker, latestPriceByTicker]);
 
   return {
     accountById,
+    allocationTotalValue,
+    allocationValuationQuality,
     computedPositions,
     holdingsByAccountId,
     holdingsByTicker,
+    excludedCount,
+    excludedMissingCount,
+    excludedValue,
     instrumentRows,
     latestPriceByTicker,
     tagCards,

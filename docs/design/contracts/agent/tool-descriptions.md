@@ -16,8 +16,9 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 | --- | --- | --- |
 | get_workflow_guide / observed-local | 복합 Portfolio 작업 전에 현재 단계·질문·경계·복구 규칙을 topic별로 읽습니다. 사용자 데이터를 조회하거나 작업을 실행하지 않습니다. | W01~W09 |
 | get_profile / observed-local | 인증된 Portfolio 계정 프로필을 읽습니다. 투자 성향이나 투자 원칙 조회가 아닙니다. | W01 |
-| get_portfolio_state / observed-local | 본인의 계좌·보유·등록 종목(0보유 포함)·태그·저장 시세를 읽습니다. 등록 종목이 실제 보유라는 뜻은 아닙니다. 증권사 실시간 잔고나 확인 완료를 뜻하지 않습니다. | W01,W05 |
-| find_holdings / observed-local | 티커·종목명·계좌명으로 본인의 보유 후보를 찾습니다. 여러 결과가 나오면 변경 전에 대상을 확인하세요. | W05,W06 |
+| get_portfolio_state / observed-local | 본인의 계좌·보유·등록 종목(0보유 포함)·태그·저장 시세와 배분 대상/제외 평가 요약을 읽습니다. 보유별 `include_in_allocation=false`는 배분·리밸런싱 제안에서 제외하지만 전체 자산에서 제외하지 않습니다. 등록 종목이 실제 보유라는 뜻은 아닙니다. 증권사 실시간 잔고나 확인 완료를 뜻하지 않습니다. | W01,W05 |
+| find_holdings / observed-local | 티커·종목명·계좌명으로 본인의 보유 후보와 보유별 배분 포함 설정을 찾습니다. 여러 결과가 나오면 변경 전에 대상을 확인하세요. | W05,W06 |
+| save_asset_detail / observed-local | 종목과 계좌별 보유의 변경을 한 번에 저장합니다. 각 보유의 선택적 `include_in_allocation`은 생략 시 기존값 유지, 신규 보유에서만 기본 true입니다. false는 배분 대상에서만 제외하며 거래/보정을 금지하지 않습니다. | W05,W06 |
 | update_entity_note / local | 현재 메모를 먼저 읽고 계좌·종목의 기존 메모만 충돌 방지 방식으로 수정합니다. 종목 메모는 기존 자산 공유 범위를 따르므로 민감한 내용을 자동 이전하지 않습니다. 수량·원가·검증 상태는 바꾸지 않습니다. | 대상별 메모 |
 | get_strategy_state / observed-local | 자산 태그별 목표 비중을 읽습니다. 목표가 없으면 미설정이며, 목표 숫자를 개인 성향으로 추정하지 않습니다. | W01,W02 |
 | list_recent_activity / observed-local | 본인의 최근 데이터 변경을 조회합니다. 활동 기록을 투자 결정이나 실제 증권사 체결 증명으로 해석하지 않습니다. | W06,W08 |

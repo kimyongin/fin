@@ -41,8 +41,8 @@ describe('portfolio helpers', () => {
 
     const lines = csv.split('\r\n')
     expect(lines).toHaveLength(3)
-    expect(lines[1]).toBe('Alpha,"Needs, Quote ""Here""",AAA,USD,20.5,10,20.5,105')
-    expect(lines[2]).toBe('Beta,Plain,BBB,KRW,10,1,2,100')
+    expect(lines[1]).toBe('Alpha,"Needs, Quote ""Here""",AAA,USD,20.5,10,20.5,105,포함')
+    expect(lines[2]).toBe('Beta,Plain,BBB,KRW,10,1,2,100,포함')
   })
 
   it('creates modal drafts with normalized defaults', () => {

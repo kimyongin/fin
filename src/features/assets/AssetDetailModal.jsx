@@ -22,6 +22,7 @@ function makeDraft(instrument, holdings, selectedAccountId) {
       avg_price: holding.avg_price == null ? '' : String(holding.avg_price),
       purchase_amount: holding.purchase_amount == null ? '' : String(holding.purchase_amount),
       valuation_amount: holding.valuation_amount == null ? '' : String(holding.valuation_amount),
+      include_in_allocation: holding.include_in_allocation !== false,
     })),
   }
 }
@@ -54,8 +55,9 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
   const financialChanges = draft.holdings.flatMap((holding) => {
     const before = initial.current.holdings.find((item) => item.id != null && item.id === holding.id)
     const keys = draft.instrument.instrument_type === 'market' ? ['quantity', 'avg_price'] : draft.instrument.instrument_type === 'valuation' ? ['purchase_amount', 'valuation_amount'] : ['valuation_amount']
-    if (before && keys.every((key) => Number(before[key]) === Number(holding[key])) && before.account_id === holding.account_id) return []
-    return [{ holding, before, keys }]
+    const allocationChanged = before && before.include_in_allocation !== holding.include_in_allocation
+    if (before && keys.every((key) => Number(before[key]) === Number(holding[key])) && before.account_id === holding.account_id && !allocationChanged) return []
+    return [{ holding, before, keys: allocationChanged ? [...keys, 'include_in_allocation'] : keys }]
   })
 
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
     retryKey.current = null
     setDraft((current) => ({ ...current, holdings: [...current.holdings, {
       id: null, account_id: '', expected_account_id: null, expected_state_version: null,
-      quantity: '', avg_price: '', purchase_amount: '', valuation_amount: '',
+      quantity: '', avg_price: '', purchase_amount: '', valuation_amount: '', include_in_allocation: true,
     }] }))
   }
   async function save({ changeNote, activityTagIds }) {
@@ -102,7 +104,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
           id: holding.id, account_id: holding.account_id, expected_account_id: holding.expected_account_id,
           expected_state_version: holding.expected_state_version, quantity: holding.quantity,
           avg_price: holding.avg_price, purchase_amount: holding.purchase_amount,
-          valuation_amount: holding.valuation_amount,
+          valuation_amount: holding.valuation_amount, include_in_allocation: holding.include_in_allocation,
         })), input_reason: changeNote,
         input_activity_tag_ids: activityTagIds,
         input_idempotency_key: retryKey.current,
@@ -116,6 +118,7 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
           avg_price: item.avg_price == null ? '' : String(item.avg_price),
           purchase_amount: item.purchase_amount == null ? '' : String(item.purchase_amount),
           valuation_amount: item.valuation_amount == null ? '' : String(item.valuation_amount),
+          include_in_allocation: item.include_in_allocation !== false,
         })),
       }
       initial.current = next
@@ -179,8 +182,8 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
   return <ModalShell closeDisabled={saving} dirty={dirty} footer={(requestClose) => <ModalActions disabled={saving} onClose={requestClose} onSave={() => { setError(''); if (!draft.instrument.display_name.trim()) { setError('종목명을 입력해 주세요.'); return } if (dirty) setConfirming(true) }} saveDisabled={!dirty} saveLabel={saving ? '저장 중' : '저장'} />} onClose={onClose} title={instrument.display_name ?? instrument.ticker}>
     {stage?.kind === 'deleteHolding' && <ConfirmDialog title="보유 삭제" description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}${accounts.find((account) => Number(account.id) === Number(stage.holding.account_id))?.name}의 ${instrument.display_name} 보유를 삭제할까요? 이 계좌의 현재 보유값이 제거됩니다.`} confirmLabel="보유 삭제" danger error={error} pending={saving} onCancel={() => { setStage(null); setError('') }} onConfirm={() => deleteHolding(stage.holding)} />}
     {stage?.kind === 'deleteInstrument' && <ConfirmDialog title="종목 삭제" description={`${dirty ? '저장하지 않은 변경은 버려집니다. ' : ''}종목과 연결된 태그·가격 이력을 삭제할까요? 보유가 있는 종목은 삭제할 수 없습니다.`} confirmLabel="종목 삭제" danger error={error} pending={saving} onCancel={() => { setStage(null); setError('') }} onConfirm={deleteInstrument} />}
-    <SaveActivityConfirm description={financialChanges.length ? '현재 보유값을 다음과 같이 바꿉니다. 매매나 증권사 확인 완료로 자동 분류하지 않습니다.' : '종목 정보 변경을 저장할까요?'} error={error} onCancel={() => { setConfirming(false); setError('') }} onConfirm={save} onContextChange={() => { retryKey.current = null }} open={confirming} pending={saving} resetKey={contextResetKey} supabase={supabase}>
-      {financialChanges.map(({ holding, before, keys }, index) => <div className="rounded-xl border border-[var(--line)] p-3" key={holding.id ?? `new-${index}`}><strong>{accounts.find((account) => String(account.id) === String(holding.account_id))?.name ?? '계좌'}</strong>{keys.map((key) => <p className="mt-1" key={key}>{({ quantity: '수량', avg_price: '평균가', purchase_amount: '매입금액', valuation_amount: '평가금액/잔액' })[key]}: {before?.[key] || '—'} → {holding[key] || '—'}</p>)}</div>)}
+    <SaveActivityConfirm description={financialChanges.length ? '현재 보유값을 다음과 같이 바꿉니다. 매매나 증권사 확인 완료로 자동 분류하지 않습니다.' : '종목·배분 설정 변경을 저장할까요?'} error={error} onCancel={() => { setConfirming(false); setError('') }} onConfirm={save} onContextChange={() => { retryKey.current = null }} open={confirming} pending={saving} resetKey={contextResetKey} supabase={supabase}>
+      {financialChanges.map(({ holding, before, keys }, index) => <div className="rounded-xl border border-[var(--line)] p-3" key={holding.id ?? `new-${index}`}><strong>{accounts.find((account) => String(account.id) === String(holding.account_id))?.name ?? '계좌'}</strong>{keys.map((key) => <p className="mt-1" key={key}>{({ quantity: '수량', avg_price: '평균가', purchase_amount: '매입금액', valuation_amount: '평가금액/잔액', include_in_allocation: '배분에 포함' })[key]}: {key === 'include_in_allocation' ? `${before?.[key] === false ? '아니요' : '예'} → ${holding[key] ? '예' : '아니요'}` : `${before?.[key] || '—'} → ${holding[key] || '—'}`}</p>)}</div>)}
     </SaveActivityConfirm>
     <div className="type-body grid gap-6">
       {canEdit ? <>
@@ -207,9 +210,11 @@ export default function AssetDetailModal({ accounts, canEdit, holdings, instrume
             </div>
             <label className="form-field"><span className="form-label">계좌</span><select className={input} onChange={(event) => changeHolding(index,'account_id',event.target.value)} value={holding.account_id}><option value="">계좌 선택</option>{accounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
             <div className="grid gap-4 sm:grid-cols-2">{draft.instrument.instrument_type === 'market' ? <>{field('수량',holding.quantity,(value) => changeHolding(index,'quantity',value),{ inputMode: 'decimal' })}{field('평균가',holding.avg_price,(value) => changeHolding(index,'avg_price',value),{ inputMode: 'decimal' })}</> : draft.instrument.instrument_type === 'valuation' ? <>{field('매입금액',holding.purchase_amount,(value) => changeHolding(index,'purchase_amount',value),{ inputMode: 'decimal' })}{field('평가금액',holding.valuation_amount,(value) => changeHolding(index,'valuation_amount',value),{ inputMode: 'decimal' })}</> : field('현금 잔액',holding.valuation_amount,(value) => changeHolding(index,'valuation_amount',value),{ inputMode: 'decimal' })}</div>
+            <label className="flex min-h-11 items-center gap-3"><input checked={holding.include_in_allocation} className="h-5 w-5 accent-[var(--accent)]" onChange={(event) => changeHolding(index,'include_in_allocation',event.target.checked)} type="checkbox" /><span className="type-label">배분에 포함</span></label>
+            <p className="type-secondary text-[var(--muted-ink)]">해제해도 자산 합계에는 포함됩니다.</p>
           </div>
         })}{accounts.length ? <button className="min-h-11 rounded-xl border border-[var(--line)] px-3" onClick={addHolding} type="button">{draft.holdings.length ? '다른 계좌에 보유 추가' : '보유 추가'}</button> : <p className="type-secondary text-[var(--muted-ink)]">보유를 추가하려면 먼저 자산 메뉴에서 계좌를 추가해 주세요.</p>}{holdings.length === 0 && <button className="min-h-11 justify-self-start rounded-xl border border-red-500/50 px-3 text-red-200" onClick={() => openStage({ kind: 'deleteInstrument' })} type="button">종목 삭제</button>}</section>
-      </> : <div className="grid gap-4"><div className="grid gap-4 sm:grid-cols-2"><ReadOnlyField label="종목명" value={instrument.display_name} /><ReadOnlyField label="티커" value={instrument.ticker} /><ReadOnlyField label="통화" value={instrument.currency} /><ReadOnlyField label="종류" value={{ market: '시세형', valuation: '평가형', cash: '현금성' }[instrument.instrument_type]} />{instrument.instrument_type === 'market' && <><ReadOnlyField label="현재가" value={instrument.latestPrice == null ? '—' : formatUnitPrice(instrument.latestPrice, instrument.currency)} /><ReadOnlyField label="기준일" value={instrument.latestPriceDate ?? '—'} /></>}</div>{instrument.tagId ? <TagChip>{instrument.tagName}</TagChip> : <p className="type-secondary text-[var(--muted-ink)]">태그 없음</p>}{holdings.length > 0 && <section className="grid gap-4 border-t border-[var(--line)] pt-5"><h3 className="type-item-title">계좌별 보유</h3>{holdings.map((holding) => <div className="grid gap-4 rounded-2xl border border-[var(--line)] p-4" key={holding.id}><ReadOnlyField label="계좌" value={accounts.find((item) => Number(item.id) === Number(holding.account_id))?.name ?? '계좌'} /><div className="grid gap-4 sm:grid-cols-2">{instrument.instrument_type === 'market' ? <><ReadOnlyField label="수량" value={holding.quantity} /><ReadOnlyField label="평균가" value={holding.avg_price} /></> : instrument.instrument_type === 'valuation' ? <><ReadOnlyField label="매입금액" value={holding.purchase_amount} /><ReadOnlyField label="평가금액" value={holding.valuation_amount} /></> : <ReadOnlyField label="현금 잔액" value={holding.valuation_amount} />}</div></div>)}</section>}</div>}
+      </> : <div className="grid gap-4"><div className="grid gap-4 sm:grid-cols-2"><ReadOnlyField label="종목명" value={instrument.display_name} /><ReadOnlyField label="티커" value={instrument.ticker} /><ReadOnlyField label="통화" value={instrument.currency} /><ReadOnlyField label="종류" value={{ market: '시세형', valuation: '평가형', cash: '현금성' }[instrument.instrument_type]} />{instrument.instrument_type === 'market' && <><ReadOnlyField label="현재가" value={instrument.latestPrice == null ? '—' : formatUnitPrice(instrument.latestPrice, instrument.currency)} /><ReadOnlyField label="기준일" value={instrument.latestPriceDate ?? '—'} /></>}</div>{instrument.tagId ? <TagChip>{instrument.tagName}</TagChip> : <p className="type-secondary text-[var(--muted-ink)]">태그 없음</p>}{holdings.length > 0 && <section className="grid gap-4 border-t border-[var(--line)] pt-5"><h3 className="type-item-title">계좌별 보유</h3>{holdings.map((holding) => <div className="grid gap-4 rounded-2xl border border-[var(--line)] p-4" key={holding.id}><ReadOnlyField label="계좌" value={accounts.find((item) => Number(item.id) === Number(holding.account_id))?.name ?? '계좌'} /><div className="grid gap-4 sm:grid-cols-2">{instrument.instrument_type === 'market' ? <><ReadOnlyField label="수량" value={holding.quantity} /><ReadOnlyField label="평균가" value={holding.avg_price} /></> : instrument.instrument_type === 'valuation' ? <><ReadOnlyField label="매입금액" value={holding.purchase_amount} /><ReadOnlyField label="평가금액" value={holding.valuation_amount} /></> : <ReadOnlyField label="현금 잔액" value={holding.valuation_amount} />}</div><ReadOnlyField label="배분에 포함" value={holding.include_in_allocation === false ? '아니요' : '예'} /></div>)}</section>}</div>}
       {message && <p aria-live="polite" className="type-secondary text-emerald-200">{message}</p>}
       {error && <p role="alert" className="type-secondary rounded-2xl border border-red-400/40 p-3 text-red-100">{error}</p>}
     </div>

@@ -31,6 +31,7 @@ export function buildBulkSnapshotCsv(snapshot) {
         purchase_amount: holding.purchase_amount,
         valuation_amount: holding.valuation_amount,
         tag_id: tagIdByTicker.get(holding.ticker) ?? '',
+        include_in_allocation: holding.include_in_allocation === false ? 'false' : 'true',
       }
     })
 

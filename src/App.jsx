@@ -245,10 +245,15 @@ function App() {
 
   const {
     accountById,
+    allocationTotalValue,
+    allocationValuationQuality,
     computedPositions,
     instrumentRows,
     holdingsByAccountId,
     holdingsByTicker,
+    excludedCount,
+    excludedMissingCount,
+    excludedValue,
     tagCards,
     tagMapByTicker,
     totalValue,
@@ -480,8 +485,11 @@ function App() {
             tags={state.tags}
             syncingPrices={editor.syncingPrices}
             syncMessage={editor.syncMessage}
-            totalValue={totalValue}
-            valuationQuality={valuationQuality}
+            totalValue={allocationTotalValue}
+            excludedCount={excludedCount}
+            excludedMissingCount={excludedMissingCount}
+            excludedValue={excludedValue}
+            valuationQuality={allocationValuationQuality}
           />
         )}
         {activeTab === 'settings' && (

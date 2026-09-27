@@ -23,6 +23,7 @@ describe('spreadsheetSchema', () => {
         instrument_type: 'market',
         quantity: '4',
         tag_id: '7',
+        include_in_allocation: '',
         ticker: 'AAPL',
         purchase_amount: '',
         valuation_amount: '',

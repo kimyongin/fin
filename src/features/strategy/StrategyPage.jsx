@@ -75,7 +75,7 @@ function AllocationPieChart({ tagCards, totalValue }) {
   </section>
 }
 
-function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], tags = [], totalValue = 0, valuationQuality, showStrategy = true, showAssets = true, onRefreshTags, onSharedViewReady }) {
+function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], tags = [], totalValue = 0, excludedCount = 0, excludedMissingCount = 0, excludedValue = 0, valuationQuality, showStrategy = true, showAssets = true, onRefreshTags, onSharedViewReady }) {
   const [state, setState] = useState(createEmptyStrategyState)
   const [draft, setDraft] = useState({})
   const [loading, setLoading] = useState(true)
@@ -196,7 +196,8 @@ function AllocationPage({ canEdit, ownerUserId = null, supabase, tagCards = [], 
   return <section className="grid gap-5">
     <SaveActivityConfirm title={confirmKind === 'clear' ? '목표 비중 초기화' : '변경 내용 저장'} description={confirmKind === 'clear' ? `설정한 모든 목표 비중을 지우고 미설정 상태로 돌릴까요? 태그와 자산은 그대로 남습니다.${dirty ? ' 저장하지 않은 입력은 버려집니다.' : ''}` : '입력한 목표 비중을 저장할까요?'} danger={confirmKind === 'clear'} error={error} onCancel={() => { setConfirmKind(null); setError('') }} onConfirm={confirmKind === 'clear' ? clearTargets : save} onContextChange={() => { retryKey.current = null }} open={Boolean(confirmKind)} pending={saving} resetKey={contextResetKey} supabase={supabase} />
     <PagePanel title="태그별 배분" actions={canEdit ? assetToolbar : null} status={ownerUserId ? '공유 · 읽기 전용' : null} supporting={<>
-      <p>전체 계좌 · {showAssets ? `확인 가능한 평가액 ${formatKrw(totalValue)}` : '현재 자산은 공유되지 않았습니다.'}</p>
+      <p>{showAssets ? `배분 대상 · 확인 가능한 평가액 ${formatKrw(totalValue)}${excludedCount ? ` · 제외 ${excludedMissingCount ? '확인 가능한 평가액 ' : ''}${formatKrw(excludedValue)}` : ''}` : '현재 자산은 공유되지 않았습니다.'}</p>
+      {showAssets && excludedMissingCount > 0 && <p className="mt-2 text-amber-200">제외한 보유 {excludedMissingCount}개의 시세·환율이 없어 제외 금액은 일부만 표시됩니다.</p>}
       {showAssets && valuationQuality?.isComplete === false && <p className="mt-2 text-sm text-amber-200">시세 또는 환율이 빠져 현재 비중과 차이를 정확히 계산할 수 없습니다.</p>}
       {showAssets && valuationQuality?.hasStaleValues && <p className="mt-2 text-sm text-amber-200">오래된 시세·환율이 포함되어 있습니다. 현재 비중을 참고용으로 확인해 주세요.</p>}
       {showAssets && totalValue === 0 && <p className="mt-2 text-sm text-[var(--muted-ink)]">평가액이 없어 현재 비중을 계산할 수 없습니다. 목표는 설정할 수 있습니다.</p>}

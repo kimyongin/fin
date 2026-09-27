@@ -4,6 +4,8 @@
 
 ## 저장 시 활동 기록 분류
 
+후속 설계 · 구현 전: [#160 계좌별 보유의 배분 포함 여부](https://github.com/kimyongin/fin/issues/160) — [최소 계약·수직 슬라이스](./allocation-01-holding-inclusion.md). 자산 합계는 보존하고 전체 계좌 중 포함된 보유만 배분·리밸런싱 제안 대상으로 사용한다. 계좌 자체 flag나 부분 금액 제외는 만들지 않는다.
+
 | 티켓 | 범위 | 명세 |
 | --- | --- | --- |
 | [#159](https://github.com/kimyongin/fin/issues/159) | 자산·배분·원칙 저장 확인에서 선택 메모·활동 태그 지정, HTTP/OAuth 원자 저장 | [저장 시 활동 태그](./activity-17-save-record-context.md) |

@@ -228,7 +228,12 @@ const toolHandlers: Record<string, ToolHandler> = {
     return { ok: true, data }
   },
   async find_holdings(supabase, args) {
-    return await rpc(supabase, 'app_find_holdings', { input_query: String(args.query ?? '') })
+    const [matches, state] = await Promise.all([
+      rpc(supabase, 'app_find_holdings', { input_query: String(args.query ?? '') }),
+      rpc(supabase, 'app_get_portfolio_state', { input_owner_user_id: null }),
+    ])
+    const byId = new Map((state.holdings ?? []).map((holding) => [String(holding.id), holding.include_in_allocation !== false]))
+    return matches.map((holding) => ({ ...holding, include_in_allocation: byId.get(String(holding.holding_id)) ?? true }))
   },
   async save_account(supabase, args) {
     requireSchemaVersion(args)

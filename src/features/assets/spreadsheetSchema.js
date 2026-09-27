@@ -12,6 +12,7 @@ export const spreadsheetColumns = [
   ['purchase_amount', '매입금액', 'number'],
   ['valuation_amount', '평가금액', 'number'],
   ['tag_id', '태그', 'select'],
+  ['include_in_allocation', '배분에 포함', 'select'],
 ]
 
 export const spreadsheetCsvHeaders = spreadsheetColumns.map(([, label]) => label)
@@ -19,7 +20,7 @@ export const spreadsheetCsvHeaders = spreadsheetColumns.map(([, label]) => label
 export function createBlankSpreadsheetRow() {
   return {
     id: crypto.randomUUID(), account_name: '', broker: '', ticker: '', display_name: '', currency: 'KRW',
-    instrument_type: 'market', quantity: '', avg_price: '', purchase_amount: '', valuation_amount: '', tag_id: '',
+    instrument_type: 'market', quantity: '', avg_price: '', purchase_amount: '', valuation_amount: '', tag_id: '', include_in_allocation: 'true',
   }
 }
 
@@ -43,6 +44,7 @@ export function createSpreadsheetRows({ accounts, holdings, instrumentTags, inst
       purchase_amount: holding.purchase_amount ?? '',
       valuation_amount: holding.valuation_amount ?? '',
       tag_id: tagByTicker.get(holding.ticker) ? String(tagByTicker.get(holding.ticker)) : '',
+      include_in_allocation: holding.include_in_allocation === false ? 'false' : 'true',
     }
   })
   return rows.length ? rows : [createBlankSpreadsheetRow()]
@@ -60,6 +62,7 @@ export function validateSpreadsheetRow(row) {
   if (row.instrument_type === 'valuation' && !validNonnegativeNumber(row.purchase_amount)) errors.purchase_amount = '0 이상 입력하세요.'
   if (row.instrument_type === 'valuation' && !validNonnegativeNumber(row.valuation_amount)) errors.valuation_amount = '0 이상 입력하세요.'
   if (row.instrument_type === 'cash' && !validNonnegativeNumber(row.valuation_amount)) errors.valuation_amount = '0 이상 입력하세요.'
+  if (!['true', 'false'].includes(row.include_in_allocation ?? 'true')) errors.include_in_allocation = '포함 여부를 선택해 주세요.'
   return errors
 }
 
@@ -134,5 +137,6 @@ export function spreadsheetOriginalValueLabel({ field, originalValue, tags }) {
   if (originalValue === '') return '비어 있음'
   if (field === 'instrument_type') return editableInstrumentTypeOptions.find((option) => option.value === originalValue)?.label ?? originalValue
   if (field === 'tag_id') return tags.find((tag) => String(tag.id) === String(originalValue))?.name ?? '없음'
+  if (field === 'include_in_allocation') return originalValue === 'false' ? '제외' : '포함'
   return originalValue
 }

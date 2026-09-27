@@ -1,51 +1,51 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-26",
-  "review_reason": "Issue #159: reviewed optional activity tags and change notes on asset, allocation, and principle saves; other guide behavior unchanged after shared tool contract hash update.",
+  "reviewed_at": "2026-09-27",
+  "review_reason": "#160 holding-level allocation exclusion, web and OAuth MCP parity",
   "topics": {
     "assets": {
-      "revision": "fnv1a32:7cb56e0d",
-      "contract_digest": "2ebfa9a440f9393738b7b1bde0927881f2e031f059f48928cf66fd797b177e0c"
+      "revision": "fnv1a32:3a22a3ee",
+      "contract_digest": "2944fe7e181d488993dea9efa0fde862d7d10eb115185ea2062d379642f18b48"
     },
     "policy": {
       "revision": "fnv1a32:e37e506e",
-      "contract_digest": "d193a88ef2287e7f6e25fbe246693f90c0d17887ab0ed240898f0d5a292194f5"
+      "contract_digest": "a8ace069cc9f862219ebe5cf244e49775f79dd9c3a8d621da76441a4a39053fb"
     },
     "holding_thesis": {
       "revision": "fnv1a32:4c4ae963",
-      "contract_digest": "40a9493741b1943b950a0dfec64d917821ad48c9c93e34c0d2d396381c5fcbc4"
+      "contract_digest": "8604f9d1aea18ab1877a5f277cfba8e985a2cb26c3136b7e99bba2279fbed0a6"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "0c77b090c32c34fac43eaccb0c90e5966bf19ec77d93454f4e4cf98f09827099"
+      "contract_digest": "fc8e709905cf7ad2ccb6035ed214e235c727fb3cf91be4521c7f79afff15e315"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "6c704f40487d52037344a622a4eaaf4b4967cb7500fda939854603773ec6b2e4"
+      "contract_digest": "9396ad87571a43f588f4798a735900ab0fdd3ebf8d325f2936e2d737a7f2323d"
     },
     "trade_entry": {
       "revision": "fnv1a32:e542a131",
-      "contract_digest": "cb3dd2d9cf44ef9c850d1992f3de1f52b85e77c67402548d4fb3b0333ec5f382"
+      "contract_digest": "688574c5e8b67398e8664437a08e9e318b8c86645b4536fc888bfa3dfee16032"
     },
     "reconciliation": {
       "revision": "fnv1a32:4c885520",
-      "contract_digest": "65327308426100d222a506f1756d2295a7f04a3869478bc9f08fec291e3959f1"
+      "contract_digest": "35be0c0e2022c3f598dd52378ee419939f7efa634a03a7c0e7063e992fafadc1"
     },
     "todo": {
       "revision": "fnv1a32:4dd20a2f",
-      "contract_digest": "53b70b4589ea56138dae952868a73cede2ef857a248b906dc507975485fc8a66"
+      "contract_digest": "37c5ba1ae6cf182d3eee71bb676de750095853a138411cac668f4f3c16122f1a"
     },
     "activity_report": {
       "revision": "fnv1a32:e4aa34cd",
-      "contract_digest": "d76c1cdf7f0430ee83d7dddc77238b9278bfc4f34a40087d8da718743606edf1"
+      "contract_digest": "565e2703ce00565e0c7e93cd01a2601736ee6a2b06f16ca096c174962d4ab924"
     },
     "product_feedback": {
       "revision": "fnv1a32:76d431a2",
-      "contract_digest": "7361bb0f7d4bfabdf5df8d20f1064e6f65d5b0fda5f62956362f607134e738b0"
+      "contract_digest": "3519039ffc3b8a412d6ac522a6a3dbeddf33d4bbad87da5f36258b674318922c"
     },
     "sharing": {
       "revision": "fnv1a32:aaaec76a",
-      "contract_digest": "7041e010a6ccf892f1b5a63cd99557b56df2c0940775a80d431817e31a219c25"
+      "contract_digest": "5c9ff5a0a3d4f39f0d661d64fc79b64cdc71ff9cdb0e5464093b8f7dc578377f"
     }
   }
 }

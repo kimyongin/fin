@@ -459,18 +459,33 @@ try {
     schema_version: 1, instrument_id: newInstrumentId,
     expected: { display_name: 'MCP CRUD Asset', currency: 'KRW', instrument_type: 'market', note: null, tag_id: null },
     instrument: { display_name: 'MCP CRUD Asset', currency: 'KRW', instrument_type: 'market', note: null, tag_id: null },
-    holdings: [{ id: null, account_id: newAccountId, quantity: '2', avg_price: '100' }],
+    holdings: [{ id: null, account_id: newAccountId, quantity: '2', avg_price: '100', include_in_allocation: false }],
     idempotency_key: crypto.randomUUID(), reason: 'Contract test current value', activity_tag_ids: [activityTagId],
   }
   const assetSaved = await call(session.access_token, 'tools/call', { name: 'save_asset_detail', arguments: assetArgs })
   const newHolding = assetSaved.body?.result?.structuredContent?.data?.holdings?.[0]
-  assert(newHolding?.id && Number(newHolding.quantity) === 2, 'OAuth asset detail save failed')
+  assert(newHolding?.id && Number(newHolding.quantity) === 2 && newHolding.include_in_allocation === false, 'OAuth asset detail inclusion save failed')
+  const allocationHttpState = await fetch(`${baseUrl}/rest/v1/rpc/app_get_portfolio_state`, {
+    method: 'POST', headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ input_owner_user_id: null }),
+  })
+  const allocationHttpData = await allocationHttpState.json()
+  assert(allocationHttpState.ok && allocationHttpData.holdings.find((item) => item.id === newHolding.id)?.include_in_allocation === false,
+    'HTTP could not read OAuth holding allocation exclusion')
   const assetActivityId = assetSaved.body?.result?.structuredContent?.data?.activity_id
   const assetActivity = await call(session.access_token, 'tools/call', { name: 'get_activity', arguments: { activity_id: assetActivityId } })
   assert(assetActivityId && assetActivity.body?.result?.structuredContent?.data?.tags?.some((tag) => tag.id === activityTagId), 'MCP asset activity tag was not readable')
   const assetRetried = await call(session.access_token, 'tools/call', { name: 'save_asset_detail', arguments: assetArgs })
   assert(assetRetried.body?.result?.structuredContent?.data?.holdings?.[0]?.id === newHolding.id, 'Asset detail retry duplicated a holding')
-  const deleteHoldingArgs = { schema_version: 1, holding_id: newHolding.id, expected_version: newHolding.state_version, idempotency_key: crypto.randomUUID() }
+  const includedArgs = {
+    ...assetArgs, idempotency_key: crypto.randomUUID(),
+    holdings: [{ id: newHolding.id, account_id: newAccountId, expected_account_id: newAccountId,
+      expected_state_version: newHolding.state_version, quantity: '2', avg_price: '100', include_in_allocation: true }],
+  }
+  const assetIncluded = await call(session.access_token, 'tools/call', { name: 'save_asset_detail', arguments: includedArgs })
+  const includedHolding = assetIncluded.body?.result?.structuredContent?.data?.holdings?.[0]
+  assert(includedHolding?.include_in_allocation === true, 'OAuth allocation re-inclusion failed')
+  const deleteHoldingArgs = { schema_version: 1, holding_id: newHolding.id, expected_version: includedHolding.state_version, idempotency_key: crypto.randomUUID() }
   const holdingDeleted = await call(session.access_token, 'tools/call', { name: 'delete_holding', arguments: deleteHoldingArgs })
   assert(holdingDeleted.body?.result?.structuredContent?.data?.holding_id === newHolding.id, 'OAuth holding delete failed')
   const holdingDeleteRetry = await call(session.access_token, 'tools/call', { name: 'delete_holding', arguments: deleteHoldingArgs })

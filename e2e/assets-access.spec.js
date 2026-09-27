@@ -43,6 +43,7 @@ test('saves one asset detail across accounts atomically and retries after a reje
   await editor.getByRole('combobox', { name: '계좌', exact: true }).last().selectOption(String(second.body[0].account_id))
   await editor.getByLabel('수량').last().fill('1')
   await editor.getByLabel('평균가').last().fill('9')
+  await editor.getByLabel('배분에 포함').last().uncheck()
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: width < 768 ? 844 : 900 })
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
@@ -90,6 +91,8 @@ test('saves one asset detail across accounts atomically and retries after a reje
   expect(saved.body.instrumentTags.find((item) => item.ticker === ticker)?.tags?.id).toBe(createdTag.body[0].tag_id)
   expect(saved.body.holdings.filter((item) => item.ticker === ticker)).toHaveLength(2)
   expect(saved.body.holdings.find((item) => item.ticker === ticker && Number(item.account_id) === Number(first.body[0].account_id)).quantity).toBe(3)
+  expect(saved.body.holdings.find((item) => item.ticker === ticker && Number(item.account_id) === Number(first.body[0].account_id)).include_in_allocation).toBe(true)
+  expect(saved.body.holdings.find((item) => item.ticker === ticker && Number(item.account_id) === Number(second.body[0].account_id)).include_in_allocation).toBe(false)
   const updatedEditor = page.getByRole('dialog', { name: `Updated ${suffix}` })
   let rejectDeleteOnce = true
   await page.route('**/rest/v1/rpc/app_delete_holding_checked', async (route) => {

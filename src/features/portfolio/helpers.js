@@ -14,7 +14,7 @@ function formatCsvNumber(value, digits = 2) {
 }
 
 export function buildPortfolioCsv(computedPositions, accountById) {
-  const header = ['계좌', '종목', '티커', '통화', '평가금액', '평균가', '현재가', '수익률']
+  const header = ['계좌', '종목', '티커', '통화', '평가금액', '평균가', '현재가', '수익률', '배분에 포함']
   const rows = computedPositions
     .slice()
     .sort((a, b) => {
@@ -34,6 +34,7 @@ export function buildPortfolioCsv(computedPositions, accountById) {
       formatCsvNumber(position.avgCost),
       formatCsvNumber(position.latestPrice),
       formatCsvNumber(position.priceChangePercent),
+      position.include_in_allocation === false ? '제외' : '포함',
     ])
 
   return [header, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\r\n')

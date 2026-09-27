@@ -24,6 +24,7 @@ function Cell({ changed, column, error, hasUndo, onChange, originalValue, row, t
   if (field === 'currency') control = <select aria-label={label} className={className} onChange={(event) => onChange(field, event.target.value)} value={row[field]}><option>KRW</option><option>USD</option><option>JPY</option></select>
   else if (field === 'instrument_type') control = <select aria-label={label} className={className} onChange={(event) => onChange(field, event.target.value)} value={row[field]}>{editableInstrumentTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
   else if (field === 'tag_id') control = <select aria-label={label} className={className} onChange={(event) => onChange(field, event.target.value)} value={row[field]}><option value="">없음</option>{tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}</select>
+  else if (field === 'include_in_allocation') control = <select aria-label={label} className={className} onChange={(event) => onChange(field, event.target.value)} value={row[field] || 'true'}><option value="true">포함</option><option value="false">제외</option></select>
   else control = <input aria-label={label} className={className} disabled={unavailable} min={type === 'number' ? '0' : undefined} onChange={(event) => onChange(field, event.target.value)} step={type === 'number' ? 'any' : undefined} type={type} value={unavailable ? '' : row[field]} />
   return <div className={showOriginal ? 'py-1' : ''}>{control}{showOriginal && <p className="type-secondary truncate px-2.5 text-[var(--muted-ink)]" title={spreadsheetOriginalValueLabel({ field, originalValue, tags })}>{spreadsheetOriginalValueLabel({ field, originalValue, tags })}</p>}</div>
 }
@@ -95,7 +96,7 @@ export default function SpreadsheetEditor({ accounts, canSave = true, csvCopied,
     const { rows: pastedRows, usesImportHeaders } = parseSpreadsheetPaste(text)
     if (!pastedRows.length) return
     setRows((current) => {
-      if (!usesImportHeaders) return [...current, ...pastedRows.map((row) => ({ ...createBlankSpreadsheetRow(), ...row }))]
+      if (!usesImportHeaders) return [...current, ...pastedRows.map((row) => ({ ...createBlankSpreadsheetRow(), ...row, include_in_allocation: row.include_in_allocation || 'true' }))]
       const nextRows = [...current]
       pastedRows.forEach((importedRow) => {
         const matchingRow = findMatchingSpreadsheetRow(nextRows, importedRow)
