@@ -1,6 +1,7 @@
 // PostgREST exposes callable RPC argument names in its read-only OpenAPI document.
 export const requiredMutationSignatures = {
   app_create_activity_with_tags: ['input_idempotency_key', 'input_payload', 'input_tag_ids'],
+  app_create_activity_market_ticker_with_tags: ['input_idempotency_key', 'input_payload', 'input_tag_ids'],
   app_create_general_task_with_tags: ['input_idempotency_key', 'input_payload', 'input_tag_ids'],
   app_save_principle: ['input_body', 'input_change_note', 'input_end', 'input_expected_row_id', 'input_principle_id'],
   app_save_principle_checked: ['input_body', 'input_change_note', 'input_expected_body', 'input_expected_change_note', 'input_expected_row_id', 'input_principle_id'],
@@ -16,6 +17,7 @@ export const requiredMutationSignatures = {
   app_delete_my_product_feedback: ['input_expected_version', 'input_feedback_id'],
   app_set_activity_tags: ['input_activity_id', 'input_expected_version', 'input_idempotency_key', 'input_tag_ids'],
   app_save_activity_detail: ['input_activity_id', 'input_authored_via', 'input_expected_version', 'input_idempotency_key', 'input_patch', 'input_tag_ids'],
+  app_save_activity_market_ticker_detail: ['input_activity_id', 'input_authored_via', 'input_expected_version', 'input_idempotency_key', 'input_patch', 'input_tag_ids'],
   app_save_general_task_detail: ['input_expected_version', 'input_idempotency_key', 'input_payload', 'input_tag_ids', 'input_task_id'],
   app_delete_general_task: ['input_expected_version', 'input_idempotency_key', 'input_task_id'],
   app_delete_holding_checked: ['input_expected_version', 'input_holding_id', 'input_idempotency_key'],

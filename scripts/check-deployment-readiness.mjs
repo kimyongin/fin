@@ -23,6 +23,9 @@ const rpcChecks = [
   ['app_search_activities', { input_owner_user_id: null, input_query: null, input_from: null, input_to: null,
     input_record_state: 'done', input_instrument_id: null,
     input_tag_ids: [], input_tag_match: 'any', input_limit: 1, input_cursor: null, input_timezone: 'Asia/Seoul' }],
+  ['app_search_activities_ticker', { input_owner_user_id: null, input_query: null, input_from: null, input_to: null,
+    input_record_state: 'done', input_instrument_ticker: null,
+    input_tag_ids: [], input_tag_match: 'any', input_limit: 1, input_cursor: null, input_timezone: 'Asia/Seoul' }],
   ['app_list_general_task_page', { input_cursor: null, input_filter: 'active', input_limit: 1 }],
   ['app_list_transaction_page', { input_account_id: null, input_cursor: null, input_instrument_id: null, input_limit: 1 }],
   ['app_list_my_product_feedback', { input_cursor: null, input_limit: 1 }],
@@ -99,7 +102,7 @@ for (const requiredTool of [
 }
 
 const searchInput = {
-  query: '점검', from: null, to: null, record_state: 'all', instrument_id: null,
+  query: '점검', from: null, to: null, record_state: 'all', instrument_ticker: null,
   tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul',
 }
 const searchResponse = await fetch(`${baseUrl}/functions/v1/activity-search`, {

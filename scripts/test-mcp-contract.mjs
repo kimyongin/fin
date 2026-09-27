@@ -198,9 +198,24 @@ try {
     schema_version: 1, idempotency_key: crypto.randomUUID(), title: 'Contract activity retrospective',
     body: `Period: ${reportDate}\n\nReviewed the complete period source.`,
     occurred_at: null, timezone: 'Asia/Seoul', task_id: null,
-    instrument_id: null, tag_ids: [],
+    instrument_ticker: null, tag_ids: [],
   } })
   assert(reportSaved.body?.result?.structuredContent?.data?.body?.includes(reportDate), 'Retrospective activity save contract failed')
+  const tickerSaved = await call(session.access_token, 'tools/call', { name: 'record_manual_activity', arguments: {
+    schema_version: 1, idempotency_key: crypto.randomUUID(), title: 'Contract market research',
+    body: 'A market ticker can be recorded without asset registration.', occurred_at: null,
+    timezone: 'Asia/Seoul', task_id: null, instrument_ticker: 'tst166', tag_ids: [],
+  } })
+  const tickerActivityId = tickerSaved.body?.result?.structuredContent?.data?.id
+  assert(tickerActivityId && tickerSaved.body?.result?.structuredContent?.data?.instrument_ticker === 'TST166',
+    'OAuth MCP did not save an unregistered normalized market ticker')
+  const tickerWebRead = await fetch(`${baseUrl}/rest/v1/rpc/app_get_activity_market_ticker`, {
+    method: 'POST', headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ input_activity_id: tickerActivityId, input_owner_user_id: null }),
+  })
+  const tickerWebBody = await tickerWebRead.json().catch(() => null)
+  assert(tickerWebRead.ok && tickerWebBody?.instrument_ticker === 'TST166',
+    'Web HTTP did not read the ticker created through OAuth MCP')
 
   const feedbackArgs = {
     schema_version: 1,
@@ -347,7 +362,7 @@ try {
       idempotency_key: crypto.randomUUID(),
       title: 'Contract test review', body: 'External research was intentionally omitted. Insufficient data.',
       occurred_at: null, timezone: 'Asia/Seoul', task_id: savedTask.id,
-      instrument_id: null, tag_ids: [],
+      instrument_ticker: null, tag_ids: [],
     },
   })
   const savedData = saved.body?.result?.structuredContent?.data
@@ -359,7 +374,7 @@ try {
   assert(revised.body?.result?.structuredContent?.data?.body === 'Corrected contract test body', 'Atomic activity detail update failed')
 
   const briefingPage = await call(session.access_token, 'tools/call', {
-    name: 'search_activities', arguments: { query: 'Contract test review', from: null, to: null, record_state: 'done', instrument_id: null, tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul' },
+    name: 'search_activities', arguments: { query: 'Contract test review', from: null, to: null, record_state: 'done', instrument_ticker: null, tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul' },
   })
   assert(briefingPage.body?.result?.structuredContent?.data?.items?.[0]?.activity_id === savedData.id, `Saved activity search contract failed: ${JSON.stringify(briefingPage.body?.result?.structuredContent ?? briefingPage.body)}`)
   const taskDeleteArgs = { schema_version: 1, task_id: savedTask.id, expected_version: savedTask.version, idempotency_key: crypto.randomUUID() }
