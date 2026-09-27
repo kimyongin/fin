@@ -43,14 +43,16 @@ function SearchReference({ disabled, kind, label, onChange, selectedId, selected
     else { setItems((current) => [...current, ...(data?.items ?? [])]); setOffset(data?.next_offset ?? null) }
   }
   function choose(item) {
-    setChosen(item); onChange(item.id); setQuery(''); setOpen(false)
+    setChosen(item); onChange(kind === 'instrument' ? item.ticker : item.id); setQuery(''); setOpen(false)
   }
   function description(item) {
     return kind === 'task'
       ? `${item.title}${item.recurrence_kind === 'daily' ? ' · 매일' : item.due_date ? ` · ${item.due_date}` : ''}${item.control_state === 'cancelled' ? ' · 종료' : ''}`
-      : `${item.display_name} · ${item.ticker}`
+      : item.display_name && item.display_name !== item.ticker ? `${item.display_name} · ${item.ticker}` : item.ticker
   }
-  const selected = chosen?.id === selectedId ? chosen : selectedSummary
+  const selected = (kind === 'instrument' ? chosen?.ticker === selectedId : chosen?.id === selectedId) ? chosen : selectedSummary
+  const enteredTicker = query.trim().toUpperCase()
+  const canConnectTicker = kind === 'instrument' && /^[A-Z0-9^][A-Z0-9.^=_-]{0,31}$/.test(enteredTicker)
   return <div className="grid gap-2">
     <label className="form-field form-label">{label}
       <input aria-autocomplete="list" aria-expanded={open} className={inputClass} data-escape-results-open={open ? 'true' : undefined} disabled={disabled} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => {
@@ -64,16 +66,17 @@ function SearchReference({ disabled, kind, label, onChange, selectedId, selected
     {open && <div className="max-h-56 overflow-y-auto rounded-xl border border-[var(--line)]" role="listbox">
       {loading && <p className="p-3 text-sm text-[var(--muted-ink)]">검색 중…</p>}
       {error && <p className="p-3 text-sm text-red-200" role="alert">{error}<button className="ml-2 underline" onClick={() => setQuery((value) => `${value} `)} type="button">다시 시도</button></p>}
-      {!loading && !error && items.length === 0 && <p className="p-3 text-sm text-[var(--muted-ink)]">결과가 없습니다.</p>}
+      {!loading && !error && items.length === 0 && <p className="p-3 text-sm text-[var(--muted-ink)]">{kind === 'instrument' ? '등록된 종목이 없습니다. 시장 티커를 직접 연결할 수 있습니다.' : '결과가 없습니다.'}</p>}
       {items.map((item, index) => <button aria-selected={active === index} className={`block min-h-11 w-full px-3 py-2 text-left text-sm ${active === index ? 'bg-[var(--surface-3)]' : ''}`} key={item.id} onClick={() => choose(item)} role="option" type="button">{description(item)}</button>)}
+      {canConnectTicker && !items.some((item) => item.ticker === enteredTicker) && <button aria-selected={false} className="min-h-11 w-full border-t border-[var(--line)] px-3 text-left text-sm" disabled={disabled} onClick={() => choose({ ticker: enteredTicker, display_name: enteredTicker })} role="option" type="button">{enteredTicker} 티커 직접 연결</button>}
       {offset != null && <button className="min-h-11 w-full border-t border-[var(--line)] px-3 text-left text-sm" disabled={loading} onClick={more} type="button">결과 더 보기</button>}
     </div>}
   </div>
 }
 
-export default function ActivityReferences({ disabled = false, instrumentId, instrumentSummary, onInstrumentChange, onTaskChange, supabase, taskId, taskSummary }) {
+export default function ActivityReferences({ disabled = false, instrumentTicker, instrumentSummary, onInstrumentChange, onTaskChange, supabase, taskId, taskSummary }) {
   return <section className="grid gap-4 border-t border-[var(--line)] pt-4">
-    <SearchReference disabled={disabled} kind="instrument" label="관련 종목" onChange={onInstrumentChange} selectedId={instrumentId} selectedSummary={instrumentSummary} supabase={supabase} />
+    <SearchReference disabled={disabled} kind="instrument" label="관련 종목" onChange={onInstrumentChange} selectedId={instrumentTicker} selectedSummary={instrumentSummary} supabase={supabase} />
     <SearchReference disabled={disabled} kind="task" label="관련 할 일" onChange={onTaskChange} selectedId={taskId} selectedSummary={taskSummary} supabase={supabase} />
     <p className="type-secondary text-[var(--muted-ink)]">연결은 탐색용입니다. 기록 저장만으로 할 일이 완료되거나 잔고가 바뀌지 않습니다.</p>
   </section>

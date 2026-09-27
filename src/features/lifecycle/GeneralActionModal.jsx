@@ -10,7 +10,7 @@ import TaskScheduleFields from './TaskScheduleFields'
 
 export default function GeneralActionModal({ kind, onClose, onKindChange, onRetryTags, onSave, saving, supabase, tags, tagsError = '', tagsLoading = false }) {
   const today = businessDate()
-  const [draft, setDraft] = useState({ title: '', body: '', dueDate: '', recurrenceStartOn: '', recurrenceWeekdays: [], recurrenceTime: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', tagIds: [], taskId: null, instrumentId: null })
+  const [draft, setDraft] = useState({ title: '', body: '', dueDate: '', recurrenceStartOn: '', recurrenceWeekdays: [], recurrenceTime: '', occurredOn: today, triggerText: '', recurrenceKind: 'none', tagIds: [], taskId: null, instrumentTicker: null })
   const initialDraft = useRef(draft)
   const isTask = kind === 'task'
   const dirty = JSON.stringify(draft) !== JSON.stringify(initialDraft.current) || !isTask
@@ -47,7 +47,7 @@ export default function GeneralActionModal({ kind, onClose, onKindChange, onRetr
       </fieldset>
       {isTask && <TaskScheduleFields draft={draft} onChange={setDraft} />}
       {!isTask && <CalendarDateField label="수행일" max={today} onChange={(value) => setDraft({ ...draft, occurredOn: value })} value={draft.occurredOn} />}
-      {!isTask && <ActivityReferences disabled={saving} instrumentId={draft.instrumentId} onInstrumentChange={(instrumentId) => setDraft((current) => ({ ...current, instrumentId }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} />}
+      {!isTask && <ActivityReferences disabled={saving} instrumentTicker={draft.instrumentTicker} onInstrumentChange={(instrumentTicker) => setDraft((current) => ({ ...current, instrumentTicker }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} />}
       <section className="border-t border-[var(--line)] pt-3">{tagsLoading && <p className="text-sm text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="flex items-center gap-3 text-sm text-red-200"><span>{tagsError}</span><button className="min-h-11 rounded-2xl border border-red-400/40 px-3" onClick={onRetryTags} type="button">다시 시도</button></div>}{!tagsLoading && !tagsError && <ActivityTagPicker disabled={saving} onChange={(tagIds) => setDraft((current) => ({ ...current, tagIds }))} selectedIds={draft.tagIds} tags={tags} />}</section>
     </fieldset>
   </ModalShell>

@@ -599,14 +599,14 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'search_activities',
     title: 'Search tasks and performed activities',
-    description: 'Search current, completed, and stopped tasks plus performed records with keyword and optional gte-small similarity, record date, todo/done state, related instrument, and ordinary activity tags. The from/to dates bound records only. Selected tags match any (OR) by default; tag_match=all requires every selected tag. Different filter dimensions combine before pagination. search_mode reports the actual browse/keyword/hybrid path, fallback_reason a confirmed fallback cause, and index_status complete/partial/unknown. Each hit has matched_by for the actual keyword/semantic condition and nullable semantic_score; a score alone is not a semantic match or a probability of correctness. semantic_threshold is the raw inclusion threshold. gte-small may miss Korean paraphrases, so empty results do not prove no related history. Pass next_cursor unchanged; a changed query/filter or unavailable hybrid cursor requires a fresh search.',
+    description: 'Search current, completed, and stopped tasks plus performed records with keyword and optional gte-small similarity, record date, todo/done state, exact market instrument_ticker, and ordinary activity tags. A ticker filter also finds records for unregistered or deleted instruments. The from/to dates bound records only. Selected tags match any (OR) by default; tag_match=all requires every selected tag. Different filter dimensions combine before pagination. search_mode reports the actual browse/keyword/hybrid path, fallback_reason a confirmed fallback cause, and index_status complete/partial/unknown. Each hit has matched_by for the actual keyword/semantic condition and nullable semantic_score; a score alone is not a semantic match or a probability of correctness. semantic_threshold is the raw inclusion threshold. gte-small may miss Korean paraphrases, so empty results do not prove no related history. Pass next_cursor unchanged; a changed query/filter or unavailable hybrid cursor requires a fresh search.',
     inputSchema: { type: 'object', properties: {
       query: { type: ['string','null'], maxLength: 500 }, from: { type: ['string','null'], format: 'date' }, to: { type: ['string','null'], format: 'date' },
       record_state: { type: 'string', enum: ['all','todo','done'], default: 'all' },
-      instrument_id: { type: ['integer','null'], minimum: 1 },
+      instrument_ticker: { type: ['string','null'], maxLength: 32 },
       tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' } }, tag_match: { type: 'string', enum: ['all','any'], default: 'any' },
       limit: { type: 'integer', minimum: 1, maximum: 100, default: 30 }, cursor: { type: ['object','null'] }, timezone: { type: 'string', minLength: 1 },
-    }, required: ['query','from','to','record_state','instrument_id','tag_ids','tag_match','limit','cursor','timezone'], additionalProperties: false },
+    }, required: ['query','from','to','record_state','instrument_ticker','tag_ids','tag_match','limit','cursor','timezone'], additionalProperties: false },
     outputSchema: successEnvelopeSchema,
     annotations: readOnlyAnnotations,
   },
@@ -646,14 +646,14 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'save_general_task',
     title: 'Save a general portfolio task',
-    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. Recurrence is none, daily, or weekly with ISO weekdays 1=Mon through 7=Sun; optional local recurrence_time HH:MM makes the task due at that time in its timezone. On edits, omit tag_ids to keep the current tags; pass an empty array to clear them. Fields and provided tags save atomically. A retry must keep the same key and inputs. This stores intent only and never runs or completes the work.',
+    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. For a market instrument subject use {kind:"instrument",instrument_ticker:"AAPL"}; registration or holdings are not required. Cash and valuation assets can be described with ordinary tags or text. Recurrence is none, daily, or weekly with ISO weekdays 1=Mon through 7=Sun; optional local recurrence_time HH:MM makes the task due at that time in its timezone. On edits, omit tag_ids to keep the current tags; pass an empty array to clear them. Fields and provided tags save atomically. A retry must keep the same key and inputs. This stores intent only and never runs or completes the work.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 }, task_id: { type: ['string', 'null'], format: 'uuid' },
         expected_version: { type: ['integer', 'null'], minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
         title: { type: 'string', minLength: 1, maxLength: 500 },
-        subject: { type: 'object', properties: { kind: { type: 'string', enum: ['portfolio', 'instrument', 'position'] } }, required: ['kind'], additionalProperties: true },
+        subject: { type: 'object', properties: { kind: { type: 'string', enum: ['portfolio', 'instrument', 'position'] }, instrument_ticker: { type: 'string', maxLength: 32 } }, required: ['kind'], additionalProperties: true },
         due_date: { type: ['string', 'null'], format: 'date' }, timezone: { type: 'string', minLength: 1 },
         trigger_text: { type: ['string', 'null'], maxLength: 1000 },
         recurrence_kind: { type: 'string', enum: ['none', 'daily', 'weekly'], default: 'none' },
@@ -698,17 +698,17 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'record_manual_activity',
     title: 'Record a completed activity',
-    description: 'Record one user-reported activity that already happened, only on explicit save intent. Put checked facts, interpretation, uncertainty and factual source URLs in one readable Markdown body; use ordinary existing tag_ids for search instead of a built-in category. An opinion is not a user-adopted decision unless the user says so. Optional task_id and instrument_id are navigational references, not proof of task completion or financial execution. An instrument identifies a stock across accounts; financial commands still target a specific holding. A retry must keep the same key, body, references and tags.',
+    description: 'Record one user-reported activity that already happened, only on explicit save intent. Put checked facts, interpretation, uncertainty and factual source URLs in one readable Markdown body; use ordinary existing tag_ids for search instead of a built-in category. An opinion is not a user-adopted decision unless the user says so. Optional task_id and market instrument_ticker are navigational references, not proof of task completion or financial execution. A ticker can be recorded without registering or holding the market instrument and remains after asset deletion. Cash and valuation assets use tags or body instead. Financial commands still target a specific holding. A retry must keep the same key, body, references and tags.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
         title: { type: 'string', minLength: 1, maxLength: 500 }, body: { type: ['string', 'null'], maxLength: 25000 },
         occurred_at: { type: ['string', 'null'], format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
-        task_id: { type: ['string', 'null'], format: 'uuid' }, instrument_id: { type: ['integer', 'null'], minimum: 1 },
+        task_id: { type: ['string', 'null'], format: 'uuid' }, instrument_ticker: { type: ['string', 'null'], maxLength: 32 },
         tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Optional existing owner activity tags to save with this new activity.' },
       },
-      required: ['schema_version','idempotency_key','title','body','occurred_at','timezone','task_id','instrument_id'],
+      required: ['schema_version','idempotency_key','title','body','occurred_at','timezone','task_id','instrument_ticker'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -729,7 +729,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
           properties: {
             title: { type: 'string', minLength: 1, maxLength: 500 }, body: { type: ['string', 'null'], maxLength: 25000 },
             occurred_at: { type: 'string', format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
-            task_id: { type: ['string', 'null'], format: 'uuid' }, instrument_id: { type: ['integer', 'null'], minimum: 1 },
+            task_id: { type: ['string', 'null'], format: 'uuid' }, instrument_ticker: { type: ['string', 'null'], maxLength: 32 },
           }, additionalProperties: false,
         },
       },

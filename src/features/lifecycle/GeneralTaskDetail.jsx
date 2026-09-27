@@ -17,8 +17,9 @@ function formatDate(value) {
 }
 
 function subjectLabel(subject) {
-  if (!subject || subject.kind === 'portfolio') return '전체 포트폴리오'
-  return subject.label || subject.instrument_id || '대상 종목'
+  if (!subject) return '전체 포트폴리오'
+  if (subject.kind === 'portfolio') return subject.label || '전체 포트폴리오'
+  return subject.label || subject.instrument_ticker || '대상 종목'
 }
 
 function taskDraft(item) {

@@ -48,7 +48,7 @@ export async function fetchActionTimeline(supabase, {
 }
 
 export async function fetchActivity(supabase, activityId, ownerUserId = null) {
-  const data = await rpc(supabase, 'app_get_activity', {
+  const data = await rpc(supabase, 'app_get_activity_market_ticker', {
     input_activity_id: activityId,
     input_owner_user_id: ownerUserId,
   })
@@ -99,7 +99,7 @@ export async function setGeneralTaskTags(supabase, task, tagIds) {
 export async function searchActivities(supabase, {
   cursor = null,
   from = null,
-  instrumentId = null,
+  instrumentTicker = null,
   limit = 30,
   ownerUserId = null,
   query = null,
@@ -115,7 +115,7 @@ export async function searchActivities(supabase, {
     from: from || null,
     to: to || null,
     record_state: state,
-    instrument_id: instrumentId,
+    instrument_ticker: instrumentTicker,
     tag_ids: tagIds,
     tag_match: tagMatch,
     limit,
@@ -136,13 +136,13 @@ export async function searchActivities(supabase, {
     }
   }
   if (cursor?.mode === 'hybrid') throw new Error('유사도 검색의 다음 페이지를 불러오지 못했습니다. 다시 시도하거나 새로 검색해 주세요.')
-  const data = await rpc(supabase, 'app_search_activities', {
+  const data = await rpc(supabase, 'app_search_activities_ticker', {
     input_owner_user_id: ownerUserId,
     input_query: query?.trim() || null,
     input_from: from || null,
     input_to: to || null,
     input_record_state: state,
-    input_instrument_id: instrumentId,
+    input_instrument_ticker: instrumentTicker,
     input_tag_ids: tagIds,
     input_tag_match: tagMatch,
     input_limit: limit,
@@ -203,7 +203,7 @@ export async function deleteGeneralTask(supabase, task, idempotencyKey) {
 }
 
 export async function recordManualActivity(supabase, activity) {
-  return rpc(supabase, 'app_create_activity_with_tags', {
+  return rpc(supabase, 'app_create_activity_market_ticker_with_tags', {
     input_idempotency_key: activity.idempotencyKey,
     input_tag_ids: activity.tagIds ?? [],
     input_payload: {
@@ -212,24 +212,25 @@ export async function recordManualActivity(supabase, activity) {
       occurred_at: activity.occurredAt || null,
       timezone: activity.timezone ?? 'Asia/Seoul',
       task_id: activity.taskId ?? null,
-      instrument_id: activity.instrumentId ?? null,
+      instrument_ticker: activity.instrumentTicker ?? null,
       authored_via: 'app',
     },
   })
 }
 
 export async function updateActivity(supabase, activity, patch) {
-  return rpc(supabase, 'app_update_activity', {
+  return rpc(supabase, 'app_save_activity_market_ticker_detail', {
     input_activity_id: activity.id,
     input_expected_version: activity.version,
     input_idempotency_key: crypto.randomUUID(),
     input_patch: patch,
+    input_tag_ids: null,
     input_authored_via: 'app',
   })
 }
 
 export async function saveActivityDetail(supabase, activity, patch, tagIds, idempotencyKey) {
-  return rpc(supabase, 'app_save_activity_detail', {
+  return rpc(supabase, 'app_save_activity_market_ticker_detail', {
     input_activity_id: activity.id,
     input_expected_version: activity.version,
     input_idempotency_key: idempotencyKey,

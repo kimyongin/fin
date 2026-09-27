@@ -24,7 +24,7 @@ function formatDateTime(value) {
 export default function ActivityDetailModal({ activity, availableTags = [], historyGuardRef, loading, onClose, onDeleted, onRetryTags, onSaved, ownerUserId, supabase, tagsError = '', tagsLoading = false }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [draft, setDraft] = useState({ title: '', body: '', occurredOn: '', taskId: null, instrumentId: null })
+  const [draft, setDraft] = useState({ title: '', body: '', occurredOn: '', taskId: null, instrumentTicker: null })
   const previousActivityId = useRef(null)
   const previousActivityVersion = useRef(null)
   const previousLoading = useRef(false)
@@ -35,7 +35,7 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
   const editingDirty = editing && activity && (
     draft.title !== (activity.title ?? '') || draft.body !== (activity.body ?? '') ||
     draft.occurredOn !== localDate(activity.occurred_at) ||
-    draft.taskId !== (activity.task_id ?? null) || draft.instrumentId !== (activity.instrument_id ?? null)
+    draft.taskId !== (activity.task_id ?? null) || draft.instrumentTicker !== (activity.instrument_ticker ?? null)
   )
   const availableTagIds = new Set(availableTags.map((tag) => tag.id))
   const tagsDirty = !ownerUserId && !tagsLoading && !tagsError && JSON.stringify([...selectedTagIds].sort()) !== JSON.stringify([...(activity?.tags ?? []).map((tag) => tag.id).filter((id) => availableTagIds.has(id))].sort())
@@ -53,7 +53,7 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       body: activity.body ?? '',
       occurredOn: localDate(activity.occurred_at),
       taskId: activity.task_id ?? null,
-      instrumentId: activity.instrument_id ?? null,
+      instrumentTicker: activity.instrument_ticker ?? null,
     })
     if (changedActivity) {
       setError('')
@@ -74,7 +74,7 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
         patch.timezone = 'Asia/Seoul'
       }
       if (editable.has('task_id') && draft.taskId !== (activity.task_id ?? null)) patch.task_id = draft.taskId
-      if (editable.has('instrument_id') && draft.instrumentId !== (activity.instrument_id ?? null)) patch.instrument_id = draft.instrumentId
+      if (draft.instrumentTicker !== (activity.instrument_ticker ?? null)) patch.instrument_ticker = draft.instrumentTicker
       const fingerprint = JSON.stringify({ id: activity.id, version: activity.version, patch, selectedTagIds })
       if (saveAttempt.current?.fingerprint !== fingerprint) saveAttempt.current = { fingerprint, key: crypto.randomUUID() }
       const saved = await saveActivityDetail(supabase, activity, patch, selectedTagIds, saveAttempt.current.key)
@@ -126,8 +126,8 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       {!editing && activity.origin_task && <section className="rounded-2xl bg-[var(--surface-2)] p-4"><h4 className="text-xs font-semibold text-[var(--muted-ink)]">관련 할 일</h4><p className="mt-2 break-words text-sm font-semibold">{activity.origin_task.title}</p>{activity.origin_task.trigger_text && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{activity.origin_task.trigger_text}</p>}{(activity.origin_task.due_date || activity.origin_task.recurrence_kind === 'daily') && <p className="mt-2 text-xs text-[var(--muted-ink)]">{activity.origin_task.recurrence_kind === 'daily' ? '매일 반복' : `예정일 ${activity.origin_task.due_date}`}</p>}</section>}
       {(editing || activity.body) && (editing && editable.has('body') ? <label className="form-field"><span className="form-label">기록 내용</span><textarea className="form-control" maxLength={25000} onChange={(event) => setDraft({ ...draft, body: event.target.value })} rows={8} value={draft.body} /></label> : <section><h4 className="form-label">기록 내용</h4><p className="type-body type-long-body mt-2 whitespace-pre-wrap break-words">{activity.body}</p></section>)}
 
-      {editing && <ActivityReferences disabled={saving} instrumentId={draft.instrumentId} instrumentSummary={activity.instrument_summary} onInstrumentChange={(instrumentId) => setDraft((current) => ({ ...current, instrumentId }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} taskSummary={activity.origin_task} />}
-      {!editing && activity.instrument_summary && <p className="text-xs text-[var(--muted-ink)]">관련 종목 · {activity.instrument_summary.display_name} · {activity.instrument_summary.ticker}</p>}
+      {editing && <ActivityReferences disabled={saving} instrumentTicker={draft.instrumentTicker} instrumentSummary={activity.instrument_summary} onInstrumentChange={(instrumentTicker) => setDraft((current) => ({ ...current, instrumentTicker }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} taskSummary={activity.origin_task} />}
+      {!editing && activity.instrument_ticker && <p className="text-xs text-[var(--muted-ink)]">관련 종목 · {activity.instrument_summary?.display_name && activity.instrument_summary.display_name !== activity.instrument_ticker ? `${activity.instrument_summary.display_name} · ` : ''}{activity.instrument_ticker}</p>}
 
 
 

@@ -10,7 +10,7 @@ type SearchArgs = {
   from?: string | null
   to?: string | null
   record_state?: 'all' | 'todo' | 'done'
-  instrument_id?: number | null
+  instrument_ticker?: string | null
   tag_ids?: string[]
   tag_match?: 'all' | 'any'
   limit?: number
@@ -51,7 +51,7 @@ function rpcParams(args: SearchArgs, query: string | null) {
     input_from: args.from || null,
     input_to: args.to || null,
     input_record_state: args.record_state ?? 'all',
-    input_instrument_id: args.instrument_id ?? null,
+    input_instrument_ticker: args.instrument_ticker ?? null,
     input_tag_ids: args.tag_ids ?? [],
     input_tag_match: args.tag_match ?? 'any',
     input_limit: Math.min(Math.max(args.limit ?? 30, 1), 100),
@@ -74,7 +74,7 @@ export async function hybridSearchActivities(
   const query = args.query?.trim() || null
   const params = rpcParams(args, query)
   if (!query) {
-    const page = await rpc(client, 'app_search_activities', params)
+    const page = await rpc(client, 'app_search_activities_ticker', params)
     return { ...page, search_mode: 'browse', fallback_reason: null,
       embedding_model: null, semantic_threshold: null, index_status: 'not_checked',
       semantic_status: 'not_requested' }
@@ -90,7 +90,7 @@ export async function hybridSearchActivities(
     fallbackReason = error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name)
       ? 'embedding_timeout' : 'embedding_unavailable'
   }
-  const page = await rpc(client, 'app_search_activities_ranked', {
+  const page = await rpc(client, 'app_search_activities_ranked_ticker', {
     ...params, input_query_embedding: vector ? JSON.stringify(vector.embedding) : null,
   })
   if (!vector) return { ...page, search_mode: 'keyword', fallback_reason: fallbackReason,

@@ -20,9 +20,9 @@ describe('activity hybrid search', () => {
       index_status: 'complete', embedding_model: 'gte-small' })
     expect(embed).toHaveBeenCalledOnce()
     expect(rpc.mock.calls.map(([name]) => name)).toEqual([
-      'app_search_activities_ranked', 'app_activity_search_index_coverage',
+      'app_search_activities_ranked_ticker', 'app_activity_search_index_coverage',
     ])
-    expect(rpc).toHaveBeenCalledWith('app_search_activities_ranked',
+    expect(rpc).toHaveBeenCalledWith('app_search_activities_ranked_ticker',
       expect.objectContaining({ input_record_state: 'done', input_tag_ids: ['tag-1'],
         input_tag_match: 'all', input_query_embedding: JSON.stringify(vector.embedding) }))
   })
@@ -43,7 +43,7 @@ describe('activity hybrid search', () => {
     expect(result).toMatchObject({ search_mode: 'keyword', fallback_reason: 'embedding_unavailable',
       index_status: 'not_checked' })
     expect(result.items).toHaveLength(1)
-    expect(rpc).toHaveBeenCalledWith('app_search_activities_ranked',
+    expect(rpc).toHaveBeenCalledWith('app_search_activities_ranked_ticker',
       expect.objectContaining({ input_query_embedding: null }))
   })
 

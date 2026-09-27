@@ -1,51 +1,51 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-27",
-  "review_reason": "Search mode, fallback, index coverage, and per-result evidence contract for issue 165",
+  "review_reason": "Ticket #166: market ticker activity references replace registered instrument IDs in OAuth record and search tools; reviewed all affected guide topics and unchanged financial holding targets",
   "topics": {
     "assets": {
       "revision": "fnv1a32:3a22a3ee",
-      "contract_digest": "05f846a99a7e950455f9901c4f0ee4224f5b4ed531834fe4cee6ad801865d8b7"
+      "contract_digest": "b0738b4657692d710fb54898e065d040ccf972fab9de061004fcdd81d02c8ece"
     },
     "policy": {
       "revision": "fnv1a32:e37e506e",
-      "contract_digest": "2bc621aa43a478f191bfa7239ad67119d7e4e21335943388a938f76f3bf9551d"
+      "contract_digest": "f1b799eb6aa88abccec5f58b141d77cc48b2c8620630d0eeb08ce616bc0c2d4e"
     },
     "holding_thesis": {
       "revision": "fnv1a32:4c4ae963",
-      "contract_digest": "01d22a47c2650b8f7d149eb01d59031d791372e86b7cc92cedf95e89fc8eb3b6"
+      "contract_digest": "68c27d0c36b3327622f369866f001a8f49eec26085a3fd654f99233c3602e3e4"
     },
     "daily_review": {
       "revision": "fnv1a32:ba92b9d4",
-      "contract_digest": "1a37f00fe4730b7f7436d606f7e8c4027cc4e0012ab07bd1b4e9852f40bbdb60"
+      "contract_digest": "b5b1a940f30e23540d88f4c985f68732bcd70d85dc4558ccf36472948454d4f5"
     },
     "decision_followup": {
       "revision": "fnv1a32:65135e00",
-      "contract_digest": "f932b153b29bd21956beaffa202609cc5a1b6ed4b11c035e94538fdef4ef6ae3"
+      "contract_digest": "ef4b03bac428426877b5202497a647213041defa8d2f9810c5ad3704f9c72a61"
     },
     "trade_entry": {
       "revision": "fnv1a32:e542a131",
-      "contract_digest": "fa6523f29454351545e2cc25ff79bc72646b87d3580727599938053569ddfd2f"
+      "contract_digest": "cf8c73e90b08208494c6ccf56ee8bd3d99d224d29d0fb85c0cb58941a32facca"
     },
     "reconciliation": {
       "revision": "fnv1a32:4c885520",
-      "contract_digest": "76761f3cf436f554386f50de209ca9a7d13e92bd33d456447aadd7467e8a37c7"
+      "contract_digest": "dfe7a287903b00a6c88964b9ba9436aeb0fc6c73c7de07e2ff3a8b811aa5cce7"
     },
     "todo": {
-      "revision": "fnv1a32:080bcdfb",
-      "contract_digest": "0b014aa7e0f0d1d78e8fd60320d30c8c00fd218356cd96c9e6f43ec7e0966dd8"
+      "revision": "fnv1a32:76bbe067",
+      "contract_digest": "16e738d6384d9f54151aa535bec4ba9b884ddf2876b56af8de9a550dd428a353"
     },
     "activity_report": {
       "revision": "fnv1a32:e4aa34cd",
-      "contract_digest": "56a578dbcb6494395d93f6beec65a2812a35b9176687c1626bc0868b675ee2f2"
+      "contract_digest": "0791e1cee52d1b477b85d0ff653f44255f32177b52425b649ba300ed99c5ba74"
     },
     "product_feedback": {
       "revision": "fnv1a32:76d431a2",
-      "contract_digest": "08f2c5e0d502d2dbcdc0395bfa2006526cb925c3deeffd15663627c8d86c470f"
+      "contract_digest": "00e16d5c924831a532b190260bb72bc4a53d078da2a3d2d3be2c001fce4eb77f"
     },
     "sharing": {
       "revision": "fnv1a32:aaaec76a",
-      "contract_digest": "6a83b01cc02700a3362977fe43a03fa9eb861b829aa3c396fc3d5d62b6e6a502"
+      "contract_digest": "91ef93190bc04640de2c4a7a23ac86640434eca9473adb03f1f7cf7cfd6426d8"
     }
   }
 }

@@ -13,6 +13,9 @@
 | [#163](https://github.com/kimyongin/fin/issues/163) | 종목명·티커 자동완성 | [search-03](./search-03-instrument-autocomplete.md) |
 | [#164](https://github.com/kimyongin/fin/issues/164) | 근거 기반 에이전트 검토·교차 검증 | [search-04](./search-04-agent-grounded-review.md) |
 | [#165](https://github.com/kimyongin/fin/issues/165) | 실제 검색 방식·폴백·결과별 근거와 유사도 점수 | [search-05](./search-05-search-evidence.md) |
+| [#166](https://github.com/kimyongin/fin/issues/166) | 시장 종목 티커 참조·미등록 종목·기존 연결 이관 | [activity-19](./activity-19-market-ticker-reference.md) |
+
+#166은 로컬 수직 슬라이스 구현·검증 중이며 #163의 등록 종목 ID 전제를 대체한다. #163 자동완성은 티커 계약을 소비한다. #162의 할 일/기록 관계와 #164 검증 범위는 유지한다.
 
 각 슬라이스를 웹/HTTP/OAuth까지 연결하고, #164의 근거·품질 검증을 첫 슬라이스부터 수행한다. 모델 교체나 검색 결과 신뢰 전에는 [#161 검증과 한계](./search-01-korean-hybrid.md)를 확인한다.
 

@@ -417,7 +417,7 @@ const toolHandlers: Record<string, ToolHandler> = {
     return { ok: true, data }
   },
   async get_activity(supabase, args) {
-    const data = await rpc(supabase, 'app_get_activity', {
+    const data = await rpc(supabase, 'app_get_activity_market_ticker', {
       input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),
       input_owner_user_id: null,
     })
@@ -488,7 +488,7 @@ const toolHandlers: Record<string, ToolHandler> = {
       from: optionalString(args.from) ?? null,
       to: optionalString(args.to) ?? null,
       record_state: (optionalString(args.record_state) ?? 'all') as 'all' | 'todo' | 'done',
-      instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
+      instrument_ticker: args.instrument_ticker == null ? null : requireString(args.instrument_ticker, 'instrument_ticker'),
       tag_ids: Array.isArray(args.tag_ids) ? args.tag_ids.map((value,index) => requireUuid(value, `tag_ids[${index}]`)) : [],
       tag_match: (optionalString(args.tag_match) ?? 'any') as 'all' | 'any',
       limit: args.limit == null ? 30 : requirePositiveInteger(args.limit, 'limit'),
@@ -546,7 +546,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   async record_manual_activity(supabase, args) {
     requireSchemaVersion(args)
     const tagIds = args.tag_ids == null ? [] : requireArray(args.tag_ids, 'tag_ids').map((value, index) => requireUuid(value, `tag_ids[${index}]`))
-    const data = await rpc(supabase, 'app_create_activity_with_tags', {
+    const data = await rpc(supabase, 'app_create_activity_market_ticker_with_tags', {
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
       input_tag_ids: tagIds,
       input_payload: {
@@ -555,7 +555,7 @@ const toolHandlers: Record<string, ToolHandler> = {
         occurred_at: optionalString(args.occurred_at) ?? null,
         timezone: requireString(args.timezone, 'timezone'),
         task_id: args.task_id == null ? null : requireUuid(args.task_id, 'task_id'),
-        instrument_id: args.instrument_id == null ? null : requirePositiveInteger(args.instrument_id, 'instrument_id'),
+        instrument_ticker: args.instrument_ticker == null ? null : requireString(args.instrument_ticker, 'instrument_ticker'),
         authored_via: 'agent',
       },
     })
@@ -564,17 +564,17 @@ const toolHandlers: Record<string, ToolHandler> = {
   async update_activity(supabase, args) {
     requireSchemaVersion(args)
     const patch = requireRecord(args.patch, 'patch')
-    const allowed = new Set(['title', 'body', 'occurred_at', 'timezone', 'task_id', 'instrument_id'])
+    const allowed = new Set(['title', 'body', 'occurred_at', 'timezone', 'task_id', 'instrument_ticker'])
     for (const key of Object.keys(patch)) if (!allowed.has(key)) throw new ToolInputError(`patch.${key} is not editable`)
     const hasTagIds = Object.hasOwn(args, 'tag_ids')
     if (!hasTagIds && Object.keys(patch).length === 0) throw new ToolInputError('patch or tag_ids is required')
     const tagIds = hasTagIds ? requireArray(args.tag_ids, 'tag_ids').map((value, index) => requireUuid(value, `tag_ids[${index}]`)) : null
-    const data = await rpc(supabase, hasTagIds ? 'app_save_activity_detail' : 'app_update_activity', {
+    const data = await rpc(supabase, 'app_save_activity_market_ticker_detail', {
       input_activity_id: requirePositiveInteger(args.activity_id, 'activity_id'),
       input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
       input_patch: patch,
-      ...(hasTagIds ? { input_tag_ids: tagIds } : {}),
+      input_tag_ids: tagIds,
       input_authored_via: 'agent',
     })
     return { ok: true, data }

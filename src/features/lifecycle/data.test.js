@@ -45,16 +45,16 @@ describe('decision and task data adapters', () => {
     await fetchActivity(supabase, 7)
     await updateActivity(supabase, { id: 7, version: 1 }, { body: '다음 달 재확인' })
 
-    expect(supabase.rpc.mock.calls[0]).toEqual(['app_create_activity_with_tags', {
+    expect(supabase.rpc.mock.calls[0]).toEqual(['app_create_activity_market_ticker_with_tags', {
       input_idempotency_key: idempotencyKey,
       input_tag_ids: [],
       input_payload: {
         title: '실적 확인', body: '보유\n\n유지', occurred_at: null,
-        timezone: 'Asia/Seoul', task_id: null, instrument_id: null, authored_via: 'app',
+        timezone: 'Asia/Seoul', task_id: null, instrument_ticker: null, authored_via: 'app',
       },
     }])
-    expect(supabase.rpc.mock.calls[1]).toEqual(['app_get_activity', { input_activity_id: 7, input_owner_user_id: null }])
-    expect(supabase.rpc.mock.calls[2][0]).toBe('app_update_activity')
+    expect(supabase.rpc.mock.calls[1]).toEqual(['app_get_activity_market_ticker', { input_activity_id: 7, input_owner_user_id: null }])
+    expect(supabase.rpc.mock.calls[2][0]).toBe('app_save_activity_market_ticker_detail')
     expect(supabase.rpc.mock.calls[2][1]).toMatchObject({ input_activity_id: 7, input_expected_version: 1, input_patch: { body: '다음 달 재확인' } })
     expect(supabase.rpc).toHaveBeenCalledTimes(3)
   })
@@ -68,9 +68,9 @@ describe('decision and task data adapters', () => {
 
     expect(supabase.rpc.mock.calls[1][0]).toBe('app_set_activity_tags')
     expect(supabase.rpc.mock.calls[1][1]).toMatchObject({ input_activity_id: 5, input_expected_version: 2, input_tag_ids: [tagId] })
-    expect(supabase.rpc.mock.calls[2]).toEqual(['app_search_activities', {
+    expect(supabase.rpc.mock.calls[2]).toEqual(['app_search_activities_ticker', {
       input_owner_user_id: null, input_query: '보유 유지', input_from: null, input_to: null,
-      input_record_state: 'done', input_instrument_id: null,
+      input_record_state: 'done', input_instrument_ticker: null,
       input_tag_ids: [tagId], input_tag_match: 'any', input_limit: 30, input_cursor: null, input_timezone: 'Asia/Seoul',
     }])
   })
