@@ -4,7 +4,7 @@
 
 ## 활동 검색과 연결 맥락
 
-활동 검색 후속 설계(2026-09-27, 구현 전): [정본 계약](../design/activity-context-search.md). #83의 기록 첫 페이지/gte-small 제약을 대체하며 앱 코드 변경·배포 완료는 아니다.
+활동 검색 후속 설계(2026-09-27): [정본 계약](../design/activity-context-search.md). #161은 비동기 색인·검색 경로를 로컬 구현·검증 중이나 초기 `gte-small`의 한국어 의미 검색 품질이 낮고 운영 미배포다. #162~#164는 구현 전이다. #83의 기록 첫 페이지 제약을 대체한다.
 
 | 티켓 | 수직 슬라이스 | 명세 |
 | --- | --- | --- |
@@ -13,7 +13,7 @@
 | [#163](https://github.com/kimyongin/fin/issues/163) | 종목명·티커 자동완성 | [search-03](./search-03-instrument-autocomplete.md) |
 | [#164](https://github.com/kimyongin/fin/issues/164) | 근거 기반 에이전트 검토·교차 검증 | [search-04](./search-04-agent-grounded-review.md) |
 
-Sol은 #161의 모델·실행 위치·비용·색인·커서 최소 계약부터 확정하고 각 슬라이스를 웹/HTTP/OAuth까지 연결한다. #164 검증은 첫 슬라이스부터 함께 시작한다.
+각 슬라이스를 웹/HTTP/OAuth까지 연결하고, #164의 근거·품질 검증을 첫 슬라이스부터 수행한다. 모델 교체와 운영 배포 전에는 [#161 로컬 검증과 한계](./search-01-korean-hybrid.md)를 확인한다.
 
 ## 저장 시 활동 기록 분류
 

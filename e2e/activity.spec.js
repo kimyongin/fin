@@ -1,6 +1,35 @@
 import { expect, test } from '@playwright/test'
 import { callRpc, clickPageAction, openMenuTab, signInAs } from './helpers'
 
+test('searches older records without a date guess and keeps keyword results while indexing', async ({ page }) => {
+  await signInAs(page, 'e2e-owner@example.com')
+  const title = `E2E 오래된 심리 기록 ${Date.now()}`
+  const occurredAt = new Date(Date.now() - 45 * 86400000).toISOString()
+  const created = await callRpc(page, 'app_create_activity', {
+    input_idempotency_key: crypto.randomUUID(),
+    input_payload: { title, body: '심리 이론을 참고해 위험을 검토했다', occurred_at: occurredAt,
+      timezone: 'Asia/Seoul', authored_via: 'app' },
+  })
+  expect(created.status, JSON.stringify(created.body)).toBe(200)
+  await page.goto('/#tasks')
+  const searchInput = page.getByRole('textbox', { name: '활동 검색' })
+  const response = page.waitForResponse((item) => item.url().includes('/functions/v1/activity-search'))
+  await searchInput.fill(title)
+  expect((await response).status()).toBe(200)
+  await expect(page.getByRole('textbox', { name: '기록 시작일' })).toHaveValue('')
+  await expect(page.getByRole('textbox', { name: '기록 종료일' })).toHaveValue('')
+  await expect(page.getByRole('article').filter({ hasText: title })).toBeVisible({ timeout: 30000 })
+  for (const width of [360, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect(page.getByRole('article').filter({ hasText: title })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  }
+  await page.getByRole('button', { name: '전체 기간' }).click()
+  await searchInput.fill('')
+  await expect(page.getByRole('textbox', { name: '기록 시작일' })).toHaveValue('')
+  await expect(page.getByRole('textbox', { name: '기록 종료일' })).toHaveValue('')
+})
+
 test('creates a weekly schedule in the web UI and exposes one due occurrence to the agent queue', async ({ page }) => {
   await signInAs(page, 'e2e-owner@example.com')
   await page.goto('/#tasks')

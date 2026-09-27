@@ -1,48 +1,59 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { hybridSearchActivities } from './activity-search.ts'
 
-afterEach(() => {
-  delete (globalThis as any).Supabase
-})
+const vector = { model: 'gte-small', embedding: Array(384).fill(0.01) }
 
 describe('activity hybrid search', () => {
-  it('passes ordinary tag OR filters without inventing an activity kind', async () => {
-    const client = { rpc: vi.fn(async () => ({ data: { items: [], next_cursor: null }, error: null })) }
-    const result = await hybridSearchActivities(client, { query: '점검', record_state: 'todo', tag_ids: ['tag-1', 'tag-2'] })
-    expect(result.semantic_status).toBe('keyword_page')
-    expect(client.rpc).toHaveBeenCalledTimes(1)
-    expect(client.rpc).toHaveBeenCalledWith('app_search_activities', expect.objectContaining({ input_tag_ids: ['tag-1', 'tag-2'], input_tag_match: 'any' }))
+  it('never indexes documents while searching and forwards the same filters to ranked search', async () => {
+    const rpc = vi.fn(async (name) => ({
+      data: name === 'app_activity_search_index_coverage'
+        ? { missing_count: 0 } : { items: [{ record_type: 'task', record_id: 'task-1' }], next_cursor: null },
+      error: null,
+    }))
+    const embed = vi.fn(async () => vector)
+    const result = await hybridSearchActivities({ rpc }, {
+      query: '심리', record_state: 'done', tag_ids: ['tag-1'], tag_match: 'all',
+    }, embed)
+    expect(result.semantic_status).toBe('active')
+    expect(embed).toHaveBeenCalledOnce()
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      'app_search_activities_ranked', 'app_activity_search_index_coverage',
+    ])
+    expect(rpc).toHaveBeenCalledWith('app_search_activities_ranked',
+      expect.objectContaining({ input_record_state: 'done', input_tag_ids: ['tag-1'],
+        input_tag_match: 'all', input_query_embedding: JSON.stringify(vector.embedding) }))
   })
 
-  it('uses keyword search without invoking embeddings when no query is supplied', async () => {
-    const client = { rpc: vi.fn(async () => ({ data: { items: [{ record_type: 'task', record_id: '1' }], next_cursor: null }, error: null })) }
-    const result = await hybridSearchActivities(client, { query: null })
-    expect(result.semantic_status).toBe('not_requested')
-    expect(client.rpc).toHaveBeenCalledTimes(1)
+  it('reports incomplete indexing without treating missing vectors as no history', async () => {
+    const rpc = vi.fn(async (name) => ({ data: name === 'app_activity_search_index_coverage'
+      ? { missing_count: 12 } : { items: [], next_cursor: null }, error: null }))
+    const result = await hybridSearchActivities({ rpc }, { query: '투자 이론' }, async () => vector)
+    expect(result.semantic_status).toBe('indexing')
+    expect(result.missing_count).toBe(12)
   })
 
-  it('falls back to keyword results when the Edge embedding runtime is unavailable', async () => {
-    const client = { rpc: vi.fn(async (name) => ({ data: name === 'app_search_activities' ? { items: [{ record_type: 'activity', record_id: '1' }], next_cursor: null } : [], error: null })) }
-    const result = await hybridSearchActivities(client, { query: '비슷한 판단' })
+  it('keeps keyword search available if embedding inference fails', async () => {
+    const rpc = vi.fn(async () => ({ data: { items: [{ title: '심리' }], next_cursor: null }, error: null }))
+    const result = await hybridSearchActivities({ rpc }, { query: '심리' }, async () => { throw new Error('546') })
     expect(result.semantic_status).toBe('unavailable')
     expect(result.items).toHaveLength(1)
+    expect(rpc).toHaveBeenCalledWith('app_search_activities_ranked',
+      expect.objectContaining({ input_query_embedding: null }))
   })
 
-  it('indexes current content and merges keyword with semantic rankings', async () => {
-    const run = vi.fn(async (text: string) => text === '질문' ? [1, 0] : [0, 1])
-    ;(globalThis as any).Supabase = { ai: { Session: class { run = run } } }
-    const client = { rpc: vi.fn(async (name) => {
-      if (name === 'app_search_activities') return { data: { items: [{ record_type: 'activity', record_id: '1', title: '키워드' }], next_cursor: null }, error: null }
-      if (name === 'app_list_activity_embedding_jobs') return { data: [{ activity_id: 2, content: '문서', content_hash: 'hash' }], error: null }
-      if (name === 'app_upsert_activity_embedding') return { data: { embedded: true }, error: null }
-      if (name === 'app_search_activity_semantic') return { data: { items: [{ record_type: 'activity', record_id: '2', title: '의미' }] }, error: null }
-      return { data: null, error: { message: 'unexpected' } }
-    }) }
-    const result = await hybridSearchActivities(client, { query: '질문', limit: 10 })
-    expect(result.semantic_status).toBe('active')
-    expect(result.indexed_count).toBe(1)
-    expect(result.items).toHaveLength(2)
-    expect(run).toHaveBeenCalledTimes(2)
+  it('does not silently switch cursor contracts if semantic search fails on a later page', async () => {
+    const rpc = vi.fn()
+    await expect(hybridSearchActivities({ rpc }, { query: '심리', cursor: { rank: 80, mode: 'hybrid' } },
+      async () => { throw new Error('inference unavailable') })).rejects.toThrow('inference unavailable')
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('does not request an embedding for the ordinary feed', async () => {
+    const rpc = vi.fn(async () => ({ data: { items: [], next_cursor: null }, error: null }))
+    const embed = vi.fn()
+    const result = await hybridSearchActivities({ rpc }, { query: null }, embed)
+    expect(result.semantic_status).toBe('not_requested')
+    expect(embed).not.toHaveBeenCalled()
   })
 })

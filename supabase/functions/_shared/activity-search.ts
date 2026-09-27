@@ -1,11 +1,3 @@
-declare const Supabase: {
-  ai: {
-    Session: new (model: string) => {
-      run(input: string, options: { mean_pool: boolean; normalize: boolean }): Promise<number[]>
-    }
-  }
-}
-
 type SupabaseClientLike = {
   rpc(name: string, params?: Record<string, unknown>): PromiseLike<{ data: unknown; error: { message?: string } | null }>
 }
@@ -24,17 +16,32 @@ type SearchArgs = {
   timezone?: string
 }
 
-type SearchItem = Record<string, unknown> & {
-  record_type?: string
-  record_id?: string
+declare const Deno: { env: { get(name: string): string | undefined } }
+
+type QueryVector = { model: string; embedding: number[] }
+type EmbedQuery = (query: string) => Promise<QueryVector>
+
+async function requestQueryVector(query: string): Promise<QueryVector> {
+  const url = Deno.env.get('SUPABASE_URL')
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!url || !key) throw new Error('Search embedding service is not configured')
+  const response = await fetch(`${url}/functions/v1/activity-search-index`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+    body: JSON.stringify({ kind: 'query', query }),
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!response.ok) throw new Error(`Search embedding failed: ${response.status}`)
+  const result = await response.json() as QueryVector
+  if (result.model !== 'gte-small' || !Array.isArray(result.embedding) ||
+      result.embedding.length !== 384) throw new Error('Search embedding model mismatch')
+  return result
 }
 
-const embeddingModel = 'gte-small'
-
-function rpcParams(args: SearchArgs) {
+function rpcParams(args: SearchArgs, query: string | null) {
   return {
     input_owner_user_id: args.owner_user_id ?? null,
-    input_query: args.query?.trim() || null,
+    input_query: query,
     input_from: args.from || null,
     input_to: args.to || null,
     input_record_state: args.record_state ?? 'all',
@@ -53,64 +60,38 @@ async function rpc(client: SupabaseClientLike, name: string, params: Record<stri
   return data as Record<string, unknown>
 }
 
-function mergeHybrid(keywordItems: SearchItem[], semanticItems: SearchItem[], limit: number) {
-  const scores = new Map<string, { item: SearchItem; score: number }>()
-  function add(items: SearchItem[], weight: number) {
-    items.forEach((item, index) => {
-      const key = `${item.record_type}:${item.record_id}`
-      const current = scores.get(key)
-      scores.set(key, { item: current?.item ?? item, score: (current?.score ?? 0) + weight / (60 + index + 1) })
-    })
+// Search creates one query vector in an isolated Edge invocation. Document
+// indexing is entirely decoupled from this request and runs from the queue.
+export async function hybridSearchActivities(
+  client: SupabaseClientLike, args: SearchArgs, embedQuery: EmbedQuery = requestQueryVector,
+) {
+  const query = args.query?.trim() || null
+  const params = rpcParams(args, query)
+  if (!query) {
+    const page = await rpc(client, 'app_search_activities', params)
+    return { ...page, semantic_status: 'not_requested' }
   }
-  add(keywordItems, 1)
-  add(semanticItems, 1)
-  return [...scores.values()].sort((a, b) => b.score - a.score).slice(0, limit).map(({ item }) => item)
-}
-
-export async function hybridSearchActivities(client: SupabaseClientLike, args: SearchArgs) {
-  const params = rpcParams(args)
-  const keyword = await rpc(client, 'app_search_activities', params)
-  const keywordItems = Array.isArray(keyword.items) ? keyword.items as SearchItem[] : []
-  const query = args.query?.trim()
-  if (!query || args.cursor || args.record_state === 'todo') {
-    return { ...keyword, semantic_status: query ? 'keyword_page' : 'not_requested', indexed_count: 0 }
-  }
-
+  let vector: QueryVector | null = null
   try {
-    const model = new Supabase.ai.Session(embeddingModel)
-    const jobs = await rpc(client, 'app_list_activity_embedding_jobs', { input_limit: 12 })
-    const jobItems = Array.isArray(jobs) ? jobs as Record<string, unknown>[] : []
-    const indexed = await Promise.all(jobItems.map(async (job) => {
-      const embedding = await model.run(String(job.content ?? ''), { mean_pool: true, normalize: true })
-      await rpc(client, 'app_upsert_activity_embedding', {
-        input_activity_id: job.activity_id,
-        input_content_hash: job.content_hash,
-        input_model: embeddingModel,
-        input_embedding: JSON.stringify(embedding),
-      })
-      return job.activity_id
-    }))
-    const queryEmbedding = await model.run(query, { mean_pool: true, normalize: true })
-    const semantic = await rpc(client, 'app_search_activity_semantic', {
-      input_query_embedding: JSON.stringify(queryEmbedding),
-      input_owner_user_id: args.owner_user_id ?? null,
-      input_from: args.from || null,
-      input_to: args.to || null,
-      input_instrument_id: args.instrument_id ?? null,
-      input_tag_ids: args.tag_ids ?? [],
-      input_tag_match: args.tag_match ?? 'any',
-      input_limit: Math.min(Math.max(args.limit ?? 30, 1), 100),
-      input_timezone: args.timezone ?? 'Asia/Seoul',
-    })
-    const semanticItems = Array.isArray(semantic.items) ? semantic.items as SearchItem[] : []
-    return {
-      ...keyword,
-      items: mergeHybrid(keywordItems, semanticItems, Math.min(Math.max(args.limit ?? 30, 1), 100)),
-      semantic_status: 'active',
-      indexed_count: indexed.length,
-    }
+    if (args.cursor?.mode !== 'keyword') vector = await embedQuery(query)
   } catch (error) {
-    console.warn(JSON.stringify({ event: 'activity_semantic_fallback', message: (error as Error).message }))
-    return { ...keyword, semantic_status: 'unavailable', indexed_count: 0 }
+    if (args.cursor?.mode === 'hybrid') throw error
+  }
+  const page = await rpc(client, 'app_search_activities_ranked', {
+    ...params, input_query_embedding: vector ? JSON.stringify(vector.embedding) : null,
+  })
+  if (!vector) return { ...page, semantic_status: 'unavailable' }
+  try {
+    const coverage = await rpc(client, 'app_activity_search_index_coverage', {
+      input_owner_user_id: args.owner_user_id ?? null,
+    })
+    return {
+      ...page,
+      semantic_status: Number(coverage.missing_count ?? 0) > 0 ? 'indexing' : 'active',
+      missing_count: Number(coverage.missing_count ?? 0),
+      embedding_model: vector.model,
+    }
+  } catch {
+    return { ...page, semantic_status: 'indexing', embedding_model: vector.model }
   }
 }

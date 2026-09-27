@@ -26,6 +26,19 @@
 
 배포 동시 실행은 branch별 한 건으로 제한하며 새 실행이 이전 실행을 취소한다. 자동 workflow는 운영 DB migration이나 Edge 배포를 실행하지 않는다.
 
+## #161 활동 검색 색인 배포 준비 (로컬 검증, 운영 미적용)
+
+`activity-search-index` Edge Function을 먼저 배포하고, `20260927095839_activity_search_async_index.sql`을 대상 DB에 적용한다. 이 migration은 기존 활동·할 일을 전용 pgmq 큐에 백필로 넣지만 기존 원본 행은 바꾸지 않는다. 이어 대상 프로젝트의 Vault에 다음 두 이름을 지정한다. 서비스 키는 SQL 편집기/비밀 관리에서만 입력하고 앱 환경변수나 Git에 넣지 않는다.
+
+```sql
+select vault.create_secret('https://<project-ref>.supabase.co', 'activity_search_api_url');
+select vault.create_secret('<service-role-key>', 'activity_search_service_role_key');
+```
+
+그 뒤 `activity-search`와 `portfolio-mcp-oauth`를 배포하고 인증된 소유자·공유자 검색을 확인한다. 마지막에 웹을 공개한다. 새 기록 저장 후 큐 개수가 줄고 `activity_search_vectors`가 늘어나는지, 보관 큐의 실패 건과 Edge 546이 없는지 본다. `semantic_status=indexing`이 오래 지속되면 Vault 이름·cron 실행·Edge 로그와 `pgmq.a_activity_search_index`를 확인한다. 모델 차원을 바꾸는 배포는 새 벡터 스키마와 재색인이 필요하다.
+
+문제가 생기면 새 검색 함수의 배포를 직전 버전으로 돌리고 `cron.unschedule('activity-search-index')`로 색인 호출을 멈춘다. 기존 할 일·기록은 유지하고 새 벡터/큐는 파생 데이터로 둔다. DB migration을 되돌리기 위해 원본 데이터를 삭제하지 않는다.
+
 ## 피드백 운영자 지정
 
 피드백 관리자 권한은 포트폴리오 공유 권한과 분리한다. 운영 DB에서 서비스 역할 또는 SQL editor로 인증 사용자 UUID를 확인한 뒤 다음처럼 지정한다. 이메일이나 UUID를 앱 코드·migration에 고정하지 않는다.
