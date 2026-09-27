@@ -50,6 +50,6 @@ GitHub: https://github.com/kimyongin/fin/issues/166
 
 - 첫 수직 슬라이스로 DB `instrument_ticker` 저장/기존 시장 참조 이관, 수동 기록 생성·편집·상세 읽기, 기본/혼합 검색, 등록 시장 종목 후보와 티커 직접 입력, 웹 HTTP/OAuth MCP 계약을 연결했다. 기존 ID RPC는 배포 호환을 위해 남아 있으며 새 웹/OAuth 경로는 티커 RPC를 사용한다.
 - 시장/비시장 자동 기록은 기존 금융 대상 ID를 유지하고 새 기록의 시장 티커는 트리거로 채운다. 일반 할 일의 `subject.instrument_ticker`는 저장 시 정규화한다. 과거 시장 task/event 참조를 티커로 이관하고, 비시장 기록의 읽을 수 있는 문구는 보존한다.
-- 로컬 일반 DB에 쓰지 않도록 migration과 새 pgTAP 17개를 한 트랜잭션에서 실행해 모두 통과하고 롤백했다. 등록 재시도, 같은 값 저장, 수정·해제, 허용된 친구 읽기와 비인가 사용자 차단도 포함한다. `npm test` 25파일/127개, `npm run build`, 6개 Edge 진입점의 `npx deno check`가 통과했다. workflow guide review manifest도 새 계약으로 갱신해 검사가 통과했다.
+- 로컬 일반 DB에 쓰지 않도록 migration과 새 pgTAP 19개를 한 트랜잭션에서 실행해 모두 통과하고 롤백했다. 등록 재시도, 같은 값 저장, 수정·해제, 할 일 작성, 금융 기록의 티커 채움, 허용된 친구 읽기와 비인가 사용자 차단도 포함한다. `npm test` 25파일/127개, `npm run build`, 6개 Edge 진입점의 `npx deno check`가 통과했다. workflow guide review manifest도 새 계약으로 갱신해 검사가 통과했다.
 - 격리 E2E 실행기의 migration 동기화는 현재 작업 트리의 기존 미추적 `.e2e` migration 파일을 덮어쓰므로 실행하지 않았다. 실제 웹 로그인·OAuth MCP 호출, 공유/화면 폭/200% 확대, 운영 DB 이관·배포는 미검증이다.
 - 후속 구현에서 구 ID 입력/검색/상세 함수와 컬럼·트리거의 종료 시점 및 비시장 할 일의 긴 설명 예외를 확인해야 한다. #163의 검색창 자동완성과 미등록 티커 후보 통합은 별도 티켓이다. 새 migration을 운영에 적용하기 전 현재 운영 schema 상태와 중간 버전 클라이언트의 호환을 다시 검증한다.
