@@ -21,7 +21,7 @@ Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 
 
 ## 현재 인계
 
-- #161~#164: [활동 검색 후속 설계](./design/activity-context-search.md). #161의 비동기 색인·검색·키워드 fallback은 로컬 구현과 자동 검증을 진행했다. 초기 `gte-small`의 한국어 의미 검색 품질은 실효 기준에 미달하며 운영 미배포다. #162 연결 맥락, #163 종목 자동완성, #164 근거 기반 에이전트 검토는 구현 전이다. 상세 증거와 남은 검증은 [#161 티켓](./tickets/search-01-korean-hybrid.md)을 따른다.
+- #161~#164: [활동 검색 후속 설계](./design/activity-context-search.md). #161의 비동기 색인·검색·키워드 fallback은 로컬 구현과 자동 검증을 거쳐 운영 DB/Edge에 적용했다. 웹 공개·실클라이언트 검증 상태는 [#161 티켓](./tickets/search-01-korean-hybrid.md)을 확인한다. 초기 `gte-small`의 한국어 의미 검색 품질은 실효 기준에 미달한다. #162 연결 맥락, #163 종목 자동완성, #164 근거 기반 에이전트 검토는 구현 전이다.
 
 - #151~#158: [도메인 CRUD 동등성 설계](./design/domain-crud-parity.md), [HTTP·OAuth 계약표](./design/contracts/agent/domain-crud-parity-matrix.md), [티켓 색인](./tickets/README.md)을 따른다. 주요 웹 HTTP/OAuth MCP 경로는 2026-09-27 운영 배포됐지만, 티켓에 적힌 전체 필드 양방향·실 ChatGPT 웹/모바일 검증은 남아 있다. 시세·환율은 직접 편집 없이 동일 가격 갱신을 호출한다.
 

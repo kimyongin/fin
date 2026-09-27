@@ -98,4 +98,25 @@ for (const requiredTool of [
   if (!toolNames.has(requiredTool)) throw new Error(`OAuth MCP is missing required tool: ${requiredTool}`)
 }
 
-console.log(`Authenticated readiness passed for ${rpcChecks.length} read RPCs and OAuth MCP discovery.`)
+const searchInput = {
+  query: '점검', from: null, to: null, record_state: 'all', instrument_id: null,
+  tag_ids: [], tag_match: 'any', limit: 1, cursor: null, timezone: 'Asia/Seoul',
+}
+const searchResponse = await fetch(`${baseUrl}/functions/v1/activity-search`, {
+  method: 'POST',
+  headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}` },
+  body: JSON.stringify(searchInput),
+})
+if (!searchResponse.ok) throw new Error(`Authenticated activity search failed (${searchResponse.status})`)
+const searchPage = await searchResponse.json()
+if (!Array.isArray(searchPage.items) || !['active', 'indexing'].includes(searchPage.semantic_status)) {
+  throw new Error(`Activity search embedding is unavailable (${searchPage.semantic_status ?? 'unknown'})`)
+}
+const mcpSearch = await mcp('tools/call', { name: 'search_activities', arguments: searchInput })
+const mcpSearchPage = mcpSearch?.structuredContent?.data
+if (mcpSearch?.isError || !Array.isArray(mcpSearchPage?.items) ||
+    !['active', 'indexing'].includes(mcpSearchPage?.semantic_status)) {
+  throw new Error('OAuth MCP activity search is unavailable')
+}
+
+console.log(`Authenticated readiness passed for ${rpcChecks.length} read RPCs, OAuth MCP discovery, and both activity search routes.`)

@@ -1,3 +1,5 @@
+import { getSearchWorkerKey } from './search-worker-auth.ts'
+
 type SupabaseClientLike = {
   rpc(name: string, params?: Record<string, unknown>): PromiseLike<{ data: unknown; error: { message?: string } | null }>
 }
@@ -23,11 +25,11 @@ type EmbedQuery = (query: string) => Promise<QueryVector>
 
 async function requestQueryVector(query: string): Promise<QueryVector> {
   const url = Deno.env.get('SUPABASE_URL')
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (!url || !key) throw new Error('Search embedding service is not configured')
+  if (!url) throw new Error('Search embedding service is not configured')
+  const key = getSearchWorkerKey()
   const response = await fetch(`${url}/functions/v1/activity-search-index`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+    headers: { 'Content-Type': 'application/json', apikey: key },
     body: JSON.stringify({ kind: 'query', query }),
     signal: AbortSignal.timeout(10000),
   })

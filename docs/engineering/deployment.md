@@ -26,14 +26,16 @@
 
 배포 동시 실행은 branch별 한 건으로 제한하며 새 실행이 이전 실행을 취소한다. 자동 workflow는 운영 DB migration이나 Edge 배포를 실행하지 않는다.
 
-## #161 활동 검색 색인 배포 준비 (로컬 검증, 운영 미적용)
+## #161 활동 검색 색인 배포
 
-`activity-search-index` Edge Function을 먼저 배포하고, `20260927095839_activity_search_async_index.sql`을 대상 DB에 적용한다. 이 migration은 기존 활동·할 일을 전용 pgmq 큐에 백필로 넣지만 기존 원본 행은 바꾸지 않는다. 이어 대상 프로젝트의 Vault에 다음 두 이름을 지정한다. 서비스 키는 SQL 편집기/비밀 관리에서만 입력하고 앱 환경변수나 Git에 넣지 않는다.
+`activity-search-index` Edge Function을 먼저 배포하고, `20260927095839_activity_search_async_index.sql`을 대상 DB에 적용한다. 이 migration은 기존 활동·할 일을 전용 pgmq 큐에 백필로 넣지만 기존 원본 행은 바꾸지 않는다. 이어 대상 프로젝트의 Vault에 다음 두 이름을 지정한다. 같은 키를 Edge 비밀 `ACTIVITY_SEARCH_WORKER_KEY`에도 설정해 호출자와 작업 함수가 일치하도록 한다. 키는 비밀 관리에서만 입력하고 웹 환경변수나 Git에 넣지 않는다.
 
 ```sql
 select vault.create_secret('https://<project-ref>.supabase.co', 'activity_search_api_url');
 select vault.create_secret('<service-role-key>', 'activity_search_service_role_key');
 ```
+
+`20260927114341_activity_search_secret_auth.sql`은 백필 작업 호출을 `apikey` 헤더만 사용하도록 보정한다. 운영에서 첫 배포 후 레거시 서비스 키와 Edge 기본 환경 키가 일치하지 않아 401이 발생했기 때문이다. Edge 비밀과 Vault는 같은 유효한 키를 보유해야 한다. 다음 배포에서는 두 migration을 순서대로 적용하고 인증된 검색에서 `semantic_status=active` 또는 `indexing`을 확인한다. 단어 fallback만 성공한 것을 의미 검색 정상으로 간주하지 않는다.
 
 그 뒤 `activity-search`와 `portfolio-mcp-oauth`를 배포하고 인증된 소유자·공유자 검색을 확인한다. 마지막에 웹을 공개한다. 새 기록 저장 후 큐 개수가 줄고 `activity_search_vectors`가 늘어나는지, 보관 큐의 실패 건과 Edge 546이 없는지 본다. `semantic_status=indexing`이 오래 지속되면 Vault 이름·cron 실행·Edge 로그와 `pgmq.a_activity_search_index`를 확인한다. 모델 차원을 바꾸는 배포는 새 벡터 스키마와 재색인이 필요하다.
 

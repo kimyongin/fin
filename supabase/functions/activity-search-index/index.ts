@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 import { embedSearchText, SEARCH_EMBEDDING_MODEL } from '../_shared/search-embedding.ts'
+import { getSearchWorkerKey } from '../_shared/search-worker-auth.ts'
 
 type SearchJob = {
   user_id: string
@@ -13,8 +14,8 @@ type SearchJob = {
 
 Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (!key || request.headers.get('Authorization') !== `Bearer ${key}`) {
+  const key = getSearchWorkerKey()
+  if (request.headers.get('apikey') !== key) {
     return new Response('Unauthorized', { status: 401 })
   }
   try {
