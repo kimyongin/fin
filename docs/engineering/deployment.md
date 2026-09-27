@@ -54,6 +54,12 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-27 배분 제외 목록·자산 태그순 정렬
+
+- 앱 commit: `ddc26f5`. [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36307286524)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36307604437) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-Bin8yfIx.js` HTTP 200 및 `배분 제외 보유`·`태그 없음` 문구 포함 확인.
+- CI에서 단위 테스트, 가이드·Edge 타입 검사, 인증된 운영 RPC 호환성, 격리 DB·브라우저 테스트와 빌드가 통과했다. 로컬에서도 단위 119건, 빌드·인코딩·가이드 검사와 관련 브라우저 2건을 통과했다. 실제 본인·친구 화면 및 모바일 실기기 시각 확인은 아직 수행하지 않았다.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`의 DB migration·Edge Function 변경 없음. 직전 정상 공개 앱 비교 기준은 `78cae5b` 릴리스다.
+
 ### 2026-09-27 계좌별 보유의 배분 제외 (#160)
 
 - 앱 commit: `78cae5b` (기능 `83a0777`, CSV 왕복 `ea9a273`, 기본 포함 UI `fb279fe`, Edge 타입 보정 `5b9cd2b`, 가이드 검토 기록 `78cae5b`). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36304646723)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36304966790) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-B_qEFJPA.js` HTTP 200 및 `배분에서 제외` 문구 확인.
