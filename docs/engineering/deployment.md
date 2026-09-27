@@ -54,6 +54,12 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-27 배분 태그 비중 파이 차트
+
+- 앱 commit: `2cf700c` (`2643e20` 차트와 문서, `2cf700c` 날짜 고정 브라우저 테스트 보정). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36293839875)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36294146980) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-yyxT89LN.js` HTTP 200 및 차트 코드·범례 문구 포함 확인.
+- 검증: 로컬 단위 114건, 빌드·인코딩·가이드 검사 통과. CI에서 격리 DB/MCP·Chromium 84건, Edge 타입·운영 인증 호환성·빌드 통과. 첫 CI 실행의 실패는 날짜가 바뀌어 환율 기준일의 고정 기대값과 충돌한 테스트였고, 날짜 형식 검증으로 보정한 뒤 전체 재검증했다.
+- 운영 Supabase에 새 migration이나 Edge Function 변경 없음. 실제 본인/친구 계정의 차트 시각 확인과 실기기 검증은 남아 있다. 직전 정상 공개 앱 비교 기준은 `0d6a0db`다.
+
 ### 2026-09-27 저장 확인에서 활동 태그 지정 (#159)
 
 - 앱 commit: `0d6a0db` (`946d703` 기능, `0d6a0db` 전체 브라우저 검사 보정). [검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36261743665)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36262093209) 성공. <https://kimyongin.github.io/fin/> HTTP 200, 번들 `/fin/assets/index-Crnp0iif.js` HTTP 200 및 새 `app_save_principle_with_activity` 호출 포함 확인.
