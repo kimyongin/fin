@@ -54,3 +54,10 @@ GitHub: https://github.com/kimyongin/fin/issues/166
 - 이관 전 형식의 시장 할 일 ID와 비시장 기록 본문을 트랜잭션에 넣은 뒤 migration을 적용하고, 시장 티커·비시장 자산명 보존을 확인한 후 롤백했다. 운영 데이터 이관 건수와 예외는 운영 적용 전 별도로 확인한다.
 - 격리 E2E 실행기의 migration 동기화는 현재 작업 트리의 기존 미추적 `.e2e` migration 파일을 덮어쓰므로 실행하지 않았다. 실제 웹 로그인·OAuth MCP 호출, 공유/화면 폭/200% 확대, 운영 DB 이관·배포는 미검증이다.
 - 후속 구현에서 구 ID 입력/검색/상세 함수와 컬럼·트리거의 종료 시점 및 비시장 할 일의 긴 설명 예외를 확인해야 한다. #163의 검색창 자동완성과 미등록 티커 후보 통합은 별도 티켓이다. 새 migration을 운영에 적용하기 전 현재 운영 schema 상태와 중간 버전 클라이언트의 호환을 다시 검증한다.
+
+## 2026-09-27 배포·후속 검증
+
+- 배포 전 격리 E2E에서 DB 61파일/768건, MCP 계약·인증된 준비 검사, 브라우저 86건이 통과했다. OAuth MCP로 미등록 티커를 정규화해 기록하고 웹 HTTP로 다시 읽는 교차 인터페이스 검사를 추가했다. `npm test` 127건, 빌드·인코딩·가이드·6개 Edge 진입점 Deno 검사도 통과했다. `npm run check:edge`는 로컬 PATH에 `deno`가 없어 직접 실행하지 못했지만 같은 진입점을 `npx deno check`로 확인했다.
+- 운영 적용 전 `public` 스키마·데이터를 로컬 임시 경로 `fin-prod-backup-20260927-166`에 백업했다. 운영 migration `20260927130802_activity_market_ticker_reference.sql`을 적용했고 미적용 migration 없음, 보안 advisor error 없음. 적용 전 ID 참조 10건 중 시장 기록 6건, 적용 후 시장 기록의 티커와 구 ID 호환 참조 각각 6건을 확인했다. 기존 데이터를 지우지 않았다.
+- `activity-search` v5와 `portfolio-mcp-oauth` v15, 앱 commit `fa7a20c`을 배포했다. [검증·Pages 배포](https://github.com/kimyongin/fin/actions/runs/36324852263)와 [Pages 게시](https://github.com/kimyongin/fin/actions/runs/36325252457)가 성공했다. 공개 앱과 새 번들 HTTP 200 및 티커 RPC 포함을 확인했다. 상세 순서와 복구 기준은 [배포 기록](../engineering/deployment.md)을 따른다.
+- 실제 본인·친구 로그인, ChatGPT 웹·모바일, 360/390/768/1024/1440px·200% 확대와 키보드 수동 사용은 아직 검증하지 않았다. #163 자동완성·검색 UX 및 구 ID 호환 RPC/컬럼 종료도 후속이다. 따라서 전체 인수 조건은 아직 완료 처리하지 않는다.

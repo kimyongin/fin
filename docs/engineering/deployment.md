@@ -69,6 +69,14 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-27 활동 시장 종목 티커 참조 (#166)
+
+- 앱 commit `fa7a20c`. [검증·gh-pages 배포](https://github.com/kimyongin/fin/actions/runs/36324852263)와 [Pages 게시](https://github.com/kimyongin/fin/actions/runs/36325252457)가 성공했다. <https://kimyongin.github.io/fin/>와 새 번들 `/fin/assets/index-Cf4Eb6Pl.js`가 HTTP 200이고 새 티커 RPC 호출을 포함한다.
+- 운영 프로젝트 `ubmtflglqudrvumepzij`의 `public` 스키마·데이터를 적용 전에 로컬 임시 경로 `fin-prod-backup-20260927-166`에 백업했다. `20260927130802_activity_market_ticker_reference.sql` 한 건을 적용하고 원격 dry-run에서 미적용 migration이 없음을 확인했다. 적용 전 ID 참조 10건 중 시장 기록 6건이었고, 적용 후 시장 기록 6건의 티커와 구 ID 호환 참조가 함께 존재함을 확인했다. 원본 데이터 삭제·DB reset은 하지 않았다.
+- Edge `activity-search` v5 (`verify_jwt=true`)와 `portfolio-mcp-oauth` v15 (`verify_jwt=false`)를 배포했다. 운영 보안 advisor의 error 수준 지적은 없었다.
+- 로컬 단위 127건, 빌드·인코딩·가이드·6개 Edge 진입점 Deno 검사가 통과했다. 격리 E2E는 DB 61파일/768건, MCP 계약과 인증된 준비 검사, 브라우저 86건을 통과했다. 티커 저장의 OAuth MCP→웹 HTTP 재조회도 격리 환경에서 검증했고, CI의 운영 인증 HTTP/OAuth 준비 검사와 전체 회귀도 통과했다.
+- 실제 본인·친구 Google 로그인 및 ChatGPT 웹·모바일의 티커 기록 사용, 360~1440px·200% 확대 수동 확인은 아직 하지 않았다. #166은 이 항목과 구 ID 호환 계약 종료가 남아 열어 둔다. 문제가 생기면 기존 ID 참조와 호환 RPC를 유지한 채 서버를 전진 수정하고, 웹은 직전 정상 앱 `ef401e0`을 비교 기준으로 사용한다.
+
 ### 2026-09-27 활동 검색 근거 표시 (#165)
 
 - 앱 구현 `7c89358`, 인증된 운영 검색 근거 검사 `ef401e0`. [동일 commit의 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36319945424)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36320313559)가 성공했다. <https://kimyongin.github.io/fin/> 및 새 `/fin/assets/index-BsoqWsyI.js`가 HTTP 200이고 새 검색 안내 문구가 번들에 있음을 확인했다.
