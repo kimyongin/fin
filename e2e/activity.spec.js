@@ -310,7 +310,7 @@ test('links a record to an owned task and instrument', async ({ page }) => {
   await editor.getByRole('button', { name: '저장', exact: true }).click()
   const instruments = await callRpc(page, 'app_search_activity_references', { input_kind: 'instrument', input_query: 'E2EAPL', input_offset: 0, input_limit: 20 })
   expect(instruments.status).toBe(200)
-  const instrumentId = instruments.body.items[0].id
+  const instrumentTicker = instruments.body.items[0].ticker
   const title = `E2E 연결 기록 ${Date.now()}`
   await clickPageAction(page, '할 일과 기록', '활동 추가')
   editor = page.getByRole('dialog', { name: '활동 추가' })
@@ -320,15 +320,15 @@ test('links a record to an owned task and instrument', async ({ page }) => {
   await editor.getByRole('option', { name: taskTitle }).click()
   await editor.getByRole('combobox', { name: '관련 종목' }).fill('E2EAPL')
   await editor.getByRole('option', { name: /E2EAPL/ }).click()
-  const creationResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_create_activity_with_tags'))
+  const creationResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_create_activity_market_ticker_with_tags'))
   await editor.getByRole('button', { name: '저장', exact: true }).click()
   const createdRecord = await (await creationResponse).json()
   await page.getByRole('button', { name: title, exact: true }).click()
   const detail = page.getByRole('dialog', { name: '기록 상세' })
   await expect(detail.getByText(taskTitle)).toBeVisible()
   await expect(detail.getByLabel('관련 종목 연결 해제')).toBeVisible()
-  const saved = await callRpc(page, 'app_get_activity', { input_activity_id: createdRecord.id, input_owner_user_id: null })
-  expect(saved.body.instrument_id).toBe(instrumentId)
+  const saved = await callRpc(page, 'app_get_activity_market_ticker', { input_activity_id: createdRecord.id, input_owner_user_id: null })
+  expect(saved.body.instrument_ticker).toBe(instrumentTicker)
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await expect(detail).toBeVisible()
@@ -423,21 +423,21 @@ test('shares newly created and renamed activity tags with search filters immedia
   await detail.getByRole('button', { name: tagName, exact: true }).click()
   await expect(detail.getByRole('button', { name: tagName, exact: true })).toHaveAttribute('aria-pressed', 'true')
   await detail.getByRole('textbox', { name: '기록 제목' }).fill(`${title} 초안`)
-  const saveResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_save_activity_detail'))
+  const saveResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_save_activity_market_ticker_detail'))
   await detail.getByRole('button', { name: '저장', exact: true }).click()
   expect((await saveResponse).status()).toBe(200)
   await expect(detail.getByRole('textbox', { name: '기록 제목' })).toHaveValue(`${title} 초안`)
   await expect(detail.getByRole('button', { name: '저장', exact: true })).toBeDisabled()
-  const saved = await callRpc(page, 'app_get_activity', { input_activity_id: created.body.id, input_owner_user_id: null })
+  const saved = await callRpc(page, 'app_get_activity_market_ticker', { input_activity_id: created.body.id, input_owner_user_id: null })
   expect(saved.status).toBe(200)
   expect(saved.body.tags).toContainEqual(expect.objectContaining({ name: tagName }))
-  const rejected = await callRpc(page, 'app_save_activity_detail', {
+  const rejected = await callRpc(page, 'app_save_activity_market_ticker_detail', {
     input_activity_id: created.body.id, input_expected_version: saved.body.version,
     input_idempotency_key: crypto.randomUUID(), input_patch: { title: `${title} 롤백` },
     input_tag_ids: [crypto.randomUUID()], input_authored_via: 'app',
   })
   expect(rejected.status).toBeGreaterThanOrEqual(400)
-  const unchanged = await callRpc(page, 'app_get_activity', { input_activity_id: created.body.id, input_owner_user_id: null })
+  const unchanged = await callRpc(page, 'app_get_activity_market_ticker', { input_activity_id: created.body.id, input_owner_user_id: null })
   expect(unchanged.body).toMatchObject({ title: `${title} 초안`, version: saved.body.version })
   await detail.getByRole('button', { name: '닫기' }).first().click()
   await clickPageAction(page, '할 일과 기록', '태그 관리')
@@ -595,7 +595,7 @@ test('does not reopen a closed activity when its detail response arrives late', 
   const held = new Promise((resolve) => { release = resolve })
   let requested
   const reached = new Promise((resolve) => { requested = resolve })
-  await page.route('**/rest/v1/rpc/app_get_activity', async (route) => {
+  await page.route('**/rest/v1/rpc/app_get_activity_market_ticker', async (route) => {
     requested()
     await held
     await route.continue()
@@ -606,7 +606,7 @@ test('does not reopen a closed activity when its detail response arrives late', 
   await expect(detail).toBeVisible()
   await detail.getByRole('button', { name: '닫기' }).click()
   await expect(detail).toBeHidden()
-  const response = page.waitForResponse((item) => item.url().includes('/rest/v1/rpc/app_get_activity'))
+  const response = page.waitForResponse((item) => item.url().includes('/rest/v1/rpc/app_get_activity_market_ticker'))
   release()
   await response
   await expect(detail).toBeHidden()
