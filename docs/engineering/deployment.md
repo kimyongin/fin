@@ -69,6 +69,13 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-28 목록 읽기·편집 UX (#167)
+
+- 앱 commit `dab5cd4` (#167 구현·검증 및 MCP 가이드 검토 기록). [동일 commit 검증·gh-pages 배포](https://github.com/kimyongin/fin/actions/runs/36426676746)와 [Pages 게시](https://github.com/kimyongin/fin/actions/runs/36427543955)가 성공했다. 공개 <https://kimyongin.github.io/fin/>와 새 번들 `/fin/assets/index-Bl1NTkXH.js`는 HTTP 200이며, 번들에서 할 일·기록 읽기 및 편집 라벨을 확인했다.
+- 첫 배포 실행은 피드백·공유 화면의 목록 액션 변경에 따른 MCP workflow guide 검토 기록 누락으로 게시 전에 중단됐다. 화면 액션만 바뀌고 도구 동작·동의 경계는 유지됨을 검토해 manifest에 기록한 뒤 전체 검증을 다시 실행했다.
+- CI의 단위·가이드·Edge 타입·인증된 운영 RPC 호환성·격리 DB 783건·Chromium 87건·빌드가 통과했다. 운영 Supabase DB migration과 Edge Function 변경·재배포는 없다.
+- 실제 휴대폰 손가락 드래그, 200% 확대, 화면낭독기, 본인·친구 실사용은 아직 수동 확인하지 않았다. #167은 이 검증을 위해 열어 둔다. 직전 정상 공개 앱 비교 기준은 `5c3deec`다.
+
 ### 2026-09-28 Pinecone 활동 의미 검색 (#161)
 
 - 사용자 요청으로 실모델 품질 게이트 미달 상태에서 의미 검색을 활성화했다. 합성 검증은 24문항 중 23문항 적중, 지정 후반부 3/4, 무관 질문 오탐 1/6이다. 배포 성공을 검색 품질 인수 완료로 표시하지 않는다.

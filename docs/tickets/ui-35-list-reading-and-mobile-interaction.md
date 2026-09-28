@@ -60,4 +60,4 @@ GitHub: https://github.com/kimyongin/fin/issues/167
 - 목록 마크다운/아이콘의 서버 렌더 테스트와 읽기→편집·스크롤 E2E를 추가하고, 행 전체 클릭을 전제하던 기존 브라우저 테스트 선택자를 변경했다. 컴포넌트 읽기는 raw HTML 실행/위험 링크/외부 이미지 자동 로드를 차단한다.
 - Docker 복구 후 격리된 관리형 worktree에서 `npm run test:e2e` 전체를 다시 실행했다: DB 783건/62개 파일, MCP 계약 및 인증된 API 준비 검사, Chromium 브라우저 87건 모두 통과. 360/390/768/1024/1440px 레이아웃·가로 넘침, 아이콘 44px computed style, 마크다운 읽기→편집→저장, 목록 텍스트 클릭·휠 스크롤 시 모달 미열림을 자동 확인했다. 메인 작업공간의 사용자 `.e2e` 파일은 보존했다.
 - 실제 휴대폰 손가락 드래그/`pointercancel`, 브라우저 200% 확대, 화면낭독기는 아직 수동 검증 전이다. Playwright의 화면 폭 테스트를 실기기 검증으로 대신 보고하지 않는다.
-- DB migration·MCP schema·목적별 서버 API는 변경하지 않았다. 운영 배포는 별도 요청 전까지 하지 않는다.
+- DB migration·MCP schema·목적별 서버 API는 변경하지 않았다. 사용자 요청에 따라 `dab5cd4`를 배포했다. [검증·gh-pages 배포](https://github.com/kimyongin/fin/actions/runs/36426676746) 및 [Pages 게시](https://github.com/kimyongin/fin/actions/runs/36427543955)가 성공했고, 공개 페이지·새 번들은 HTTP 200이다. 실제 휴대폰·200% 확대·화면낭독기 수동 검증은 계속 남는다.
