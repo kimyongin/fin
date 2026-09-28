@@ -21,7 +21,7 @@ export function TimelineEntry({ occurredAt, title, meta, summary, onOpen, onEdit
     <span aria-hidden="true" className="absolute -left-1 top-5 h-2 w-2 rounded-full bg-[var(--muted-ink)]" />
     <div className="min-w-0 break-words">
         <time className="type-meta type-number mb-1 block text-[var(--muted-ink)]" dateTime={occurredAt}>{seoulTime.format(new Date(occurredAt))}</time>
-        <div className="list-item-title-line"><span className="list-item-title type-item-title line-clamp-3">{title}</span><ListItemActions editLabel={editLabel} onEdit={onEdit} onRead={onOpen} readLabel={ariaLabel} /></div>
+        <div className="list-item-title-line"><span className="list-item-title type-item-title">{title}</span>{' '}<ListItemActions editLabel={editLabel} onEdit={onEdit} onRead={onOpen} readLabel={ariaLabel} /></div>
         {meta && <span className="type-meta mt-2 flex min-w-0 flex-wrap gap-1.5 text-[var(--muted-ink)]">{meta}</span>}
         {summary && <span className="type-secondary mt-2 block line-clamp-2 text-[var(--muted-ink)]">{markdownPreview(summary)}</span>}
     </div>

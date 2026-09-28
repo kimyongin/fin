@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-28",
-  "review_reason": "Issue #170 changes only the linked-friend web list control from an icon to a text View action beside the friend name. Sharing scope, connection consent, OAuth MCP tools, authorization, and last-view tracking remain unchanged.",
+  "review_reason": "List title/actions now wrap inline; sharing behavior, consent, authorization and MCP contracts remain unchanged.",
   "topics": {
     "assets": {
       "revision": "fnv1a32:c6e3c81b",
@@ -45,7 +45,7 @@
     },
     "sharing": {
       "revision": "fnv1a32:aaaec76a",
-      "contract_digest": "a5d4e9f65594c0d1422c6576da2d44fc19158fe6a6737b5349954219bf0763d1"
+      "contract_digest": "3967b09a9bd0e64ac51f3a819e788276771679696ccbc8e2c99169f392c47741"
     }
   }
 }

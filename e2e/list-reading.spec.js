@@ -4,7 +4,7 @@ import { callRpc, signInAs } from './helpers'
 test('separates record reading from editing without opening a modal while scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await signInAs(page, 'e2e-owner@example.com')
-  const title = `E2E 읽기 동작 ${Date.now()}`
+  const title = 'ISHARES 20+Y US TREASURY BOND JPY HEDGED'
   const body = '## 근거\n\n| 항목 | 값 |\n| --- | --- |\n| 심리 | 주의 |\n\n- **관찰** 기록'
   const created = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
@@ -35,16 +35,26 @@ test('separates record reading from editing without opening a modal while scroll
     const layout = await item.locator('.list-item-title-line').first().evaluate((line) => {
       const title = line.querySelector('.list-item-title')
       const actions = line.querySelector('.list-item-actions')
-      const titleBounds = title.getBoundingClientRect()
+      const range = document.createRange()
+      range.selectNodeContents(title)
+      const rects = [...range.getClientRects()]
+      const titleBounds = rects.at(-1)
       const actionBounds = actions.getBoundingClientRect()
-      return { titleX: titleBounds.x, titleRight: titleBounds.right, titleBottom: titleBounds.bottom, actionsX: actionBounds.x, actionsTop: actionBounds.top, actionsRight: actionBounds.right }
+      return { titleRight: titleBounds.right, titleBottom: titleBounds.bottom, titleTop: titleBounds.top, lines: rects.length, available: line.getBoundingClientRect().right - titleBounds.right, actionWidth: actionBounds.width, actionsX: actionBounds.x, actionsTop: actionBounds.top, actionsBottom: actionBounds.bottom, actionsRight: actionBounds.right }
     })
     expect(layout.actionsRight).toBeLessThanOrEqual(viewportWidth)
-    if (viewportWidth === 320) {
-      expect(Math.abs(layout.actionsX - layout.titleX)).toBeLessThan(1)
+    if (viewportWidth === 390) {
+      expect(layout.lines).toBeGreaterThan(1)
+      expect(layout.available).toBeGreaterThanOrEqual(layout.actionWidth + 5)
+      await item.screenshot({ path: test.info().outputPath('inline-actions-390.png') })
+    }
+    if (layout.available >= layout.actionWidth + 5) {
+      expect(layout.actionsX).toBeGreaterThanOrEqual(layout.titleRight)
+      expect(layout.actionsTop).toBeLessThan(layout.titleBottom)
+      expect(layout.actionsBottom).toBeGreaterThan(layout.titleTop)
+    } else {
       expect(layout.actionsTop).toBeGreaterThanOrEqual(layout.titleBottom - 1)
     }
-    if (viewportWidth === 768) expect(layout.actionsX).toBeGreaterThanOrEqual(layout.titleRight + 7)
   }
   await page.setViewportSize({ width: 390, height: 844 })
   const width = await read.evaluate((button) => getComputedStyle(button).width)
