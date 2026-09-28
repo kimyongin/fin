@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-28",
-  "review_reason": "#167 list item read/edit controls only: feedback editing and connected-friend reading retain existing MCP behavior and consent boundaries",
+  "review_reason": "#167 deployment regression: feedback administrator draft now survives same-version list refresh; MCP feedback tools, consent, and status transition semantics unchanged",
   "topics": {
     "assets": {
       "revision": "fnv1a32:3a22a3ee",
@@ -41,7 +41,7 @@
     },
     "product_feedback": {
       "revision": "fnv1a32:76d431a2",
-      "contract_digest": "59360174b91dba939b8173372d992332d80c814c62446af855097842d9282349"
+      "contract_digest": "e8915dbd15697519da1af99772aea4d5f9ace0ddeeb4e2ce01f1ca5000af21fd"
     },
     "sharing": {
       "revision": "fnv1a32:aaaec76a",
