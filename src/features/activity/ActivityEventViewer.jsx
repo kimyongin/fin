@@ -5,6 +5,7 @@ import { buildBulkSnapshotCsv } from './snapshotCsv'
 import { TimelineEntry } from '../../components/Timeline'
 import TagChip from '../../components/TagChip'
 import ListItemAction from '../../components/ListItemAction'
+import { activityReadableTitle } from './activityPresentation'
 
 const actionLabels = {
   create_account: '계좌 추가', update_account: '계좌 수정', delete_account: '계좌 삭제',
@@ -102,10 +103,7 @@ function SnapshotCopyButton({ label, snapshot }) {
 }
 
 function eventTarget(action) {
-  if (action.title) return repairMojibake(action.title)
-  const data = eventData(action)
-  if (action.action_type === 'bulk_edit_portfolio') return `${data.row_count ?? 0}개 보유내역`
-  return repairMojibake(data.title ?? data.display_name ?? data.name ?? data.ticker ?? data.account_name ?? action.target_table ?? '포트폴리오')
+  return repairMojibake(activityReadableTitle(action))
 }
 
 function eventContext(action) {

@@ -80,7 +80,9 @@ const entityNoteOutputSchema = successEnvelope({
     entity_type: { type: 'string', enum: ['account', 'instrument'] },
     entity_id: { type: 'integer', minimum: 1 },
     note: { type: ['string', 'null'] },
+    activity_id: { type: ['integer', 'null'], minimum: 1 },
   },
+  // Old idempotency receipts are replayed verbatim and predate activity_id.
   required: ['entity_type', 'entity_id', 'note'],
   additionalProperties: false,
 })
@@ -416,7 +418,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'update_entity_note',
     title: 'Update an existing portfolio entity note',
-    description: 'Update only the note attached to one existing account or instrument after the user explicitly asks to remember, revise, or clear target-specific information. Read get_portfolio_state first and pass the exact current note as expected_note; use null for an empty note. A conflict means the note changed after it was read, so re-read instead of overwriting it. This does not change quantities, costs, prices, tags, strategy, verification status, or activity outside the note audit event. Do not force a portfolio-wide instruction into an arbitrary entity note.',
+    description: 'Update only the note attached to one existing account or instrument after the user explicitly asks to remember, revise, or clear target-specific information. Read get_portfolio_state first and pass the exact current note as expected_note; use null for an empty note. A conflict means the note changed after it was read, so re-read instead of overwriting it. A changed note atomically creates one readable activity record; activity_id identifies it for get_activity, and null means no change. An identical retry returns the original result. Do not create another activity for the same note change. This does not change quantities, costs, prices, tags, strategy, or verification status. Do not force a portfolio-wide instruction into an arbitrary entity note.',
     inputSchema: {
       type: 'object',
       properties: {

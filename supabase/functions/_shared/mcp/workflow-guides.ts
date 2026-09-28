@@ -48,6 +48,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       'supabase/functions/portfolio-mcp-oauth/index.ts',
       'supabase/migrations/20260925173334_register_instruments_without_holdings.sql',
       'supabase/migrations/20260924152000_decouple_asset_detail_from_legacy_notes.sql',
+      'supabase/migrations/20260928150016_readable_entity_note_activity.sql',
       'supabase/migrations/20260926133725_checked_holding_delete.sql',
       'supabase/migrations/20260926135123_clear_allocation_targets.sql',
       'supabase/migrations/20260926171459_activity_tags_on_domain_save.sql',
@@ -162,7 +163,7 @@ const guideSources: Record<WorkflowGuideTopic, WorkflowGuideSource> = {
       { id: 'clarify-thesis', title: 'Clarify the reason', instruction: 'Ask only for the missing reason or review condition. Keep what the user said separate from model analysis.', tools: [] },
       { id: 'confirm-save', title: 'Confirm and save', instruction: 'Show the instrument and note, then call update_entity_note with entity_type=instrument only for explicitly approved text. Provide the current expected_note so a concurrent edit cannot be overwritten.', tools: ['update_entity_note'] },
       { id: 'optional-follow-up', title: 'Save a follow-up only if requested', instruction: 'If a later review should be remembered, create a separate ordinary task. A note save does not create or complete a task.', tools: ['save_general_task'] },
-      { id: 'verify-result', title: 'Verify the result', instruction: 'Read get_portfolio_state again and report the saved instrument note.', tools: ['get_portfolio_state'] },
+      { id: 'verify-result', title: 'Verify the result', instruction: 'Read get_portfolio_state again and report the saved instrument note. If activity_id is present, get_activity can read the same saved title and full body; do not add a duplicate activity.', tools: ['get_portfolio_state'] },
     ],
     boundaries: [
       'The common instrument note is included when the owner enables whole-portfolio sharing. It is not a personal policy, allocation target, trade, or private journal.',

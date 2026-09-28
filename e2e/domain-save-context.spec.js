@@ -84,6 +84,15 @@ test('saves activity context from principle, allocation and asset confirmation',
       const detail = await callRpc(page, 'app_get_activity', { input_activity_id: activityId, input_owner_user_id: null })
       expect(detail.status).toBe(200)
       expect(detail.body.tags).toEqual(expect.arrayContaining([expect.objectContaining({ id: tagId })]))
+      if (activityId === allocationSaved.activity_id) {
+        expect(detail.body.title).toBe('목표 배분 변경')
+        expect(detail.body.body).toContain('UI allocation: 미설정 → 100%')
+      }
+      if (activityId === assetSaved.activity_id) {
+        expect(detail.body.title).toBe('UI context asset · 자산 정보 수정')
+        expect(detail.body.body).toContain('UI context asset note')
+        expect(detail.body.body).not.toContain('종목 정보 변경')
+      }
     }
   } finally {
     await page.request.delete(`${base}/auth/v1/admin/users/${user.id}`, { headers: adminHeaders, timeout: 10_000 })
