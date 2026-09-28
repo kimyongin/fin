@@ -1,6 +1,6 @@
 # [공통 UX] 목록 아이콘 액션·마크다운 읽기·모바일 스크롤 안정화
 
-상태: 구현·단위 검증 완료, 브라우저 E2E·실기기 검증 대기 · 2026-09-28
+상태: 구현·자동 검증 완료, 실기기 터치·200% 확대 확인 대기 · 2026-09-28
 GitHub: https://github.com/kimyongin/fin/issues/167
 
 ## 목적과 근거
@@ -56,7 +56,8 @@ GitHub: https://github.com/kimyongin/fin/issues/167
 
 ## 구현 검증 기록
 
-- 2026-09-28: `npm test` 133개/27개 파일 통과, `npm run build` 통과, `npx playwright test --list` 87개 테스트 인식. `npm audit --omit=dev`는 프로덕션 취약점 0건.
+- 2026-09-28: `npm test` 133개/27개 파일 통과, `npm run build`·`npm run check:encoding` 통과. `npm audit --omit=dev`는 프로덕션 취약점 0건.
 - 목록 마크다운/아이콘의 서버 렌더 테스트와 읽기→편집·스크롤 E2E를 추가하고, 행 전체 클릭을 전제하던 기존 브라우저 테스트 선택자를 변경했다. 컴포넌트 읽기는 raw HTML 실행/위험 링크/외부 이미지 자동 로드를 차단한다.
-- 브라우저 E2E는 격리된 관리형 worktree에서 실행을 시도했으나 Docker Desktop Linux 엔진의 named pipe가 열리지 않아 Supabase 시작 전에 중단됐다. 메인 작업공간의 사용자 `.e2e` 파일은 보존했다. 따라서 360/390/768/1024/1440px 실제 렌더링·200% 확대·터치 드래그·computed style·초점 복원·실제 휴대폰은 미검증이다. Docker 복구 후 `npm run test:e2e`와 실제 휴대폰 수동 확인이 필요하다.
+- Docker 복구 후 격리된 관리형 worktree에서 `npm run test:e2e` 전체를 다시 실행했다: DB 783건/62개 파일, MCP 계약 및 인증된 API 준비 검사, Chromium 브라우저 87건 모두 통과. 360/390/768/1024/1440px 레이아웃·가로 넘침, 아이콘 44px computed style, 마크다운 읽기→편집→저장, 목록 텍스트 클릭·휠 스크롤 시 모달 미열림을 자동 확인했다. 메인 작업공간의 사용자 `.e2e` 파일은 보존했다.
+- 실제 휴대폰 손가락 드래그/`pointercancel`, 브라우저 200% 확대, 화면낭독기는 아직 수동 검증 전이다. Playwright의 화면 폭 테스트를 실기기 검증으로 대신 보고하지 않는다.
 - DB migration·MCP schema·목적별 서버 API는 변경하지 않았다. 운영 배포는 별도 요청 전까지 하지 않는다.
