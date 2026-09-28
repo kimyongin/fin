@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "reviewed_at": "2026-09-28",
-  "review_reason": "Issue 168: note saves now atomically produce a readable activity ID; all workflow guide source digests reviewed against unchanged tool boundaries.",
+  "review_reason": "Issue #170 changes only the linked-friend web list control from an icon to a text View action beside the friend name. Sharing scope, connection consent, OAuth MCP tools, authorization, and last-view tracking remain unchanged.",
   "topics": {
     "assets": {
       "revision": "fnv1a32:c6e3c81b",
@@ -45,7 +45,7 @@
     },
     "sharing": {
       "revision": "fnv1a32:aaaec76a",
-      "contract_digest": "d48789ffc6027f02a985fc6d4d9ce3abf91961063320f2dd1bc81f3df8b335e4"
+      "contract_digest": "a5d4e9f65594c0d1422c6576da2d44fc19158fe6a6737b5349954219bf0763d1"
     }
   }
 }
