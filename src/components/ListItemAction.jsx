@@ -7,3 +7,10 @@ export default function ListItemAction({ className = '', kind, label, onClick, .
     {kind === 'edit' ? <PencilIcon className="h-5 w-5" /> : <DocumentIcon />}
   </button>
 }
+
+export function ListItemActions({ className = '', editLabel, onEdit, onRead, readLabel }) {
+  return <span className={`inline-flex shrink-0 items-center ${className}`}>
+    <ListItemAction className={onEdit ? '[&>svg]:translate-x-1.5' : ''} kind="read" label={readLabel} onClick={onRead} />
+    {onEdit && <ListItemAction className="[&>svg]:-translate-x-1.5" kind="edit" label={editLabel} onClick={onEdit} />}
+  </span>
+}
