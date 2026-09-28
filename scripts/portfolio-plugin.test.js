@@ -46,7 +46,7 @@ describe('Portfolio plugin delivery', () => {
     const manifest = JSON.parse(read(resolve(root, '.codex-plugin/plugin.json')))
     const apps = JSON.parse(read(resolve(root, manifest.apps)))
     expect(manifest.name).toBe('dev-6aba7f7d0ccc8191b9f51834a40e6548')
-    expect(manifest.interface.displayName).toBe('Portfolio')
+    expect(manifest.interface.displayName).toBe('포트폴리오')
     expect(JSON.stringify(apps)).toContain('asdk_app_6aba7f7d0ccc8191b9f51834a40e6548')
     expect(existsSync(resolve(root, '.mcp.json')) || existsSync(resolve(root, 'mcp.json'))).toBe(false)
   })
