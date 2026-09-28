@@ -94,12 +94,17 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
 
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
-    const aligned = await Promise.all([header, rowValues].map((item) => item.evaluate((element) =>
-      [...element.children].map((child) => child.getBoundingClientRect().left),
-    )))
-    expect(aligned[0]).toHaveLength(3)
-    expect(aligned[1]).toHaveLength(3)
-    aligned[0].forEach((left, index) => expect(Math.abs(left - aligned[1][index])).toBeLessThan(1))
+    if (width >= 640) {
+      await expect(header).toBeVisible()
+      const aligned = await Promise.all([header, rowValues].map((item) => item.evaluate((element) =>
+        [...element.children].map((child) => child.getBoundingClientRect().left),
+      )))
+      expect(aligned[0]).toHaveLength(3)
+      expect(aligned[1]).toHaveLength(3)
+      aligned[0].forEach((left, index) => expect(Math.abs(left - aligned[1][index])).toBeLessThan(1))
+    } else {
+      await expect(header).toBeHidden()
+    }
     expect(await rowValues.evaluate((element) => [...element.children].every((cell) => cell.scrollWidth <= cell.clientWidth + 1))).toBe(true)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     const typography = await rowValues.evaluate((element) => {
