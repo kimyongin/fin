@@ -100,7 +100,7 @@ function AdminFeedbackCard({ item, onSaved, supabase }) {
     setResponse(item.response ?? '')
     setGithubIssueUrl(item.github_issue_url ?? '')
     setError('')
-  }, [item])
+  }, [item.id, item.version])
 
   async function save() {
     setSaving(true)

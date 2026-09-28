@@ -144,6 +144,7 @@ test('submits product feedback and lets an allowlisted operator return a result'
   await card.getByLabel('상태').selectOption('resolved')
   await card.getByLabel('사용자에게 보일 답변').fill('다음 배포에서 모바일 탐색을 개선했습니다.')
   await card.getByLabel('GitHub 이슈 주소 (선택)').fill('https://github.com/kimyongin/fin/issues/68')
+  await expect(card.getByLabel('상태')).toHaveValue('resolved')
   await Promise.all([
     page.waitForResponse((response) => response.url().includes('/rpc/app_update_product_feedback_admin') && response.ok()),
     card.getByRole('button', { name: '처리 결과 저장', exact: true }).click(),
