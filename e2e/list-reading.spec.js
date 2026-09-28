@@ -17,6 +17,21 @@ test('separates record reading from editing without opening a modal while scroll
   const edit = item.getByRole('button', { name: `기록 편집: ${title}` })
   await expect(read).toBeVisible()
   await expect(edit).toBeVisible()
+  for (const viewportWidth of [320, 360, 390, 414, 768]) {
+    await page.setViewportSize({ width: viewportWidth, height: 844 })
+    for (const locator of [page.locator('#lifecycle-panel'), page.locator('.page-panel').first(), item, read, edit]) {
+      const bounds = await locator.boundingBox()
+      expect(bounds, `missing bounds at ${viewportWidth}px`).not.toBeNull()
+      expect(bounds.x, `left edge at ${viewportWidth}px`).toBeGreaterThanOrEqual(0)
+      expect(bounds.x + bounds.width, `right edge at ${viewportWidth}px`).toBeLessThanOrEqual(viewportWidth)
+    }
+    const clippedActions = await page.locator('#lifecycle-panel button[title="읽기"], #lifecycle-panel button[title="편집"]').evaluateAll((buttons) => buttons.filter((button) => {
+      const bounds = button.getBoundingClientRect()
+      return bounds.left < 0 || bounds.right > window.innerWidth
+    }).map((button) => button.getAttribute('aria-label')))
+    expect(clippedActions, `clipped list actions at ${viewportWidth}px`).toEqual([])
+  }
+  await page.setViewportSize({ width: 390, height: 844 })
   const width = await read.evaluate((button) => getComputedStyle(button).width)
   expect(Number.parseFloat(width)).toBeGreaterThanOrEqual(44)
   await item.getByText(title).click()

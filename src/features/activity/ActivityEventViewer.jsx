@@ -198,7 +198,7 @@ export default function ActivityEventViewer({ actions, canEdit = false, loading,
     return <p className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3 text-sm text-[var(--muted-ink)]">아직 기록된 작업이 없습니다.</p>
   }
   if (!showDateGroups) {
-    return <ol className="relative border-l border-[var(--line)] sm:border-l-0">{actions.map((action) => <ActivityEvent action={action} canEdit={canEdit} key={action.id} onOpenActivity={onOpenActivity} />)}</ol>
+    return <ol className="relative min-w-0 border-l border-[var(--line)] sm:border-l-0">{actions.map((action) => <ActivityEvent action={action} canEdit={canEdit} key={action.id} onOpenActivity={onOpenActivity} />)}</ol>
   }
   return (
     <div className="grid gap-5">

@@ -243,8 +243,8 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
   }, [initialSelection, mode, onSelectionHandled])
 
   return (
-    <section className="grid gap-5">
-      <div className="grid gap-5" id="lifecycle-panel">
+    <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5" id="lifecycle-panel">
         {error && <p className="rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert">{error}</p>}
         {canViewTimeline && activityTagsError && <div className="flex items-center justify-between gap-3 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100" role="alert"><span>{activityTagsError}</span><button className="min-h-11 rounded-xl border border-red-400/40 px-3" onClick={reloadActivityTags} type="button">다시 시도</button></div>}
         {canViewTimeline ? <ActionTimeline

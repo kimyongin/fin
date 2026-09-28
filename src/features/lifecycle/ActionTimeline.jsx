@@ -193,7 +193,7 @@ export default function ActionTimeline({ availableTags = [], canManageTags = tru
     })
   }
 
-  return <section className="grid gap-5">
+  return <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
     <PagePanel title="할 일과 기록" status={ownerUserId ? '공유 · 읽기 전용' : null} actions={!ownerUserId && <><button className={pagePanelActionClass} disabled={!canManageTags} onClick={onManageTags} type="button">태그 관리</button><button className={pagePanelActionClass} onClick={onAdd} type="button">활동 추가</button></>}>
           <div className="form-field"><label className="form-label" htmlFor="activity-search">검색</label><input aria-label="활동 검색" className="form-control" id="activity-search" onChange={(event) => updateQuery(event.target.value)} placeholder="제목·본문 검색" type="text" value={searchDraft.query} /></div>
           <div className="grid gap-2"><div className="flex items-center justify-between gap-2"><span className="form-label">기록 기간</span><button className="type-action min-h-11 rounded-xl px-2 text-[var(--muted-ink)] hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-[var(--accent)]" onClick={() => applyFilters({ ...searchDraft, from: '', to: '' }, { explicitPeriod: true })} type="button">전체 기간</button></div>
@@ -219,14 +219,14 @@ export default function ActionTimeline({ availableTags = [], canManageTags = tru
             {!isActivity && item.task_kind === 'general' && item.record_state === 'todo' && !ownerUserId && <div className="mt-3 flex justify-end"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={{ ...item, id: item.task_id, status: item.task_status }} /></div>}
           </article>
         })}</section>)}{searchPage.nextCursor && <button className="rounded-xl border border-[var(--line)] px-4 py-3 text-sm font-semibold" disabled={loadingMore} onClick={() => runSearch({ append: true, cursor: searchPage.nextCursor, values: searchApplied })} type="button">{loadingMore ? '불러오는 중' : '더 보기'}</button>}</section> : <>
-      <section>
+      <section className="min-w-0">
         <div className="mb-3"><h2 className="type-section-title">할 일</h2></div>
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
         {page.pending.length === 0 ? <p className="type-secondary text-[var(--muted-ink)]">현재 이어갈 일이 없습니다.</p> : <div className="grid gap-2">{page.pending.map((task) => <article className="flex min-w-0 flex-wrap items-start gap-3 rounded-2xl bg-[var(--surface-2)] p-3" key={task.id}><div className="min-w-0 flex-1"><span className="type-item-title block break-words">{task.title}</span><span className="type-meta mt-1 block break-words text-[var(--muted-ink)]">{statusLabel(task)}</span></div><div className="ml-auto flex shrink-0 gap-2"><ListItemAction kind="read" label={`할 일 읽기: ${task.title}`} onClick={() => onOpenTask(task, 'read')} />{!ownerUserId && task.control_state === 'active' && <ListItemAction kind="edit" label={`할 일 편집: ${task.title}`} onClick={() => onOpenTask(task, 'edit')} />}</div>{task.kind === 'general' && !ownerUserId && <div className="w-full"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={task} /></div>}</article>)}</div>}
         </div>
       </section>
 
-      <section className="grid gap-3">
+      <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
         <div><h2 className="type-section-title">기록</h2><p className="type-secondary mt-1 text-[var(--muted-ink)]">날짜별 수행 내용과 변경 전후 값을 확인합니다.</p></div>
         {page.days.length === 0 ? <p className="rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted-ink)]">조건에 맞는 활동 기록이 없습니다.</p> : page.days.map((day) => {
           const collapsed = collapsedDays.has(day.date)
