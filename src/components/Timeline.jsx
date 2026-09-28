@@ -17,16 +17,16 @@ export function TimelineDayCard({ day, collapsed, onToggle, children }) {
 }
 
 export function TimelineEntry({ occurredAt, title, meta, summary, onOpen, onEdit, ariaLabel, editLabel }) {
-  return <li className="relative min-w-0 border-b border-[var(--line)] py-4 pl-5 last:border-b-0 sm:grid sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-5 sm:pl-0">
-    <span aria-hidden="true" className="absolute left-0 top-6 h-2 w-2 rounded-full bg-[var(--muted-ink)] sm:left-[5.1rem]" />
-    <time className="type-meta type-number block text-[var(--muted-ink)] sm:pt-3" dateTime={occurredAt}>{seoulTime.format(new Date(occurredAt))}</time>
+  return <li className="relative min-w-0 border-b border-[var(--line)] py-4 pl-4 last:border-b-0">
+    <span aria-hidden="true" className="absolute -left-1 top-5 h-2 w-2 rounded-full bg-[var(--muted-ink)]" />
     <div className="flex min-w-0 flex-wrap items-start gap-2">
       <div className="min-w-0 flex-1 break-words">
+        <time className="type-meta type-number mb-1 block text-[var(--muted-ink)]" dateTime={occurredAt}>{seoulTime.format(new Date(occurredAt))}</time>
         <span className="type-item-title block line-clamp-3">{title}</span>
         {meta && <span className="type-meta mt-2 flex min-w-0 flex-wrap gap-1.5 text-[var(--muted-ink)]">{meta}</span>}
         {summary && <span className="type-secondary mt-2 block line-clamp-2 text-[var(--muted-ink)]">{markdownPreview(summary)}</span>}
       </div>
-      <div className="ml-auto flex shrink-0 gap-2"><ListItemAction kind="read" label={ariaLabel} onClick={onOpen} />{onEdit && <ListItemAction kind="edit" label={editLabel} onClick={onEdit} />}</div>
+      <div className="ml-auto flex shrink-0 gap-1"><ListItemAction kind="read" label={ariaLabel} onClick={onOpen} subtle />{onEdit && <ListItemAction kind="edit" label={editLabel} onClick={onEdit} subtle />}</div>
     </div>
   </li>
 }
