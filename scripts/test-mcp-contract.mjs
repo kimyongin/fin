@@ -400,8 +400,24 @@ try {
   const noteArgs = { schema_version: 1, entity_type: 'instrument', entity_id: instrument.id, expected_note: null, note: 'Contract note', idempotency_key: noteKey }
   const noteSaved = await call(session.access_token, 'tools/call', { name: 'update_entity_note', arguments: noteArgs })
   assert(noteSaved.body?.result?.structuredContent?.data?.note === 'Contract note', 'Instrument note update contract failed')
+  const noteActivityId = noteSaved.body?.result?.structuredContent?.data?.activity_id
+  assert(Number.isInteger(noteActivityId) && noteActivityId > 0, 'Instrument note activity ID is missing')
+  const noteActivity = await call(session.access_token, 'tools/call', { name: 'get_activity', arguments: { activity_id: noteActivityId } })
+  const noteActivityData = noteActivity.body?.result?.structuredContent?.data
+  assert(noteActivityData?.title === 'MCP Contract Holding · 메모 수정'
+    && noteActivityData?.body === 'Contract note' && noteActivityData?.instrument_ticker === 'MCP-CONTRACT',
+  'MCP note activity did not expose its saved title, full body, and ticker')
+  const noteWebRead = await fetch(`${baseUrl}/rest/v1/rpc/app_get_activity_market_ticker`, {
+    method: 'POST', headers: { ...commonHeaders, Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ input_activity_id: noteActivityId, input_owner_user_id: null }),
+  })
+  const noteWebData = await noteWebRead.json().catch(() => null)
+  assert(noteWebRead.ok && noteWebData?.title === noteActivityData.title
+    && noteWebData?.body === noteActivityData.body && noteWebData?.instrument_ticker === noteActivityData.instrument_ticker,
+  'Web HTTP and OAuth MCP disagree on the note activity')
   const noteRetry = await call(session.access_token, 'tools/call', { name: 'update_entity_note', arguments: noteArgs })
   assert(noteRetry.body?.result?.structuredContent?.data?.note === 'Contract note', 'Instrument note retry contract failed')
+  assert(noteRetry.body?.result?.structuredContent?.data?.activity_id === noteActivityId, 'Instrument note retry changed activity ID')
   const correctionPreview = await call(session.access_token, 'tools/call', {
     name: 'preview_holding_reconciliation',
     arguments: { holding_id: holding.id, values: { quantity: '2', avg_price: '100' }, reason: 'Contract test correction', effective_on: new Date().toISOString().slice(0, 10) },

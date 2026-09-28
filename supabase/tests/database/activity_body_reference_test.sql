@@ -15,12 +15,16 @@ values(9971,'00000000-0000-0000-0000-000000000971',9971,'REF971',1,100);
 insert into public.activity_events(user_id,source,action_type,target_table,target_id,note,result,status)
 values('00000000-0000-0000-0000-000000000971','user','update_holding','holdings','9971','Note','Result','succeeded');
 select extensions.is((select instrument_id from public.activity_events where target_id='9971' and action_type='update_holding'),9971::bigint,'holding target links its instrument on insert');
-select extensions.is((select body from public.activity_events where target_id='9971' and action_type='update_holding'),'기록','automatic records do not publish private notes or result payloads');
+select extensions.ok((select body like '%당시 세부 변경 값은 남아 있지 않습니다.%'
+  and body not like '%Note%' and body not like '%Result%'
+  from public.activity_events where target_id='9971' and action_type='update_holding'),
+  'automatic records explain missing facts without publishing legacy note or result payloads');
 insert into public.activity_events(user_id,source,action_type,target_table,target_id,title,before_data,after_data,status)
 values('00000000-0000-0000-0000-000000000971','user','log_completed_trade','holdings','9971','Referenced instrument 매수',
   '{"quantity":"1"}'::jsonb,'{"side":"buy","trade_quantity":"2","unit_price":"90","quantity":"3"}'::jsonb,'succeeded');
-select extensions.is((select body from public.activity_events where target_id='9971' and action_type='log_completed_trade'),
-  '매수 2주 · 체결가 90 · 보유 1→3주','trade body includes saved execution-time values');
+select extensions.ok((select body like '%매수 2주 · 체결가 90 · 보유 1→3주%'
+  from public.activity_events where target_id='9971' and action_type='log_completed_trade'),
+  'trade body includes saved execution-time values');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000971',true);
 set local role authenticated;
 select extensions.is(public.app_get_activity((select id from public.activity_events where action_type='log_completed_trade' and target_id='9971'),null)

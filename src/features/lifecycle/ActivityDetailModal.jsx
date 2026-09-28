@@ -11,6 +11,7 @@ import MarkdownContent from '../../components/MarkdownContent'
 import ListItemAction from '../../components/ListItemAction'
 import { activityNoon, businessDate } from '../../lib/businessDate'
 import { deleteActivity, saveActivityDetail } from './data'
+import { activityReadableTitle } from '../activity/activityPresentation'
 
 function localDate(value) {
   if (!value) return ''
@@ -36,7 +37,7 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
   const canEdit = !ownerUserId && editable.size > 0
   const editing = canEdit && viewMode === 'edit'
   const editingDirty = editing && activity && (
-    draft.title !== (activity.title ?? '') || draft.body !== (activity.body ?? '') ||
+    draft.title !== activityReadableTitle(activity) || draft.body !== (activity.body ?? '') ||
     draft.occurredOn !== localDate(activity.occurred_at) ||
     draft.taskId !== (activity.task_id ?? null) || draft.instrumentTicker !== (activity.instrument_ticker ?? null)
   )
@@ -52,7 +53,7 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
     previousActivityVersion.current = activity.version
     previousLoading.current = loading
     if (changedActivity || refreshed || !editingDirty) setDraft({
-      title: activity.title ?? '',
+      title: activityReadableTitle(activity),
       body: activity.body ?? '',
       occurredOn: localDate(activity.occurred_at),
       taskId: activity.task_id ?? null,
@@ -113,14 +114,14 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
     onSave={save}
     saveDisabled={!dirty || tagsLoading || Boolean(tagsError) || (editable.has('title') && !draft.title.trim())}
     saveLabel={saving ? '저장 중' : '저장'}
-  /> : canEdit && !loading && activity ? <div className="flex justify-end"><ListItemAction kind="edit" label={`기록 편집: ${activity.title}`} onClick={onEdit} /></div> : undefined
+  /> : canEdit && !loading && activity ? <div className="flex justify-end"><ListItemAction kind="edit" label={`기록 편집: ${activityReadableTitle(activity)}`} onClick={onEdit} /></div> : undefined
 
   return <ModalShell closeDisabled={saving} dirty={dirty} footer={footer} historyGuardRef={historyGuardRef} onClose={onClose} title="기록 상세">
     <fieldset className="min-w-0" disabled={saving}>
     {loading || !activity ? <p className="py-8 text-sm text-[var(--muted-ink)]">활동을 불러오는 중입니다.</p> : <div className="grid gap-6">
       {error && <p className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
       <section className="grid gap-3">
-        {editing && editable.has('title') ? <label className="form-field"><span className="form-label">기록 제목</span><input autoFocus className="form-control" maxLength={500} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label> : <ReadOnlyField label="기록 제목" value={activity.title || activity.after_data?.title || activity.action_type} />}
+        {editing && editable.has('title') ? <label className="form-field"><span className="form-label">기록 제목</span><input autoFocus className="form-control" maxLength={500} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label> : <ReadOnlyField label="기록 제목" value={activityReadableTitle(activity)} />}
         <p className="text-xs text-[var(--muted-ink)]">{formatDateTime(activity.occurred_at)} · {activity.source === 'agent' ? 'ChatGPT' : '앱'}</p>
         {!editing && (activity.tags?.length ?? 0) > 0 && <div className="flex flex-wrap gap-2">{activity.tags.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)}</div>}
       </section>
