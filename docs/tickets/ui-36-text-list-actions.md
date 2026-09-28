@@ -1,6 +1,6 @@
 # [공통 UX] 목록 보기·편집을 텍스트 링크 형태로 통일
 
-상태: 로컬 구현·자동 검증 완료 · 수동 확대/실기기·운영 배포 대기 · 2026-09-29
+상태: 운영 배포 완료 · 수동 확대/실기기 확인 대기 · 2026-09-29
 GitHub: https://github.com/kimyongin/fin/issues/170
 
 ## 목적과 현재 문제
@@ -82,8 +82,14 @@ DB·HTTP·MCP·저장 데이터의 변경은 없다. 현재 타이포그래피·
 - `npm test -- --run`: 29개 파일·137개 통과. `npm run build`: 통과, 사전 인코딩 검사 673개 파일 통과. `git diff --check`: 통과.
 - 보존할 `.e2e` 파일이 있는 주 작업 폴더 대신 깨끗한 관리형 테스트 체크아웃 `C:/Users/yongin/.codex/worktrees/e2e-deploy-verify/fin`에서 `npm run test:e2e -- e2e/list-reading.spec.js e2e/asset-list-columns.spec.js` 통과(브라우저 2개), 이어 전체 `npm run test:e2e` 통과(DB 809개·브라우저 87개). 실행은 격리 `.e2e`에만 영향을 줬다.
 - 자동 검증: 자산 360/390/768/1024/1440px의 3열·모바일 열/화면 폭, 기록 320/360/390/414/768px의 텍스트 표시·누름 영역·가로 경계·320px 묶음 줄바꿈·768px 제목 옆 배치·읽기→편집·스크롤 중 비진입. 87개 전체 흐름에서 소유자/친구 권한과 다른 화면 진입도 회귀 확인했다.
-- 미검증: 200% 확대, 실제 모바일 터치/키보드/화면낭독기, 제목과 버튼의 광학적 기준선·hover/active 색 대비의 사람 눈 확인, 화면별 캡처. 운영 CI·배포도 아직 실행하지 않았다. 이를 자동 테스트 통과로 대체해 완료 처리하지 않는다.
+- 미검증: 200% 확대, 실제 모바일 터치/키보드/화면낭독기, 제목과 버튼의 광학적 기준선·hover/active 색 대비의 사람 눈 확인, 화면별 캡처. 이를 자동 테스트 통과로 대체해 완료 처리하지 않는다.
+
+## 운영 배포 · 2026-09-29
+
+- UI 구현 commit `794eb39`의 첫 [배포 실행](https://github.com/kimyongin/fin/actions/runs/36461436034)은 단위 테스트 통과 후 공유 화면의 MCP 작업 가이드 검토 기록 불일치로 게시 전에 멈췄다. 친구 목록의 아이콘을 `보기` 텍스트로 옮긴 변경을 검토했고, 공유 범위·동의·권한·MCP 도구·마지막 열람 기록은 그대로임을 manifest에 기록했다.
+- 검토 기록 commit `6d177fa`에서 `npm run check:workflow-guides`와 인코딩 검사가 통과했다. 이 커밋의 [전체 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36461647243)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36462444425)가 성공했다. CI는 단위 137개, 격리 DB 809개, 브라우저 87개, MCP 가이드·Edge 타입·인증된 운영 RPC 호환성·빌드를 통과했다.
+- [공개 앱](https://kimyongin.github.io/fin/)과 CSS `/fin/assets/index-7E5nUTPx.css`, JS `/fin/assets/index-BYS9R-en.js`는 HTTP 200이며 새 텍스트 조작 스타일/묶음 코드가 들어 있다. 운영 DB migration·Edge Function 변경은 없다. 직전 정상 공개 앱 비교 기준은 `47ca601`이다. 실제 본인·친구 로그인과 모바일/확대/화면낭독기 수동 확인은 아직 하지 않았다.
 
 ## 인계
 
-Sol 구현과 로컬 자동 검증을 마쳤다. 남은 수동 시각·접근성 확인과 커밋/푸시/운영 배포는 별도 단계로 기록한다.
+Sol 구현·로컬/CI 자동 검증·운영 배포를 마쳤다. 남은 수동 시각·접근성 확인은 별도 결과로 기록한다.

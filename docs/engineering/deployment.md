@@ -71,6 +71,12 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-29 목록 보기·편집 텍스트 전환 (#170)
+
+- UI 구현 commit `794eb39`의 첫 [배포 실행](https://github.com/kimyongin/fin/actions/runs/36461436034)은 단위 테스트 통과 뒤 공유 화면의 MCP 작업 가이드 검토 기록 불일치로 게시 전에 중단됐다. 연결된 친구 목록의 `보기` 조작 표현만 바뀌었고 공유 권한·동의·MCP 도구·마지막 열람 기록은 유지됨을 검토했다. `6d177fa`에서 검토 기록을 갱신하고 로컬 `npm run check:workflow-guides`를 통과시켰다.
+- 앱 commit `6d177fa`의 [전체 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36461647243)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36462444425)가 성공했다. [공개 앱](https://kimyongin.github.io/fin/) HTTP 200, CSS `/fin/assets/index-7E5nUTPx.css`와 JS `/fin/assets/index-BYS9R-en.js` HTTP 200 및 새 텍스트 조작 코드 포함을 확인했다.
+- CI에서 단위 137건, 격리 DB 809건, 브라우저 87건, MCP 가이드·Edge 타입·인증된 운영 RPC 호환성·빌드가 통과했다. 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`의 DB migration·Edge Function 변경은 없다. 실제 본인/친구 로그인, 실기기 터치, 200% 확대, 화면낭독기, 광학적 정렬의 수동 확인은 남아 있다. 직전 정상 공개 앱 비교 기준은 `47ca601`이다.
+
 ### 2026-09-29 목록 아이콘 정렬·타임라인 압축
 
 - 앱 commit `47ca601` (`8ab8e8f`~`39d0ffe` UI 구현, `cb30b57`·`47ca601` E2E 보정). [동일 앱 commit 전체 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36456475799)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36457323804)가 성공했다. <https://kimyongin.github.io/fin/>와 번들 `/fin/assets/index-BnxjSpvS.js`는 HTTP 200이다.
