@@ -26,7 +26,7 @@ export function TimelineEntry({ occurredAt, title, meta, summary, onOpen, onEdit
         {meta && <span className="type-meta mt-2 flex min-w-0 flex-wrap gap-1.5 text-[var(--muted-ink)]">{meta}</span>}
         {summary && <span className="type-secondary mt-2 block line-clamp-2 text-[var(--muted-ink)]">{markdownPreview(summary)}</span>}
       </div>
-      <div className="ml-auto flex shrink-0 gap-1"><ListItemAction kind="read" label={ariaLabel} onClick={onOpen} subtle />{onEdit && <ListItemAction kind="edit" label={editLabel} onClick={onEdit} subtle />}</div>
+      <div className="ml-auto flex shrink-0 gap-1"><ListItemAction kind="read" label={ariaLabel} onClick={onOpen} />{onEdit && <ListItemAction kind="edit" label={editLabel} onClick={onEdit} />}</div>
     </div>
   </li>
 }
