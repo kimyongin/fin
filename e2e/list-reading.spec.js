@@ -33,7 +33,7 @@ test('separates record reading from editing without opening a modal while scroll
   await detail.getByRole('button', { name: '저장', exact: true }).click()
   await expect(detail.getByRole('heading', { name: '근거' })).toBeVisible()
   await expect(detail.getByRole('textbox', { name: '기록 제목' })).toHaveAttribute('readonly', '')
-  await expect(detail).toContainText(`${title} 수정`)
+  await expect(detail.getByRole('textbox', { name: '기록 제목' })).toHaveValue(`${title} 수정`)
   for (const viewportWidth of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width: viewportWidth, height: 900 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
