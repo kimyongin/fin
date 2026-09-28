@@ -2,6 +2,10 @@
 
 티켓은 목적·계약·검증 근거의 원본이다. OPEN/CLOSED만으로 구현·배포 상태를 추정하지 않는다. 최신 원격 본문과 작업 트리를 함께 확인한다.
 
+## Portfolio 스킬 통합
+
+[agent-01 MCP 작업 가이드 제거와 Portfolio 스킬 통합](./agent-01-workflow-guide-to-skill.md) · 설계 인계안, 구현 전, GitHub 미등록. [전환 계약](../design/contracts/agent/portfolio-skill-migration.md)에 따라 기존 지식 활용 스킬과 11개 가이드를 함께 검토하고, 스킬 작성·검증, 가이드 전달 체계 제거, 단일 플러그인과 OAuth 배포·웹/모바일 검증을 진행한다.
+
 ## 목록 읽기·편집과 모바일 사용성
 
 [#167](https://github.com/kimyongin/fin/issues/167) · [명세와 전체 목록 적용표](./ui-35-list-reading-and-mobile-interaction.md) · [공통 가이드](../design/list-interaction-guidelines.md). 설계 완료·구현 전. 활동의 마크다운 읽기/원문 편집 분리, 모든 목록의 명시적 아이콘 진입, 스크롤 오인식과 가로 넘침 개선을 S1~S3으로 진행한다. 기존 인라인 목표 입력과 선택 목록은 의미에 맞는 예외로 유지한다.

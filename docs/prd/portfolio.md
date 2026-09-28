@@ -51,7 +51,7 @@
 
 새 에이전트 연결은 OAuth다. 개인 토큰 발급 UI/API를 새 사용 흐름으로 제공하지 않는다. 과거 토큰 endpoint의 호환 유지 여부는 [아키텍처](../engineering/architecture.md)와 배포 기록에서 관리한다.
 
-MCP는 실제 도구 schema/description과 workflow guide를 함께 유지한다. 사용자의 조회 요청을 저장 요청으로 해석하지 않고, 금융 변경·공유 같은 중요한 쓰기는 목적별 승인·권한 계약을 지킨다.
+2026-09-29 사용자 승인 전환 방향: 작업 선택·질문·조회·기록 제안 절차는 Portfolio 플러그인 스킬로 제공하고 `get_workflow_guide`와 중복 안내 prompt/resource를 제거한다. 실제 도구 schema/description과 서버의 권한·원자성·중복 방지 계약은 유지한다. 사용자의 조회 요청은 저장 권한이 아니며 에이전트가 제안한 기록 초안은 동의 후 저장한다. 상세 구성·종료·배포 조건은 [스킬 전환 계약](../design/contracts/agent/portfolio-skill-migration.md), 구현 상태는 [agent-01](../tickets/agent-01-workflow-guide-to-skill.md)을 따른다. 현재는 설계 인계안이며 기존 가이드 구현이 아직 제공 중이다.
 
 ## 설계와 완료 기준
 
