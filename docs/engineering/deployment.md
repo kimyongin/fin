@@ -71,6 +71,13 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-29 자동 기록의 읽을 수 있는 제목·본문 (#168)
+
+- 앱 commit `f92424c` (`49e786c` 구현, `f92424c` 내부 트리거 권한 제한). [동일 commit 전체 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36447052141)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36447909235)가 성공했다. <https://kimyongin.github.io/fin/> 및 새 번들 `/fin/assets/index-watYig8I.js` HTTP 200을 확인했다.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`: 적용 전 `public` 스키마·데이터를 `%TEMP%/fin-prod-backup-20260929-168/`에 별도 덤프했다. `20260928150016`, `20260928150442`, `20260928151234`, `20260928152717`, `20260928155300`을 순서대로 적용했고 최종 dry-run에서 미적용 migration이 없다. DB reset·seed·과거 migration 수정 없음. 제목이 없고 본문이 `기록`이었던 제한된 자동 기록 23건을 보정해 같은 조건의 잔여 0건을 확인했다. 해당 기록의 당시 정보가 없던 필드는 추측해 채우지 않았다.
+- Edge Function `portfolio-mcp-oauth` v20 (`verify_jwt=false`)만 재배포했다. 기존 `portfolio-mcp`와 가격·검색 함수는 변경하지 않았다. 내부 자동 활동 트리거의 `anon`/`authenticated` 직접 실행 권한은 제거하고 DB에서 두 역할 모두 `false`를 확인했다. 재색인 대기열 0건·실패 보관 0건·벡터 청크 106개를 확인했다.
+- CI의 단위·workflow guide·Edge 타입·인증된 운영 RPC/OAuth 호환성·격리 DB 809건·Chromium 87건·빌드가 통과했다. 실제 본인/친구 Google 로그인, ChatGPT 웹·모바일 도구 호출, 200% 확대·실기기·화면낭독기는 아직 수동 확인 전이다. 문제가 생기면 직전 공개 앱 `cfc580a`를 화면 비교 기준으로 삼되, 적용된 DB migration을 삭제하지 않고 서버·MCP 호환성을 유지하는 전진 수정을 우선한다.
+
 ### 2026-09-28 목록 읽기·편집 UX (#167)
 
 - 앱 commit `dab5cd4` (#167 구현·검증 및 MCP 가이드 검토 기록). [동일 commit 검증·gh-pages 배포](https://github.com/kimyongin/fin/actions/runs/36426676746)와 [Pages 게시](https://github.com/kimyongin/fin/actions/runs/36427543955)가 성공했다. 공개 <https://kimyongin.github.io/fin/>와 새 번들 `/fin/assets/index-Bl1NTkXH.js`는 HTTP 200이며, 번들에서 할 일·기록 읽기 및 편집 라벨을 확인했다.
