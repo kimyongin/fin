@@ -71,6 +71,12 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-29 목록 아이콘 정렬·타임라인 압축
+
+- 앱 commit `47ca601` (`8ab8e8f`~`39d0ffe` UI 구현, `cb30b57`·`47ca601` E2E 보정). [동일 앱 commit 전체 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36456475799)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36457323804)가 성공했다. <https://kimyongin.github.io/fin/>와 번들 `/fin/assets/index-BnxjSpvS.js`는 HTTP 200이다.
+- 첫 두 검증 실행은 자산 목록 아이콘 이동 후 E2E가 오래된 DOM 위치와 모바일에서 숨긴 헤더 좌표를 가정해 게시 전에 실패했다. 깨끗한 별도 로컬 체크아웃에서 관련 브라우저 1건과 전체 브라우저 87건, DB 809건, MCP 계약·인증된 준비 검사를 통과시킨 뒤 최종 CI도 통과했다. 원래 작업 폴더의 `.e2e` SQL 복사본 101개는 원본과 동일함을 확인해 제거했고 원본 migration은 유지했다.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`의 DB migration·Edge Function 변경은 없다. CI의 인증된 운영 RPC 호환성 검사는 통과했지만, 실제 본인·친구 Google 로그인과 실기기 터치·200% 확대·화면낭독기 확인은 하지 않았다. 이전 정상 공개 앱 비교 기준은 `f92424c`다.
+
 ### 2026-09-29 자동 기록의 읽을 수 있는 제목·본문 (#168)
 
 - 앱 commit `f92424c` (`49e786c` 구현, `f92424c` 내부 트리거 권한 제한). [동일 commit 전체 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36447052141)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36447909235)가 성공했다. <https://kimyongin.github.io/fin/> 및 새 번들 `/fin/assets/index-watYig8I.js` HTTP 200을 확인했다.
