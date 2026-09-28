@@ -1,6 +1,6 @@
 # 목록의 읽기·편집·모바일 조작
 
-2026-09-28 · 승인된 후속 설계, 구현 전. 적용/검증은 [구현 티켓](../tickets/ui-35-list-reading-and-mobile-interaction.md)에서 관리한다.
+2026-09-28 · 승인된 설계와 구현 기준. 화면별 적용 및 남은 검증은 [구현 티켓](../tickets/ui-35-list-reading-and-mobile-interaction.md)에서 관리한다.
 
 ## 공통 규칙
 

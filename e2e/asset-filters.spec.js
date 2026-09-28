@@ -24,7 +24,7 @@ test('filters asset rows and summary together, then removes a newly tagged holdi
   await page.reload()
   const filters = page.getByRole('group', { name: '대표 태그 필터' })
   const list = page.getByRole('region', { name: '자산 종목' })
-  const row = list.getByRole('button', { name: new RegExp(ticker) })
+  const row = list.getByRole('button', { name: `필터 테스트 ${ticker} 자산 편집` })
   await filters.getByRole('button', { name: '태그 없음' }).click()
   await page.getByRole('searchbox', { name: '종목 검색' }).fill(ticker)
   await expect(row).toBeVisible()
