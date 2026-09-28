@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-27",
-  "review_reason": "Pinecone Korean activity search: model name and uncertain semantic results; activity filters, permissions, source reading, and tool behavior reviewed without other guide changes",
+  "reviewed_at": "2026-09-28",
+  "review_reason": "#167 list item read/edit controls only: feedback editing and connected-friend reading retain existing MCP behavior and consent boundaries",
   "topics": {
     "assets": {
       "revision": "fnv1a32:3a22a3ee",
@@ -41,11 +41,11 @@
     },
     "product_feedback": {
       "revision": "fnv1a32:76d431a2",
-      "contract_digest": "dd484aebd2c20ae43b2e5ee516f1cef5ac2e814015746269ab6734c20ff371c3"
+      "contract_digest": "59360174b91dba939b8173372d992332d80c814c62446af855097842d9282349"
     },
     "sharing": {
       "revision": "fnv1a32:aaaec76a",
-      "contract_digest": "d68db9dcb6b195b90e24a616ece1bfacaf1c49ffa446f1062dfc348d759dd26d"
+      "contract_digest": "576713e27506df79349b71b3a48e28e1e5a71ad4cd72b604b524dbfd3b026211"
     }
   }
 }
