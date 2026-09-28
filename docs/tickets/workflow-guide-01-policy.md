@@ -25,3 +25,5 @@
 ## 인계
 
 로컬 OAuth 0.5.0에 구현했다. 운영 배포와 실제 모델 검증은 별도이며, 미실행 항목을 완료 처리하지 않는다.
+
+2026-09-29 안내 전환: 위 가이드 도구 관련 구현·검증은 당시 기록이다. 후속 작업에서 `get_workflow_guide`나 전용 검사를 복원하지 않는다. 현재 작업 지침은 [agent-01](./agent-01-workflow-guide-to-skill.md)의 Portfolio 스킬·참고 문서와 도구 description을 함께 갱신한다.

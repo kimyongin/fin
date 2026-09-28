@@ -356,7 +356,7 @@ const initialized = await mcp('initialize', {
 if (initialized.protocolVersion !== '2025-06-18') throw new Error('MCP protocol initialization failed')
 const discovered = await mcp('tools/list')
 const names = new Set(discovered.tools?.map((tool) => tool.name))
-for (const name of ['get_workflow_guide', 'get_portfolio_state', 'list_principles', 'search_activities', 'record_manual_activity']) {
+for (const name of ['get_portfolio_state', 'list_principles', 'search_activities', 'record_manual_activity']) {
   if (!names.has(name)) throw new Error(`MCP tool not discoverable: ${name}`)
 }
 async function tool(name, args) {
@@ -385,8 +385,6 @@ const webPrinciples = await mcpUserRpc('app_list_principles', {
 if (!webPrinciples.items?.some((item) => item.body === mcpPrincipleBody)) {
   throw new Error('Web RPC did not read back the MCP-saved principle')
 }
-const mcpGuide = await tool('get_workflow_guide', { topic: 'daily_review' })
-if (!mcpGuide?.steps?.length) throw new Error('MCP daily review workflow guide is unavailable')
 const searchArgs = {
   query: '데모', from: null, to: null, record_state: 'all', has_conclusion: null,
   instrument_id: null, account_id: null, tag_ids: [], tag_match: 'all',

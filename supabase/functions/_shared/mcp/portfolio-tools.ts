@@ -1,5 +1,3 @@
-import { workflowGuideTopics } from './workflow-guides.ts'
-
 export type PortfolioToolDefinition = {
   name: string
   title: string
@@ -84,36 +82,6 @@ const entityNoteOutputSchema = successEnvelope({
   },
   // Old idempotency receipts are replayed verbatim and predate activity_id.
   required: ['entity_type', 'entity_id', 'note'],
-  additionalProperties: false,
-})
-const workflowGuideOutputSchema = successEnvelope({
-  type: 'object',
-  properties: {
-    topic: { type: 'string', enum: workflowGuideTopics },
-    guide_id: { type: 'string' },
-    revision: { type: 'string' },
-    purpose: { type: 'string' },
-    scenario_ids: { type: 'array', items: { type: 'string' } },
-    related_tools: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-    steps: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          title: { type: 'string' },
-          instruction: { type: 'string' },
-          tools: { type: 'array', items: { type: 'string' }, uniqueItems: true },
-        },
-        required: ['id', 'title', 'instruction', 'tools'],
-        additionalProperties: false,
-      },
-    },
-    boundaries: { type: 'array', items: { type: 'string' } },
-    recovery: { type: 'array', items: { type: 'string' } },
-    unavailable_steps: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['topic', 'guide_id', 'revision', 'purpose', 'scenario_ids', 'related_tools', 'steps', 'boundaries', 'recovery', 'unavailable_steps'],
   additionalProperties: false,
 })
 const idSchema = { type: 'string', format: 'uuid' }
@@ -242,19 +210,6 @@ const reconciliationOutputSchema = successEnvelope({
 })
 
 export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
-  {
-    name: 'get_workflow_guide',
-    title: 'Portfolio workflow guide',
-    description: 'Read the current step order, questions, safety boundaries, and recovery rules before a multi-step Portfolio task. Choose the matching topic for assets, principles, holding reason, daily review, decision/follow-up, completed trade, balance correction, activities, product feedback, or sharing/friends. This guide does not read user data, perform the workflow, or replace explicit save intent.',
-    inputSchema: {
-      type: 'object',
-      properties: { topic: { type: 'string', enum: workflowGuideTopics } },
-      required: ['topic'],
-      additionalProperties: false,
-    },
-    outputSchema: workflowGuideOutputSchema,
-    annotations: readOnlyAnnotations,
-  },
   {
     name: 'get_profile',
     title: 'Connected portfolio profile',
@@ -700,7 +655,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'record_manual_activity',
     title: 'Record a completed activity',
-    description: 'Record one user-reported activity that already happened, only on explicit save intent. Put checked facts, interpretation, uncertainty and factual source URLs in one readable Markdown body; use ordinary existing tag_ids for search instead of a built-in category. An opinion is not a user-adopted decision unless the user says so. Optional task_id and market instrument_ticker are navigational references, not proof of task completion or financial execution. A ticker can be recorded without registering or holding the market instrument and remains after asset deletion. Cash and valuation assets use tags or body instead. Financial commands still target a specific holding. A retry must keep the same key, body, references and tags.',
+    description: 'Record one user-reported activity or completed review that already happened, only on explicit save intent, including consent to a shown draft. Put checked facts, interpretation, uncertainty and factual source URLs in one readable Markdown body; use ordinary existing tag_ids for search instead of a built-in category. An opinion is not a user-adopted decision unless the user says so. Optional task_id and market instrument_ticker are navigational references, not proof of task completion or financial execution. A ticker can be recorded without registering or holding the market instrument and remains after asset deletion. Cash and valuation assets use tags or body instead. Financial commands still target a specific holding. A retry must keep the same key, body, references and tags. Do not duplicate an activity already created by a successful domain mutation or task completion; read its returned activity_id when present. Verify the saved record with get_activity; a later read failure does not undo save success.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -904,7 +859,6 @@ export const dailyReviewToolNames = [
   'get_daily_context',
 ] as const
 
-export const workflowGuideToolNames = ['get_workflow_guide'] as const
 
 export const productFeedbackToolNames = ['submit_product_feedback', 'list_my_product_feedback', 'get_my_product_feedback', 'update_my_product_feedback', 'delete_my_product_feedback', 'list_product_feedback_admin', 'update_product_feedback_admin'] as const
 

@@ -15,7 +15,7 @@
 | src/features/auth, agent, settings | 로그인/OAuth 동의, 공유·친구·프로필 상태(useSharingProfile), 설정과 연결 안내. 새 토큰 발급은 제거했으며 agent 폴더는 MCP 서버 구현 위치가 아님 |
 | src/components | 여러 기능이 재사용하는 표현 컴포넌트 |
 | src/lib, constants | Supabase 연결/설정, 포맷, 계산 등 공통 유틸리티와 상수 |
-| supabase/functions/portfolio-mcp-oauth, _shared/mcp | OAuth MCP 진입점과 실제 도구 schema/description/guide 정의. 새 기능의 기준 endpoint |
+| supabase/functions/portfolio-mcp-oauth, _shared/mcp | OAuth MCP 진입점과 실제 도구 schema/description 정의. 새 기능의 기준 endpoint |
 | supabase/functions/portfolio-mcp | 기존 토큰 MCP. 새 토큰 발급은 제거했고, 과거 운영 토큰의 사용 여부를 확인할 때까지 호환 유지 |
 | supabase/functions/sync-prices, lookup-ticker | 외부 시세·종목 조회 |
 | supabase/migrations | 적용 DB 이력. 과거 파일을 바꾸는 대신 incremental migration |
@@ -33,6 +33,6 @@
 
 사용자 시나리오 원본은 `docs/design/contracts/scenario-api-model-matrix.md`의 S ID를 참고하되, 저장 축소와 충돌하는 과거 API 계약은 ADR-0008 및 `docs/design/storage-contract-20260923.md`가 대체한다. 에이전트 사용 흐름은 agent/workflows의 W ID를 참조한다.
 
-실제 OAuth MCP의 description/schema/annotations 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 인증 진입점은 `portfolio-mcp-oauth/index.ts`이며 기능 dispatch/handler의 책임은 [백엔드 모듈](./backend-modules.md)을 따른다. `docs/design/contracts/agent/tool-descriptions.md`는 제품 의도 검토 카탈로그이며 런타임 계약이 아니다. 작업 가이드는 `_shared/mcp/workflow-guides.ts`와 review manifest로 함께 검사한다. 함수 주석에 시나리오 전문을 복사하지 않고 S/W ID와 필요한 설계 링크를 남긴다.
+실제 OAuth MCP의 description/schema/annotations 원본은 `supabase/functions/_shared/mcp/portfolio-tools.ts`, 인증 진입점은 `portfolio-mcp-oauth/index.ts`이며 기능 dispatch/handler의 책임은 [백엔드 모듈](./backend-modules.md)을 따른다. `docs/design/contracts/agent/tool-descriptions.md`는 제품 의도 검토 카탈로그이며 런타임 계약이 아니다. 제품 작업 지침은 `plugins/portfolio/skills/portfolio/SKILL.md`와 필요한 참고 문서에 둔다. 가이드 전용 MCP 도구/prompt/resource와 source digest 검사는 제거했다. 스킬의 링크·실제 도구 참조·앱 연결은 unit 검사, 실제 선택과 행동은 웹·모바일 평가로 확인한다. 함수 주석에 시나리오 전문을 복사하지 않고 S/W ID와 필요한 설계 링크를 남긴다.
 
 개발 에이전트 지침(AGENTS/engineering)은 코드를 고치는 규칙, 제품 에이전트 지침(design/contracts/agent)은 Portfolio 도구를 사용하는 규칙이다. 서로 런타임 지침으로 혼합하지 않는다.

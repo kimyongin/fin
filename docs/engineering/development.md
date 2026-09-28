@@ -49,7 +49,7 @@
 1. AGENTS → START-HERE → PRD/ADR → 관련 티켓/계약을 읽는다. git status와 원격 티켓 최신 본문을 확인하고 무관한 사용자 변경을 보존한다.
 2. 시나리오와 불변 조건을 선택한다. 미정 계약은 해당 티켓에서 먼저 정리하며 정책을 조용히 변경하지 않는다.
 3. 정상/실패/권한/경쟁 사례를 정의한 뒤 작은 기능 단위로 구현한다. 안전한 로컬·테스트 환경에서 검증한다.
-4. 모델/API가 바뀌면 시나리오·설명·스키마·서버 테스트를 함께 갱신한다. MCP 관련 의미가 바뀌면 영향받는 작업 가이드도 수정하거나 영향 없음 사유를 review manifest에 기록하고 `npm run check:workflow-guides`를 통과시킨다. DB 구조 변경은 OVERVIEW도 갱신한다.
+4. 모델/API가 바뀌면 시나리오·설명·스키마·서버 테스트를 함께 갱신한다. MCP 관련 의미가 바뀌면 영향받는 Portfolio 스킬 참고 문서와 도구 설명을 함께 검토하고 기존 unit·MCP 계약 검사를 수행한다. 스킬 배포와 서버 배포 상태는 별도로 기록한다. DB 구조 변경은 OVERVIEW도 갱신한다.
 5. 실행 환경/명령/결과·미검증 항목·다음 작업을 남기고 로컬/GitHub 티켓을 맞춘다. 커밋·푸시·배포는 별도 단계이며 무관한 변경을 포함하지 않는다.
 
 ## 환경 구분
@@ -79,14 +79,14 @@ E2E는 `e2e/app.spec.js`, `activity.spec.js`, `assets-access.spec.js`, `navigati
 | DB/RPC | 대상 한정 DDL/RLS 조사, migration 재현, 소유권·경쟁·원자성·이관/복구 테스트 |
 | MCP/Edge Function | 독립 타입 검사, initialize/tools/list/call 오류·인증·schema/handler 일치, 실제 웹/모바일 확인 |
 
-MCP 작업 가이드 변경은 `npm run check:workflow-guides`로 참조 도구·source·검토 digest를 확인한다. 실제 의미를 자동 판정하는 검사는 아니므로 계약 변경을 검토한 뒤 `WORKFLOW_GUIDE_REVIEW_REASON`을 지정해 `npm run update:workflow-guide-review`로 검토 기록을 갱신한다.
+Portfolio 스킬은 `plugins/portfolio/skills/portfolio`에서 관리한다. `npm test`의 플러그인 검사가 참조 파일·도구 이름·앱 연결을 확인하고 스킬 형식 검사를 별도로 수행한다. source digest/review manifest 체계는 퇴역했다. 이 검사는 스킬 자동 선택이나 실제 판단을 보장하지 않으므로 핵심 흐름의 웹·모바일 결과를 티켓에 기록한다.
 
 Edge Function 타입 검사는 Deno 2 환경의 `npm run check:edge`로 실행한다. MCP 정의·오류 fixture는 `npm test`에 포함된다. `npm run test:e2e`는 격리 환경에 실제 Edge Function을 복사해 initialize, tools/list, 인증된 tools/call, 인증 거부, 입력 오류 계약도 호출한다. Vite build 통과를 Edge Function 검증으로 대신하지 않는다. 스키마 fixture 검사만으로 DB 보안을 검증했다고 하지 않는다.
 
 ## 배포 현황과 안전 경계
 
-- `.github/workflows/deploy.yml`: master의 관련 경로 변경 또는 수동 실행 시 unit → guide → Edge type → 독립 DB/E2E → 인증된 원격 RPC 호환성을 같은 commit에서 확인하고 성공한 경우에만 dist를 빌드·gh-pages로 배포한다. build의 prebuild가 인코딩을 확인한다.
-- `.github/workflows/e2e.yml`: PR 또는 수동 실행에서 unit → guide → Edge type → build/encoding → 독립 DB/MCP/브라우저 E2E를 실행한다. 운영 secret/readiness는 PR에 요구하지 않는다. master에서는 deploy workflow의 필수 gate가 같은 테스트를 수행해 중복 실행하지 않는다.
+- `.github/workflows/deploy.yml`: master의 관련 경로 변경 또는 수동 실행 시 unit → Edge type → 독립 DB/E2E → 인증된 원격 RPC 호환성을 같은 commit에서 확인하고 성공한 경우에만 dist를 빌드·gh-pages로 배포한다. build의 prebuild가 인코딩을 확인한다.
+- `.github/workflows/e2e.yml`: PR 또는 수동 실행에서 unit → Edge type → build/encoding → 독립 DB/MCP/브라우저 E2E를 실행한다. 운영 secret/readiness는 PR에 요구하지 않는다. master에서는 deploy workflow의 필수 gate가 같은 테스트를 수행해 중복 실행하지 않는다.
 - 브랜치 보호/필수 체크 설정은 별도 확인해야 한다. 이 안내가 배포 gate를 자동 추가하지 않는다.
 - DB migration/Edge Function은 위 Pages 배포로 배포되지 않는다. 대상 프로젝트·순서·호환성·복구안을 확인하고 별도 승인된 작업으로 수행한다. 범용 push/reset 명령을 개발 기본 절차에 넣지 않는다.
 - 신규 서버 변경은 기존 클라이언트 호환과 데이터 보존을 먼저 확보하고, 새 화면/MCP 공개 후 대상 환경 검증을 기록한다. DB 실패를 과거 migration 삭제로 복구하지 않는다.

@@ -1,55 +1,35 @@
 # Portfolio 에이전트 계약 관리
 
-2026-09-29 후속 설계: [스킬 전환 계약](./portfolio-skill-migration.md)과 [agent-01](../../../tickets/agent-01-workflow-guide-to-skill.md)은 가이드 도구 전체 제거·한 Portfolio 스킬 전환의 인계안이다. 구현 전이므로 아래 런타임 가이드 원본과 검사 체계는 아직 유효하다. 기존 지식 활용 스킬은 통합 개인용 플러그인 1.0.1에 설치됐으며 [검증 인계](./portfolio-knowledge-skill-plan.md)에 실제 확인 범위가 있다. 설치를 전체 행동 검증 완료로 보지 않는다.
+2026-09-29 · 로컬 스킬 통합 구현 기준. 실제 플러그인·OAuth 배포와 웹·모바일 검증은 [agent-01](../../../tickets/agent-01-workflow-guide-to-skill.md)에서 확인한다.
 
-2026-09-24 · 아래 운영 배포 이력과 현재 로컬 계약을 구분한다. 로컬에서는 #122의 활동 종류 제거·본문/태그/대상 참조 계약으로 OAuth MCP 도구와 가이드를 갱신했다. 운영에는 아직 적용하지 않았고 현재 계약의 ChatGPT 웹·모바일 행동 평가는 별도다.
+## 원본과 책임
 
-## 원본과 전달 경로
-
-2026-09-21~22 후속 구현: 투자 기준 인터뷰를 실제 소비 사례로 [작업 가이드 제공·최신화 설계](./workflow-guide-design.md)와 #63~#65를 구현했다. 이어 #66~#68의 제품 피드백을 추가해 런타임 단일 원본, 일곱 topic, 도구 의존성·source digest 검사와 평가 사례를 연결하고 운영에 배포했다. 실제 모델 평가는 남아 있다.
-
-구조 단순화는 [ADR-0004](../../../adr/0004-domain-storage-and-minimal-mutation-contract.md)를 따른다. 문맥은 context_id로 연결하며 가이드 전용 도구는 첫 버전 선행조건이 아니다. 공통 instructions/도구 설명으로 부족한 실제 사례가 있을 때 도입한다.
-
-| 정보 | 지금의 원본 | 구현 시 전달/검증 |
+| 정보 | 원본 | 검증 |
 | --- | --- | --- |
-| 제품 정책 | PRD / Accepted ADR | 아래 설명이 제품 경계를 바꾸지 않는지 검토 |
-| 공통 행동 규칙 | [behavior.md](./behavior.md) | 짧은 server instructions. 필수 안전 규칙은 관련 도구 설명에도 포함 |
-| 사용자 의도와 호출 흐름 | [workflow-guides.ts](../../../../supabase/functions/_shared/mcp/workflow-guides.ts), [workflows.md](./workflows.md) | 런타임은 topic별 구조화 가이드, 문서는 시나리오 의도·매핑을 제공 |
-| 도구 사용 설명 초안 | [tool-descriptions.md](./tool-descriptions.md) | 실제 등록 description의 출발점 |
-| 데이터·입출력·오류 계약 | [일일 점검](../daily-review-api.md), [생애주기](../lifecycle-model-api.md) | 검증된 JSON Schema와 서버 구현, DB 테스트 |
-| 시나리오 인수 조건 | [S01~S24](../scenario-api-model-matrix.md), 일일 점검 R01~R16 | 도구 선택 평가 + 서버 계약 테스트 |
+| 제품 정책 | PRD / Accepted ADR | 권한·저장·공유 경계 유지 |
+| 제품 작업 지침 | [Portfolio 스킬](../../../../plugins/portfolio/skills/portfolio/SKILL.md)과 참고 문서 6개 | 형식·참조 파일·도구 이름·패키지 검사, 실제 웹·모바일 행동 |
+| 짧은 공통 경계 | portfolio-mcp-oauth의 server instructions | 조회와 쓰기 동의, 성공·실패 보고 |
+| 도구 공개 계약 | portfolio-tools.ts의 description/schema/annotations | unit·Edge 타입·도구 발견·입출력·오류 |
+| 데이터·쓰기·권한 | 목적별 RPC와 서버 구현 | 인증된 MCP/HTTP, DB 원자성·권한·재시도 |
+| 설계·평가 기록 | [전환 설계](./portfolio-skill-migration.md), [기존 지식 활용 시험](./portfolio-knowledge-skill-plan.md) | 코드/배포/실클라이언트 결과 구분 |
 
-런타임 가이드 원본은 `workflow-guides.ts`, 공통 description/inputSchema/outputSchema/annotations는 `portfolio-tools.ts`에 둔다. 나머지 Markdown은 사람과 구현 에이전트를 위한 의도·평가 기록이다. OAuth handler registry는 시작 시 정의 이름과 일치하는지 검사한다.
+스킬 본문은 공통 규칙과 요청별 참고 문서 선택을 담고, 실제 필요한 파일만 읽는다. get_workflow_guide와 중복 일일 prompt/resource는 로컬에서 제거했다. 도구 설명만으로 해당 쓰기 범위·부수 효과·실패 후 행동을 알 수 있어야 하며 안전한 서버 검증은 스킬 선택에 의존하지 않는다.
 
-기존 `portfolio-mcp`는 과거에 발급한 agent token과 legacy `mcp_*` RPC를 사용하는 호환 endpoint이고, `portfolio-mcp-oauth`는 사용자 OAuth와 최신 `app_*` RPC를 사용하는 ChatGPT용 기준 endpoint다. 새 토큰 발급 UI와 `agent_create_token` RPC는 2026-09-26 로컬 변경으로 제거했다. 기존 토큰과 endpoint는 사용 여부를 확인한 뒤 별도로 종료한다. 두 endpoint는 인증·도구 의미가 달라 하나의 tools 배열을 억지로 공유하지 않는다. 신규 기능은 OAuth 쪽에만 추가하고 legacy endpoint는 종료 전까지 안정화 변경만 한다.
+OAuth handler registry는 시작 시 실제 도구 정의와 handler의 일치를 검사한다. 작업 가이드 전용 source digest·review manifest·검사 명령은 제거했다. 같은 지침의 정본을 서버 코드와 스킬 양쪽에 만들지 않는다.
 
-MCP prompt/resource는 표준 호환성 실험을 위해 유지하되 daily-review resource는 같은 런타임 가이드 원본에서 렌더링한다. 노출되지 않는 클라이언트에서도 instructions, self-contained 도구 설명과 `get_workflow_guide`만으로 안전 경계가 유지돼야 한다.
+기존 portfolio-mcp는 과거 agent token용 호환 endpoint이고 portfolio-mcp-oauth는 최신 ChatGPT용 기준 endpoint다. legacy endpoint의 종료는 별도 범위다. 새 기능은 OAuth에 구현하고 기존 인증·도구 계약을 무리하게 하나로 합치지 않는다.
 
-가이드와 도구 변경은 `npm run check:workflow-guides` 및 review manifest로 연결한다. 사람이 수정하는 런타임 문장을 Markdown과 코드에 영구히 두 개 만들지 않는다. 전체 PRD에서 설명을 자동 추출해 배포하지도 않는다.
+## 변경·검증
 
-## 제공 상태
+1. 실제 사용자 시나리오와 영향받는 도구·스킬 참고 문서를 선택한다.
+2. 도구 계약을 바꾸면 schema/description/handler/테스트와 관련 스킬 내용을 대조한다. 스킬에서 입력 필드 전체를 중복 관리하지 않는다.
+3. `npm test`가 registry·도구 schema 및 플러그인의 참조 파일/도구 이름/앱 연결을 확인한다. 스킬 frontmatter 검사와 ZIP 내용·해시도 확인한다.
+4. 실제 인증된 MCP initialize/tools/list/call로 조회·쓰기·권한·실패·재시도를 확인한다. 스킬 형식 검사를 의미·행동 검증으로 대체하지 않는다.
+5. [플러그인 배포 절차](../../../engineering/chatgpt-plugin-deployment.md)에 따라 같은 앱 플러그인을 갱신한다. 플러그인 업로드와 서버 배포는 별도 기록한다.
+6. 새 웹·모바일 대화에서 자동 선택·첨부 문서 읽기·실제 앱 조회·자발적 초안·동의 후 저장을 확인한다. 클라이언트가 제공하지 않는 선택 증거는 미확인으로 남긴다.
 
-- `observed-local`: 현 작업 트리의 OAuth tools 배열에서 확인. 운영 제공/호환성 보증이 아님.
-- `planned`: 계약만 있음. tools/list나 작업 가이드의 실행 가능한 기능으로 광고 금지.
-- `released`: 구현·서버 테스트·배포·대상 클라이언트 검증 근거가 기록된 상태. 2026-09-21의 `list_daily_briefings` 웹 호출은 퇴역한 도구의 역사적 근거이며 현재 활동 통합 계약의 검증으로 재사용하지 않는다.
-- 앱 전용/내부 API는 별도 분류한다. 서비스 API 하나당 MCP 도구 하나를 만들지 않는다.
+앱만 연결한 클라이언트도 목적별 도구·서버 권한 보호를 사용한다. 스킬이 없는 경로의 자발적 검색·기록 제안을 보장한다고 말하지 않는다. 미지원 기능을 정상 도구로 광고하지 않는다.
 
-## 변경·버전 관리
+## 과거 기록
 
-1. 기능 티켓에서 관련 S/R 시나리오 ID, workflow ID, 도구명을 지정한다.
-2. 동작을 바꾸면 데이터/API 계약, 설명, 시나리오의 변경·불변 조건, 테스트를 함께 수정한다. 정책 변경은 ADR도 갱신한다.
-3. 설명 문구만 고치면 계약 revision을 기록한다. 필드/enum/기본값/부수 효과 변경은 API schema version과 구 클라이언트 호환성을 검토한다. workflow revision과 API version은 별개다.
-4. 계획 이름을 바꾸면 모든 가이드 참조를 수정한다. 이미 배포된 이름을 바꾸면 폐기 안내/호환 기간을 정하고 조용히 제거하지 않는다.
-5. tools/list 설명과 스키마의 중복 이름·핵심 annotations/enum은 단위 테스트하고 OAuth 처리기 이름은 시작 시 공통 정의와 대조한다. 독립 Edge 타입 검사와 fixture 확대는 남았다.
-6. 배포 후 새 세션/메타데이터 갱신을 거친 웹·모바일에서 도구 선택을 확인한다. 저장소 변경만으로 클라이언트 반영됐다고 하지 않는다.
-
-## 티켓/PR 완료 체크리스트
-
-- [ ] 관련 시나리오·가이드·도구·스키마·오류 처리·서버 테스트를 함께 확인했다.
-- [ ] description만 읽어도 저장 범위와 금지 부수 효과를 알 수 있다.
-- [ ] 가이드 조회 없이도 권한/버전/상태/중복 방지가 서버에서 강제된다.
-- [ ] 성공/모호한 입력/의도 없는 저장/충돌/응답 유실/타 사용자 접근의 기대 동작이 있다.
-- [ ] 제공 중인 기능만 등록/안내하며 미지원 기능은 명확히 알린다.
-- [ ] 실제 검사 환경·결과·미검증 사항과 변경 revision을 남겼다.
-
-책임: #33 공통 정의/안내 전달, #34~#38/#41~#43 기능별 설명과 계약, #44 시나리오/관계 일치, #39 클라이언트 사용성·회귀. 설명 작성은 실제 구현 티켓을 완료 처리하는 조건이 아니다.
+[작업 가이드 제공 설계](./workflow-guide-design.md)는 제거 전 제공 방식의 기록이다. [도구 설명 카탈로그](./tool-descriptions.md)와 [workflows](./workflows.md)는 시나리오 검토 자료이며 현재 schema/도구 목록의 대체물이 아니다. 과거 배포·시험 결과는 당시 버전의 증거로 보존한다.

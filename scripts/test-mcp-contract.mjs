@@ -91,16 +91,17 @@ try {
   for (const retiredTool of ['preview_trade_reversal','reverse_trade_entry']) {
     assert(!discoveredNames.has(retiredTool), `${retiredTool} remained in MCP discovery`)
   }
-  const guideDefinition = listed.body?.result?.tools?.find((tool) => tool.name === 'get_workflow_guide')
-  assert(guideDefinition?.inputSchema?.properties?.topic?.enum?.includes('assets'), 'Asset workflow guide was not advertised')
-
-  for (const topic of guideDefinition.inputSchema.properties.topic.enum) {
-    const guideResult = await call(session.access_token, 'tools/call', { name: 'get_workflow_guide', arguments: { topic } })
-    const guide = guideResult.body?.result?.structuredContent?.data
-    assert(guideResult.body?.result?.isError === false && guide?.topic === topic && guide?.revision && guide?.steps?.length, `Workflow guide call failed for ${topic}`)
+  assert(!discoveredNames.has('get_workflow_guide'), 'Retired guide remained in discovery')
+  assert(!('prompts' in initialized.body.result.capabilities) && !('resources' in initialized.body.result.capabilities), 'Retired guidance capabilities remained advertised')
+  const retiredGuide = await call(session.access_token, 'tools/call', { name: 'get_workflow_guide', arguments: { topic: 'daily_review' } })
+  assert(retiredGuide.body?.error?.code === -32602, 'Retired guide must use the unknown-tool error')
+  for (const [method, params] of [
+    ['prompts/list', {}], ['prompts/get', { name: 'daily_portfolio_review' }],
+    ['resources/list', {}], ['resources/read', { uri: 'portfolio://guide/daily-review' }],
+  ]) {
+    const retired = await call(session.access_token, method, params)
+    assert(retired.body?.error?.code === -32601, `Retired ${method} must use the unsupported-method error`)
   }
-  const unknownGuide = await call(session.access_token, 'tools/call', { name: 'get_workflow_guide', arguments: { topic: 'unknown' } })
-  assert(unknownGuide.body?.result?.structuredContent?.error?.code === 'validation_error', 'Unknown workflow guide topic did not return validation_error')
 
   const profile = await call(session.access_token, 'tools/call', { name: 'get_profile', arguments: {} })
   assert(profile.response.ok && profile.body?.result?.isError === false, 'Authenticated MCP tools/call failed')
@@ -571,7 +572,7 @@ try {
   assert(toolError?.code === 'validation_error' && toolError?.retryable === false, 'Invalid tool input returned the wrong recovery contract')
   assert(typeof toolError?.request_id === 'string' && toolError.request_id.length > 20, 'Tool error did not include a request ID')
 
-  console.log('OAuth MCP initialize/discovery/authentication, sharing/friend reset boundaries, retired token issuance, workflow guides, product feedback, policy save/read, review activity save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
+  console.log('OAuth MCP initialize/discovery/authentication, sharing/friend reset boundaries, retired token issuance, retired guidance rejection, product feedback, policy save/read, review activity save/read, cursor pages, financial retry/conflict recovery, auth denial, and validation contracts passed.')
 } finally {
   for (const userId of userIds) {
     await fetch(`${baseUrl}/auth/v1/admin/users/${userId}`, {

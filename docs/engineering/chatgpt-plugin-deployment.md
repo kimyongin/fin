@@ -14,14 +14,14 @@
 | 현재 업로드 버전 | `1.0.1` |
 | 마지막 업로드 파일 | `artifacts/portfolio-unified-1.0.1.zip` |
 
-ChatGPT에 MCP 앱을 만들면 앱만 담은 플러그인 항목도 생성된다. 여기에 스킬을 추가할 때 **기존 앱 플러그인의 새 버전으로 업로드**한다. 새 개인용 플러그인을 별도로 추가하면 설치 목록에 Portfolio가 두 번 보인다. 앱 연결과 플러그인 설치는 별개 상태이며, 플러그인 ZIP은 `.app.json`으로 이미 만든 앱 ID를 참조한다. 이 ZIP은 현재 GitHub Pages CI가 올려 주지 않으며 ChatGPT에서 별도로 업로드한다. ZIP만 바꾼다고 Supabase의 MCP 서버 코드나 OAuth 앱 연결이 배포되지는 않는다. MCP 도구 계약을 바꾼 릴리스는 [기존 서버 배포 Runbook](./deployment.md)의 DB·Edge 순서와 호환성 확인을 먼저 마친다.
+ChatGPT에 MCP 앱을 만들면 앱만 담은 플러그인 항목도 생성된다. 여기에 스킬을 추가할 때 **기존 앱 플러그인의 새 버전으로 업로드**한다. 새 개인용 플러그인을 별도로 추가하면 설치 목록에 Portfolio가 두 번 보인다. 앱 연결과 플러그인 설치는 별개 상태이며, 플러그인 ZIP은 `.app.json`으로 이미 만든 앱 ID를 참조한다. 이 ZIP은 현재 GitHub Pages CI가 올려 주지 않으며 ChatGPT에서 별도로 업로드한다. ZIP만 바꾼다고 Supabase의 MCP 서버 코드나 OAuth 앱 연결이 배포되지는 않는다. MCP 도구 계약을 바꾼 릴리스는 [기존 서버 배포 Runbook](./deployment.md)과 해당 전환 계약의 순서를 따른다. 이번 가이드 제거는 새 스킬의 웹·모바일 전달을 먼저 확인한 뒤 OAuth Edge를 배포한다.
 
 ## 새 버전 준비
 
 1. 현재 플러그인 상세의 **플러그인 ZIP 다운로드**로 설치된 구성의 내부 `name`과 앱 ID를 확인한다. 같은 플러그인을 갱신할 때는 내부 `name`을 유지한다. `displayName`은 앱과 동일하게 `Portfolio`로 둘 수 있다.
 2. `plugins/portfolio/.codex-plugin/plugin.json`의 `version`을 올리고 필요한 스킬을 `plugins/portfolio/skills/`에서 수정한다. `.app.json`이 현재 앱 ID를 가리키는지 확인한다. 앱을 삭제 후 다시 만들었다면 새 앱 ID와 새 앱 플러그인을 기준으로 패키지를 준비한다. 이전 앱 ID를 그대로 두지 않는다.
-3. `plugins/portfolio/`의 **내용**을 ZIP 루트에 담는다. 현재 패키지의 구성은 `.codex-plugin/plugin.json`, `.app.json`, `skills/portfolio-knowledge-review/SKILL.md`다. 별도 `mcp.json`이나 두 번째 앱 전용 플러그인을 만들지 않는다.
-4. ZIP 무결성, manifest의 내부 이름·버전·표시 이름, 앱 ID, 스킬 파일 포함 여부를 검사한다. 텍스트를 바꿨다면 `npm run check:encoding`과 `git diff --check`도 통과시킨다. 이전 정상 ZIP과 새 ZIP을 혼동하지 않도록 파일명에 버전을 넣고 해시를 배포 기록에 남긴다.
+3. `plugins/portfolio/`의 **내용**을 ZIP 루트에 담는다. 현재 패키지의 구성은 `.codex-plugin/plugin.json`, `.app.json`, `skills/portfolio/SKILL.md`와 `skills/portfolio/references/`의 참고 문서 6개다. 구 지식 검토 진입점을 함께 넣지 않는다. 별도 `mcp.json`이나 두 번째 앱 전용 플러그인을 만들지 않는다.
+4. ZIP 무결성, manifest의 내부 이름·버전·표시 이름, 앱 ID, 스킬·참고 문서의 포함과 상대 링크를 검사한다. `npm test`로 플러그인 연결·도구 참조를 검증한다. 텍스트를 바꿨다면 `npm run check:encoding`과 `git diff --check`도 통과시킨다. 이전 정상 ZIP과 새 ZIP을 혼동하지 않도록 파일명에 버전을 넣고 해시를 배포 기록에 남긴다.
 
 ## ChatGPT에 반영하고 확인
 
@@ -44,3 +44,10 @@ ChatGPT에 MCP 앱을 만들면 앱만 담은 플러그인 항목도 생성된�
 - 앱이 만든 플러그인의 ZIP을 내려받아 내부 이름과 앱 ID를 확인했다. `plugins/portfolio/`에서 스킬을 포함한 `artifacts/portfolio-unified-1.0.1.zip`을 만들었다. SHA-256: `563e8ac663de60660e4366b120e6189dd8e6cb9ed071cad831767635215c5474`.
 - 사용자의 승인을 받아 같은 플러그인의 새 버전으로 업로드했다. 상세 화면에 `1.0.1`, 앱 1개, 스킬 1개, 연결 계정이 표시됐다. 구형 별도 플러그인은 설치 해제했고 설치 목록에 Portfolio 한 항목이 남았다. DB·Edge·Pages 배포는 이 작업에서 수행하지 않았다.
 - [명시 선택 읽기](https://chatgpt.com/c/6aba82cb-fda0-83e8-9f8f-5275d08663a8)와 플러그인을 지정하지 않은 일반 웹 [대화 1](https://chatgpt.com/c/6aba83b1-f6a8-83ee-bd95-56f963dd1593)·[대화 2](https://chatgpt.com/c/6aba8466-e8f8-83ee-9ac9-87978ff5e443)에서 Portfolio 조회 작업이 표시됐다. 실제 모바일, 스킬 자동 선택의 독립 확인, 자발적 기록 제안과 동의 후 저장은 미검증이다. 상세 행동 판정은 [검증 인계](../design/contracts/agent/portfolio-knowledge-skill-plan.md)에 남긴다.
+
+## 2026-09-29 스킬 통합 배포 후보 — 미업로드
+
+- 후보 버전 `1.1.0`, 파일 `artifacts/portfolio-unified-1.1.0.zip`, SHA-256 `351079e20af6fea1f9cbff4fa1679a0eb9332417376055a654496f94a8091f41`.
+- 기존 내부 이름과 앱 ID를 유지했다. 진입 스킬 1개·참고 문서 6개를 포함하며 전체 9개 파일의 원본 일치와 ZIP 무결성을 확인했다. 직전 설치 버전은 위 1.0.1이다.
+- 로컬 서버에서는 가이드 도구와 prompt/resource를 제거했다. 서버 커밋은 [agent-01](../tickets/agent-01-workflow-guide-to-skill.md)을 포함한 구현 커밋으로 추적한다. 운영 서버 커밋과 복구 기준은 실제 배포 직전에 다시 확인한다.
+- 후보 업로드·설치, 실제 웹/모바일 선택과 참고 문서 읽기, 자동 조회·기록 제안은 미검증이다. 해당 확인 전 서버 제거 배포를 보류한다. 운영 배포와 복구를 수행한 기록이 아니다.

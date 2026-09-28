@@ -17,12 +17,12 @@ Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 
 - UI: [디자인 원칙](./design/PRINCIPLES.md), [공통 컴포넌트](./design/component-system.md).
 - 목록·상세 진입: [읽기/편집·모바일 조작](./design/list-interaction-guidelines.md). 활동 마크다운 읽기와 명시적 아이콘은 승인된 후속 설계이며 [구현 티켓](./tickets/ui-35-list-reading-and-mobile-interaction.md)으로 진행한다.
 - 해당 UI를 변경할 때: [상단 카드](./design/page-panel-guidelines.md), [모달](./design/modal-guidelines.md), [태그](./design/tag-guidelines.md), [타이포그래피](./design/typography-guidelines.md), [타임라인](./design/timeline-guidelines.md).
-- 서버: [백엔드 모듈](./engineering/backend-modules.md). MCP 런타임 도구/가이드는 supabase/functions/_shared/mcp의 코드와 review manifest가 원본이다. 개발 지침과 제품 에이전트 지침을 혼합하지 않는다.
+- 서버: [백엔드 모듈](./engineering/backend-modules.md). MCP 도구 계약은 supabase/functions/_shared/mcp, 제품 작업 지침은 plugins/portfolio/skills/portfolio가 원본이다. 개발 지침과 제품 에이전트 지침을 혼합하지 않는다.
 - 운영: [배포·복구 및 배포 기록](./engineering/deployment.md), [ChatGPT 플러그인 배포](./engineering/chatgpt-plugin-deployment.md). 로컬 구현, 커밋/푸시, DB·Edge·웹·플러그인 배포, 실클라이언트 확인을 따로 기록한다.
 
 ## 현재 인계
 
-- 에이전트 안내 전환: [스킬 전환 계약](./design/contracts/agent/portfolio-skill-migration.md), [agent-01 구현 티켓](./tickets/agent-01-workflow-guide-to-skill.md). `get_workflow_guide` 전체 제거와 단일 Portfolio 스킬 전환의 설계 인계안이다. 아직 서버·플러그인을 변경하지 않았으며 기존 guide 검사는 구현에서 교체하기 전까지 유지한다. 별도 worktree에서 진행하고 #168 커밋의 도구 계약을 반영한다.
+- 에이전트 안내 전환: [스킬 전환 계약](./design/contracts/agent/portfolio-skill-migration.md), [agent-01 구현 티켓](./tickets/agent-01-workflow-guide-to-skill.md). 기존 지식 검토 스킬과 11개 가이드를 스킬 1개·참고 문서 6개로 통합하고 가이드 도구/prompt/resource·전용 검사를 로컬에서 제거했다. 1.1.0 패키지는 배포 준비이며 실제 웹·모바일 검증과 OAuth 제거 배포는 남아 있다. #168 커밋을 반영한 별도 worktree에서 사용자 예외 승인으로 Astra가 구현했다.
 
 - 활동 지식 활용 후속: [제품용 스킬·개인 플러그인 검증 인계](./design/contracts/agent/portfolio-knowledge-skill-plan.md). 사용자에게 태그/검색/기록 지시를 반복시키지 않는 흐름을 보존했다. 새 Portfolio 앱과 스킬을 하나의 개인용 플러그인 1.0.1로 통합하고 설치 목록의 중복 항목을 해제했다. 이 문서에 다음 버전의 통합 절차를 남겼다. 명시 선택 웹 대화와 플러그인을 지정하지 않은 일반 웹 대화 두 건에서 Portfolio 앱 조회가 표시됐다. 스킬 자동 선택의 독립 확인·자발적 기록 제안·동의 후 저장·실제 모바일 행동 검증은 남아 있다.
 

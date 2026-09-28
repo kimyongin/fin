@@ -5,11 +5,10 @@ import { withOAuthProtectedResource, withSupabase } from 'npm:@supabase/server@^
 import {
   actionTaskToolNames, activityReportToolNames, assetCrudToolNames, dailyReviewToolNames, decisionActivityToolNames, entityNoteToolNames, holdingIntegrityToolNames,
   investmentPolicyToolNames, portfolioToolDefinitions, tradeEntryToolNames,
-  productFeedbackToolNames, workflowGuideToolNames, sharingToolNames,
+  productFeedbackToolNames, sharingToolNames,
 } from '../_shared/mcp/portfolio-tools.ts'
 import { classifyPortfolioError, PortfolioRpcError } from '../_shared/mcp/errors.ts'
 import { type ToolHandler, validateToolRegistry } from '../_shared/mcp/registry.ts'
-import { getWorkflowGuide, renderWorkflowGuideMarkdown, validateWorkflowGuides } from '../_shared/mcp/workflow-guides.ts'
 import { hybridSearchActivities } from '../_shared/activity-search.ts'
 
 type JsonRpcRequest = {
@@ -25,38 +24,16 @@ const serverInstructions = [
   'Portfolio remembers, calculates, and validates investment records; it never executes brokerage orders or transfers funds.',
   'Use authenticated portfolio tools for quantities, average costs, strategy, and saved activities instead of guessing. Current news research is performed by ChatGPT and may be saved as a research activity only on request.',
   'Use ChatGPT web research for current news, clearly separate sourced facts from analysis, and do not claim that Portfolio fetched live news.',
-  'A review request is not permission to write: save only when the user explicitly asks, and keep model suggestions, user decisions, plans, completed trades, and brokerage balance verification distinct.',
+  'A review request is not permission to write: save only when the user explicitly asks or agrees to a shown draft, and keep model suggestions, user decisions, plans, completed trades, and brokerage balance verification distinct.',
   'Do not invent missing preferences or holding reasons, and do not report no meaningful change when research was incomplete.',
-  'Before a multi-step Portfolio task, use get_workflow_guide when its advertised topic matches the user\'s request; do not repeat the same revision in one conversation.',
-  'Report a write as saved only after its tool returns success; retry a lost response with the same idempotency key and re-read after a version conflict.',
+  'Report a write as saved only after its tool returns success; follow each tool\'s recovery contract for uncertain responses and version conflicts.',
   'Treat feedback about the Portfolio product separately from investment records: explicit clear registration requests may be saved directly, while an agent-initiated suggestion requires one user confirmation and must never include transcripts, portfolio data, credentials, or guessed causes.',
-  'Use tasks for future intent and activities for performed work. Activity records have a readable Markdown body, optional ordinary tags and navigational task/holding references; they are not classified by hidden kinds. Complete a known matching task instead of duplicating the same performance; successful Portfolio mutations already create their own activity.',
+  'Use tasks for future intent and activities for performed work. Activity records have a readable Markdown body, optional ordinary tags and navigational task/market-ticker references; they are not classified by hidden kinds. Complete a known matching task instead of duplicating the same performance; successful Portfolio mutations already create their own activity.',
 ].join(' ')
-const dailyReviewResourceUri = 'portfolio://guide/daily-review'
-const dailyReviewGuide = renderWorkflowGuideMarkdown('daily_review')
 const toolDefinitions = portfolioToolDefinitions.map((definition) => ({
   ...definition,
   securitySchemes: oauthSecurity,
 }))
-
-const promptDefinitions = [
-  {
-    name: 'daily_portfolio_review',
-    title: 'Daily portfolio review',
-    description: 'Start a concise daily review using the authenticated portfolio, strategy, and saved activities; research current news in ChatGPT and save a review only on explicit request.',
-    arguments: [],
-  },
-]
-
-const resourceDefinitions = [
-  {
-    uri: dailyReviewResourceUri,
-    name: 'daily-portfolio-review-guide',
-    title: 'Daily portfolio review guide',
-    description: 'Workflow and responsibility boundaries for a daily portfolio review.',
-    mimeType: 'text/markdown',
-  },
-]
 
 function jsonRpcResult(id: JsonRpcRequest['id'], result: unknown) {
   return Response.json({ jsonrpc: '2.0', id: id ?? null, result })
@@ -157,12 +134,6 @@ async function rpc(supabase: any, name: string, args: Record<string, unknown> = 
 }
 
 const toolHandlers: Record<string, ToolHandler> = {
-  async get_workflow_guide(_supabase, args) {
-    const topic = requireString(args.topic, 'topic')
-    const guide = getWorkflowGuide(topic)
-    if (!guide) throw new ToolInputError(`Unsupported workflow guide topic: ${topic}`)
-    return { ok: true, data: guide }
-  },
   async get_profile(supabase) {
     const { data, error } = await supabase.auth.getUser()
     if (error || !data.user) throw new Error(error?.message ?? 'Authenticated user not found')
@@ -721,7 +692,6 @@ const toolHandlers: Record<string, ToolHandler> = {
 }
 
 validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
-  workflowGuides: workflowGuideToolNames,
   productFeedback: productFeedbackToolNames,
   entityNotes: entityNoteToolNames,
   sharing: sharingToolNames,
@@ -734,7 +704,6 @@ validateToolRegistry(portfolioToolDefinitions, toolHandlers, {
   tradeEntry: tradeEntryToolNames,
   holdingIntegrity: holdingIntegrityToolNames,
 })
-validateWorkflowGuides(portfolioToolDefinitions.map((definition) => definition.name))
 
 Deno.serve(
   pipeline(
@@ -761,77 +730,14 @@ Deno.serve(
           protocolVersion,
           capabilities: {
             tools: { listChanged: false },
-            prompts: { listChanged: false },
-            resources: { subscribe: false, listChanged: false },
           },
-          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.7.0' },
+          serverInfo: { name: 'portfolio-mcp', title: 'Portfolio', version: '0.8.0' },
           instructions: serverInstructions,
         })
       }
 
       if (message.method === 'tools/list') {
         return jsonRpcResult(message.id, { tools: toolDefinitions })
-      }
-
-      if (message.method === 'prompts/list') {
-        return jsonRpcResult(message.id, { prompts: promptDefinitions })
-      }
-
-      if (message.method === 'prompts/get') {
-        const promptName = String(message.params?.name ?? '')
-        if (promptName !== 'daily_portfolio_review') {
-          return jsonRpcError(message.id, -32602, `Unknown prompt: ${promptName}`)
-        }
-
-        return jsonRpcResult(message.id, {
-          description: 'Review the authenticated portfolio and explain only the changes that matter today.',
-          messages: [
-            {
-              role: 'user',
-              content: {
-                type: 'resource',
-                resource: {
-                  uri: dailyReviewResourceUri,
-                  mimeType: 'text/markdown',
-                  text: dailyReviewGuide,
-                },
-              },
-            },
-            {
-              role: 'user',
-              content: {
-                type: 'text',
-                text: [
-                  'Prompt marker: PORTFOLIO_PROMPT_DAILY_REVIEW_V2',
-                  'Prepare my daily portfolio review.',
-                  'Use Portfolio tools for stored facts and calculations. Use ChatGPT web research only when current external information is necessary.',
-                  'Separate facts, interpretation, and decisions that require my attention.',
-                ].join('\n'),
-              },
-            },
-          ],
-        })
-      }
-
-      if (message.method === 'resources/list') {
-        return jsonRpcResult(message.id, { resources: resourceDefinitions })
-      }
-
-      if (message.method === 'resources/read') {
-        const uri = String(message.params?.uri ?? '')
-        if (uri !== dailyReviewResourceUri) {
-          return jsonRpcError(message.id, -32602, `Unknown resource: ${uri}`)
-        }
-
-        return jsonRpcResult(message.id, {
-          contents: [
-            {
-              uri: dailyReviewResourceUri,
-              mimeType: 'text/markdown',
-              text: dailyReviewGuide,
-            },
-          ],
-        })
       }
 
       if (message.method !== 'tools/call') {

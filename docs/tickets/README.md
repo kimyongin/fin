@@ -4,7 +4,7 @@
 
 ## Portfolio 스킬 통합
 
-[agent-01 MCP 작업 가이드 제거와 Portfolio 스킬 통합](./agent-01-workflow-guide-to-skill.md) · 설계 인계안, 구현 전, GitHub 미등록. [전환 계약](../design/contracts/agent/portfolio-skill-migration.md)에 따라 기존 지식 활용 스킬과 11개 가이드를 함께 검토하고, 스킬 작성·검증, 가이드 전달 체계 제거, 단일 플러그인과 OAuth 배포·웹/모바일 검증을 진행한다.
+[agent-01 MCP 작업 가이드 제거와 Portfolio 스킬 통합](./agent-01-workflow-guide-to-skill.md) · 로컬 구현·검증 진행, 운영 배포 전, GitHub 미등록. [전환 계약](../design/contracts/agent/portfolio-skill-migration.md)에 따라 기존 지식 활용 스킬과 11개 가이드를 함께 검토하고, 스킬 작성·검증, 가이드 전달 체계 제거, 단일 플러그인과 OAuth 배포·웹/모바일 검증을 진행한다.
 
 ## 목록 읽기·편집과 모바일 사용성
 
