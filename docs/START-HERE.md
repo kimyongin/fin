@@ -22,7 +22,7 @@ Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 
 
 ## 현재 인계
 
-- 에이전트 안내 전환: [스킬 전환 계약](./design/contracts/agent/portfolio-skill-migration.md), [agent-01 구현 티켓](./tickets/agent-01-workflow-guide-to-skill.md). 기존 지식 검토 스킬과 11개 가이드를 스킬 1개·참고 문서 6개로 통합하고 가이드 도구/prompt/resource·전용 검사를 로컬에서 제거했다. 1.1.0 플러그인은 기존 항목에 업로드했다. 웹 시험 시간대의 운영 OAuth 로그에서 ChatGPT 요청을 확인했으나 개별 도구·스킬 참조 사용과 새 결론의 기록 제안은 미검증이다. 모바일 검증과 OAuth 제거 배포는 남아 있으며 서버 제거를 보류한다. #168 커밋을 반영한 별도 worktree에서 사용자 예외 승인으로 Astra가 구현했다.
+- 에이전트 안내 전환: [스킬 전환 계약](./design/contracts/agent/portfolio-skill-migration.md), [agent-01 구현 티켓](./tickets/agent-01-workflow-guide-to-skill.md). 기존 지식 검토 스킬과 11개 가이드를 스킬 1개·참고 문서 6개로 통합하고 가이드 도구/prompt/resource·전용 검사를 로컬에서 제거했다. 1.1.0 플러그인은 기존 항목에 업로드했다. 웹 시험 대화의 앱 호출·스킬 참조 사용·새 결론의 기록 제안은 아직 검증되지 않았다. 같은 시간대의 운영 OAuth 요청은 다른 대화의 사용일 수 있어 시험 증거로 귀속하지 않는다. 모바일 검증과 OAuth 제거 배포는 남아 있으며 서버 제거를 보류한다. #168 커밋을 반영한 별도 worktree에서 사용자 예외 승인으로 Astra가 구현했다.
 
 - 활동 지식 활용 후속: [제품용 스킬·개인 플러그인 검증 인계](./design/contracts/agent/portfolio-knowledge-skill-plan.md). 사용자에게 태그/검색/기록 지시를 반복시키지 않는 흐름을 보존했다. 새 Portfolio 앱과 스킬을 하나의 개인용 플러그인 1.0.1로 통합하고 설치 목록의 중복 항목을 해제했다. 이 문서에 다음 버전의 통합 절차를 남겼다. 명시 선택 웹 대화와 플러그인을 지정하지 않은 일반 웹 대화 두 건에서 Portfolio 앱 조회가 표시됐다. 스킬 자동 선택의 독립 확인·자발적 기록 제안·동의 후 저장·실제 모바일 행동 검증은 남아 있다.
 
