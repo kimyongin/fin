@@ -64,7 +64,7 @@ test('routes old news links to the research activity flow', async ({ page }) => 
   })
   expect(created.status, JSON.stringify(created.body)).toBe(200)
   await page.reload()
-  await expect(page.getByRole('button', { name: `기록 읽기: ${title}` })).toBeVisible()
+  await expect(page.getByRole('button', { name: `기록 보기: ${title}` })).toBeVisible()
   const detail = await callRpc(page, 'app_get_activity', { input_activity_id: created.body.id, input_owner_user_id: null })
   expect(detail.body.body).toBe('공식 자료 확인')
 })

@@ -3,21 +3,23 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import ListItemAction, { ListItemActions } from './ListItemAction'
 
 describe('ListItemAction', () => {
-  it('keeps a 44px target and an accessible name without a visible border', () => {
-    const html = renderToStaticMarkup(<ListItemAction className="-my-2.5" kind="edit" label="삼성전자 자산 편집" onClick={() => {}} />)
+  it('shows a subdued text action with an accessible target name', () => {
+    const html = renderToStaticMarkup(<ListItemAction kind="edit" label="삼성전자 자산 편집" onClick={() => {}} />)
     expect(html).toContain('aria-label="삼성전자 자산 편집"')
-    expect(html).toContain('h-11 w-11')
-    expect(html).toContain('-my-2.5')
-    expect(html).toContain('bg-transparent')
-    expect(html).not.toContain('hover:bg-')
-    expect(html).not.toMatch(/\bborder(?:-|\s)/)
+    expect(html).toContain('class="list-item-text-action "')
+    expect(html).toContain('>편집</button>')
+    expect(html).not.toContain('<svg')
   })
 
-  it('keeps adjacent read and edit targets while moving the icons closer', () => {
-    const html = renderToStaticMarkup(<ListItemActions editLabel="기록 편집" onEdit={() => {}} onRead={() => {}} readLabel="기록 읽기" />)
-    expect(html).toContain('aria-label="기록 읽기"')
+  it('keeps read and edit in one group with a decorative separator', () => {
+    const html = renderToStaticMarkup(<ListItemActions editLabel="기록 편집" onEdit={() => {}} onRead={() => {}} readLabel="기록 보기" />)
+    expect(html).toContain('aria-label="기록 보기"')
     expect(html).toContain('aria-label="기록 편집"')
-    expect(html).toContain('[&amp;&gt;svg]:translate-x-1.5')
-    expect(html).toContain('[&amp;&gt;svg]:-translate-x-1.5')
+    expect(html).toContain('>보기</button>')
+    expect(html).toContain('aria-hidden="true" class="list-item-actions__separator">·</span>')
+    expect(html).toContain('>편집</button>')
+    expect(html).not.toContain('<svg')
+    const readOnly = renderToStaticMarkup(<ListItemActions onRead={() => {}} readLabel="기록 보기" />)
+    expect(readOnly).not.toContain('list-item-actions__separator')
   })
 })

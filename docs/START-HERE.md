@@ -15,7 +15,7 @@ Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 
 ## 작업별 정본
 
 - UI: [디자인 원칙](./design/PRINCIPLES.md), [공통 컴포넌트](./design/component-system.md).
-- 목록·상세 진입: [읽기/편집·모바일 조작](./design/list-interaction-guidelines.md). 활동 마크다운 읽기와 명시적 아이콘은 승인된 후속 설계이며 [구현 티켓](./tickets/ui-35-list-reading-and-mobile-interaction.md)으로 진행한다.
+- 목록·상세 진입: [읽기/편집·모바일 조작](./design/list-interaction-guidelines.md). 활동 마크다운 읽기와 명시적 진입의 기존 구현은 [#167](./tickets/ui-35-list-reading-and-mobile-interaction.md), 아이콘을 `보기 · 편집` 텍스트로 바꾸는 후속은 [텍스트 전환 티켓](./tickets/ui-36-text-list-actions.md)을 따른다. 후속은 로컬 구현·자동 검증을 마쳤으며 제목 기준선·묶음 줄바꿈·투명 표현을 적용했다. 수동 확대·실기기 확인과 운영 배포는 남아 있다.
 - 해당 UI를 변경할 때: [상단 카드](./design/page-panel-guidelines.md), [모달](./design/modal-guidelines.md), [태그](./design/tag-guidelines.md), [타이포그래피](./design/typography-guidelines.md), [타임라인](./design/timeline-guidelines.md).
 - 서버: [백엔드 모듈](./engineering/backend-modules.md). MCP 런타임 도구/가이드는 supabase/functions/_shared/mcp의 코드와 review manifest가 원본이다. 개발 지침과 제품 에이전트 지침을 혼합하지 않는다.
 - 운영: [배포·복구 및 배포 기록](./engineering/deployment.md), [ChatGPT 플러그인 배포](./engineering/chatgpt-plugin-deployment.md). 로컬 구현, 커밋/푸시, DB·Edge·웹·플러그인 배포, 실클라이언트 확인을 따로 기록한다.

@@ -239,9 +239,8 @@ function AllocationPage({ accountById = new Map(), canEdit, ownerUserId = null, 
       <div className="divide-y divide-[var(--line)]">{excludedRows.map((holding) => {
         const accountName = accountById.get(Number(holding.account_id))?.name ?? `계좌 ${holding.account_id}`
         return <div className="flex min-w-0 min-h-16 flex-wrap items-center gap-3 px-4 py-3 sm:px-6" key={holding.id}>
-          <span className="min-w-0 flex-1"><strong className="type-item-title block break-words">{holding.display_name ?? holding.ticker}</strong><span className="type-meta block break-words text-[var(--muted-ink)]">{accountName}{holding.valuation_status === 'stale' ? ' · 오래된 시세·환율' : ''}</span></span>
+          <span className="min-w-0 flex-1"><span className="list-item-title-line"><strong className="list-item-title type-item-title">{holding.display_name ?? holding.ticker}</strong><ListItemAction kind={canEdit ? 'edit' : 'read'} label={`${holding.display_name ?? holding.ticker} · ${accountName} 자산 ${canEdit ? '편집' : '보기'}`} onClick={() => onOpenExcludedHolding?.(holding)} /></span><span className="type-meta block break-words text-[var(--muted-ink)]">{accountName}{holding.valuation_status === 'stale' ? ' · 오래된 시세·환율' : ''}</span></span>
           <span className="type-value type-number min-w-0 break-words text-right">{holding.valuation_status === 'missing' ? '평가 불가' : formatKrw(holding.market_value_krw)}</span>
-          <ListItemAction kind={canEdit ? 'edit' : 'read'} label={`${holding.display_name ?? holding.ticker} · ${accountName} 자산 ${canEdit ? '편집' : '읽기'}`} onClick={() => onOpenExcludedHolding?.(holding)} />
         </div>
       })}</div>
     </section>}

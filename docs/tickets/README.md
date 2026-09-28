@@ -2,9 +2,13 @@
 
 티켓은 목적·계약·검증 근거의 원본이다. OPEN/CLOSED만으로 구현·배포 상태를 추정하지 않는다. 최신 원격 본문과 작업 트리를 함께 확인한다.
 
+## 목록의 보기·편집 텍스트 전환
+
+[#170](https://github.com/kimyongin/fin/issues/170) · [표현·정렬·줄바꿈·적용표·검증](./ui-36-text-list-actions.md) · [공통 가이드](../design/list-interaction-guidelines.md). 로컬 구현·단위/빌드/전체 E2E 통과, 수동 확대·실기기 확인과 운영 배포 대기. #167의 문서/연필을 제목 옆 `보기 · 편집` 텍스트로 바꾸고 글자 기준선 정렬, 좁은 폭에서 묶음 단위 줄바꿈, 투명한 기본/호버 표현을 통일했다. 기존 권한·마크다운 읽기·44px 누름 영역·초점 복귀는 유지한다.
+
 ## 목록 읽기·편집과 모바일 사용성
 
-[#167](https://github.com/kimyongin/fin/issues/167) · [명세와 전체 목록 적용표](./ui-35-list-reading-and-mobile-interaction.md) · [공통 가이드](../design/list-interaction-guidelines.md). 설계 완료·구현 전. 활동의 마크다운 읽기/원문 편집 분리, 모든 목록의 명시적 아이콘 진입, 스크롤 오인식과 가로 넘침 개선을 S1~S3으로 진행한다. 기존 인라인 목표 입력과 선택 목록은 의미에 맞는 예외로 유지한다.
+[#167](https://github.com/kimyongin/fin/issues/167) · [명세와 전체 목록 적용표](./ui-35-list-reading-and-mobile-interaction.md) · [공통 가이드](../design/list-interaction-guidelines.md). 기존 구현·자동 검증·운영 배포 완료, 실기기 터치·확대·화면낭독기 확인 대기. 활동의 마크다운 읽기/원문 편집 분리와 명시적 진입·복귀를 유지하며, 아이콘의 후속 텍스트 전환은 #170에서 진행한다. 인라인 목표 입력과 선택 목록은 의미에 맞는 예외로 유지한다.
 
 ## 활동 검색과 연결 맥락
 
