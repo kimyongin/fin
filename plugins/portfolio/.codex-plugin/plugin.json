@@ -1,0 +1,16 @@
+{
+  "name": "dev-6aba7f7d0ccc8191b9f51834a40e6548",
+  "version": "1.0.1",
+  "description": "Use Portfolio activities as evidence for investment reviews and propose useful records for approval.",
+  "author": { "name": "Yongin Kim" },
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "Portfolio",
+    "shortDescription": "투자 기록을 찾아 현재 판단에 활용",
+    "longDescription": "저장된 이론, 뉴스, 결정을 현재 포트폴리오와 비교하고 다시 쓸 결론은 저장 전에 제안합니다.",
+    "developerName": "Yongin Kim",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": ["지금 배분을 바꿔야 할까?", "지난번에는 왜 유지하기로 했지?"]
+  }
+}

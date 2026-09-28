@@ -18,9 +18,11 @@ Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 
 - 목록·상세 진입: [읽기/편집·모바일 조작](./design/list-interaction-guidelines.md). 활동 마크다운 읽기와 명시적 아이콘은 승인된 후속 설계이며 [구현 티켓](./tickets/ui-35-list-reading-and-mobile-interaction.md)으로 진행한다.
 - 해당 UI를 변경할 때: [상단 카드](./design/page-panel-guidelines.md), [모달](./design/modal-guidelines.md), [태그](./design/tag-guidelines.md), [타이포그래피](./design/typography-guidelines.md), [타임라인](./design/timeline-guidelines.md).
 - 서버: [백엔드 모듈](./engineering/backend-modules.md). MCP 런타임 도구/가이드는 supabase/functions/_shared/mcp의 코드와 review manifest가 원본이다. 개발 지침과 제품 에이전트 지침을 혼합하지 않는다.
-- 운영: [배포·복구 및 배포 기록](./engineering/deployment.md). 로컬 구현, 커밋/푸시, DB·Edge·웹 배포, 실클라이언트 확인을 따로 기록한다.
+- 운영: [배포·복구 및 배포 기록](./engineering/deployment.md), [ChatGPT 플러그인 배포](./engineering/chatgpt-plugin-deployment.md). 로컬 구현, 커밋/푸시, DB·Edge·웹·플러그인 배포, 실클라이언트 확인을 따로 기록한다.
 
 ## 현재 인계
+
+- 활동 지식 활용 후속: [제품용 스킬·개인 플러그인 검증 인계](./design/contracts/agent/portfolio-knowledge-skill-plan.md). 사용자에게 태그/검색/기록 지시를 반복시키지 않는 흐름을 보존했다. 새 Portfolio 앱과 스킬을 하나의 개인용 플러그인 1.0.1로 통합하고 설치 목록의 중복 항목을 해제했다. 이 문서에 다음 버전의 통합 절차를 남겼다. 명시 선택 웹 대화와 플러그인을 지정하지 않은 일반 웹 대화 두 건에서 Portfolio 앱 조회가 표시됐다. 스킬 자동 선택의 독립 확인·자발적 기록 제안·동의 후 저장·실제 모바일 행동 검증은 남아 있다.
 
 - #161~#165: [활동 검색 후속 설계](./design/activity-context-search.md). [Pinecone 전환 계약](./design/activity-search-pinecone.md)의 원문 분할과 새 모델이 운영 DB·Edge·웹에 배포돼 재색인을 마쳤다. 실모델 품질 게이트는 후반부 질문 1건·무관 질문 1건에서 실패했지만, 사용자의 명시적 요청에 따라 의미 검색을 활성화했다. 인증된 운영 HTTP/OAuth와 배포 회귀 검사는 통과했고 품질 개선은 Astra 검토 대상이다. 상세 근거는 [#161](./tickets/search-01-korean-hybrid.md), [#165](./tickets/search-05-search-evidence.md), [배포 기록](./engineering/deployment.md). 실제 ChatGPT 확인과 #162~#164 후속 기능도 남아 있다.
 

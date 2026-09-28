@@ -4,6 +4,8 @@
 
 현재 배포 상태는 이 문서의 가장 최근 날짜별 배포 기록과 해당 workflow/commit을 확인한다. [2026-09-23 운영 인계](../design/storage-release-readiness-20260923.md)와 아래 2026-09-22 ToDo·원칙 번들 배포는 당시의 역사 기록이며 새 릴리스 계획이나 최신 상태가 아니다. 로컬 후속 커밋은 별도 배포 증거 없이는 운영 반영으로 간주하지 않는다.
 
+ChatGPT 개인용 Portfolio 플러그인은 이 문서의 DB·Edge·Pages 배포와 별도다. ZIP 버전 갱신, 앱 연결 확인, 웹·모바일 행동 검증과 복구는 [ChatGPT 플러그인 배포 절차](./chatgpt-plugin-deployment.md)를 따른다.
+
 ## 배포 순서
 
 1. 로컬에서 `npm test`, `npm run build`, `npm run test:db`를 실행한다. Edge 변경은 Deno가 있는 환경에서 `npm run check:edge`도 실행한다.
