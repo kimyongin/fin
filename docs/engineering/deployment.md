@@ -71,6 +71,13 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-29 Portfolio OAuth 가이드 제거 (#169)
+
+- 사용자 지시에 따라 웹·모바일 행동 검증보다 먼저 운영 프로젝트 `ubmtflglqudrvumepzij`의 `portfolio-mcp-oauth`만 배포했다. 배포 소스는 `codex/portfolio-skill-migration`의 `87180de`다. DB migration, 다른 Edge Function, Pages 배포는 없었다. 플러그인 1.1.0은 이미 설치돼 있었다.
+- 배포 전 v20 (`verify_jwt=false`, SHA-256 `fd870b746d4651ce4b9591c47e7cb9504c417cd9452ce4e83aa6f4f994ce813e`)을 확인했다. 2026-09-29 01:47 KST 배포 후 v21 (`verify_jwt=false`, SHA-256 `545c7ac737e54ec3f0bf8b1bf986dd6954c96d421b174e425861625f8031f51d`)이 ACTIVE였다.
+- 인증된 Portfolio 연결에서 퇴역 `get_workflow_guide`는 `Unknown tool` / `-32602`, 기존 `get_portfolio_state`는 정상 응답했다. prompt/resource의 운영 응답과 ChatGPT 웹·모바일의 자동 사용 및 기록 제안은 미검증이다. 로컬 단위 136건·격리 DB 809건·MCP 계약·인증된 준비 검사·관련 브라우저 흐름·빌드·Edge 타입 검사는 배포 전 통과했다.
+- 문제가 생기면 배포 전 v20 소스로 `portfolio-mcp-oauth`만 재배포하고 같은 인증 읽기 계약을 확인한다. 실제 복구는 아직 수행하지 않았다. 상세 인수 상태는 [agent-01](../tickets/agent-01-workflow-guide-to-skill.md)을 따른다.
+
 ### 2026-09-28 목록 읽기·편집 UX (#167)
 
 - 앱 commit `dab5cd4` (#167 구현·검증 및 MCP 가이드 검토 기록). [동일 commit 검증·gh-pages 배포](https://github.com/kimyongin/fin/actions/runs/36426676746)와 [Pages 게시](https://github.com/kimyongin/fin/actions/runs/36427543955)가 성공했다. 공개 <https://kimyongin.github.io/fin/>와 새 번들 `/fin/assets/index-Bl1NTkXH.js`는 HTTP 200이며, 번들에서 할 일·기록 읽기 및 편집 라벨을 확인했다.
