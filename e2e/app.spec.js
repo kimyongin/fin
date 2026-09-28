@@ -155,7 +155,7 @@ test('submits product feedback and lets an allowlisted operator return a result'
   await expect(page.getByRole('link', { name: '연결된 개발 이슈 보기' })).toHaveAttribute('href', 'https://github.com/kimyongin/fin/issues/68')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   const myCard = page.locator('article').filter({ hasText: body })
-  await myCard.getByRole('button', { name: '수정', exact: true }).click()
+  await myCard.getByRole('button', { name: '피드백 편집' }).click()
   const corrected = `${body} 수정됨`
   await myCard.getByRole('textbox', { name: '피드백 내용' }).fill(corrected)
   await myCard.getByRole('button', { name: '저장', exact: true }).click()

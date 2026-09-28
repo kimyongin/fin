@@ -186,7 +186,7 @@ test('starts the Google OAuth authorization redirect without using a Google acco
     await route.fulfill({ contentType: 'text/html', status: 200, body: '<title>E2E OAuth redirect</title>' })
   })
   await page.goto('/')
-  await page.getByRole('button', { name: /Google 자산 편집/ }).click()
+  await page.getByRole('button', { name: /Google/ }).click()
   await expect.poll(() => authorizeUrl).toContain('provider=google')
   expect(authorizeUrl).toContain('redirect_to=')
 })
