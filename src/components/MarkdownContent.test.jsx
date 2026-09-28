@@ -11,4 +11,12 @@ describe('MarkdownContent', () => {
     expect(html).not.toContain('href="javascript:')
     expect(html).toContain('&lt;script&gt;')
   })
+  it('renders nested lists, tables and code without loading external images', () => {
+    const html = renderToStaticMarkup(<MarkdownContent content={'- 부모\n  - 자식\n\n| 이름 | 값 |\n| --- | --- |\n| 금액 | 10 |\n\n```js\nconst x = 1\n```\n\n![외부](https://example.com/image.png)'} />)
+    expect(html).toContain('<table')
+    expect(html).toContain('<pre')
+    expect(html).toContain('자식')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('외부')
+  })
 })

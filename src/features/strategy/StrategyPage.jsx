@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import ListItemAction from '../../components/ListItemAction'
 
 import AssetViewToolbar from '../assets/AssetViewToolbar'
 import PrincipleJournal from './PrincipleJournal'
@@ -237,11 +238,11 @@ function AllocationPage({ accountById = new Map(), canEdit, ownerUserId = null, 
       {excludedMissingCount > 0 && <p className="type-secondary border-b border-[var(--line)] px-4 py-3 text-amber-200 sm:px-6">{excludedMissingCount}건은 시세·환율이 없어 제외 금액에 포함되지 않았습니다.</p>}
       <div className="divide-y divide-[var(--line)]">{excludedRows.map((holding) => {
         const accountName = accountById.get(Number(holding.account_id))?.name ?? `계좌 ${holding.account_id}`
-        return <button aria-label={`${holding.display_name ?? holding.ticker} · ${accountName} 자산 상세 보기`} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] sm:px-6" key={holding.id} onClick={() => onOpenExcludedHolding?.(holding)} type="button">
+        return <div className="flex min-w-0 min-h-16 flex-wrap items-center gap-3 px-4 py-3 sm:px-6" key={holding.id}>
           <span className="min-w-0 flex-1"><strong className="type-item-title block break-words">{holding.display_name ?? holding.ticker}</strong><span className="type-meta block break-words text-[var(--muted-ink)]">{accountName}{holding.valuation_status === 'stale' ? ' · 오래된 시세·환율' : ''}</span></span>
-          <span className="type-value type-number shrink-0 text-right">{holding.valuation_status === 'missing' ? '평가 불가' : formatKrw(holding.market_value_krw)}</span>
-          <span aria-hidden="true" className="type-secondary text-[var(--muted-ink)]">›</span>
-        </button>
+          <span className="type-value type-number min-w-0 break-words text-right">{holding.valuation_status === 'missing' ? '평가 불가' : formatKrw(holding.market_value_krw)}</span>
+          <ListItemAction kind={canEdit ? 'edit' : 'read'} label={`${holding.display_name ?? holding.ticker} · ${accountName} 자산 ${canEdit ? '편집' : '읽기'}`} onClick={() => onOpenExcludedHolding?.(holding)} />
+        </div>
       })}</div>
     </section>}
   </section>

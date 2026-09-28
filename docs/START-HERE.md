@@ -15,6 +15,7 @@ Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 
 ## 작업별 정본
 
 - UI: [디자인 원칙](./design/PRINCIPLES.md), [공통 컴포넌트](./design/component-system.md).
+- 목록·상세 진입: [읽기/편집·모바일 조작](./design/list-interaction-guidelines.md). 활동 마크다운 읽기와 명시적 아이콘은 승인된 후속 설계이며 [구현 티켓](./tickets/ui-35-list-reading-and-mobile-interaction.md)으로 진행한다.
 - 해당 UI를 변경할 때: [상단 카드](./design/page-panel-guidelines.md), [모달](./design/modal-guidelines.md), [태그](./design/tag-guidelines.md), [타이포그래피](./design/typography-guidelines.md), [타임라인](./design/timeline-guidelines.md).
 - 서버: [백엔드 모듈](./engineering/backend-modules.md). MCP 런타임 도구/가이드는 supabase/functions/_shared/mcp의 코드와 review manifest가 원본이다. 개발 지침과 제품 에이전트 지침을 혼합하지 않는다.
 - 운영: [배포·복구 및 배포 기록](./engineering/deployment.md). 로컬 구현, 커밋/푸시, DB·Edge·웹 배포, 실클라이언트 확인을 따로 기록한다.

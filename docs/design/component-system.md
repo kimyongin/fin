@@ -29,6 +29,7 @@ MetricSummary, PageToolbar, 구 TradeEntryModal 및 사용하지 않는 보유 �
 - [태그](./tag-guidelines.md): 고정 곡률 칩과 라벨 간격, 선택 체크 표시 없음. 배분 행의 주된 태그명은 제목, 자산 목록의 부가 태그는 보조 텍스트다.
 - [타이포그래피](./typography-guidelines.md): styles.css의 의미별 역할을 사용한다. 범용 Text 엔진을 만들지 않는다.
 - [타임라인](./timeline-guidelines.md): 활동·원칙의 표현만 공통화한다.
+- [목록 조작](./list-interaction-guidelines.md): 행 클릭 대신 명시적 아이콘, 활동 마크다운 읽기/편집 분리, 모바일 넘침과 스크롤·복귀 규칙. 승인된 후속 설계이며 적용 여부는 연결 티켓을 따른다.
 - 필드 구현/예외는 [필드 적용표](../tickets/ui-29-modal-field-consistency.md), 활동 필터·달력은 [필터 티켓](../tickets/ui-31-activity-filter-fields.md)을 따른다. 달력은 @daypicker/react, 시간은 기존 HH:mm 입력을 사용한다.
 
 ## 상태와 저장 책임

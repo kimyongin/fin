@@ -4,6 +4,7 @@ import { writeClipboard } from '../../lib/clipboard'
 import { buildBulkSnapshotCsv } from './snapshotCsv'
 import { TimelineEntry } from '../../components/Timeline'
 import TagChip from '../../components/TagChip'
+import ListItemAction from '../../components/ListItemAction'
 
 const actionLabels = {
   create_account: '계좌 추가', update_account: '계좌 수정', delete_account: '계좌 삭제',
@@ -162,11 +163,11 @@ export function ChangeSummary({ action }) {
   )
 }
 
-export function ActivityEvent({ action, onOpenActivity }) {
+export function ActivityEvent({ action, onOpenActivity, canEdit = false }) {
   const tagChips = action.tags?.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)
   if (onOpenActivity) {
     const meta = <>{tagChips?.slice(0, 3)}{(tagChips?.length ?? 0) > 3 && <span className="text-xs text-[var(--muted-ink)]">+{tagChips.length - 3}</span>}{action.status === 'failed' && <span className="text-red-200">실패</span>}</>
-    return <TimelineEntry ariaLabel={eventTarget(action)} meta={meta} occurredAt={action.occurred_at ?? action.created_at} onOpen={() => onOpenActivity(action)} summary={action.body || action.result || action.conclusion || action.note} title={eventTarget(action)} />
+    return <TimelineEntry ariaLabel={`기록 읽기: ${eventTarget(action)}`} editLabel={`기록 편집: ${eventTarget(action)}`} meta={meta} occurredAt={action.occurred_at ?? action.created_at} onOpen={() => onOpenActivity(action, 'read')} onEdit={canEdit ? () => onOpenActivity(action, 'edit') : null} summary={action.body || action.result || action.conclusion || action.note} title={eventTarget(action)} />
   }
   const failed = action.status === 'failed'
   const narrativeActivity = ['record_manual_activity', 'complete_general_task'].includes(action.action_type)
@@ -177,7 +178,8 @@ export function ActivityEvent({ action, onOpenActivity }) {
       <article className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           {tagChips}
-          {onOpenActivity ? <button className="type-item-title text-left text-[var(--ink)] hover:text-[var(--accent)]" onClick={() => onOpenActivity(action)} type="button">{eventTarget(action)}</button> : <h3 className="type-item-title text-[var(--ink)]">{eventTarget(action)}</h3>}
+          <h3 className="type-item-title min-w-0 break-words text-[var(--ink)]">{eventTarget(action)}</h3>
+          {onOpenActivity && <div className="ml-auto flex gap-2"><ListItemAction kind="read" label={`기록 읽기: ${eventTarget(action)}`} onClick={() => onOpenActivity(action, 'read')} />{canEdit && <ListItemAction kind="edit" label={`기록 편집: ${eventTarget(action)}`} onClick={() => onOpenActivity(action, 'edit')} />}</div>}
           {!narrativeActivity && <span className="text-sm text-[var(--muted-ink)]">{actionLabels[action.action_type] ?? action.action_type}</span>}
           <span className={`rounded-full border px-2 py-0.5 text-xs ${failed ? 'border-red-400/40 text-red-100' : 'border-[var(--line)] text-[var(--muted-ink)]'}`}>{failed ? '실패' : action.source === 'agent' ? '에이전트' : '앱'}</span>
         </div>
@@ -191,12 +193,12 @@ export function ActivityEvent({ action, onOpenActivity }) {
   )
 }
 
-export default function ActivityEventViewer({ actions, loading, onOpenActivity, showDateGroups = true }) {
+export default function ActivityEventViewer({ actions, canEdit = false, loading, onOpenActivity, showDateGroups = true }) {
   if (!loading && actions.length === 0) {
     return <p className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3 text-sm text-[var(--muted-ink)]">아직 기록된 작업이 없습니다.</p>
   }
   if (!showDateGroups) {
-    return <ol className="relative border-l border-[var(--line)] sm:border-l-0">{actions.map((action) => <ActivityEvent action={action} key={action.id} onOpenActivity={onOpenActivity} />)}</ol>
+    return <ol className="relative border-l border-[var(--line)] sm:border-l-0">{actions.map((action) => <ActivityEvent action={action} canEdit={canEdit} key={action.id} onOpenActivity={onOpenActivity} />)}</ol>
   }
   return (
     <div className="grid gap-5">
@@ -204,7 +206,7 @@ export default function ActivityEventViewer({ actions, loading, onOpenActivity, 
         <article className="rounded-[28px] border border-[var(--line)] bg-[var(--panel)] p-5 shadow-[var(--shadow-soft)]" key={group.label}>
           <h2 className="type-section-title border-b border-[var(--line)] pb-2 text-[var(--muted-ink)]">{group.label}</h2>
           <ol className="relative mt-4 border-l border-[var(--line)] sm:border-l-0">
-            {group.actions.map((action) => <ActivityEvent action={action} key={action.id} onOpenActivity={onOpenActivity} />)}
+            {group.actions.map((action) => <ActivityEvent action={action} canEdit={canEdit} key={action.id} onOpenActivity={onOpenActivity} />)}
           </ol>
         </article>
       ))}

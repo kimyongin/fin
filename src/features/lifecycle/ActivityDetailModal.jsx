@@ -7,6 +7,8 @@ import ReadOnlyField from '../../components/ReadOnlyField'
 import CalendarDateField from '../../components/CalendarDateField'
 import ActivityTagPicker from '../../components/ActivityTagPicker'
 import ActivityReferences from './ActivityReferences'
+import MarkdownContent from '../../components/MarkdownContent'
+import ListItemAction from '../../components/ListItemAction'
 import { activityNoon, businessDate } from '../../lib/businessDate'
 import { deleteActivity, saveActivityDetail } from './data'
 
@@ -21,7 +23,7 @@ function formatDateTime(value) {
 }
 
 
-export default function ActivityDetailModal({ activity, availableTags = [], historyGuardRef, loading, onClose, onDeleted, onRetryTags, onSaved, ownerUserId, supabase, tagsError = '', tagsLoading = false }) {
+export default function ActivityDetailModal({ activity, availableTags = [], historyGuardRef, loading, onClose, onDeleted, onEdit, onRetryTags, onSaved, ownerUserId, supabase, tagsError = '', tagsLoading = false, viewMode = 'read' }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [draft, setDraft] = useState({ title: '', body: '', occurredOn: '', taskId: null, instrumentTicker: null })
@@ -31,14 +33,15 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
   const saveAttempt = useRef(null)
   const [selectedTagIds, setSelectedTagIds] = useState([])
   const editable = useMemo(() => new Set(activity?.editable_fields ?? []), [activity])
-  const editing = !ownerUserId && editable.size > 0
+  const canEdit = !ownerUserId && editable.size > 0
+  const editing = canEdit && viewMode === 'edit'
   const editingDirty = editing && activity && (
     draft.title !== (activity.title ?? '') || draft.body !== (activity.body ?? '') ||
     draft.occurredOn !== localDate(activity.occurred_at) ||
     draft.taskId !== (activity.task_id ?? null) || draft.instrumentTicker !== (activity.instrument_ticker ?? null)
   )
   const availableTagIds = new Set(availableTags.map((tag) => tag.id))
-  const tagsDirty = !ownerUserId && !tagsLoading && !tagsError && JSON.stringify([...selectedTagIds].sort()) !== JSON.stringify([...(activity?.tags ?? []).map((tag) => tag.id).filter((id) => availableTagIds.has(id))].sort())
+  const tagsDirty = editing && !tagsLoading && !tagsError && JSON.stringify([...selectedTagIds].sort()) !== JSON.stringify([...(activity?.tags ?? []).map((tag) => tag.id).filter((id) => availableTagIds.has(id))].sort())
   const dirty = Boolean(editingDirty || tagsDirty)
 
   useEffect(() => {
@@ -95,7 +98,7 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
     } finally { setSaving(false) }
   }
 
-  const footer = !loading && activity && !ownerUserId ? (requestClose) => <ModalActions
+  const footer = !loading && activity && editing ? (requestClose) => <ModalActions
     canDelete
     deleteConfirmMessage="이 기록을 삭제해도 관련 할 일이나 실제 잔고는 바뀌지 않습니다."
     deleteDialogTitle="기록 삭제"
@@ -110,7 +113,7 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
     onSave={save}
     saveDisabled={!dirty || tagsLoading || Boolean(tagsError) || (editable.has('title') && !draft.title.trim())}
     saveLabel={saving ? '저장 중' : '저장'}
-  /> : undefined
+  /> : canEdit && !loading && activity ? <div className="flex justify-end"><ListItemAction kind="edit" label={`기록 편집: ${activity.title}`} onClick={onEdit} /></div> : undefined
 
   return <ModalShell closeDisabled={saving} dirty={dirty} footer={footer} historyGuardRef={historyGuardRef} onClose={onClose} title="기록 상세">
     <fieldset className="min-w-0" disabled={saving}>
@@ -119,19 +122,19 @@ export default function ActivityDetailModal({ activity, availableTags = [], hist
       <section className="grid gap-3">
         {editing && editable.has('title') ? <label className="form-field"><span className="form-label">기록 제목</span><input autoFocus className="form-control" maxLength={500} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label> : <ReadOnlyField label="기록 제목" value={activity.title || activity.after_data?.title || activity.action_type} />}
         <p className="text-xs text-[var(--muted-ink)]">{formatDateTime(activity.occurred_at)} · {activity.source === 'agent' ? 'ChatGPT' : '앱'}</p>
-        {ownerUserId && (activity.tags?.length ?? 0) > 0 && <div className="flex flex-wrap gap-2">{activity.tags.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)}</div>}
+        {!editing && (activity.tags?.length ?? 0) > 0 && <div className="flex flex-wrap gap-2">{activity.tags.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)}</div>}
       </section>
 
       {editing && editable.has('occurred_at') && <CalendarDateField label="수행일" max={businessDate()} onChange={(value) => setDraft({ ...draft, occurredOn: value })} value={draft.occurredOn} />}
-      {!editing && activity.origin_task && <section className="rounded-2xl bg-[var(--surface-2)] p-4"><h4 className="text-xs font-semibold text-[var(--muted-ink)]">관련 할 일</h4><p className="mt-2 break-words text-sm font-semibold">{activity.origin_task.title}</p>{activity.origin_task.trigger_text && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{activity.origin_task.trigger_text}</p>}{(activity.origin_task.due_date || activity.origin_task.recurrence_kind === 'daily') && <p className="mt-2 text-xs text-[var(--muted-ink)]">{activity.origin_task.recurrence_kind === 'daily' ? '매일 반복' : `예정일 ${activity.origin_task.due_date}`}</p>}</section>}
-      {(editing || activity.body) && (editing && editable.has('body') ? <label className="form-field"><span className="form-label">기록 내용</span><textarea className="form-control" maxLength={25000} onChange={(event) => setDraft({ ...draft, body: event.target.value })} rows={8} value={draft.body} /></label> : <section><h4 className="form-label">기록 내용</h4><p className="type-body type-long-body mt-2 whitespace-pre-wrap break-words">{activity.body}</p></section>)}
+      {!editing && activity.origin_task && <section className="rounded-2xl bg-[var(--surface-2)] p-4"><h4 className="text-xs font-semibold text-[var(--muted-ink)]">관련 할 일</h4><p className="mt-2 break-words text-sm font-semibold">{activity.origin_task.title}</p>{activity.origin_task.trigger_text && <MarkdownContent className="mt-2" content={activity.origin_task.trigger_text} />}{(activity.origin_task.due_date || activity.origin_task.recurrence_kind === 'daily') && <p className="mt-2 text-xs text-[var(--muted-ink)]">{activity.origin_task.recurrence_kind === 'daily' ? '매일 반복' : `예정일 ${activity.origin_task.due_date}`}</p>}</section>}
+      {(editing || activity.body) && (editing && editable.has('body') ? <label className="form-field"><span className="form-label">기록 내용</span><textarea className="form-control" maxLength={25000} onChange={(event) => setDraft({ ...draft, body: event.target.value })} rows={8} value={draft.body} /></label> : <section><h4 className="form-label">기록 내용</h4><MarkdownContent className="mt-2" content={activity.body} /></section>)}
 
       {editing && <ActivityReferences disabled={saving} instrumentTicker={draft.instrumentTicker} instrumentSummary={activity.instrument_summary} onInstrumentChange={(instrumentTicker) => setDraft((current) => ({ ...current, instrumentTicker }))} onTaskChange={(taskId) => setDraft((current) => ({ ...current, taskId }))} supabase={supabase} taskId={draft.taskId} taskSummary={activity.origin_task} />}
       {!editing && activity.instrument_ticker && <p className="text-xs text-[var(--muted-ink)]">관련 종목 · {activity.instrument_summary?.display_name && activity.instrument_summary.display_name !== activity.instrument_ticker ? `${activity.instrument_summary.display_name} · ` : ''}{activity.instrument_ticker}</p>}
 
 
 
-      {!ownerUserId && <section className="border-t border-[var(--line)] pt-4">{tagsLoading && <p className="mb-2 text-xs text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="mb-2 flex items-center gap-3 text-xs text-red-200"><span>{tagsError}</span><button className="min-h-11 rounded-lg border border-red-400/40 px-3" onClick={onRetryTags} type="button">다시 시도</button></div>}{!tagsLoading && !tagsError && <ActivityTagPicker disabled={saving} onChange={setSelectedTagIds} selectedIds={selectedTagIds} tags={availableTags} />}</section>}
+      {editing && <section className="border-t border-[var(--line)] pt-4">{tagsLoading && <p className="mb-2 text-xs text-[var(--muted-ink)]">태그 목록을 불러오는 중입니다.</p>}{tagsError && <div className="mb-2 flex items-center gap-3 text-xs text-red-200"><span>{tagsError}</span><button className="min-h-11 rounded-lg border border-red-400/40 px-3" onClick={onRetryTags} type="button">다시 시도</button></div>}{!tagsLoading && !tagsError && <ActivityTagPicker disabled={saving} onChange={setSelectedTagIds} selectedIds={selectedTagIds} tags={availableTags} />}</section>}
 
     </div>}
     </fieldset>

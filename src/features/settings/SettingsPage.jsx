@@ -4,6 +4,7 @@ import { ConfirmDialog } from '../../components/ModalShell'
 import { profileAvatars } from '../../lib/profileAvatar'
 import SharingSwitch from './SharingSwitch'
 import { profileAvatar } from '../../lib/profileAvatar'
+import ListItemAction from '../../components/ListItemAction'
 
 function SettingsSection({ children }) {
   return (
@@ -94,7 +95,7 @@ export default function SettingsPage({
         </div>
         {friendError && <p className="type-secondary mt-3 text-red-200" role="alert">{friendError}</p>}
         <p className="type-secondary mt-3 text-[var(--muted-ink)]">내 공개 이름과 최근 열람 시각이 상대방에게 표시됩니다.</p>
-        <div className="mt-6 border-t border-[var(--line)] pt-5"><h3 className="type-item-title">내가 연결한 친구</h3><div className="mt-3 grid gap-2">{friends.length === 0 ? <p className="type-secondary text-[var(--muted-ink)]">아직 연결한 포트폴리오가 없습니다.</p> : friends.map((friend) => <div className="flex min-w-0 flex-wrap items-center gap-3 border-t border-[var(--line)] py-3" key={friend.owner_user_id}><span aria-hidden="true" className="text-2xl">{profileAvatar(friend.owner_avatar_key).symbol}</span><p className="type-item-title min-w-0 flex-1 break-words">{friend.owner_public_name || '이름 없는 친구'}</p><div className="flex gap-2"><button className="type-action min-h-11 rounded-xl border border-[var(--line)] px-3" onClick={() => onViewFriend(friend.owner_user_id)} type="button">보기</button><button aria-label={`${friend.owner_public_name || '친구'} 해제`} className="type-action min-h-11 rounded-xl border border-[var(--line)] px-3 text-[var(--muted-ink)] disabled:opacity-60" disabled={friendSaving} onClick={() => onRemoveFriend(friend.owner_user_id)} type="button">해제</button></div></div>)}</div></div>
+        <div className="mt-6 border-t border-[var(--line)] pt-5"><h3 className="type-item-title">내가 연결한 친구</h3><div className="mt-3 grid gap-2">{friends.length === 0 ? <p className="type-secondary text-[var(--muted-ink)]">아직 연결한 포트폴리오가 없습니다.</p> : friends.map((friend) => <div className="flex min-w-0 flex-wrap items-center gap-3 border-t border-[var(--line)] py-3" key={friend.owner_user_id}><span aria-hidden="true" className="text-2xl">{profileAvatar(friend.owner_avatar_key).symbol}</span><p className="type-item-title min-w-0 flex-1 break-words">{friend.owner_public_name || '이름 없는 친구'}</p><div className="flex gap-2"><ListItemAction kind="read" label={`${friend.owner_public_name || '친구'} 포트폴리오 읽기`} onClick={() => onViewFriend(friend.owner_user_id)} /><button aria-label={`${friend.owner_public_name || '친구'} 해제`} className="type-action min-h-11 rounded-xl border border-[var(--line)] px-3 text-[var(--muted-ink)] disabled:opacity-60" disabled={friendSaving} onClick={() => onRemoveFriend(friend.owner_user_id)} type="button">해제</button></div></div>)}</div></div>
       </SettingsSection>
 
       <p className="pb-2 text-center text-xs text-[var(--muted-ink)]">버전 {appVersion}</p>

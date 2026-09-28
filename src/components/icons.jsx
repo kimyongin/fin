@@ -12,9 +12,9 @@ export function CopyIcon() {
   )
 }
 
-export function PencilIcon() {
+export function PencilIcon({ className = 'h-3.5 w-3.5' }) {
   return (
-    <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
       <path
         d="M4 20h4l10-10a2 2 0 0 0-4-4L4 16v4Z"
         stroke="currentColor"
@@ -25,6 +25,13 @@ export function PencilIcon() {
       <path d="m12.5 7.5 4 4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
     </svg>
   )
+}
+
+export function DocumentIcon() {
+  return <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+    <path d="M6 3.5h8l4 4V20.5H6a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+    <path d="M14 3.5v4h4M8 12h8M8 16h8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+  </svg>
 }
 
 export function UndoIcon() {

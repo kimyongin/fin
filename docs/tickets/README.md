@@ -2,6 +2,10 @@
 
 티켓은 목적·계약·검증 근거의 원본이다. OPEN/CLOSED만으로 구현·배포 상태를 추정하지 않는다. 최신 원격 본문과 작업 트리를 함께 확인한다.
 
+## 목록 읽기·편집과 모바일 사용성
+
+[#167](https://github.com/kimyongin/fin/issues/167) · [명세와 전체 목록 적용표](./ui-35-list-reading-and-mobile-interaction.md) · [공통 가이드](../design/list-interaction-guidelines.md). 설계 완료·구현 전. 활동의 마크다운 읽기/원문 편집 분리, 모든 목록의 명시적 아이콘 진입, 스크롤 오인식과 가로 넘침 개선을 S1~S3으로 진행한다. 기존 인라인 목표 입력과 선택 목록은 의미에 맞는 예외로 유지한다.
+
 ## 활동 검색과 연결 맥락
 
 활동 검색 후속 설계(2026-09-28): [정본 계약](../design/activity-context-search.md). #161 [Pinecone 전환 계약](../design/activity-search-pinecone.md)의 문맥 보존 원문 분할은 운영 DB·Edge·웹에 배포돼 재색인을 마쳤다. 실모델 품질 게이트는 후반부 1건과 무관 질문 1건에서 실패했지만 사용자 요청으로 의미 검색을 활성화했다. 인증된 운영 HTTP/OAuth 검사와 배포 회귀 검사는 통과했고 Astra의 실패 사례 검토가 남았다. #162~#164는 구현 전이며 #165 검색 근거 표시는 운영 배포됐고 실제 ChatGPT/확대 검증은 남았다.

@@ -6,6 +6,8 @@ import TagChip from '../../components/TagChip'
 import ReadOnlyField from '../../components/ReadOnlyField'
 import ActivityTagPicker from '../../components/ActivityTagPicker'
 import TaskScheduleFields, { scheduleSummary } from './TaskScheduleFields'
+import MarkdownContent from '../../components/MarkdownContent'
+import ListItemAction from '../../components/ListItemAction'
 
 function taskStatusLabel(task) {
   return { open: '할 일', done: '완료', cancelled: '취소' }[task.status] ?? task.status
@@ -29,7 +31,7 @@ function taskDraft(item) {
     tagIds: (item?.tags ?? []).map((tag) => tag.id).sort() }
 }
 
-export default function GeneralTaskDetail({ availableTags = [], entry, historyGuardRef, loading, onBack, onClose, onDeleteTask, onRetryTags, onSaveTask, ownerUserId, supabase, tagsError = '', tagsLoading = false }) {
+export default function GeneralTaskDetail({ availableTags = [], entry, historyGuardRef, loading, onBack, onClose, onDeleteTask, onEdit, onRetryTags, onSaveTask, ownerUserId, supabase, tagsError = '', tagsLoading = false, viewMode = 'read' }) {
   const { item } = entry ?? {}
   const [draft, setDraft] = useState(() => taskDraft(item))
   const [saving, setSaving] = useState(false)
@@ -37,7 +39,8 @@ export default function GeneralTaskDetail({ availableTags = [], entry, historyGu
   const attempt = useRef(null)
   const deleteAttempt = useRef(null)
   useEffect(() => { setDraft(taskDraft(item)); setSaveError(''); attempt.current = null }, [item?.id, item?.version, item?.updated_at])
-  const editable = !ownerUserId && Boolean(item) && item.control_state === 'active'
+  const canEdit = !ownerUserId && Boolean(item) && item.control_state === 'active'
+  const editable = canEdit && viewMode === 'edit'
   const dirty = editable && JSON.stringify(draft) !== JSON.stringify(taskDraft(item))
   const labelClass = 'form-field form-label'
   const inputClass = 'form-control'
@@ -64,10 +67,11 @@ export default function GeneralTaskDetail({ availableTags = [], entry, historyGu
   }
 
   return (
-    <ModalShell closeDisabled={saving} dirty={dirty} historyGuardRef={historyGuardRef} footer={(requestClose) => <div className="grid gap-3">
+    <ModalShell closeDisabled={saving} dirty={dirty} historyGuardRef={historyGuardRef} footer={canEdit ? (requestClose) => <div className="grid gap-3">
       {saveError && <p className="text-sm text-red-200" role="alert">{saveError}</p>}
-      {!ownerUserId && item && <ModalActions canDelete deleteConfirmMessage={`${item.title} — 할 일을 삭제해도 이미 작성한 기록과 실제 잔고는 남고, 기록의 할 일 연결만 해제됩니다.${dirty ? ' 저장하지 않은 변경은 버려집니다.' : ''}`} deleteDialogTitle="할 일 삭제" deleteError={saveError} deleteLabel="할 일 삭제" disabled={saving} dirty={dirty} onClose={requestClose} onDelete={remove} onDeleteCancel={() => setSaveError('')} onDeleteOpen={() => setSaveError('')} onSave={save} saveDisabled={!editable || !dirty || !draft.title.trim() || (draft.recurrenceKind === 'weekly' && draft.recurrenceWeekdays.length === 0) || tagsLoading || Boolean(tagsError)} saveLabel={saving ? '저장 중' : '저장'} />}
-    </div>} onBack={dirty ? null : onBack} onClose={onClose} title="할 일 상세">
+      {editable && item && <ModalActions canDelete deleteConfirmMessage={`${item.title} — 할 일을 삭제해도 이미 작성한 기록과 실제 잔고는 남고, 기록의 할 일 연결만 해제됩니다.${dirty ? ' 저장하지 않은 변경은 버려집니다.' : ''}`} deleteDialogTitle="할 일 삭제" deleteError={saveError} deleteLabel="할 일 삭제" disabled={saving} dirty={dirty} onClose={requestClose} onDelete={remove} onDeleteCancel={() => setSaveError('')} onDeleteOpen={() => setSaveError('')} onSave={save} saveDisabled={!dirty || !draft.title.trim() || (draft.recurrenceKind === 'weekly' && draft.recurrenceWeekdays.length === 0) || tagsLoading || Boolean(tagsError)} saveLabel={saving ? '저장 중' : '저장'} />}
+      {!editable && canEdit && <div className="flex justify-end"><ListItemAction kind="edit" label={`할 일 편집: ${item.title}`} onClick={onEdit} /></div>}
+    </div> : undefined} onBack={dirty ? null : onBack} onClose={onClose} title="할 일 상세">
       {loading || !item ? <p className="py-8 text-sm text-[var(--muted-ink)]">불러오는 중입니다.</p> : (
         editable ? <fieldset className="grid min-w-0 gap-4" disabled={saving}>
           <label className={labelClass}>할 일 제목<input className={inputClass} maxLength={500} onChange={(event) => setDraft({ ...draft, title: event.target.value })} value={draft.title} /></label>
@@ -80,7 +84,7 @@ export default function GeneralTaskDetail({ availableTags = [], entry, historyGu
             <ReadOnlyField className="mt-4" label="할 일 제목" value={item.title} />
             <p className="mt-2 text-xs text-[var(--muted-ink)]">{subjectLabel(item.subject)}</p>
           </section>
-          {item.trigger_text && <section><h4 className="type-item-title">확인할 때</h4><p className="type-body type-long-body mt-2">{item.trigger_text}</p></section>}
+          {item.trigger_text && <section><h4 className="type-item-title">확인할 때</h4><MarkdownContent className="mt-2" content={item.trigger_text} /></section>}
           <ReadOnlyField label="일정" value={`${scheduleSummary(item)}${item.recurrence_start_on ? ` · ${formatDate(item.recurrence_start_on)}부터` : ''}`} />
           {item.tags?.length > 0 && <section><h4 className="mb-2 text-xs font-semibold text-[var(--muted-ink)]">태그</h4><div className="flex flex-wrap gap-2">{item.tags.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)}</div></section>}
         </div>

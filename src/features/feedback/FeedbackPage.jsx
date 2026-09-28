@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createRequestGate } from '../../lib/requestGate'
 import { FilterChips, ViewTabs } from '../../components/PageControls'
 import { ConfirmDialog } from '../../components/ModalShell'
+import ListItemAction from '../../components/ListItemAction'
 import {
   deleteMyProductFeedback,
   fetchMyProductFeedback,
@@ -81,7 +82,7 @@ function FeedbackCard({ item, onDeleted, onSaved, supabase }) {
       {error && !confirmDelete && <p className="type-secondary mt-3 text-red-300" role="alert">{error}</p>}
       <div className="mt-4 flex flex-wrap justify-end gap-2">
         {editing ? <><button className="min-h-11 rounded-xl border border-[var(--line)] px-4" disabled={pending} onClick={() => { setDraft(item.body); setEditing(false); setError('') }} type="button">취소</button><button className="min-h-11 rounded-xl bg-[var(--accent)] px-4 font-semibold text-white disabled:opacity-50" disabled={pending || !draft.trim() || draft.trim() === item.body} onClick={save} type="button">저장</button></>
-          : <><button className="min-h-11 rounded-xl border border-[var(--line)] px-4" onClick={() => { setDraft(item.body); setEditing(true); setError('') }} type="button">수정</button><button className="min-h-11 rounded-xl border border-red-400/40 px-4 text-red-200" onClick={() => { setError(''); setConfirmDelete(true) }} type="button">삭제</button></>}
+          : <><ListItemAction kind="edit" label="피드백 편집" onClick={() => { setDraft(item.body); setEditing(true); setError('') }} /><button className="min-h-11 rounded-xl border border-red-400/40 px-4 text-red-200" onClick={() => { setError(''); setConfirmDelete(true) }} type="button">삭제</button></>}
       </div>
     </article>
   )

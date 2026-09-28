@@ -1,51 +1,32 @@
-function InlineMarkdown({ text }) {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^\s)]+\))/g)
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) return <strong className="font-semibold" key={index}>{part.slice(2, -2)}</strong>
-    if (part.startsWith('`') && part.endsWith('`')) return <code className="rounded bg-[var(--surface-2)] px-1 py-0.5" key={index}>{part.slice(1, -1)}</code>
-    const link = part.match(/^\[([^\]]+)\]\(([^\s)]+)\)$/)
-    if (link) {
-      try {
-        const url = new URL(link[2])
-        if (['http:', 'https:'].includes(url.protocol)) return <a className="text-[var(--accent)] underline" href={url.href} key={index} rel="noreferrer" target="_blank">{link[1]}</a>
-      } catch { /* Unsafe or relative URLs remain plain text. */ }
-    }
-    return part
-  })
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+
+function webUrl(value) {
+  try {
+    const url = new URL(value)
+    return ['https:', 'http:'].includes(url.protocol) ? url.href : null
+  } catch { return null }
+}
+
+const components = {
+  h1: ({ children }) => <h1 className="type-section-title break-words">{children}</h1>,
+  h2: ({ children }) => <h2 className="type-item-title break-words">{children}</h2>,
+  h3: ({ children }) => <h3 className="type-item-title break-words">{children}</h3>,
+  p: ({ children }) => <p className="break-words">{children}</p>,
+  ul: ({ children }) => <ul className="list-disc space-y-1 pl-5">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal space-y-1 pl-5">{children}</ol>,
+  blockquote: ({ children }) => <blockquote className="border-l-2 border-[var(--line)] pl-3 text-[var(--muted-ink)]">{children}</blockquote>,
+  pre: ({ children }) => <pre className="max-w-full overflow-x-auto rounded-xl bg-[var(--surface-2)] p-3 font-mono text-sm">{children}</pre>,
+  code: ({ children, className }) => <code className={className ?? 'rounded bg-[var(--surface-2)] px-1'}>{children}</code>,
+  table: ({ children }) => <div className="max-w-full overflow-x-auto"><table className="w-max min-w-full border-collapse text-left">{children}</table></div>,
+  th: ({ children }) => <th className="border border-[var(--line)] px-2 py-1 type-label">{children}</th>,
+  td: ({ children }) => <td className="border border-[var(--line)] px-2 py-1">{children}</td>,
+  a: ({ href, children }) => webUrl(href) ? <a className="break-all text-[var(--accent)] underline" href={webUrl(href)} rel="noopener noreferrer" target="_blank">{children}</a> : <span>{children}</span>,
+  img: ({ alt, src }) => webUrl(src) ? <a className="break-all text-[var(--accent)] underline" href={webUrl(src)} rel="noopener noreferrer" target="_blank">{alt || '이미지 링크'}</a> : <span>{alt || '이미지'}</span>,
 }
 
 export default function MarkdownContent({ className = '', content }) {
-  const lines = String(content ?? '').split('\n')
-  const blocks = []
-  let list = []
-  let listType = null
-
-  function flushList() {
-    if (!list.length) return
-    const Tag = listType === 'ordered' ? 'ol' : 'ul'
-    blocks.push(<Tag className={`${listType === 'ordered' ? 'list-decimal' : 'list-disc'} space-y-1 pl-5`} key={`list-${blocks.length}`}>{list.map((item, index) => <li key={index}><InlineMarkdown text={item} /></li>)}</Tag>)
-    list = []
-    listType = null
-  }
-
-  for (const line of lines) {
-    const heading = line.match(/^(#{1,3})\s+(.+)$/)
-    const bullet = line.match(/^[-*]\s+(.+)$/)
-    const ordered = line.match(/^\d+\.\s+(.+)$/)
-    if (bullet || ordered) {
-      const nextType = ordered ? 'ordered' : 'unordered'
-      if (list.length && listType !== nextType) flushList()
-      listType = nextType
-      list.push((ordered ?? bullet)[1])
-      continue
-    }
-    flushList()
-    if (heading) {
-      const Tag = `h${heading[1].length}`
-      blocks.push(<Tag className={heading[1].length === 1 ? 'type-section-title' : 'type-item-title'} key={`heading-${blocks.length}`}><InlineMarkdown text={heading[2]} /></Tag>)
-    } else if (line.trim()) blocks.push(<p className="whitespace-pre-wrap" key={`paragraph-${blocks.length}`}><InlineMarkdown text={line} /></p>)
-  }
-  flushList()
-
-  return <div className={`type-body type-long-body grid gap-2 ${className}`}>{blocks}</div>
+  return <div className={`type-body type-long-body grid min-w-0 gap-2 ${className}`}>
+    <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>{String(content ?? '')}</ReactMarkdown>
+  </div>
 }

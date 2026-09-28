@@ -23,6 +23,8 @@ import {
 function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, mode, onSelectionHandled, onSharedViewReady, ownerUserId = null, supabase }) {
   const [error, setError] = useState('')
   const [detail, setDetail] = useState(null)
+  const [taskMode, setTaskMode] = useState('read')
+  const taskOpenedForReading = useRef(false)
   const [detailHistory, setDetailHistory] = useState([])
   const [detailLoading, setDetailLoading] = useState(false)
   const [generalEditor, setGeneralEditor] = useState(null)
@@ -34,6 +36,8 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
   const [tagManagerOpen, setTagManagerOpen] = useState(false)
   const tagManagerHistoryGuard = useRef(null)
   const [activityDetail, setActivityDetail] = useState(null)
+  const [activityMode, setActivityMode] = useState('read')
+  const activityOpenedForReading = useRef(false)
   const [activityDetailLoading, setActivityDetailLoading] = useState(false)
   const detailRequestGate = useRef(createRequestGate())
   const activityRequestGate = useRef(createRequestGate())
@@ -126,6 +130,7 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
       subject: task.subject, timezone: task.timezone,
     })
     setDetail((current) => current?.item?.id === task.id ? { ...current, item: saved } : current)
+    if (taskOpenedForReading.current) setTaskMode('read')
     setActionRefreshKey((value) => value + 1)
   }
 
@@ -135,9 +140,11 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
     setActionRefreshKey((value) => value + 1)
   }
 
-  async function openActivity(action) {
+  async function openActivity(action, mode = 'read') {
     const request = activityRequestGate.current.begin()
     activeActivityId.current = action.id
+    activityOpenedForReading.current = mode === 'read'
+    setActivityMode(mode)
     setActivityDetailLoading(true)
     setError('')
     setActivityDetail(action)
@@ -154,6 +161,7 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
 
   async function refreshActivityDetail(saved) {
     setActionRefreshKey((value) => value + 1)
+    if (activityOpenedForReading.current) setActivityMode('read')
     if (activeActivityId.current !== saved?.id) return
     const request = activityRequestGate.current.begin()
     setActivityDetail(saved)
@@ -192,6 +200,8 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
   const requestDetailClose = useDetailHistoryEntry(Boolean(detail || activityDetail), (confirmed) => {
     if (!confirmed && activityDetail && activityHistoryGuard.current?.() === false) return false
     if (!confirmed && detail && taskHistoryGuard.current?.() === false) return false
+    if (detail && taskMode === 'edit' && taskOpenedForReading.current) { setTaskMode('read'); return false }
+    if (activityDetail && activityMode === 'edit' && activityOpenedForReading.current) { setActivityMode('read'); return false }
     if (detail) dismissDetail()
     else dismissActivityDetail()
   })
@@ -200,8 +210,10 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
     setTagManagerOpen(false)
   })
 
-  async function openDetail(targetMode, id) {
+  async function openDetail(targetMode, id, viewMode = 'read') {
     const request = detailRequestGate.current.begin()
+    taskOpenedForReading.current = viewMode === 'read'
+    setTaskMode(viewMode)
     const previous = detail?.item ? detail : null
     setDetailLoading(true)
     setDetail({ mode: targetMode, item: null })
@@ -220,8 +232,8 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
     }
   }
 
-  async function openActionTask(task) {
-    return openDetail('tasks', task.id)
+  async function openActionTask(task, viewMode = 'read') {
+    return openDetail('tasks', task.id, viewMode)
   }
 
   useEffect(() => {
@@ -251,8 +263,8 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
           supabase={supabase}
         /> : null}
       </div>
-      {detail && <GeneralTaskDetail availableTags={activityTags} entry={detail} historyGuardRef={taskHistoryGuard} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onDeleteTask={ownerUserId ? null : removeTaskDetail} onRetryTags={reloadActivityTags} onSaveTask={ownerUserId ? null : saveTaskDetail} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
-      {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
+      {detail && <GeneralTaskDetail availableTags={activityTags} entry={detail} historyGuardRef={taskHistoryGuard} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onDeleteTask={ownerUserId ? null : removeTaskDetail} onEdit={() => setTaskMode('edit')} onRetryTags={reloadActivityTags} onSaveTask={ownerUserId ? null : saveTaskDetail} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} viewMode={taskMode} />}
+      {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onEdit={() => setActivityMode('edit')} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} viewMode={activityMode} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onRetryTags={reloadActivityTags} onSave={saveGeneralAction} saving={savingGeneral} supabase={supabase} tags={activityTags} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
       {tagManagerOpen && !ownerUserId && <TagManagerModal deleteImpact="기록과 할 일의 태그 연결이 해제되지만 원본 내용은 남습니다." historyGuardRef={tagManagerHistoryGuard} onClose={requestTagManagerClose} onDelete={(tag, key) => deleteActivityTag(supabase, { ...tag, idempotencyKey: key })} onRefresh={refreshManagedTags} onSave={(tag, key) => saveActivityTag(supabase, { ...tag, idempotencyKey: key })} showSearch={false} tags={activityTags} title="활동 태그 관리" />}
     </section>
