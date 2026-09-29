@@ -10,7 +10,7 @@
 4. [티켓 색인](./tickets/README.md)에서 해당 티켓과 검증 기록을 읽고 Git/GitHub 최신 상태를 확인한다.
 5. 코드 변경 전 [구조와 책임](./engineering/architecture.md). DB 작업은 [스키마 색인](../supabase/schema/OVERVIEW.md)에서 시작한다.
 
-Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 사용자 모델 선택 확인은 전환 안내가 있기 전까지 유효하다. 설계 요청을 코드 수정으로 확대하지 않는다.
+작업의 판단 난도와 영향에 따라 심층형·균형형·경량형을 권장하고 이유를 안내한다. 특정 모델명은 지정하지 않으며 사용자가 적합한 모델을 선택한다. 같은 선택을 반복 확인하지 않고, 설계 요청을 코드 수정으로 확대하지 않는다.
 
 ## 작업별 정본
 
@@ -26,7 +26,7 @@ Astra는 설계·검토·티켓, Sol은 구현·수정·검증을 담당한다. 
 
 - 활동 지식 활용 후속: [제품용 스킬·개인 플러그인 검증 인계](./design/contracts/agent/portfolio-knowledge-skill-plan.md). 사용자에게 태그/검색/기록 지시를 반복시키지 않는 흐름을 보존했다. 새 Portfolio 앱과 스킬을 하나의 개인용 플러그인 1.0.1로 통합하고 설치 목록의 중복 항목을 해제했다. 이 문서에 다음 버전의 통합 절차를 남겼다. 명시 선택 웹 대화와 플러그인을 지정하지 않은 일반 웹 대화 두 건에서 Portfolio 앱 조회가 표시됐다. 스킬 자동 선택의 독립 확인·자발적 기록 제안·동의 후 저장·실제 모바일 행동 검증은 남아 있다.
 
-- #161~#165: [활동 검색 후속 설계](./design/activity-context-search.md). [Pinecone 전환 계약](./design/activity-search-pinecone.md)의 원문 분할과 새 모델이 운영 DB·Edge·웹에 배포돼 재색인을 마쳤다. 실모델 품질 게이트는 후반부 질문 1건·무관 질문 1건에서 실패했지만, 사용자의 명시적 요청에 따라 의미 검색을 활성화했다. 인증된 운영 HTTP/OAuth와 배포 회귀 검사는 통과했고 품질 개선은 Astra 검토 대상이다. 상세 근거는 [#161](./tickets/search-01-korean-hybrid.md), [#165](./tickets/search-05-search-evidence.md), [배포 기록](./engineering/deployment.md). 실제 ChatGPT 확인과 #162~#164 후속 기능도 남아 있다.
+- #161~#165: [활동 검색 후속 설계](./design/activity-context-search.md). [Pinecone 전환 계약](./design/activity-search-pinecone.md)의 원문 분할과 새 모델이 운영 DB·Edge·웹에 배포돼 재색인을 마쳤다. 실모델 품질 게이트는 후반부 질문 1건·무관 질문 1건에서 실패했지만, 사용자의 명시적 요청에 따라 의미 검색을 활성화했다. 인증된 운영 HTTP/OAuth와 배포 회귀 검사는 통과했고 품질 개선은 심층형 검토 대상이다. 상세 근거는 [#161](./tickets/search-01-korean-hybrid.md), [#165](./tickets/search-05-search-evidence.md), [배포 기록](./engineering/deployment.md). 실제 ChatGPT 확인과 #162~#164 후속 기능도 남아 있다.
 
 - #151~#158: [도메인 CRUD 동등성 설계](./design/domain-crud-parity.md), [HTTP·OAuth 계약표](./design/contracts/agent/domain-crud-parity-matrix.md), [티켓 색인](./tickets/README.md)을 따른다. 주요 웹 HTTP/OAuth MCP 경로는 2026-09-27 운영 배포됐지만, 티켓에 적힌 전체 필드 양방향·실 ChatGPT 웹/모바일 검증은 남아 있다. 시세·환율은 직접 편집 없이 동일 가격 갱신을 호출한다.
 
