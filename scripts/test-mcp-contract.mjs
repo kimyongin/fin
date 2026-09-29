@@ -368,6 +368,11 @@ try {
   })
   const savedData = saved.body?.result?.structuredContent?.data
   assert(saved.body?.result?.isError === false && savedData?.id && savedData?.body?.includes('Insufficient data.'), `Activity save contract failed: ${JSON.stringify(saved.body?.result?.structuredContent?.error ?? savedData)}`)
+  const recentActivity = await call(session.access_token, 'tools/call', { name: 'list_recent_activity', arguments: { limit: 1 } })
+  const recentContent = recentActivity.body?.result?.structuredContent
+  assert(recentActivity.body?.result?.isError === false && recentContent?.ok === true &&
+    !Array.isArray(recentContent) && Array.isArray(recentContent.data) && recentContent.data[0]?.id === savedData.id,
+  'Recent activity MCP result must wrap the latest activity in a structured object')
   const revised = await call(session.access_token, 'tools/call', { name: 'update_activity', arguments: {
     schema_version: 1, activity_id: savedData.id, expected_version: savedData.version,
     idempotency_key: crypto.randomUUID(), patch: { body: 'Corrected contract test body' }, tag_ids: [],
