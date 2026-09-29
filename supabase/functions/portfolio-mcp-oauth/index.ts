@@ -333,7 +333,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async list_recent_activity(supabase, args) {
     const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100)
-    return await rpc(supabase, 'app_list_recent_activity', { limit_count: limit })
+    return { ok: true, data: await rpc(supabase, 'app_list_recent_activity', { limit_count: limit }) }
   },
   async submit_product_feedback(supabase, args) {
     requireSchemaVersion(args)
