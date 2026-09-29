@@ -12,9 +12,7 @@ import {
   productFeedbackToolNames,
   sharingToolNames,
   tradeEntryToolNames,
-  workflowGuideToolNames,
 } from './portfolio-tools.ts'
-import { getWorkflowGuide, renderWorkflowGuideMarkdown, validateWorkflowGuides, workflowGuideTopics } from './workflow-guides.ts'
 
 function tool(name: string) {
   const definition = portfolioToolDefinitions.find((item) => item.name === name)
@@ -36,7 +34,6 @@ describe('portfolio MCP tool definitions', () => {
     expect(holdingIntegrityToolNames.every((name) => names.includes(name))).toBe(true)
     expect(productFeedbackToolNames.every((name) => names.includes(name))).toBe(true)
     expect(sharingToolNames.every((name) => names.includes(name))).toBe(true)
-    expect(workflowGuideToolNames.every((name) => names.includes(name))).toBe(true)
   })
 
   it('separates planned general tasks from reported completed activity', () => {
@@ -58,35 +55,8 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('list_due_general_tasks').annotations.readOnlyHint).toBe(true)
   })
 
-  it('publishes a self-contained read-only policy workflow guide', () => {
-    const definition = tool('get_workflow_guide')
-    expect(definition.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: true })
-    expect((definition.inputSchema as any).properties.topic.enum).toEqual(workflowGuideTopics)
-    const guide = getWorkflowGuide('policy')!
-    expect(guide.revision).toMatch(/^fnv1a32:[0-9a-f]{8}$/)
-    expect(guide.steps[0].tools).toEqual(['list_principles'])
-    expect(guide.steps.at(-1)?.tools).toContain('delete_principle_row')
-    expect(guide.boundaries.join(' ')).toContain('never changes allocation targets')
-    expect(guide).not.toHaveProperty('source_paths')
-    expect(validateWorkflowGuides(portfolioToolDefinitions.map((item) => item.name))).toBeTruthy()
-  })
-
-  it('rejects guides that reference tools outside the advertised registry', () => {
-    expect(() => validateWorkflowGuides(['get_workflow_guide'])).toThrow('references unknown tools')
-  })
-
-  it('publishes every reviewed multi-step topic from one validated guide registry', () => {
-    expect(workflowGuideTopics).toEqual([
-      'assets', 'policy', 'holding_thesis', 'daily_review', 'decision_followup', 'trade_entry', 'reconciliation', 'todo', 'activity_report', 'product_feedback', 'sharing',
-    ])
-    for (const topic of workflowGuideTopics) {
-      const guide = getWorkflowGuide(topic)!
-      expect(guide.steps.length).toBeGreaterThanOrEqual(5)
-      expect(guide.boundaries.length).toBeGreaterThanOrEqual(3)
-      expect(guide.recovery.length).toBeGreaterThanOrEqual(2)
-      expect(renderWorkflowGuideMarkdown(topic)).toContain(`Revision: ${guide.revision}`)
-    }
-    expect(renderWorkflowGuideMarkdown('daily_review')).toContain('get_daily_context')
+  it('does not advertise the retired workflow guide', () => {
+    expect(portfolioToolDefinitions.map((item) => item.name)).not.toContain('get_workflow_guide')
   })
 
   it('keeps product feedback consent-based and operationally scoped', () => {
@@ -96,7 +66,6 @@ describe('portfolio MCP tool definitions', () => {
     expect(list.annotations.readOnlyHint).toBe(true)
     expect((submit.inputSchema as any).properties.context.additionalProperties).toBe(false)
     expect(submit.description).toContain('first summarize one proposed feedback item and ask once')
-    expect(getWorkflowGuide('product_feedback')?.boundaries.join(' ')).toContain('cannot guarantee')
   })
 
   it('advertises destructive operations and unsaved previews with accurate hints', () => {
@@ -111,7 +80,6 @@ describe('portfolio MCP tool definitions', () => {
     }
     expect(tool('sync_prices').annotations.openWorldHint).toBe(true)
     expect((tool('sync_prices').inputSchema as any).properties).toEqual({ schema_version: { const: 1 } })
-    expect(getWorkflowGuide('sharing')?.related_tools).toEqual([...sharingToolNames])
   })
 
   it('labels current context as a read-only operation', () => {
@@ -134,7 +102,6 @@ describe('portfolio MCP tool definitions', () => {
     expect(tool('search_activities').annotations.readOnlyHint).toBe(true)
     expect(tool('record_manual_activity').annotations.idempotentHint).toBe(true)
     expect((tool('save_general_task').inputSchema as any).properties).not.toHaveProperty('origin_activity_id')
-    expect(getWorkflowGuide('decision_followup')?.steps.map((step) => step.tools).flat()).toContain('record_manual_activity')
     expect(portfolioToolDefinitions.map((definition) => definition.name)).not.toContain('record_investment_decision')
   })
 
@@ -175,7 +142,6 @@ describe('portfolio MCP tool definitions', () => {
     expect(names).not.toContain('save_investment_policy')
     expect(names).toContain('list_principles')
     expect(names).toContain('save_principle')
-    expect(getWorkflowGuide('policy')?.steps[0].tools).toEqual(['list_principles'])
   })
 
   it('uses principles instead of a parallel operating-rule API', () => {
@@ -183,17 +149,12 @@ describe('portfolio MCP tool definitions', () => {
     expect(names).not.toContain('list_operating_rules')
     expect(names).not.toContain('save_operating_rule')
     expect(names).not.toContain('archive_operating_rule')
-    expect(getWorkflowGuide('reconciliation')?.steps[0].tools).toEqual(['list_principles'])
   })
 
   it('advertises unified action tasks instead of legacy ToDo bundles', () => {
     const names = portfolioToolDefinitions.map((definition) => definition.name)
     expect(names).not.toContain('save_todo_bundle')
     expect(names).not.toContain('list_todo_bundles')
-    const guide = getWorkflowGuide('todo')!
-    expect(guide.related_tools).toContain('save_general_task')
-    expect(guide.related_tools).toContain('record_manual_activity')
-    expect(guide.boundaries.join(' ')).toContain('Legacy ToDo bundle tools and storage are retired')
   })
 
   it('removes the parallel holding thesis tools', () => {
@@ -207,7 +168,6 @@ describe('portfolio MCP tool definitions', () => {
     const names = portfolioToolDefinitions.map((definition) => definition.name)
     expect(names).not.toContain('list_private_holding_notes')
     expect(names).not.toContain('save_private_holding_note')
-    expect(getWorkflowGuide('holding_thesis')?.related_tools).toContain('update_entity_note')
   })
 
   it('separates trade preview, confirmation, and brokerage actions', () => {

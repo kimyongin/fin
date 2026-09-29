@@ -22,3 +22,5 @@
 - [x] 설명/schema/annotations/handler/topic/manifest 정합성, workflow 검사·encoding 통과. Edge 타입 검사는 로컬 Deno 부재로 독립 E2E Edge 실행과 CI 검증에 맡김.
 
 실제 클라이언트 미평가는 별도 미완료로 남긴다. 자동 접수/예약 분석/GitHub 자동 발행은 제외한다.
+
+2026-09-29 안내 전환: 위 가이드 도구 관련 구현·검증은 당시 기록이다. 후속 작업에서 `get_workflow_guide`나 전용 검사를 복원하지 않는다. 현재 작업 지침은 [agent-01](./agent-01-workflow-guide-to-skill.md)의 Portfolio 스킬·참고 문서와 도구 description을 함께 갱신한다.

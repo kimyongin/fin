@@ -2,6 +2,10 @@
 
 티켓은 목적·계약·검증 근거의 원본이다. OPEN/CLOSED만으로 구현·배포 상태를 추정하지 않는다. 최신 원격 본문과 작업 트리를 함께 확인한다.
 
+## Portfolio 스킬 통합
+
+[agent-01 MCP 작업 가이드 제거와 Portfolio 스킬 통합](./agent-01-workflow-guide-to-skill.md) · 플러그인 1.1.2와 OAuth 서버 배포 완료, @포트폴리오 웹 핵심 흐름 확인, 모바일·일부 행동 검증 대기. [전환 계약](../design/contracts/agent/portfolio-skill-migration.md)과 [PR #169](https://github.com/kimyongin/fin/pull/169)을 따른다.
+
 ## 목록의 보기·편집 텍스트 전환
 
 [#170](https://github.com/kimyongin/fin/issues/170) · [표현·정렬·줄바꿈·적용표·검증](./ui-36-text-list-actions.md) · [공통 가이드](../design/list-interaction-guidelines.md). 로컬·CI 전체 검증과 운영 배포 완료, 수동 확대·실기기 확인 대기. #167의 문서/연필을 제목 옆 `보기 · 편집` 텍스트로 바꾸고 글자 기준선 정렬, 좁은 폭에서 묶음 단위 줄바꿈, 투명한 기본/호버 표현을 통일했다. 기존 권한·마크다운 읽기·44px 누름 영역·초점 복귀는 유지한다.

@@ -22,7 +22,7 @@
 
 명시적인 등록 요청 또는 제시한 요약에 대한 동의가 저장 근거다. 대상이 충분히 명확하면 별도 양식이나 재승인을 요구하지 않는다. 대화에 없는 재현 조건·근본 원인·기대 동작을 만들어내지 않는다. 피드백 동의는 투자 데이터 변경이나 GitHub 원문 공개 동의가 아니다. 성공 응답 전 접수 완료를 선언하지 않는다.
 
-MCP는 ChatGPT 대화를 상시 관찰하거나 자발적 제안을 강제할 수 없다. server instructions와 self-contained 도구 설명에 짧은 제안·동의 규칙을 두고, `get_workflow_guide(topic=product_feedback)`로 상세 흐름을 제공한다. 모든 투자 가이드에 본문을 복제하거나 매번 가이드 조회를 요구하지 않는다. 자발적 제안의 작동 여부는 실제 웹·모바일 평가로 기록한다.
+MCP는 ChatGPT 대화를 상시 관찰하거나 자발적 제안을 강제할 수 없다. server instructions와 self-contained 도구 설명에 짧은 제안·동의 규칙을 두고, Portfolio 스킬의 `references/product-feedback.md`로 상세 흐름을 제공한다. 스킬은 해당 요청의 참고 문서만 읽으며 모든 투자 검토에 피드백 절차를 붙이지 않는다. 자발적 제안의 작동 여부는 실제 웹·모바일 평가로 기록한다.
 
 ## 구현된 모델/API 계약
 
@@ -46,7 +46,7 @@ MCP는 ChatGPT 대화를 상시 관찰하거나 자발적 제안을 강제할 �
 
 ## 최신화와 검증
 
-런타임 안내는 기존 workflow-guides.ts/portfolio-tools.ts에서 관리한다. topic·tool 의존성·review manifest·schema·handler·테스트를 같은 변경에서 갱신하고 check:workflow-guides를 통과시킨다. 구현 전 미지원 도구를 런타임에 광고하지 않는다.
+제품 절차는 plugins/portfolio/skills/portfolio, 도구 계약은 portfolio-tools.ts에서 관리한다. 영향받는 스킬·도구 schema·handler·관련 테스트를 같은 변경에서 갱신한다. 구현 전 미지원 도구를 런타임에 광고하지 않는다.
 
 F01 앱 자유 입력/실패 복구, F02 명시적 채팅 등록, F03 제안 동의/거절/무응답, F04 반복 권유·모델 추정·투자 이슈 오분류, F05 응답 유실/중복, F06 작성자/운영자/타인/익명 권한, F07 처리 결과 앱/MCP 조회, F08 기능 변경 시 가이드 동기화를 검증한다. 실제 모델 평가는 자동 API 검사와 별도로 기록한다.
 

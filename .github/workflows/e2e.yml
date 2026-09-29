@@ -34,9 +34,6 @@ jobs:
       - name: Run unit tests
         run: npm test
 
-      - name: Check MCP workflow guides
-        run: npm run check:workflow-guides
-
       - name: Check Edge Functions
         run: npm run check:edge
 

@@ -21,7 +21,7 @@
 ## 판정 및 배포 게이트
 
 - `portfolio-tools.test.ts`가 모든 삭제/초기화 도구의 destructiveHint와 미저장 preview의 readOnlyHint를 검사한다. `test-mcp-contract.mjs`는 실제 OAuth initialize → tools/list → tools/call을 사용한다. 문서/코드의 도구 존재만으로 완료 판정하지 않는다.
-- 로컬 `npm run test:db`, `npm run test`, `npm run check:workflow-guides`, Deno check, build, `npm run test:e2e` 결과를 해당 티켓에 적는다. 환경별 호환 증거는 별개다.
+- 로컬 `npm run test:db`, `npm run test`, Deno check, build, `npm run test:e2e` 결과를 해당 티켓에 적는다. 환경별 호환 증거는 별개다.
 - 운영은 DB 마이그레이션 → Edge 함수 → 웹 순으로 적용한다. 사전 백업·적용 목록·RPC 권한을 확인하고, 부분 배포 시 새 클라이언트가 안전한 이전 경로를 쓰는지 검증한다. 운영 DB에서 파괴 CRUD를 시험하지 않는다.
 - 운영 OAuth `/functions/v1/portfolio-mcp-oauth`의 initialize/tools/list 및 실제 호출을 배포 버전과 대조한다. ChatGPT에 오래된 도구가 보이면 연결 URL과 배포를 먼저 확인한 뒤 도구 목록 재조회/재연결을 안내한다. 서버 미배포를 캐시 문제라고 단정하지 않는다.
 - 운영 DB/Edge/웹 및 ChatGPT 웹·모바일의 실측 결과가 없으므로 이 표는 배포 완료 증거가 아니다. 원격 데이터 삭제나 사용자 데이터 테스트는 별도 승인 없이 하지 않는다.

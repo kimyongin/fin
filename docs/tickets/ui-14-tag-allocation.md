@@ -89,3 +89,5 @@ GitHub: https://github.com/kimyongin/fin/issues/121
 로컬 검증: `npm test` 114개 통과, `npm run build` 및 `npm run check:encoding` 통과. 실제 데모 포트폴리오의 다섯 태그 비중이 범례와 기존 목록의 현재 비중에 일치함을 브라우저에서 확인했다. 브라우저 CSS 폭 360/390/767/1023/1440px에서 차트 표시와 가로 넘침 없음도 확인했다. 시세 누락·미분류·빈 포트폴리오와 실기기 시각 검증은 별도 확인이 남았다.
 
 운영 배포: `2643e20` 차트 커밋과 `2cf700c` 날짜 고정 E2E 보정을 푸시했다. [검증·웹 게시](https://github.com/kimyongin/fin/actions/runs/36293839875)에서 Chromium 84건 포함 전체 게이트 통과, [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36294146980) 성공. 공개 번들 HTTP 200과 차트 코드 포함을 확인했다. 새 DB migration/MCP 배포는 없으며, 운영 사용자·실기기 화면 확인은 남았다.
+
+2026-09-29 안내 전환: 위 가이드 도구 관련 구현·검증은 당시 기록이다. 후속 작업에서 `get_workflow_guide`나 전용 검사를 복원하지 않는다. 현재 작업 지침은 [agent-01](./agent-01-workflow-guide-to-skill.md)의 Portfolio 스킬·참고 문서와 도구 description을 함께 갱신한다.

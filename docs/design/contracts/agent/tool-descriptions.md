@@ -6,7 +6,7 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 
 ## 설명 작성 형식
 
-각 description은 ‘언제 사용 → 선행 입력/조회 → 하는 일 → 하지 않는 일 → 실패 시 다음 행동’ 순서로 짧게 작성한다. 필드 단위 형식/단위는 schema description에 둔다. 가이드 조회가 실패해도 위험한 오용을 막을 핵심 경계는 생략하지 않는다. read-only/idempotent 등의 메타데이터는 실제 부수 효과와 비교하며 안전성을 보증하는 권한으로 쓰지 않는다.
+각 description은 ‘언제 사용 → 선행 입력/조회 → 하는 일 → 하지 않는 일 → 실패 시 다음 행동’ 순서로 짧게 작성한다. 필드 단위 형식/단위는 schema description에 둔다. 스킬이 선택되지 않아도 위험한 오용을 막을 핵심 경계는 생략하지 않는다. read-only/idempotent 등의 메타데이터는 실제 부수 효과와 비교하며 안전성을 보증하는 권한으로 쓰지 않는다.
 
 ## 현 OAuth 작업 트리에서 확인한 도구
 
@@ -14,7 +14,7 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 
 | 이름 / 상태 | description 후보 | 가이드 |
 | --- | --- | --- |
-| get_workflow_guide / observed-local | 복합 Portfolio 작업 전에 현재 단계·질문·경계·복구 규칙을 topic별로 읽습니다. 사용자 데이터를 조회하거나 작업을 실행하지 않습니다. | W01~W09 |
+| get_workflow_guide / retired-local | 스킬 전환으로 로컬에서 제거했다. 운영 배포 여부는 agent-01을 따른다. | 이력 |
 | get_profile / observed-local | 인증된 Portfolio 계정 프로필을 읽습니다. 투자 성향이나 투자 원칙 조회가 아닙니다. | W01 |
 | get_portfolio_state / observed-local | 본인의 계좌·보유·등록 종목(0보유 포함)·태그·저장 시세와 배분 대상/제외 평가 요약을 읽습니다. 보유별 `include_in_allocation=false`는 배분·리밸런싱 제안에서 제외하지만 전체 자산에서 제외하지 않습니다. 등록 종목이 실제 보유라는 뜻은 아닙니다. 증권사 실시간 잔고나 확인 완료를 뜻하지 않습니다. | W01,W05 |
 | find_holdings / observed-local | 티커·종목명·계좌명으로 본인의 보유 후보와 보유별 배분 포함 설정을 찾습니다. 여러 결과가 나오면 변경 전에 대상을 확인하세요. | W05,W06 |
@@ -72,7 +72,7 @@ revision 13 · 설명 카탈로그. 스키마/annotations의 코드 원본은 `s
 
 2026-09-21: 아래 최초 계약안은 [현재 설계](./workflow-guide-design.md)와 #63~#65로 구체화했다. 2026-09-22 로컬 registry에는 product_feedback과 activity_report를 포함한 아홉 topic이 등록되어 있다. 운영 배포와 모델 평가는 남아 있으며 아래 문구는 과거 검토 기록이다.
 
-`get_workflow_guide` / observed-local / read-only: topic은 daily_review, policy, holding_thesis, decision_followup, trade_entry, reconciliation, todo, activity_report, product_feedback 중 하나. 출력은 guide_id/revision, 실제 사용 가능한 도구에 한정한 steps, 금지 부수 효과, 오류 후 다음 행동, unavailable_steps다. 사용자별 데이터나 저장 기능이 없다. unknown topic은 validation_error.
+`get_workflow_guide` / retired-local: 스킬 통합으로 제거했다. 새 tools/list에 없으며 캐시된 tools/call은 기존 unknown-tool 오류(-32602)를 받는다. 운영 제거 배포는 agent-01에 기록한다.
 
 설명 후보: ‘여러 단계가 필요한 Portfolio 작업의 사용 순서와 주의점을 읽습니다. 간단한 조회마다 호출할 필요는 없습니다. 가이드는 기능을 실행하거나 사용자 승인을 대신하지 않습니다.’
 
