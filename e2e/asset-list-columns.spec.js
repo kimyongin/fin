@@ -66,7 +66,7 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
   const list = page.getByRole('region', { name: '자산 종목' })
   const header = list.getByText('종목', { exact: true }).locator('..')
   const row = list.getByRole('button', { name: new RegExp(name) })
-  const rowValues = row.locator('..').locator(':scope > div')
+  const rowValues = row.locator('xpath=../../..')
   await expect(row).toBeVisible()
   await expect(rowValues.locator('.type-meta').first()).toHaveText(`${tag.name} · ${ticker}`)
   await expect.poll(() => list.locator('[data-asset-row]').evaluateAll((items, tickers) => items.findIndex((item) => item.dataset.ticker === tickers[0]) < items.findIndex((item) => item.dataset.ticker === tickers[1]), [ticker, cashTicker])).toBe(true)
@@ -81,25 +81,30 @@ test('aligns asset list headers and values across screen sizes', async ({ page }
   await expect(list).toContainText(/1 USD = 1,400원 \(\d{4}-\d{2}-\d{2}\)/)
   await expect(rowValues.getByText('2026-09-24')).toHaveCount(0)
   const valuationRow = list.getByRole('button', { name: /직접 평가 자산/ })
-  await expect(valuationRow.locator('..').getByText('평가형')).toBeVisible()
-  await expect(valuationRow.locator('..').getByText(/매입.*100,000/)).toBeVisible()
-  await expect(valuationRow.locator('..').getByText(/현재가/)).toHaveCount(0)
+  await expect(valuationRow.locator('xpath=../../..').getByText('평가형')).toBeVisible()
+  await expect(valuationRow.locator('xpath=../../..').getByText(/매입.*100,000/)).toBeVisible()
+  await expect(valuationRow.locator('xpath=../../..').getByText(/현재가/)).toHaveCount(0)
   const cashRow = list.getByRole('button', { name: /현금 잔액/ })
-  await expect(cashRow.locator('..').getByText('현금성')).toBeVisible()
-  await expect(cashRow.locator('..').getByText(/평균가|현재가/)).toHaveCount(0)
+  await expect(cashRow.locator('xpath=../../..').getByText('현금성')).toBeVisible()
+  await expect(cashRow.locator('xpath=../../..').getByText(/평균가|현재가/)).toHaveCount(0)
   const missingRow = list.getByRole('button', { name: /시세 없는 종목/ })
-  await expect(missingRow.locator('..').getByText('평가 불가')).toBeVisible()
-  await expect(missingRow.locator('..')).toContainText('—')
+  await expect(missingRow.locator('xpath=../../..').getByText('평가 불가')).toBeVisible()
+  await expect(missingRow.locator('xpath=../../..')).toContainText('—')
   await page.evaluate(() => document.fonts.ready)
 
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
-    const aligned = await Promise.all([header, rowValues].map((item) => item.evaluate((element) =>
-      [...element.children].map((child) => child.getBoundingClientRect().left),
-    )))
-    expect(aligned[0]).toHaveLength(3)
-    expect(aligned[1]).toHaveLength(3)
-    aligned[0].forEach((left, index) => expect(Math.abs(left - aligned[1][index])).toBeLessThan(1))
+    if (width >= 640) {
+      await expect(header).toBeVisible()
+      const aligned = await Promise.all([header, rowValues].map((item) => item.evaluate((element) =>
+        [...element.children].map((child) => child.getBoundingClientRect().left),
+      )))
+      expect(aligned[0]).toHaveLength(3)
+      expect(aligned[1]).toHaveLength(3)
+      aligned[0].forEach((left, index) => expect(Math.abs(left - aligned[1][index])).toBeLessThan(1))
+    } else {
+      await expect(header).toBeHidden()
+    }
     expect(await rowValues.evaluate((element) => [...element.children].every((cell) => cell.scrollWidth <= cell.clientWidth + 1))).toBe(true)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     const typography = await rowValues.evaluate((element) => {

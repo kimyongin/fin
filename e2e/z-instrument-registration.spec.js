@@ -12,7 +12,7 @@ test('registers a valuation instrument without creating an account', async ({ pa
   await registration.getByLabel('종목명').fill('계좌 없는 평가 자산')
   await registration.getByRole('button', { name: '등록' }).click()
   const row = page.getByRole('button', { name: /계좌 없는 평가 자산 자산 편집/ })
-  await expect(row.locator('..')).toContainText('보유 없음')
+  await expect(row.locator('xpath=../../..')).toContainText('보유 없음')
   await row.click()
   await expect(page.getByRole('dialog', { name: '계좌 없는 평가 자산' }).getByText(/계좌를 추가해 주세요/)).toBeVisible()
   const after = await callRpc(page, 'app_get_portfolio_state', { input_owner_user_id: null })

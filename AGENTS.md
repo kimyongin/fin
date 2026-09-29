@@ -18,6 +18,8 @@
 
 Before code changes, read `docs/engineering/architecture.md` for placement and responsibilities and `docs/engineering/development.md` for environment/test/deployment safety. `npm run test:db` targets the ordinary local Supabase instance; `npm run test:e2e` owns and resets only the isolated `.e2e` instance. Neither command targets the linked remote database. Keep development-agent instructions separate from product MCP-agent instructions in `docs/design/contracts/agent/`.
 
+Before pushing a change for deployment, run the relevant tests locally, including the affected browser E2E for UI changes; run the full local E2E suite for cross-screen or release-wide changes. CI is a final independent gate, not the first place to discover an untested UI regression. If the current `.e2e` instance contains data or untracked files to preserve, use a clean isolated checkout for local E2E instead of resetting it. Record the commands, results, and any unverified scope before push; do not claim deployment verification when local required tests were skipped.
+
 # Text Encoding
 
 - Treat every repository text file as UTF-8 without a BOM and use LF line endings.

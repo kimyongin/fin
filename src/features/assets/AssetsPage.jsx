@@ -10,7 +10,7 @@ import { exchangeRatesForPositions } from './exchangeRates'
 import ListItemAction from '../../components/ListItemAction'
 
 const actionControl = 'type-action min-h-11 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3'
-const holdingColumns = 'grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-2 sm:gap-x-4'
+const holdingColumns = 'grid grid-cols-2 gap-x-2 gap-y-2 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] sm:gap-x-4'
 const exchangeRateFormatter = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 4 })
 
 function scopedRows(positions, instruments, accountId, latestPriceByTicker) {
@@ -141,20 +141,19 @@ export default function AssetsPage({
         {!rows.length ? <div className="grid gap-3 p-5 text-sm"><p>{selectedAccount ? '이 계좌에 보유한 종목이 없습니다. 전체 계좌에서 종목을 선택해 보유를 추가할 수 있습니다.' : '아직 등록한 종목이 없습니다.'}</p>{canEdit && <button className={actionControl} onClick={selectedAccount ? () => onSelectedAccountIdChange('all') : onCreateInstrument} type="button">{selectedAccount ? '전체 계좌 보기' : '종목 추가'}</button>}</div>
           : !visibleRows.length ? <div className="flex flex-wrap items-center justify-between gap-2 p-5"><p className="type-secondary text-[var(--muted-ink)]">조건에 맞는 종목이 없습니다.</p><button className={actionControl} onClick={() => { setSelectedTags([]); onQueryChange('') }} type="button">검색·태그 해제</button></div>
           : <div className="divide-y divide-[var(--line)]">
-            <div className="list-column-header type-label flex min-w-0 items-center gap-2 px-3 text-[var(--muted-ink)] sm:px-4">
-              <div className={`${holdingColumns} min-w-0 flex-1`}><span>종목</span><span className="text-right">보유</span><span className="text-right">평가</span></div><span aria-hidden="true" className="w-11 shrink-0" />
+            <div className="list-column-header type-label hidden min-w-0 items-center px-3 text-[var(--muted-ink)] sm:flex sm:px-4">
+              <div className={`${holdingColumns} w-full`}><span>종목</span><span className="text-right">보유</span><span className="text-right">평가</span></div>
             </div>
-            {visibleRows.map((row, index) => <div className="flex min-w-0 items-start gap-2 px-3 py-3 sm:px-4" key={row.ticker}>
-              <div className={`${holdingColumns} min-w-0 flex-1 items-start`}>
-              <span className="min-w-0"><strong className="type-item-title block break-words">{row.display_name ?? row.ticker}</strong><span className="type-meta block break-words text-[var(--muted-ink)]">{tagMapByTicker.get(row.ticker)?.name ?? '태그 없음'} · {row.ticker}{accountId === 'all' && row.accountCount > 1 ? ` · ${row.accountCount}개 계좌` : ''}</span></span>
-              <span className="min-w-0 text-right">{row.instrument_type === 'market' ? <>
+            {visibleRows.map((row, index) => <div className="min-w-0 px-3 py-3 sm:px-4" key={row.ticker}>
+              <div className={`${holdingColumns} min-w-0 items-start`}>
+              <span className="col-span-2 min-w-0 sm:col-span-1"><span className="list-item-title-line"><strong className="list-item-title type-item-title">{row.display_name ?? row.ticker}</strong>{' '}<ListItemAction data-asset-row data-ticker={row.ticker} kind={canEdit ? 'edit' : 'read'} label={`${row.display_name ?? row.ticker} 자산 ${canEdit ? '편집' : '보기'}`} onClick={() => { openedIndex.current = index; setSelectedTicker(row.ticker) }} /></span><span className="type-meta block break-words text-[var(--muted-ink)]">{tagMapByTicker.get(row.ticker)?.name ?? '태그 없음'} · {row.ticker}{accountId === 'all' && row.accountCount > 1 ? ` · ${row.accountCount}개 계좌` : ''}</span></span>
+              <span className="min-w-0 text-left sm:text-right">{row.instrument_type === 'market' ? <>
                 <strong className="type-value type-number block break-words"><span className="sr-only">수량 </span>{formatNumber(row.quantity)}</strong>
                 <span className="type-secondary type-number block break-words text-[var(--muted-ink)]">평균가 {formatUnitPrice(row.avgCost, row.currency)}</span>
                 <span className="type-secondary type-number block break-words text-[var(--muted-ink)]">현재가 {formatUnitPrice(row.latestPrice, row.currency)}</span>
               </> : <><strong className="type-value block">{row.accountCount === 0 ? '보유 없음' : row.instrument_type === 'valuation' ? '평가형' : '현금성'}</strong>{row.accountCount > 0 && row.instrument_type === 'valuation' && <span className="type-secondary type-number block break-words text-[var(--muted-ink)]">매입 {formatUnitPrice(row.cost_basis_native, row.currency)}</span>}</>}</span>
               {row.accountCount === 0 ? <span className="type-number text-right"><strong className="type-value block">{formatMoney(0, row.currency)}</strong><span className="type-secondary text-[var(--muted-ink)]">—</span></span> : <PositionValue row={row} />}
               </div>
-              <ListItemAction data-asset-row data-ticker={row.ticker} kind={canEdit ? 'edit' : 'read'} label={`${row.display_name ?? row.ticker} 자산 ${canEdit ? '편집' : '읽기'}`} onClick={() => { openedIndex.current = index; setSelectedTicker(row.ticker) }} />
             </div>)}
             {(hasMarketRows || exchangeRates.length > 0) && <div className="type-secondary grid gap-1 px-3 py-3 text-[var(--muted-ink)] sm:px-4">
               {hasMarketRows && <p>{latestQuoteDate ? `가장 최근 시세 기준일 ${latestQuoteDate} · ` : '시세 기준일 없음 · '}수익률은 평균가 대비 현재가 기준이며 수수료·세금·배당·환율 변동은 반영하지 않습니다.</p>}

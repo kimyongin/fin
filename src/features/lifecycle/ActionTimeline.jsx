@@ -10,7 +10,7 @@ import CalendarDateField from '../../components/CalendarDateField'
 import { businessDate } from '../../lib/businessDate'
 import { scheduleSummary } from './TaskScheduleFields'
 import GeneralTaskListActions from './GeneralTaskListActions'
-import ListItemAction from '../../components/ListItemAction'
+import { ListItemActions } from '../../components/ListItemAction'
 import { markdownPreview } from '../../lib/markdownPreview'
 
 function statusLabel(task) {
@@ -213,7 +213,7 @@ export default function ActionTimeline({ availableTags = [], canManageTags = tru
           const noun = isActivity ? '기록' : '할 일'
           const canEdit = !ownerUserId && (isActivity || item.task_status === 'open')
           return <article className="min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4" key={`${item.record_type}-${item.record_id}`}>
-            <div className="flex min-w-0 flex-wrap items-start gap-2"><div className="min-w-0 flex-1"><span className="type-meta text-[var(--muted-ink)]">{isActivity ? '기록' : item.record_state === 'todo' ? '할 일' : '종료된 할 일'}{item.due_date ? ` · ${item.due_date}` : ''}</span><h4 className="type-item-title mt-2 break-words">{item.title}</h4></div><div className="ml-auto flex shrink-0 gap-2"><ListItemAction kind="read" label={`${noun} 읽기: ${item.title}`} onClick={() => open('read')} />{canEdit && <ListItemAction kind="edit" label={`${noun} 편집: ${item.title}`} onClick={() => open('edit')} />}</div></div>
+            <div className="min-w-0"><span className="type-meta text-[var(--muted-ink)]">{isActivity ? '기록' : item.record_state === 'todo' ? '할 일' : '종료된 할 일'}{item.due_date ? ` · ${item.due_date}` : ''}</span><div className="list-item-title-line mt-2"><h4 className="list-item-title type-item-title">{item.title}</h4>{' '}<ListItemActions editLabel={`${noun} 편집: ${item.title}`} onEdit={canEdit ? () => open('edit') : null} onRead={() => open('read')} readLabel={`${noun} 보기: ${item.title}`} /></div></div>
             {(item.excerpt || item.body) && <p className="type-secondary mt-2 line-clamp-3 min-w-0 break-words text-[var(--muted-ink)]">{markdownPreview(item.body?.toLowerCase().includes(searchApplied.query?.toLowerCase()) ? item.body : (item.excerpt || item.body))}</p>}
             <SearchEvidence item={item} threshold={searchPage.semanticThreshold} />{!isActivity && item.task_kind === 'general' && item.recurrence_kind && item.recurrence_kind !== 'none' && <p className="type-meta mt-2 text-[var(--muted-ink)]">{statusLabel({ ...item, status: item.task_status })}</p>}{item.tags?.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)}</div>}
             {!isActivity && item.task_kind === 'general' && item.record_state === 'todo' && !ownerUserId && <div className="mt-3 flex justify-end"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={{ ...item, id: item.task_id, status: item.task_status }} /></div>}
@@ -222,7 +222,7 @@ export default function ActionTimeline({ availableTags = [], canManageTags = tru
       <section className="min-w-0">
         <div className="mb-3"><h2 className="type-section-title">할 일</h2></div>
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
-        {page.pending.length === 0 ? <p className="type-secondary text-[var(--muted-ink)]">현재 이어갈 일이 없습니다.</p> : <div className="grid gap-2">{page.pending.map((task) => <article className="flex min-w-0 flex-wrap items-start gap-3 rounded-2xl bg-[var(--surface-2)] p-3" key={task.id}><div className="min-w-0 flex-1"><span className="type-item-title block break-words">{task.title}</span><span className="type-meta mt-1 block break-words text-[var(--muted-ink)]">{statusLabel(task)}</span></div><div className="ml-auto flex shrink-0 gap-2"><ListItemAction kind="read" label={`할 일 읽기: ${task.title}`} onClick={() => onOpenTask(task, 'read')} />{!ownerUserId && task.control_state === 'active' && <ListItemAction kind="edit" label={`할 일 편집: ${task.title}`} onClick={() => onOpenTask(task, 'edit')} />}</div>{task.kind === 'general' && !ownerUserId && <div className="w-full"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={task} /></div>}</article>)}</div>}
+        {page.pending.length === 0 ? <p className="type-secondary text-[var(--muted-ink)]">현재 이어갈 일이 없습니다.</p> : <div className="grid gap-2">{page.pending.map((task) => <article className="min-w-0 rounded-2xl bg-[var(--surface-2)] p-3" key={task.id}><div className="list-item-title-line"><span className="list-item-title type-item-title">{task.title}</span>{' '}<ListItemActions editLabel={`할 일 편집: ${task.title}`} onEdit={!ownerUserId && task.control_state === 'active' ? () => onOpenTask(task, 'edit') : null} onRead={() => onOpenTask(task, 'read')} readLabel={`할 일 보기: ${task.title}`} /></div><span className="type-meta mt-1 block break-words text-[var(--muted-ink)]">{statusLabel(task)}</span>{task.kind === 'general' && !ownerUserId && <div className="mt-3"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={task} /></div>}</article>)}</div>}
         </div>
       </section>
 

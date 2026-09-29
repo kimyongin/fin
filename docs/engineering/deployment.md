@@ -71,12 +71,36 @@ where user_id = '<auth.users의 사용자 UUID>';
 - 본인/친구 실사용 확인 결과와 미검증 항목
 - 복귀가 필요할 때 사용할 마지막 정상 앱 commit
 
+### 2026-09-29 최근 활동 MCP 응답 보정
+
+- [PR #171](https://github.com/kimyongin/fin/pull/171)의 `a16fd71`을 `master`에 반영했다. PR E2E CI에서 Edge 타입, 격리 DB 809건, OAuth MCP 계약, 브라우저 87건과 빌드가 통과했다.
+- 운영 `portfolio-mcp-oauth` v21은 아래 스킬 전환 브랜치에서 별도로 배포된 코드이므로, 그 함수의 `list_recent_activity` 반환 한 줄만 객체로 감싸 v22로 배포했다. DB migration·다른 Edge Function 변경 없음. 인증된 ChatGPT 연결에서 limit 1·20·기본 호출이 모두 `{ok:true,data:[...]}`로 성공했다. 같은 변경은 스킬 전환 브랜치에 [PR #172](https://github.com/kimyongin/fin/pull/172)로 반영했다.
+
 ### 2026-09-29 Portfolio OAuth 가이드 제거 (#169)
 
 - 사용자 지시에 따라 웹·모바일 행동 검증보다 먼저 운영 프로젝트 `ubmtflglqudrvumepzij`의 `portfolio-mcp-oauth`만 배포했다. 배포 소스는 `codex/portfolio-skill-migration`의 `87180de`다. DB migration, 다른 Edge Function, Pages 배포는 없었다. 플러그인 1.1.0은 이미 설치돼 있었다.
 - 배포 전 v20 (`verify_jwt=false`, SHA-256 `fd870b746d4651ce4b9591c47e7cb9504c417cd9452ce4e83aa6f4f994ce813e`)을 확인했다. 2026-09-29 01:47 KST 배포 후 v21 (`verify_jwt=false`, SHA-256 `545c7ac737e54ec3f0bf8b1bf986dd6954c96d421b174e425861625f8031f51d`)이 ACTIVE였다.
 - 인증된 Portfolio 연결에서 퇴역 `get_workflow_guide`는 `Unknown tool` / `-32602`, 기존 `get_portfolio_state`는 정상 응답했다. prompt/resource의 운영 응답과 ChatGPT 웹·모바일의 자동 사용 및 기록 제안은 미검증이다. 로컬 단위 136건·격리 DB 809건·MCP 계약·인증된 준비 검사·관련 브라우저 흐름·빌드·Edge 타입 검사는 배포 전 통과했다.
 - 문제가 생기면 배포 전 v20 소스로 `portfolio-mcp-oauth`만 재배포하고 같은 인증 읽기 계약을 확인한다. 실제 복구는 아직 수행하지 않았다. 상세 인수 상태는 [agent-01](../tickets/agent-01-workflow-guide-to-skill.md)을 따른다.
+
+### 2026-09-29 목록 보기·편집 텍스트 전환 (#170)
+
+- UI 구현 commit `794eb39`의 첫 [배포 실행](https://github.com/kimyongin/fin/actions/runs/36461436034)은 단위 테스트 통과 뒤 공유 화면의 MCP 작업 가이드 검토 기록 불일치로 게시 전에 중단됐다. 연결된 친구 목록의 `보기` 조작 표현만 바뀌었고 공유 권한·동의·MCP 도구·마지막 열람 기록은 유지됨을 검토했다. `6d177fa`에서 검토 기록을 갱신하고 로컬 `npm run check:workflow-guides`를 통과시켰다.
+- 앱 commit `6d177fa`의 [전체 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36461647243)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36462444425)가 성공했다. [공개 앱](https://kimyongin.github.io/fin/) HTTP 200, CSS `/fin/assets/index-7E5nUTPx.css`와 JS `/fin/assets/index-BYS9R-en.js` HTTP 200 및 새 텍스트 조작 코드 포함을 확인했다.
+- CI에서 단위 137건, 격리 DB 809건, 브라우저 87건, MCP 가이드·Edge 타입·인증된 운영 RPC 호환성·빌드가 통과했다. 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`의 DB migration·Edge Function 변경은 없다. 실제 본인/친구 로그인, 실기기 터치, 200% 확대, 화면낭독기, 광학적 정렬의 수동 확인은 남아 있다. 직전 정상 공개 앱 비교 기준은 `47ca601`이다.
+
+### 2026-09-29 목록 아이콘 정렬·타임라인 압축
+
+- 앱 commit `47ca601` (`8ab8e8f`~`39d0ffe` UI 구현, `cb30b57`·`47ca601` E2E 보정). [동일 앱 commit 전체 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36456475799)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36457323804)가 성공했다. <https://kimyongin.github.io/fin/>와 번들 `/fin/assets/index-BnxjSpvS.js`는 HTTP 200이다.
+- 첫 두 검증 실행은 자산 목록 아이콘 이동 후 E2E가 오래된 DOM 위치와 모바일에서 숨긴 헤더 좌표를 가정해 게시 전에 실패했다. 깨끗한 별도 로컬 체크아웃에서 관련 브라우저 1건과 전체 브라우저 87건, DB 809건, MCP 계약·인증된 준비 검사를 통과시킨 뒤 최종 CI도 통과했다. 원래 작업 폴더의 `.e2e` SQL 복사본 101개는 원본과 동일함을 확인해 제거했고 원본 migration은 유지했다.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`의 DB migration·Edge Function 변경은 없다. CI의 인증된 운영 RPC 호환성 검사는 통과했지만, 실제 본인·친구 Google 로그인과 실기기 터치·200% 확대·화면낭독기 확인은 하지 않았다. 이전 정상 공개 앱 비교 기준은 `f92424c`다.
+
+### 2026-09-29 자동 기록의 읽을 수 있는 제목·본문 (#168)
+
+- 앱 commit `f92424c` (`49e786c` 구현, `f92424c` 내부 트리거 권한 제한). [동일 commit 전체 검증·gh-pages 게시](https://github.com/kimyongin/fin/actions/runs/36447052141)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36447909235)가 성공했다. <https://kimyongin.github.io/fin/> 및 새 번들 `/fin/assets/index-watYig8I.js` HTTP 200을 확인했다.
+- 운영 Supabase 프로젝트 `ubmtflglqudrvumepzij`: 적용 전 `public` 스키마·데이터를 `%TEMP%/fin-prod-backup-20260929-168/`에 별도 덤프했다. `20260928150016`, `20260928150442`, `20260928151234`, `20260928152717`, `20260928155300`을 순서대로 적용했고 최종 dry-run에서 미적용 migration이 없다. DB reset·seed·과거 migration 수정 없음. 제목이 없고 본문이 `기록`이었던 제한된 자동 기록 23건을 보정해 같은 조건의 잔여 0건을 확인했다. 해당 기록의 당시 정보가 없던 필드는 추측해 채우지 않았다.
+- Edge Function `portfolio-mcp-oauth` v20 (`verify_jwt=false`)만 재배포했다. 기존 `portfolio-mcp`와 가격·검색 함수는 변경하지 않았다. 내부 자동 활동 트리거의 `anon`/`authenticated` 직접 실행 권한은 제거하고 DB에서 두 역할 모두 `false`를 확인했다. 재색인 대기열 0건·실패 보관 0건·벡터 청크 106개를 확인했다.
+- CI의 단위·workflow guide·Edge 타입·인증된 운영 RPC/OAuth 호환성·격리 DB 809건·Chromium 87건·빌드가 통과했다. 실제 본인/친구 Google 로그인, ChatGPT 웹·모바일 도구 호출, 200% 확대·실기기·화면낭독기는 아직 수동 확인 전이다. 문제가 생기면 직전 공개 앱 `cfc580a`를 화면 비교 기준으로 삼되, 적용된 DB migration을 삭제하지 않고 서버·MCP 호환성을 유지하는 전진 수정을 우선한다.
 
 ### 2026-09-28 목록 읽기·편집 UX (#167)
 

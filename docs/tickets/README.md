@@ -4,11 +4,15 @@
 
 ## Portfolio 스킬 통합
 
-[agent-01 MCP 작업 가이드 제거와 Portfolio 스킬 통합](./agent-01-workflow-guide-to-skill.md) · 로컬 구현·검증 진행, 운영 배포 전, GitHub 미등록. [전환 계약](../design/contracts/agent/portfolio-skill-migration.md)에 따라 기존 지식 활용 스킬과 11개 가이드를 함께 검토하고, 스킬 작성·검증, 가이드 전달 체계 제거, 단일 플러그인과 OAuth 배포·웹/모바일 검증을 진행한다.
+[agent-01 MCP 작업 가이드 제거와 Portfolio 스킬 통합](./agent-01-workflow-guide-to-skill.md) · 플러그인 1.1.2와 OAuth 서버 배포 완료, @포트폴리오 웹 핵심 흐름 확인, 모바일·일부 행동 검증 대기. [전환 계약](../design/contracts/agent/portfolio-skill-migration.md)과 [PR #169](https://github.com/kimyongin/fin/pull/169)을 따른다.
+
+## 목록의 보기·편집 텍스트 전환
+
+[#170](https://github.com/kimyongin/fin/issues/170) · [표현·정렬·줄바꿈·적용표·검증](./ui-36-text-list-actions.md) · [공통 가이드](../design/list-interaction-guidelines.md). 로컬·CI 전체 검증과 운영 배포 완료, 수동 확대·실기기 확인 대기. #167의 문서/연필을 제목 옆 `보기 · 편집` 텍스트로 바꾸고 글자 기준선 정렬, 좁은 폭에서 묶음 단위 줄바꿈, 투명한 기본/호버 표현을 통일했다. 기존 권한·마크다운 읽기·44px 누름 영역·초점 복귀는 유지한다.
 
 ## 목록 읽기·편집과 모바일 사용성
 
-[#167](https://github.com/kimyongin/fin/issues/167) · [명세와 전체 목록 적용표](./ui-35-list-reading-and-mobile-interaction.md) · [공통 가이드](../design/list-interaction-guidelines.md). 설계 완료·구현 전. 활동의 마크다운 읽기/원문 편집 분리, 모든 목록의 명시적 아이콘 진입, 스크롤 오인식과 가로 넘침 개선을 S1~S3으로 진행한다. 기존 인라인 목표 입력과 선택 목록은 의미에 맞는 예외로 유지한다.
+[#167](https://github.com/kimyongin/fin/issues/167) · [명세와 전체 목록 적용표](./ui-35-list-reading-and-mobile-interaction.md) · [공통 가이드](../design/list-interaction-guidelines.md). 기존 구현·자동 검증·운영 배포 완료, 실기기 터치·확대·화면낭독기 확인 대기. 활동의 마크다운 읽기/원문 편집 분리와 명시적 진입·복귀를 유지하며, 아이콘의 후속 텍스트 전환은 #170에서 진행한다. 인라인 목표 입력과 선택 목록은 의미에 맞는 예외로 유지한다.
 
 ## 활동 검색과 연결 맥락
 
