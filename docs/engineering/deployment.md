@@ -8,7 +8,7 @@ ChatGPT 개인용 Portfolio 플러그인은 이 문서의 DB·Edge·Pages 배포
 
 ## 배포 순서
 
-1. 로컬에서 `npm test`, `npm run build`, `npm run test:db`를 실행한다. Edge 변경은 Deno가 있는 환경에서 `npm run check:edge`도 실행한다.
+1. [환경별 검증 규칙](./development.md#변경별-검증)에 따라 현재 환경에서 가능한 검사를 먼저 실행하고, 나머지 필수 검사는 검증용 PR CI 또는 별도 격리 환경에서 완료한다. 단위·빌드 및 변경에 필요한 DB/Edge/UI 검증 결과와 대상 commit을 확인한다. `npm run test:db`는 일반 로컬 DB를 사용하며, PR CI의 `npm run test:e2e`는 격리 DB 검사도 포함한다. Docker 없는 작성 환경에 같은 검사를 다시 요구하지 않는다. 검증용 푸시는 배포 승인이나 검증 완료를 뜻하지 않는다.
 2. 새 DB migration은 대상 프로젝트와 적용 목록을 확인한 뒤 별도 승인 범위에서 적용한다. 과거 migration을 수정하거나 운영 DB를 reset하지 않는다.
 3. 새 Edge Function은 DB와 이전 클라이언트 양쪽에 호환되는 상태에서 별도로 배포하고 실제 endpoint 계약을 확인한다.
 4. GitHub의 `SUPABASE_SMOKE_EMAIL`·`SUPABASE_SMOKE_PASSWORD`에는 테스트 전용 인증 사용자를 설정한다. `check:deployment`가 새 프런트가 요구하는 RPC를 실제 로그인 후 호출해야 한다.
