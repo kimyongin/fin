@@ -6,6 +6,8 @@
 
 [agent-01 MCP 작업 가이드 제거와 Portfolio 스킬 통합](./agent-01-workflow-guide-to-skill.md) · 플러그인 1.1.2와 OAuth 서버 배포 완료, @포트폴리오 웹 핵심 흐름 확인, 모바일·일부 행동 검증 대기. [전환 계약](../design/contracts/agent/portfolio-skill-migration.md)과 [PR #169](https://github.com/kimyongin/fin/pull/169)을 따른다.
 
+[agent-02 장기 사이클 평가 지침](./agent-02-cycle-review-skill.md) · 평가·갱신·비교·조회 경로와 다섯 축의 평가 기준을 기존 스킬에 추가. 활동 기록은 공통 지침을 재사용한다. 로컬 작성과 플러그인 배포·행동 검증 상태는 티켓을 따른다.
+
 ## 목록의 보기·편집 텍스트 전환
 
 [#170](https://github.com/kimyongin/fin/issues/170) · [표현·정렬·줄바꿈·적용표·검증](./ui-36-text-list-actions.md) · [공통 가이드](../design/list-interaction-guidelines.md). 로컬·CI 전체 검증과 운영 배포 완료, 수동 확대·실기기 확인 대기. #167의 문서/연필을 제목 옆 `보기 · 편집` 텍스트로 바꾸고 글자 기준선 정렬, 좁은 폭에서 묶음 단위 줄바꿈, 투명한 기본/호버 표현을 통일했다. 기존 권한·마크다운 읽기·44px 누름 영역·초점 복귀는 유지한다.

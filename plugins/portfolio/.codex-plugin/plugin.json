@@ -1,6 +1,6 @@
 {
   "name": "dev-6aba7f7d0ccc8191b9f51834a40e6548",
-  "version": "1.1.2",
+  "version": "1.1.5",
   "description": "Review and manage Portfolio with current data, saved knowledge, and user-approved actions.",
   "author": { "name": "Yongin Kim" },
   "apps": "./.app.json",
