@@ -12,3 +12,11 @@ Base commit: `20f1e7f`. Scope: Portfolio skill, monthly-series calculator, packa
 - Package: `artifacts/portfolio-unified-1.2.0.zip`, SHA-256 `b377045cbc1636151a982bd41b41f7bb6547a8550f47773727b4ed85b0669b6c`. All 12 files matched source and ZIP integrity passed.
 - Local source testing does not establish installed-plugin delivery. Browser upload, independent web conversation, and mobile verification remain separate release checks.
 - Existing historical documents containing private conversation links are excluded from this publication. This record contains no private conversation URLs or portfolio amounts.
+
+## Installed-plugin verification
+
+- After user approval and browser authentication, the existing app-backed plugin accepted the 1.2.0 ZIP and displayed the upload-complete message.
+- The detail page showed version 1.2.0, one app, one skill, and the existing connected account. The skill detail showed the new source/fallback/direct-calculation paragraph and `references/cycle-data.md` link.
+- The reference popup did not expose its full content; package source verification covers inclusion, while independent reference delivery remains unverified. A new independent conversation and mobile behavior remain untested.
+- Source and package were published to `codex/cycle-review-data-workflow` at `a47cc8e2441b500920f486084518f35a8408a16b`. No master merge, app-server, database, or Pages deployment was performed.
+- The standard encoding command rerun failed with an environment `spawnSync git EPERM`. The newly added publication record was checked separately for valid UTF-8, no BOM, and LF. Previously passing checks remain associated with the tested implementation.
