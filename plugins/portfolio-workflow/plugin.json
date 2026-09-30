@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "portfolio-workflow",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Review and manage Portfolio with current data, saved knowledge, and user-approved actions.",
   "author": {
     "name": "Yongin Kim"
