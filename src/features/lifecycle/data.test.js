@@ -41,15 +41,15 @@ describe('decision and task data adapters', () => {
     const supabase = { rpc: vi.fn(async (_name, params) => ({ data: { id: params.input_activity_id ?? 7, version: 1 }, error: null })) }
     const idempotencyKey = crypto.randomUUID()
 
-    await recordManualActivity(supabase, { title: '실적 확인', body: '보유\n\n유지', idempotencyKey })
+    await recordManualActivity(supabase, { title: '실적 확인', summary: '실적을 확인하고 보유를 유지했다.', body: '보유\n\n유지', idempotencyKey })
     await fetchActivity(supabase, 7)
     await updateActivity(supabase, { id: 7, version: 1 }, { body: '다음 달 재확인' })
 
-    expect(supabase.rpc.mock.calls[0]).toEqual(['app_create_activity_market_ticker_with_tags', {
+    expect(supabase.rpc.mock.calls[0]).toEqual(['app_create_structured_activity', {
       input_idempotency_key: idempotencyKey,
       input_tag_ids: [],
       input_payload: {
-        title: '실적 확인', body: '보유\n\n유지', occurred_at: null,
+        title: '실적 확인', summary: '실적을 확인하고 보유를 유지했다.', body: '보유\n\n유지', occurred_at: null,
         timezone: 'Asia/Seoul', task_id: null, instrument_ticker: null, authored_via: 'app',
       },
     }])
@@ -80,11 +80,11 @@ describe('decision and task data adapters', () => {
     const supabase = {
       functions: { invoke: vi.fn(async () => ({ data: { items: [item], next_cursor: null,
         semantic_status: 'active', search_mode: 'hybrid', fallback_reason: null,
-        embedding_model: 'multilingual-e5-large', semantic_threshold: 0.8059, index_status: 'complete' }, error: null })) },
+        embedding_model: 'llama-text-embed-v2', semantic_threshold: 0.212384, index_status: 'complete' }, error: null })) },
       rpc: vi.fn(),
     }
     await expect(searchActivities(supabase, { query: '심리' })).resolves.toMatchObject({
-      searchMode: 'hybrid', semanticThreshold: 0.8059, items: [item],
+      searchMode: 'hybrid', semanticThreshold: 0.212384, items: [item],
     })
 
     supabase.functions.invoke.mockResolvedValueOnce({ data: null, error: new Error('offline') })

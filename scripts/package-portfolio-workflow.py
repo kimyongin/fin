@@ -11,7 +11,7 @@ manifest = json.loads((candidate / "plugin.json").read_text(encoding="utf-8"))
 interface = manifest["extensions"]["com.openai"]["interface"]
 assert len(interface["shortDescription"]) <= 30
 legacy = {key: manifest[key] for key in ("name", "version", "description", "author")}
-legacy.update(apps="./.app.json", skills="./skills", interface=interface)
+legacy.update(apps="./.app.json", skills="./skills", interface=interface, keywords=[])
 files = {
     "plugin.json": (candidate / "plugin.json").read_bytes(),
     ".app.json": (canonical / ".app.json").read_bytes(),

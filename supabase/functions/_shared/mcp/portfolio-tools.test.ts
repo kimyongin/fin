@@ -45,6 +45,16 @@ describe('portfolio MCP tool definitions', () => {
     expect((tool('transition_general_task').inputSchema as any).properties.action.enum).toEqual(['complete','reopen','cancel'])
     expect((tool('record_manual_activity').inputSchema as any).properties).not.toHaveProperty('category')
     expect((tool('record_manual_activity').inputSchema as any).properties).toHaveProperty('body')
+    for (const name of ['save_general_task', 'record_manual_activity']) {
+      const schema = tool(name).inputSchema as any
+      expect(schema.required).toContain('summary')
+      expect(schema.properties.summary).toMatchObject({ type: 'string', minLength: 1, maxLength: name === 'save_general_task' ? 1000 : 300 })
+      if (name === 'save_general_task') {
+        expect(schema.allOf[0].then.properties).toEqual({ title: { maxLength: 100 }, summary: { maxLength: 300 } })
+      }
+      expect(schema.properties[name === 'save_general_task' ? 'trigger_text' : 'body']).toMatchObject({ type: 'string', minLength: 1, maxLength: 25000 })
+    }
+    expect((tool('transition_general_task').inputSchema as any).properties).toHaveProperty('result_summary')
     expect(tool('delete_activity').description).toContain('never reverses a completed trade')
     expect(tool('delete_activity').annotations.destructiveHint).toBe(true)
     expect(tool('delete_general_task').annotations.destructiveHint).toBe(true)

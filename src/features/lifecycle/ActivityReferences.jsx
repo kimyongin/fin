@@ -62,7 +62,7 @@ function SearchReference({ disabled, kind, label, onChange, selectedId, selected
         if (event.key === 'Enter' && open && items[active]) { event.preventDefault(); choose(items[active]) }
       }} onFocus={() => { if (query.trim()) setOpen(true) }} placeholder={kind === 'task' ? '할 일 제목 검색' : '종목명·티커 검색'} role="combobox" value={query} />
     </label>
-    {selectedId && <div className="flex min-h-11 items-center justify-between gap-2 rounded-xl bg-[var(--surface-2)] px-3 text-sm"><span className="min-w-0 break-words">{selected ? description(selected) : `${label} 연결됨`}{kind === 'task' && selected?.trigger_text ? ` · ${selected.trigger_text}` : ''}</span><button aria-label={`${label} 연결 해제`} className="min-h-11 shrink-0 rounded-xl px-3" disabled={disabled} onClick={() => { setChosen(null); onChange(null) }} type="button">해제</button></div>}
+    {selectedId && <div className="flex min-h-11 items-center justify-between gap-2 rounded-xl bg-[var(--surface-2)] px-3 text-sm"><span className="min-w-0 break-words">{selected ? description(selected) : `${label} 연결됨`}{kind === 'task' && selected?.summary ? ` · ${selected.summary}` : ''}</span><button aria-label={`${label} 연결 해제`} className="min-h-11 shrink-0 rounded-xl px-3" disabled={disabled} onClick={() => { setChosen(null); onChange(null) }} type="button">해제</button></div>}
     {open && <div className="max-h-56 overflow-y-auto rounded-xl border border-[var(--line)]" role="listbox">
       {loading && <p className="p-3 text-sm text-[var(--muted-ink)]">검색 중…</p>}
       {error && <p className="p-3 text-sm text-red-200" role="alert">{error}<button className="ml-2 underline" onClick={() => setQuery((value) => `${value} `)} type="button">다시 시도</button></p>}

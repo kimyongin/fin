@@ -164,7 +164,7 @@ export function ActivityEvent({ action, onOpenActivity, canEdit = false }) {
   const tagChips = action.tags?.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)
   if (onOpenActivity) {
     const meta = <>{tagChips?.slice(0, 3)}{(tagChips?.length ?? 0) > 3 && <span className="text-xs text-[var(--muted-ink)]">+{tagChips.length - 3}</span>}{action.status === 'failed' && <span className="text-red-200">실패</span>}</>
-    return <TimelineEntry ariaLabel={`기록 보기: ${eventTarget(action)}`} editLabel={`기록 편집: ${eventTarget(action)}`} meta={meta} occurredAt={action.occurred_at ?? action.created_at} onOpen={() => onOpenActivity(action, 'read')} onEdit={canEdit ? () => onOpenActivity(action, 'edit') : null} summary={action.body || action.result || action.conclusion || action.note} title={eventTarget(action)} />
+    return <TimelineEntry ariaLabel={`기록 보기: ${eventTarget(action)}`} editLabel={`기록 편집: ${eventTarget(action)}`} meta={meta} occurredAt={action.occurred_at ?? action.created_at} onOpen={() => onOpenActivity(action, 'read')} onEdit={canEdit ? () => onOpenActivity(action, 'edit') : null} summary={action.summary} title={eventTarget(action)} />
   }
   const failed = action.status === 'failed'
   const narrativeActivity = ['record_manual_activity', 'complete_general_task'].includes(action.action_type)

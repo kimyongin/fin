@@ -77,6 +77,7 @@ body {
 
 /* Text roles are shared across screens; layout and state colors remain local. */
 .type-page-title,
+.type-document-title,
 .type-summary-value {
   font-size: 1.5rem;
   font-weight: 600;
@@ -229,6 +230,7 @@ pre,
 
 .type-page-title,
 .type-dialog-title,
+.type-document-title,
 .type-section-title,
 .type-item-title,
 .type-value,

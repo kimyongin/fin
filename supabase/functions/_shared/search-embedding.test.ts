@@ -12,7 +12,7 @@ describe('Pinecone search embedding', () => {
   it('sends passage purpose without truncation and verifies the dense response', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
-      json: async () => ({ model: 'multilingual-e5-large', vector_type: 'dense',
+      json: async () => ({ model: 'llama-text-embed-v2', vector_type: 'dense',
         data: [{ values }], usage: { total_tokens: 7 } }),
     }))
     vi.stubGlobal('fetch', fetchMock)
@@ -21,15 +21,15 @@ describe('Pinecone search embedding', () => {
     expect(url).toBe('https://api.pinecone.io/embed')
     expect(options.headers).toMatchObject({ 'X-Pinecone-Api-Version': '2025-10' })
     expect(JSON.parse(options.body)).toMatchObject({
-      model: 'multilingual-e5-large', inputs: [{ text: '가나다' }],
-      parameters: { input_type: 'passage', truncate: 'NONE' },
+      model: 'llama-text-embed-v2', inputs: [{ text: '가나다' }],
+      parameters: { input_type: 'passage', truncate: 'NONE', dimension: 1024 },
     })
   })
 
   it('uses the query purpose for questions', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
-      json: async () => ({ model: 'multilingual-e5-large', vector_type: 'dense',
+      json: async () => ({ model: 'llama-text-embed-v2', vector_type: 'dense',
         data: [{ values }] }),
     }))
     vi.stubGlobal('fetch', fetchMock)
@@ -40,13 +40,13 @@ describe('Pinecone search embedding', () => {
   it('rejects a wrong dimension or zero vector', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({
       ok: true,
-      json: async () => ({ model: 'multilingual-e5-large', vector_type: 'dense',
+      json: async () => ({ model: 'llama-text-embed-v2', vector_type: 'dense',
         data: [{ values: [1, 2] }] }),
     })))
     await expect(embedSearchText('a', 'passage')).rejects.toThrow('Invalid Pinecone')
     vi.stubGlobal('fetch', vi.fn(async () => ({
       ok: true,
-      json: async () => ({ model: 'multilingual-e5-large', vector_type: 'dense',
+      json: async () => ({ model: 'llama-text-embed-v2', vector_type: 'dense',
         data: [{ values: Array(1024).fill(0) }] }),
     })))
     await expect(embedSearchText('a', 'passage')).rejects.toThrow('Invalid Pinecone')

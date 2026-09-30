@@ -197,6 +197,7 @@ try {
   assert(reportContext.body?.result?.structuredContent?.data?.next_cursor === null, 'Activity report context contract failed')
   const reportSaved = await call(session.access_token, 'tools/call', { name: 'record_manual_activity', arguments: {
     schema_version: 1, idempotency_key: crypto.randomUUID(), title: 'Contract activity retrospective',
+    summary: 'The checked period facts and important limits are recorded.',
     body: `Period: ${reportDate}\n\nReviewed the complete period source.`,
     occurred_at: null, timezone: 'Asia/Seoul', task_id: null,
     instrument_ticker: null, tag_ids: [],
@@ -204,6 +205,7 @@ try {
   assert(reportSaved.body?.result?.structuredContent?.data?.body?.includes(reportDate), 'Retrospective activity save contract failed')
   const tickerSaved = await call(session.access_token, 'tools/call', { name: 'record_manual_activity', arguments: {
     schema_version: 1, idempotency_key: crypto.randomUUID(), title: 'Contract market research',
+    summary: 'The checked period facts and important limits are recorded.',
     body: 'A market ticker can be recorded without asset registration.', occurred_at: null,
     timezone: 'Asia/Seoul', task_id: null, instrument_ticker: 'tst166', tag_ids: [],
   } })
@@ -334,7 +336,7 @@ try {
   const taskArgs = {
     schema_version: 1, task_id: null, expected_version: null, idempotency_key: crypto.randomUUID(),
     title: 'Contract follow-up', subject: { kind: 'portfolio' }, due_date: null, timezone: 'Asia/Seoul',
-    trigger_text: 'Next review', change_reason: null, recurrence_kind: 'none', recurrence_start_on: null,
+    summary: 'Review the portfolio in the next check.', trigger_text: 'Next review', change_reason: null, recurrence_kind: 'none', recurrence_start_on: null,
   }
   const taskSaved = await call(session.access_token, 'tools/call', { name: 'save_general_task', arguments: taskArgs })
   const savedTask = taskSaved.body?.result?.structuredContent?.data
@@ -361,7 +363,7 @@ try {
     arguments: {
       schema_version: 1,
       idempotency_key: crypto.randomUUID(),
-      title: 'Contract test review', body: 'External research was intentionally omitted. Insufficient data.',
+      title: 'Contract test review', summary: 'External research was omitted; data remains insufficient.', body: 'External research was intentionally omitted. Insufficient data.',
       occurred_at: null, timezone: 'Asia/Seoul', task_id: savedTask.id,
       instrument_ticker: null, tag_ids: [],
     },

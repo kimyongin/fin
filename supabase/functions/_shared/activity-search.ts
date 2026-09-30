@@ -111,9 +111,10 @@ export async function hybridSearchActivities(
     return {
       ...page,
       search_mode: 'hybrid', fallback_reason: null,
-      index_status: Number(coverage.missing_count ?? 0) > 0 ? 'partial' : 'complete',
+      index_status: Number(coverage.missing_count ?? 0) + Number(coverage.excluded_count ?? 0) > 0 ? 'partial' : 'complete',
       semantic_status: Number(coverage.missing_count ?? 0) > 0 ? 'indexing' : 'active',
       missing_count: Number(coverage.missing_count ?? 0),
+      excluded_count: Number(coverage.excluded_count ?? 0),
       embedding_model: vector.model,
     }
   } catch {

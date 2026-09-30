@@ -114,8 +114,8 @@ if (!searchResponse.ok) throw new Error(`Authenticated activity search failed ($
 const searchPage = await searchResponse.json()
 function validSearchPage(page) {
   if (!Array.isArray(page?.items) || page.items.some((item) => !Array.isArray(item.matched_by))) return false
-  if (page.search_mode === 'hybrid') return page.embedding_model === 'multilingual-e5-large' &&
-    page.semantic_threshold === 0.8059 && ['active', 'indexing'].includes(page.semantic_status) &&
+  if (page.search_mode === 'hybrid') return page.embedding_model === 'llama-text-embed-v2' &&
+    page.semantic_threshold === 0.212384 && ['active', 'indexing'].includes(page.semantic_status) &&
     ['complete', 'partial', 'unknown'].includes(page.index_status) && page.fallback_reason === null
   return page.search_mode === 'keyword' && page.semantic_status === 'unavailable' &&
     page.index_status === 'not_checked' && page.embedding_model === null &&

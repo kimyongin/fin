@@ -12,7 +12,7 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001961'
 set local role authenticated;
 
 select public.app_create_activity('26111111-1111-4111-8111-111111111111',jsonb_build_object(
-  'title','손실 심리 자료','body','투자자가 불안할 때 오래된 이론을 다시 읽는다',
+  'title','손실 심리 자료','summary','투자자가 불안할 때 오래된 이론을 다시 읽는다','body','투자자가 불안할 때 오래된 이론을 다시 읽는다',
   'timezone','Asia/Seoul','authored_via','app'));
 select public.app_save_general_task(null,null,'26222222-2222-4222-8222-222222222222',
   jsonb_build_object('title','심리 점검','subject',jsonb_build_object('kind','portfolio'),
@@ -34,14 +34,14 @@ select set_config('test.search_content_hash',(select message->>'content_hash' fr
 
 set local role service_role;
 select extensions.is(public.app_get_activity_search_job('activity',
-  (select id::text from public.activity_events where title='손실 심리 자료'),0,
-  current_setting('test.search_content_hash'),'multilingual-e5-large')->>'stale','false','worker receives current document');
+  (select id::text from public.activity_events where title='손실 심리 자료'),
+  current_setting('test.search_content_hash'),'llama-text-embed-v2')->>'stale','false','worker receives current document');
 select public.app_finish_activity_search_job(
   current_setting('test.search_message_id')::bigint,
   '00000000-0000-0000-0000-000000001961','activity',
-  (select id::text from public.activity_events where title='손실 심리 자료'),0,
-  current_setting('test.search_content_hash'),'multilingual-e5-large',
-  (select concat_ws(E'\n',title,body) from public.activity_events where title='손실 심리 자료'),
+  (select id::text from public.activity_events where title='손실 심리 자료'),
+  current_setting('test.search_content_hash'),'llama-text-embed-v2',
+  (select concat_ws(E'\n',title,summary) from public.activity_events where title='손실 심리 자료'),
   ('['||array_to_string(array[1.0::real]||array_fill(0.0::real,array[1023]),',')||']')::extensions.vector);
 
 set local role authenticated;
@@ -97,13 +97,13 @@ select public.app_update_activity((select id from public.activity_events where t
   '26333333-3333-4333-8333-333333333333','{"body":"문구 수정"}'::jsonb,'app');
 set local role postgres;
 select extensions.is((select count(*) from public.activity_search_vectors
-  where user_id='00000000-0000-0000-0000-000000001961'),0::bigint,
-  'editing removes the old vector immediately');
+  where user_id='00000000-0000-0000-0000-000000001961'),1::bigint,
+  'body-only editing preserves the upper-field vector');
 set local role authenticated;
-select extensions.is(public.app_activity_search_index_coverage()->>'missing_count','2',
-  'edited record is pending again');
+select extensions.is(public.app_activity_search_index_coverage()->>'missing_count','1',
+  'body-only edit does not require reindexing');
 select extensions.ok(not has_function_privilege('authenticated',
-  'public.app_get_activity_search_job(text,text,integer,text,text)','EXECUTE'),
+  'public.app_get_activity_search_job(text,text,text,text)','EXECUTE'),
   'authenticated users cannot fetch worker source text');
 
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000001962',true);
@@ -113,8 +113,8 @@ select extensions.is(jsonb_array_length(public.app_search_activities_ranked('심
 
 set local role postgres;
 select extensions.is((select count(*) from pgmq.q_activity_search_index q
-  where q.message->>'user_id'='00000000-0000-0000-0000-000000001961'),2::bigint,
-  'task and new record work remain after the completed job is acknowledged');
+  where q.message->>'user_id'='00000000-0000-0000-0000-000000001961'),1::bigint,
+  'only the unprocessed task job remains after a body-only edit');
 
 select * from extensions.finish();
 rollback;

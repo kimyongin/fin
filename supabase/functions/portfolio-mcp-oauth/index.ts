@@ -304,7 +304,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   },
   async list_recent_activity(supabase, args) {
     const limit = Math.min(Math.max(Number(args.limit) || 20, 1), 100)
-    return { ok: true, data: await rpc(supabase, 'app_list_recent_activity', { limit_count: limit }) }
+    return { ok: true, data: await rpc(supabase, 'app_list_recent_activity_content', { limit_count: limit }) }
   },
   async submit_product_feedback(supabase, args) {
     requireSchemaVersion(args)
@@ -476,9 +476,9 @@ const toolHandlers: Record<string, ToolHandler> = {
     const idempotencyKey = requireUuid(args.idempotency_key, 'idempotency_key')
     const tagIds = args.tag_ids == null ? [] : requireArray(args.tag_ids, 'tag_ids').map((value, index) => requireUuid(value, `tag_ids[${index}]`))
     const payload = {
-        title: requireString(args.title, 'title'), subject: requireRecord(args.subject, 'subject'),
+        title: requireString(args.title, 'title'), summary: requireString(args.summary, 'summary'), subject: requireRecord(args.subject, 'subject'),
         due_date: optionalString(args.due_date) ?? null, timezone: requireString(args.timezone, 'timezone'),
-        trigger_text: optionalString(args.trigger_text) ?? null,
+        trigger_text: requireString(args.trigger_text, 'trigger_text'),
         recurrence_kind: optionalString(args.recurrence_kind) ?? 'none',
         recurrence_start_on: optionalString(args.recurrence_start_on) ?? null,
         recurrence_weekdays: args.recurrence_weekdays == null ? [] : requireArray(args.recurrence_weekdays, 'recurrence_weekdays'),
@@ -487,9 +487,9 @@ const toolHandlers: Record<string, ToolHandler> = {
     }
     if (Object.hasOwn(args, 'origin_activity_id')) throw new ToolInputError('origin_activity_id is no longer supported; create an independent task')
     const editingTags = taskId != null && Object.hasOwn(args, 'tag_ids')
-    const data = await rpc(supabase, taskId == null ? 'app_create_general_task_with_tags' : editingTags ? 'app_save_general_task_detail' : 'app_save_general_task', {
+    const data = await rpc(supabase, 'app_save_structured_general_task', {
       input_idempotency_key: idempotencyKey, input_payload: payload,
-      ...(taskId == null ? { input_tag_ids: tagIds } : { input_task_id: taskId, input_expected_version: expectedVersion, ...(editingTags ? { input_tag_ids: tagIds } : {}) }),
+      input_task_id: taskId, input_expected_version: expectedVersion, input_tag_ids: taskId == null || editingTags ? tagIds : null,
     })
     return { ok: true, data }
   },
@@ -505,10 +505,10 @@ const toolHandlers: Record<string, ToolHandler> = {
     requireSchemaVersion(args)
     const action = requireString(args.action, 'action')
     if (!['complete','reopen','cancel'].includes(action)) throw new ToolInputError('action is invalid')
-    const data = await rpc(supabase, 'app_transition_general_task', {
+    const data = await rpc(supabase, 'app_transition_general_task_structured', {
       input_task_id: requireUuid(args.task_id, 'task_id'),
       input_expected_version: requirePositiveInteger(args.expected_version, 'expected_version'),
-      input_action: action, input_result: optionalString(args.result) ?? null, input_reason: optionalString(args.reason) ?? null,
+      input_action: action, input_result_title: optionalString(args.result_title) ?? null, input_result_summary: optionalString(args.result_summary) ?? null, input_result: optionalString(args.result) ?? null, input_reason: optionalString(args.reason) ?? null,
       input_occurrence_on: optionalString(args.occurrence_on) ?? null,
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'), input_authored_via: 'agent',
     })
@@ -517,12 +517,13 @@ const toolHandlers: Record<string, ToolHandler> = {
   async record_manual_activity(supabase, args) {
     requireSchemaVersion(args)
     const tagIds = args.tag_ids == null ? [] : requireArray(args.tag_ids, 'tag_ids').map((value, index) => requireUuid(value, `tag_ids[${index}]`))
-    const data = await rpc(supabase, 'app_create_activity_market_ticker_with_tags', {
+    const data = await rpc(supabase, 'app_create_structured_activity', {
       input_idempotency_key: requireUuid(args.idempotency_key, 'idempotency_key'),
       input_tag_ids: tagIds,
       input_payload: {
         title: requireString(args.title, 'title'),
-        body: optionalString(args.body) ?? null,
+        summary: requireString(args.summary, 'summary'),
+        body: requireString(args.body, 'body'),
         occurred_at: optionalString(args.occurred_at) ?? null,
         timezone: requireString(args.timezone, 'timezone'),
         task_id: args.task_id == null ? null : requireUuid(args.task_id, 'task_id'),
@@ -535,7 +536,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   async update_activity(supabase, args) {
     requireSchemaVersion(args)
     const patch = requireRecord(args.patch, 'patch')
-    const allowed = new Set(['title', 'body', 'occurred_at', 'timezone', 'task_id', 'instrument_ticker'])
+    const allowed = new Set(['title', 'summary', 'body', 'occurred_at', 'timezone', 'task_id', 'instrument_ticker'])
     for (const key of Object.keys(patch)) if (!allowed.has(key)) throw new ToolInputError(`patch.${key} is not editable`)
     const hasTagIds = Object.hasOwn(args, 'tag_ids')
     if (!hasTagIds && Object.keys(patch).length === 0) throw new ToolInputError('patch or tag_ids is required')
