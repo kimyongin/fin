@@ -1,6 +1,8 @@
 # [활동 검색] 무료 티어 기반 항목당 단일 벡터와 청크 구조 제거
 
-상태: 로컬 구현·자동 검증 완료 · 운영 배포 전 · 2026-10-01
+상태: 운영 DB·Edge·웹·제품 플러그인 배포 완료 · 실제 ChatGPT/모바일 검증 대기 · 2026-10-01
+
+배포: [PR #176](https://github.com/kimyongin/fin/pull/176), 앱 79ef7b7. 운영 원본 193개 기록/4개 할 일을 보존하고 eligible 56개를 llama-text-embed-v2로 재색인했다. excluded 1개, missing/대기/실패 보관 0개. 운영 실제 공급자의 strict 저장→cron 색인→HTTP/OAuth 의미 검색→본문 조회가 통과했다. 전체 CI와 Pages 공개, 플러그인 1.2.3 source 대조도 완료했다. [배포 기록](../engineering/deployment.md)을 따른다. 아래 배포 전 문구는 초기 조사·로컬 구현 당시 이력이며 실제 ChatGPT 대화/모바일 사용은 별도 확인 대상이다.
 GitHub: https://github.com/kimyongin/fin/issues/175
 연계: #174 상단 구조, #161 색인/검색, #165 검색 방식 표시
 

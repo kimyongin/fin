@@ -8,7 +8,7 @@
 | --- | --- |
 | 내부 패키지 이름 | `portfolio-workflow` — 업데이트에서 유지 |
 | 표시 이름 | `포트폴리오` |
-| 현재 패키지 버전 | `1.2.2` |
+| 현재 패키지 버전 | `1.2.3` |
 | 편집 가능한 manifest | `plugins/portfolio-workflow/plugin.json` |
 | 제품 스킬 정본 | `plugins/portfolio/skills/portfolio` |
 | 기존 앱 참조 정본 | `plugins/portfolio/.app.json` |
@@ -49,6 +49,8 @@
 전체 Portfolio 스킬을 기존 앱을 참조하는 standalone 플러그인으로 옮겼다. Creator 생성·1.2.0→1.2.1 업데이트·13개 파일 read-back을 확인했다. 새 대화의 실제 보유 조회와 S&P500 원자료·직접 계산·자료 한계 설명이 정상 동작했다. 저장·수정과 실제 모바일은 미검증이다. 1.2.2는 표시 이름을 `포트폴리오`로 통일했고 read-back했다. 기존 canonical 항목 설치 해제 뒤 공유 앱 연결이 해제되는 것을 확인해 OAuth 재연결을 준비했다. 구형·시험용 항목 정리와 연결 복구 결과는 [전환 기록](../tickets/portfolio-creator-migration.md)에 남긴다.
 
 ## 과거 앱 기반 배포 기록
+
+2026-10-01: 기존 standalone 항목을 1.2.3으로 guarded update했다. 제목·요약·본문 필수 구조와 제목 100자/요약 300자 작성·검수·검색 지침을 배포했다. 현재 원격 원본과 패키지 13개 파일을 대조했고 identity·앱 참조·기본 프롬프트·기존 사이클 참고 자료/계산 스크립트를 보존했다. 설치 화면·새 ChatGPT 대화의 실제 지침 사용은 미검증이다. 서버·Pages 결과는 [배포 기록](./deployment.md)을 따른다.
 
 아래 기록의 업로드 대상과 메뉴 절차는 당시 사용 경로이며, 현재 업데이트 지침이 아니다.
 

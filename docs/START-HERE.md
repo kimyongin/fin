@@ -22,6 +22,8 @@
 
 ## 현재 인계
 
+- 2026-10-01 #174/#175: [활동 상단 구조](./tickets/activity-21-structured-summary-and-search.md)와 [청크 없는 임베딩](./tickets/search-06-single-vector-free-tier.md)을 [PR #176](https://github.com/kimyongin/fin/pull/176), 앱 79ef7b7로 운영 배포했다. 제목 100자/요약 300자/본문 필수, 제목·요약 전체의 llama-text-embed-v2 임베딩과 문서형 읽기 상세가 현재 계약이다. DB·Edge·Pages·플러그인 1.2.3, 전체 CI·실제 공급자 HTTP/OAuth 검색 및 원본 보존 확인 완료. 아래 #161의 청크/E5 상태는 과거 이력이다. 정확한 revision·workflow·실클라이언트 미검증과 복구는 [배포 기록](./engineering/deployment.md)을 따른다.
+
 - 현재 플러그인 업데이트 경로: Plugin Creator로 편집하는 `portfolio-workflow`, 표시 이름 `포트폴리오`다. 스킬 정본은 `plugins/portfolio/skills/portfolio`, manifest는 `plugins/portfolio-workflow/plugin.json`이며 `python scripts/package-portfolio-workflow.py`로 패키징한다. source 조회·release guard·업데이트·read-back 순서를 [현재 배포 지침](./engineering/chatgpt-plugin-deployment.md)에서 따른다. 과거 앱 기반 웹 업로드 절차는 현재 기본 경로가 아니다. 구형 canonical 항목 설치 해제는 공유 앱 연결까지 끊을 수 있으며 정리 후 연결 복구 상태는 [Creator 전환 기록](./tickets/portfolio-creator-migration.md)에서 확인한다.
 
 - 에이전트 안내 전환: [스킬 전환 계약](./design/contracts/agent/portfolio-skill-migration.md), [agent-01 구현 티켓](./tickets/agent-01-workflow-guide-to-skill.md). 기존 지식 검토 스킬과 11개 가이드를 스킬 1개·참고 문서 6개로 통합하고 가이드 도구/prompt/resource·전용 검사를 제거했다. 플러그인 1.1.2와 OAuth 서버 v22는 운영 중이며 @포트폴리오 웹 조회·초안·승인 저장 경로를 확인했다. 실제 모바일과 일부 스킬 동작·참조 읽기 증거는 아직 미확인이다. 스킬 전환 코드는 [PR #169](https://github.com/kimyongin/fin/pull/169)에서 `master` 통합을 진행한다.

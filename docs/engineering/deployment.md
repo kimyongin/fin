@@ -62,6 +62,17 @@ where user_id = '<auth.users의 사용자 UUID>';
 
 ## 배포 기록
 
+### 2026-10-01 구조화된 활동·청크 없는 임베딩·문서 상세 (#174/#175/#167)
+
+- 사용자 요청으로 [PR #176](https://github.com/kimyongin/fin/pull/176)을 배포했다. 구현 4da2ecb에 최신 master를 통합하고 플러그인 패키징을 더한 8b59b81은 [PR CI](https://github.com/kimyongin/fin/actions/runs/36751420239)에서 단위 140개, Edge 타입, DB 861개/64파일, MCP 계약·인증 준비, Chromium 91개, 빌드·인코딩을 통과했다. 병합 앱 commit 79ef7b7의 [전체 검증·Pages 게이트](https://github.com/kimyongin/fin/actions/runs/36752285372)와 [Pages 공개](https://github.com/kimyongin/fin/actions/runs/36753048577)가 성공했다.
+- 운영 ubmtflglqudrvumepzij의 public 스키마/데이터를 로컬 Temp의 fin-prod-before-174-175-schema.sql과 fin-prod-before-174-175-data.sql에 백업하고 직전 Edge 소스를 fin-prod-edge-before-174-175에 보관했다. dispatcher job 1을 잠시 비활성화하고 lease/HTTP 대기 0건을 확인한 뒤 20260930090000, 20260930160106을 적용했다. DB reset·seed·과거 migration 수정 없음. 새 summary 열을 제외한 원본 전체 행 해시가 기록 193건 196c6c26667bc707dfcabbad84558207, 할 일 4건 1a87cd2edf3d86357546fa72792e6d23로 전후 동일했다.
+- activity-search-index, activity-search, portfolio-mcp-oauth, portfolio-mcp를 새 코드로 배포하고 기존 JWT 설정과 worker/Vault 인증을 보존했다. 관찰한 ACTIVE 버전은 각각 12/13/26/26이다. secrets 업데이트로 다른 함수의 revision 번호도 변했지만 가격 함수 코드 digest는 그대로다. 실제 검증한 무료 Pinecone 프로젝트의 키는 비밀 설정에만 넣었다. 전환 중 의미 검색을 비활성화하고 새 함수 배포 후 활성화·dispatcher 재개했다.
+- 운영 재색인은 소스 57개 중 eligible 56개/현재 벡터 56개, excluded 1개, missing 0개, 대기 0개, 실패 보관 0개다. 각 벡터는 llama-text-embed-v2와 현재 상단 hash에 일치한다. 원본 자동 요약·절단은 수행하지 않았다.
+- 운영 합성 사용자로 strict 구조화 저장 → cron의 실제 공급자 색인 → HTTP/OAuth 의미 검색의 semantic 일치 → 상세 본문 조회가 통과했다. 11개 읽기 RPC와 OAuth discovery·두 검색 route readiness도 통과했다. 임시 사용자/자료는 finally에서 제거했고 원본 해시·건수가 다시 동일했다. 첫 probe의 30초 대기 예산과 잘못된 검색 ID 필드 검사를 보정한 후 통과했으며 앱 코드 수정은 필요하지 않았다.
+- 제품 플러그인 1.2.3은 기존 identity·앱 참조·기본 프롬프트·사이클 자료를 보존하고 제목 100자/요약 300자/본문 필수, 상단 작성·검색·검수 지침을 배포했다. 업로드 후 13개 파일을 패키지와 대조했다(JSON의 host 정규화는 의미 비교). 설치 화면과 실제 새 ChatGPT 웹/모바일 대화의 지침 사용은 미검증이다.
+- security advisor를 확인하고 변경된 strict RPC의 anon 실행 금지, worker RPC/helper의 anon/authenticated 실행 금지와 고정 search_path를 직접 검증했다. 기존 함수 search_path/익명 호출/anonymous policy/Auth 설정의 전체 경고를 이번 배포에서 해결했다고 보고하지 않는다. service-only 벡터 테이블의 RLS/no-policy는 의도된 직접 접근 차단이다. 전체 경고의 후속 검토는 [Supabase linter](https://supabase.com/docs/guides/database/database-linter)를 따른다.
+- 공개 https://kimyongin.github.io/fin/ 및 새 JS /fin/assets/index-CxUJ3_v0.js, CSS /fin/assets/index-CC-q7Ztj.css의 HTTP 200을 확인했다. 실제 사용자 기존 로그인 상태에서 활동 목록과 기존 할 일의 새 문서 상세를 열어 제목 heading·입력 칸 제거·메타 정보·본문을 확인했다. 읽기만 수행했다. 새 Google 로그인·친구 실사용·실제 휴대폰 터치·화면낭독기·ChatGPT 실클라이언트 검증은 미검증이다. 직전 정상 공개 앱 c8bae51과 [배포](https://github.com/kimyongin/fin/actions/runs/36670816585)를 복구 비교 기준으로 삼되 DB를 되돌리거나 구 모델 벡터를 섞지 않고 키워드 폴백/전진 수정을 우선한다.
+
 매 배포 기록에는 다음을 서로 분리해 남긴다.
 
 - 앱 commit과 Pages workflow URL/결과
