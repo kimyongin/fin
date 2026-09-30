@@ -133,6 +133,7 @@ export async function searchActivities(supabase, {
       embeddingModel: data.embedding_model ?? null,
       semanticThreshold: data.semantic_threshold ?? null,
       indexStatus: data.index_status ?? 'unknown',
+      excludedCount: Number(data.excluded_count ?? 0),
     }
   }
   if (cursor?.mode === 'hybrid') throw new Error('유사도 검색의 다음 페이지를 불러오지 못했습니다. 다시 시도하거나 새로 검색해 주세요.')
@@ -163,11 +164,12 @@ export async function searchActivities(supabase, {
 
 export async function saveGeneralTask(supabase, task) {
   const creating = task.id == null
-  return rpc(supabase, creating ? 'app_create_general_task_with_tags' : 'app_save_general_task_detail', {
-    ...(creating ? { input_tag_ids: task.tagIds ?? [] } : { input_task_id: task.id, input_expected_version: task.expectedVersion ?? null, input_tag_ids: task.tagIds ?? [] }),
+  return rpc(supabase, 'app_save_structured_general_task', {
+    input_task_id: task.id ?? null, input_expected_version: creating ? null : task.expectedVersion ?? null, input_tag_ids: task.tagIds ?? [],
     input_idempotency_key: task.idempotencyKey,
     input_payload: {
       title: task.title.trim(),
+      summary: task.summary.trim(),
       subject: task.subject ?? { kind: 'portfolio' },
       due_date: task.dueDate || null,
       timezone: task.timezone ?? 'Asia/Seoul',
@@ -181,15 +183,17 @@ export async function saveGeneralTask(supabase, task) {
   })
 }
 
-export async function transitionGeneralTask(supabase, task, action, { result = null, reason = null, occurrenceOn = null } = {}) {
-  return rpc(supabase, 'app_transition_general_task', {
+export async function transitionGeneralTask(supabase, task, action, { result = null, resultTitle = null, resultSummary = null, reason = null, occurrenceOn = null, idempotencyKey = null } = {}) {
+  return rpc(supabase, 'app_transition_general_task_structured', {
     input_task_id: task.id,
     input_expected_version: task.version,
     input_action: action,
     input_result: result?.trim() || null,
+    input_result_title: resultTitle?.trim() || null,
+    input_result_summary: resultSummary?.trim() || null,
     input_reason: reason?.trim() || null,
     input_occurrence_on: occurrenceOn,
-    input_idempotency_key: crypto.randomUUID(),
+    input_idempotency_key: idempotencyKey ?? crypto.randomUUID(),
     input_authored_via: 'app',
   })
 }
@@ -203,11 +207,12 @@ export async function deleteGeneralTask(supabase, task, idempotencyKey) {
 }
 
 export async function recordManualActivity(supabase, activity) {
-  return rpc(supabase, 'app_create_activity_market_ticker_with_tags', {
+  return rpc(supabase, 'app_create_structured_activity', {
     input_idempotency_key: activity.idempotencyKey,
     input_tag_ids: activity.tagIds ?? [],
     input_payload: {
       title: activity.title.trim(),
+      summary: activity.summary.trim(),
       body: activity.body?.trim() || null,
       occurred_at: activity.occurredAt || null,
       timezone: activity.timezone ?? 'Asia/Seoul',

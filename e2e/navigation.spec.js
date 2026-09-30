@@ -60,7 +60,7 @@ test('routes old news links to the research activity flow', async ({ page }) => 
   const title = `E2E 조사 활동 ${Date.now()}`
   const created = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
-    input_payload: { title, body: '공식 자료 확인', authored_via: 'app', timezone: 'Asia/Seoul' },
+    input_payload: { title, summary: title, body: '공식 자료 확인', authored_via: 'app', timezone: 'Asia/Seoul' },
   })
   expect(created.status, JSON.stringify(created.body)).toBe(200)
   await page.reload()

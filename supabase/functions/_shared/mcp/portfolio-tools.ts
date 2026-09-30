@@ -400,7 +400,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'list_recent_activity',
     title: 'Recent portfolio activity',
-    description: 'List recent portfolio changes for the authenticated user.',
+    description: 'List recent portfolio changes with title and summary for the authenticated user. Read get_activity for the full Markdown body; legacy summaries may be null.',
     inputSchema: {
       type: 'object',
       properties: { limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
@@ -603,23 +603,26 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'save_general_task',
     title: 'Save a general portfolio task',
-    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. For a market instrument subject use {kind:"instrument",instrument_ticker:"AAPL"}; registration or holdings are not required. Cash and valuation assets can be described with ordinary tags or text. Recurrence is none, daily, or weekly with ISO weekdays 1=Mon through 7=Sun; optional local recurrence_time HH:MM makes the task due at that time in its timezone. On edits, omit tag_ids to keep the current tags; pass an empty array to clear them. Fields and provided tags save atomically. A retry must keep the same key and inputs. This stores intent only and never runs or completes the work.',
+    description: 'Create or revise one owner-only follow-up only when the user asks to remember something to do. Read the current task before editing it. For a market instrument subject use {kind:"instrument",instrument_ticker:"AAPL"}; registration or holdings are not required. Cash and valuation assets can be described with ordinary tags or text. Recurrence is none, daily, or weekly with ISO weekdays 1=Mon through 7=Sun; optional local recurrence_time HH:MM makes the task due at that time in its timezone. On edits, omit tag_ids to keep the current tags; pass an empty array to clear them. Fields and provided tags save atomically. A retry must keep the same key and inputs. Title, summary and trigger_text (detailed Markdown body) are required. Only title and summary enter semantic search. This stores intent only and never runs or completes the work.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 }, task_id: { type: ['string', 'null'], format: 'uuid' },
         expected_version: { type: ['integer', 'null'], minimum: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
-        title: { type: 'string', minLength: 1, maxLength: 500 },
+        title: { type: 'string', minLength: 1, maxLength: 500, description: 'New or changed title: at most 100 Unicode code points. A longer legacy title may only be retained unchanged on edits.' }, summary: { type: 'string', minLength: 1, maxLength: 1000, description: 'New or changed summary: at most 300 Unicode code points. A longer legacy summary may only be retained unchanged on edits.' },
         subject: { type: 'object', properties: { kind: { type: 'string', enum: ['portfolio', 'instrument', 'position'] }, instrument_ticker: { type: 'string', maxLength: 32 } }, required: ['kind'], additionalProperties: true },
         due_date: { type: ['string', 'null'], format: 'date' }, timezone: { type: 'string', minLength: 1 },
-        trigger_text: { type: ['string', 'null'], maxLength: 1000 },
+        trigger_text: { type: 'string', minLength: 1, maxLength: 25000, description: 'Required detailed Markdown task body; only title and summary enter semantic search.' },
         recurrence_kind: { type: 'string', enum: ['none', 'daily', 'weekly'], default: 'none' },
         recurrence_start_on: { type: ['string', 'null'], format: 'date' },
         recurrence_weekdays: { type: 'array', uniqueItems: true, maxItems: 7, items: { type: 'integer', minimum: 1, maximum: 7 } },
         recurrence_time: { type: ['string', 'null'], pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' },
         tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'For a new task, initial tags. For an edit, omit to preserve tags; [] clears all. Saved atomically with fields.' },
       },
-      required: ['schema_version','task_id','expected_version','idempotency_key','title','subject','due_date','timezone','trigger_text','recurrence_kind','recurrence_start_on'],
+      required: ['schema_version','task_id','expected_version','idempotency_key','title','summary','subject','due_date','timezone','trigger_text','recurrence_kind','recurrence_start_on'],
+      allOf: [{ if: { properties: { task_id: { type: 'null' } } }, then: {
+        properties: { title: { maxLength: 100 }, summary: { maxLength: 300 } },
+      } }],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -637,16 +640,16 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'transition_general_task',
     title: 'Complete, correct, or end a general task',
-    description: 'Complete the latest due occurrence, reopen an incorrectly checked occurrence, or end a recurring task after reading its current version. Use the occurrence_on returned by list_due_general_tasks; the server rejects a stale or future occurrence. Completion creates one linked action event. Use cancel to end future recurrence without claiming performance; prior activities remain. A result describes work actually done and must not be invented.',
+    description: 'Complete the latest due occurrence, reopen an incorrectly checked occurrence, or end a recurring task after reading its current version. Use the occurrence_on returned by list_due_general_tasks; the server rejects a stale or future occurrence. Completion creates one linked action event. Use cancel to end future recurrence without claiming performance; prior activities remain. Complete requires nonblank result_title, result_summary and result (Markdown body) describing actual work; reopen/cancel do not require them. Only result title and summary enter semantic search. A result describes work actually done and must not be invented.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 }, task_id: { type: 'string', format: 'uuid' }, expected_version: { type: 'integer', minimum: 1 },
         idempotency_key: { type: 'string', format: 'uuid' }, action: { type: 'string', enum: ['complete','reopen','cancel'] },
-        result: { type: ['string', 'null'], maxLength: 4000 }, reason: { type: ['string', 'null'], maxLength: 1000 },
+        result_title: { type: ['string', 'null'], maxLength: 100 }, result_summary: { type: ['string', 'null'], maxLength: 300 }, result: { type: ['string', 'null'], maxLength: 25000 }, reason: { type: ['string', 'null'], maxLength: 1000 },
         occurrence_on: { type: ['string', 'null'], format: 'date' },
       },
-      required: ['schema_version','task_id','expected_version','idempotency_key','action','result','reason','occurrence_on'],
+      required: ['schema_version','task_id','expected_version','idempotency_key','action','result_title','result_summary','result','reason','occurrence_on'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -655,17 +658,17 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'record_manual_activity',
     title: 'Record a completed activity',
-    description: 'Record one user-reported activity or completed review that already happened, only on explicit save intent, including consent to a shown draft. Put checked facts, interpretation, uncertainty and factual source URLs in one readable Markdown body; use ordinary existing tag_ids for search instead of a built-in category. An opinion is not a user-adopted decision unless the user says so. Optional task_id and market instrument_ticker are navigational references, not proof of task completion or financial execution. A ticker can be recorded without registering or holding the market instrument and remains after asset deletion. Cash and valuation assets use tags or body instead. Financial commands still target a specific holding. A retry must keep the same key, body, references and tags. Do not duplicate an activity already created by a successful domain mutation or task completion; read its returned activity_id when present. Verify the saved record with get_activity; a later read failure does not undo save success.',
+    description: 'Record one user-reported activity or completed review that already happened, only on explicit save intent, including consent to a shown draft. Title, summary and Markdown body are required separately. Only title and summary enter semantic search; body keyword search remains available. Put checked facts, interpretation, uncertainty and factual source URLs in one readable Markdown body; use ordinary existing tag_ids for search instead of a built-in category. An opinion is not a user-adopted decision unless the user says so. Optional task_id and market instrument_ticker are navigational references, not proof of task completion or financial execution. A ticker can be recorded without registering or holding the market instrument and remains after asset deletion. Cash and valuation assets use tags or body instead. Financial commands still target a specific holding. A retry must keep the same key, body, references and tags. Do not duplicate an activity already created by a successful domain mutation or task completion; read its returned activity_id when present. Verify the saved record with get_activity; a later read failure does not undo save success.',
     inputSchema: {
       type: 'object',
       properties: {
         schema_version: { const: 1 }, idempotency_key: { type: 'string', format: 'uuid' },
-        title: { type: 'string', minLength: 1, maxLength: 500 }, body: { type: ['string', 'null'], maxLength: 25000 },
+        title: { type: 'string', minLength: 1, maxLength: 100 }, summary: { type: 'string', minLength: 1, maxLength: 300 }, body: { type: 'string', minLength: 1, maxLength: 25000 },
         occurred_at: { type: ['string', 'null'], format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
         task_id: { type: ['string', 'null'], format: 'uuid' }, instrument_ticker: { type: ['string', 'null'], maxLength: 32 },
         tag_ids: { type: 'array', maxItems: 20, uniqueItems: true, items: { type: 'string', format: 'uuid' }, description: 'Optional existing owner activity tags to save with this new activity.' },
       },
-      required: ['schema_version','idempotency_key','title','body','occurred_at','timezone','task_id','instrument_ticker'],
+      required: ['schema_version','idempotency_key','title','summary','body','occurred_at','timezone','task_id','instrument_ticker'],
       additionalProperties: false,
     },
     outputSchema: successEnvelopeSchema,
@@ -674,7 +677,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
   {
     name: 'update_activity',
     title: 'Update a performed activity',
-    description: 'Revise one activity’s readable title, Markdown body, date, navigational references and optional tags after reading get_activity and its version. Omit tag_ids to keep tags; [] clears all. Provided fields and tags save atomically, with an empty patch allowed for tags-only edits. This never reverses a trade, changes a holding, or completes/reopens a task.',
+    description: 'Revise one activity’s readable title, summary, Markdown body, date, navigational references and optional tags after reading get_activity and its version. Omit tag_ids to keep tags; [] clears all. Provided fields and tags save atomically, with an empty patch allowed for tags-only edits. This never reverses a trade, changes a holding, or completes/reopens a task.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -684,7 +687,7 @@ export const portfolioToolDefinitions: PortfolioToolDefinition[] = [
         patch: {
           type: 'object',
           properties: {
-            title: { type: 'string', minLength: 1, maxLength: 500 }, body: { type: ['string', 'null'], maxLength: 25000 },
+            title: { type: 'string', minLength: 1, maxLength: 100 }, summary: { type: 'string', minLength: 1, maxLength: 300 }, body: { type: 'string', minLength: 1, maxLength: 25000 },
             occurred_at: { type: 'string', format: 'date-time' }, timezone: { type: 'string', minLength: 1 },
             task_id: { type: ['string', 'null'], format: 'uuid' }, instrument_ticker: { type: ['string', 'null'], maxLength: 32 },
           }, additionalProperties: false,

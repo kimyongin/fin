@@ -1,7 +1,6 @@
 const seoulDate = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'full', timeZone: 'Asia/Seoul' })
 const seoulTime = new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Seoul' })
 import { ListItemActions } from './ListItemAction'
-import { markdownPreview } from '../lib/markdownPreview'
 
 export function TimelineDayCard({ day, collapsed, onToggle, children }) {
   const panelId = `timeline-day-${day}`
@@ -23,7 +22,7 @@ export function TimelineEntry({ occurredAt, title, meta, summary, onOpen, onEdit
         <time className="type-meta type-number mb-1 block text-[var(--muted-ink)]" dateTime={occurredAt}>{seoulTime.format(new Date(occurredAt))}</time>
         <div className="list-item-title-line"><span className="list-item-title type-item-title">{title}</span>{' '}<ListItemActions editLabel={editLabel} onEdit={onEdit} onRead={onOpen} readLabel={ariaLabel} /></div>
         {meta && <span className="type-meta mt-2 flex min-w-0 flex-wrap gap-1.5 text-[var(--muted-ink)]">{meta}</span>}
-        {summary && <span className="type-secondary mt-2 block line-clamp-2 text-[var(--muted-ink)]">{markdownPreview(summary)}</span>}
+        {summary && <span className="type-secondary mt-2 line-clamp-3 whitespace-pre-wrap [overflow-wrap:anywhere] text-[var(--muted-ink)]">{summary}</span>}
     </div>
   </li>
 }

@@ -202,22 +202,29 @@ test('finds a saved review by activity text on a mobile-sized screen', async ({ 
 test('finds an old review through activity search', async ({ page }) => {
   const oldReview = {
     id: 100,
-    title: `당시 기준으로 유지하되 다음 확인 조건을 기다립니다 ${'긴 제목 '.repeat(18)}`,
+    title: `당시 기준으로 유지하되 다음 확인 조건을 기다립니다 ${'긴 제목 '.repeat(14)}`,
     occurred_at: '2020-01-02T03:00:00Z',
     body: '중요 변화 3. 다음 조건을 기다립니다.',
   }
   await signInAs(page, 'e2e-owner@example.com')
+  const created = await callRpc(page, 'app_create_activity', {
+    input_idempotency_key: crypto.randomUUID(), input_payload: { title: oldReview.title, body: oldReview.body, occurred_at: oldReview.occurred_at, authored_via: 'app' },
+  })
+  expect(created.status, JSON.stringify(created.body)).toBe(200)
+  oldReview.id = created.body.id
   await page.route('**/functions/v1/activity-search', (route) => route.fulfill({
     contentType: 'application/json',
     status: 200,
-    body: JSON.stringify({ items: [{ ...oldReview, record_type: 'activity', record_state: 'done', record_id: '100', activity_id: 100 }], next_cursor: null }),
+    body: JSON.stringify({ items: [{ ...oldReview, record_type: 'activity', record_state: 'done', record_id: String(oldReview.id), activity_id: oldReview.id }], next_cursor: null }),
   }))
   await page.goto('/#today')
   await expect(page).toHaveURL(/#tasks$/)
   await page.getByRole('button', { name: '전체 기간' }).click()
   await page.getByRole('textbox', { name: '활동 검색' }).fill('당시 기준')
   await expect(page.getByText(oldReview.title)).toBeVisible()
-  await expect(page.getByText(oldReview.body)).toBeVisible()
+  await expect(page.getByText(oldReview.body)).toHaveCount(0)
+  await page.getByRole('button', { name: `기록 보기: ${oldReview.title}` }).click()
+  await expect(page.getByRole('dialog', { name: '기록 상세' })).toContainText(oldReview.body)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
@@ -250,7 +257,7 @@ test('keeps a decision and an independent future task without implying a trade',
 
   const suffix = Date.now()
   const question = `E2E 보유 판단 ${suffix}`
-  const taskTitle = `E2E 다음 실적 확인 ${suffix} ${'긴이름'.repeat(30)}`
+  const taskTitle = `E2E 다음 실적 확인 ${suffix} ${'긴이름'.repeat(22)}`
   const recorded = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
     input_payload: {

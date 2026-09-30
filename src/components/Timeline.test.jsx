@@ -10,7 +10,7 @@ describe('TimelineEntry', () => {
       occurredAt="2026-09-28T00:00:00Z"
       onEdit={() => {}}
       onOpen={() => {}}
-      summary="**관찰** 결과"
+      summary="관찰 결과"
       title="심리 점검"
     />)
     expect(html).toContain('aria-label="기록 보기: 심리 점검"')

@@ -55,6 +55,15 @@ GitHub: https://github.com/kimyongin/fin/issues/166
 - 격리 E2E 실행기의 migration 동기화는 현재 작업 트리의 기존 미추적 `.e2e` migration 파일을 덮어쓰므로 실행하지 않았다. 실제 웹 로그인·OAuth MCP 호출, 공유/화면 폭/200% 확대, 운영 DB 이관·배포는 미검증이다.
 - 후속 구현에서 구 ID 입력/검색/상세 함수와 컬럼·트리거의 종료 시점 및 비시장 할 일의 긴 설명 예외를 확인해야 한다. #163의 검색창 자동완성과 미등록 티커 후보 통합은 별도 티켓이다. 새 migration을 운영에 적용하기 전 현재 운영 schema 상태와 중간 버전 클라이언트의 호환을 다시 검증한다.
 
+## 2026-09-30 일반 로컬 DB 상세 조회 복구
+
+- 로컬 Vite `http://127.0.0.1:4173`은 `.env.local`의 일반 로컬 Supabase `http://127.0.0.1:54321`에 연결된다. 이 DB에 `app_get_activity_market_ticker(bigint,uuid)`가 없어 상세 조회가 PostgREST schema cache 오류로 실패했다. 운영 DB나 UI 너비 수정의 문제가 아니다.
+- 실제 스키마에 일부 검색 객체가 있지만 migration 이력의 최종 번호는 `20260927062326`이었다. 일괄 migration 적용 대신 필요한 기존 `20260927130802_activity_market_ticker_reference.sql`만 `psql --set ON_ERROR_STOP=1 --single-transaction -f`로 적용했다. 이어 `supabase migration repair 20260927130802 --status applied --local`로 실제 적용한 이력을 기록하고 `NOTIFY pgrst, 'reload schema'`를 호출했다. migration 원본·앱 코드·환경 설정은 변경하지 않았다.
+- 적용 전 일반 로컬 전체 DB를 custom-format pg_dump로 `C:/Users/yongin/AppData/Local/Temp/fin-local-before-activity-rpc-20260930.dump`에 백업했다. 데이터 초기화 없이 기존 시장 참조 24건에 티커를 채웠고 활동 178건·할 일 11건을 유지했다. Vault의 색인 endpoint는 로컬 `http://api.supabase.internal:8000`임을 확인했으며 비밀값은 출력하지 않았다.
+- 실제 로그인된 로컬 브라우저에서 기존 기록의 보기 버튼을 눌러 제목·본문·관련 시장 티커가 표시되는 것을 확인했다. 필요한 함수 존재와 PostgREST 경로를 검증했다. 운영 DB·Edge·Pages 변경은 없다.
+- `supabase test db --local supabase/tests/database/activity_market_ticker_reference_test.sql`: 19개 모두 통과. fixture는 트랜잭션 종료 시 롤백되며 일반 로컬 데이터 초기화는 하지 않는다. 문서 갱신 후 인코딩·diff 검사도 통과했다.
+- 이번 작업은 필요한 활동 상세 계약만 맞춘 것이다. 다른 미기록 검색 migration과 후속 20260928 migration까지 일반 로컬 DB 전체가 현재 저장소와 동일하다고 주장하지 않는다. 향후 전체 동기화 시 백업을 보존하고 실제 스키마·이력 차이를 먼저 대조한다.
+
 ## 2026-09-27 배포·후속 검증
 
 - 배포 전 격리 E2E에서 DB 61파일/768건, MCP 계약·인증된 준비 검사, 브라우저 86건이 통과했다. OAuth MCP로 미등록 티커를 정규화해 기록하고 웹 HTTP로 다시 읽는 교차 인터페이스 검사를 추가했다. `npm test` 127건, 빌드·인코딩·가이드·6개 Edge 진입점 Deno 검사도 통과했다. `npm run check:edge`는 로컬 PATH에 `deno`가 없어 직접 실행하지 못했지만 같은 진입점을 `npx deno check`로 확인했다.

@@ -26,7 +26,7 @@ const components = {
 }
 
 export default function MarkdownContent({ className = '', content }) {
-  return <div className={`type-body type-long-body grid min-w-0 gap-2 ${className}`}>
+  return <div className={`type-body type-long-body grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 [overflow-wrap:anywhere] ${className}`}>
     <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>{String(content ?? '')}</ReactMarkdown>
   </div>
 }

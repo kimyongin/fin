@@ -1,6 +1,7 @@
 # Environment
 *.env.local
 .env
+.env.search
 
 # Node / build
 node_modules/

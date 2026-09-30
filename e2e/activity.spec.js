@@ -7,7 +7,7 @@ test('searches older records without a date guess and keeps keyword results whil
   const occurredAt = new Date(Date.now() - 45 * 86400000).toISOString()
   const created = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
-    input_payload: { title, body: '심리 이론을 참고해 위험을 검토했다', occurred_at: occurredAt,
+    input_payload: { title, summary: title, body: '심리 이론을 참고해 위험을 검토했다', occurred_at: occurredAt,
       timezone: 'Asia/Seoul', authored_via: 'app' },
   })
   expect(created.status, JSON.stringify(created.body)).toBe(200)
@@ -38,6 +38,8 @@ test('creates a weekly schedule in the web UI and exposes one due occurrence to 
   await clickPageAction(page, '할 일과 기록', '활동 추가')
   const editor = page.getByRole('dialog', { name: '활동 추가' })
   await editor.getByRole('textbox', { name: '할 일 제목' }).fill(title)
+  await editor.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await editor.getByLabel('할 일 본문').fill('확인할 자료와 수행 절차를 본문에 기록합니다.')
   await editor.getByRole('combobox', { name: '반복' }).selectOption('weekly')
   await editor.getByRole('button', { name: weekday, exact: true }).click()
   await editor.getByRole('button', { name: '저장', exact: true }).click()
@@ -66,8 +68,11 @@ test('uses one simple title validation when switching between task and record', 
   await expect(editor.getByLabel('활동 종류')).toHaveCount(0)
   await expect(editor.getByRole('button', { name: '저장', exact: true })).toBeDisabled()
   await editor.getByRole('textbox', { name: '기록 제목' }).fill(`E2E 기록 전환 ${Date.now()}`)
+  await editor.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await editor.getByLabel('기록 내용').fill('확인한 자료와 수행 결과를 기록합니다.')
   await expect(editor.getByRole('button', { name: '저장', exact: true })).toBeEnabled()
   await editor.getByLabel('이미 했음').uncheck()
+  await editor.getByLabel('할 일 본문').fill('앞으로 확인할 절차')
   await expect(editor.getByRole('button', { name: '저장', exact: true })).toBeEnabled()
   await editor.getByLabel('이미 했음').check()
   await expect(editor.getByRole('button', { name: '저장', exact: true })).toBeEnabled()
@@ -106,12 +111,14 @@ test('keeps a detail draft and resets discarded edits', async ({ page }) => {
   await page.getByRole('button', { name: `기록 편집: ${title}` }).click()
   const detail = page.getByRole('dialog', { name: '기록 상세' })
   await detail.getByRole('textbox', { name: '기록 제목' }).fill(`${title} 초안`)
+  await detail.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
   await expect(detail.getByRole('textbox', { name: '기록 제목' })).toHaveValue(`${title} 초안`)
   await detail.getByRole('button', { name: '닫기' }).first().click()
   await page.getByRole('dialog', { name: '변경 버리기' }).getByRole('button', { name: '변경 버리기' }).click()
   await page.getByRole('button', { name: `기록 편집: ${title}` }).click()
   await expect(detail.getByRole('textbox', { name: '기록 제목' })).toHaveValue(title)
   await detail.getByRole('textbox', { name: '기록 제목' }).fill(`${title} 새 초안`)
+  await detail.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
   await detail.getByRole('button', { name: '닫기' }).first().click()
   await expect(page.getByRole('dialog', { name: '변경 버리기' }).getByText('저장하지 않은 변경이 있습니다. 변경을 버리고 닫을까요?')).toBeVisible()
   await page.getByRole('dialog', { name: '변경 버리기' }).getByRole('button', { name: '계속 편집' }).click()
@@ -149,7 +156,9 @@ test('creates and completes a general task while keeping manual work as activity
   const taskDialog = page.getByRole('dialog', { name: '활동 추가' })
   await expect(taskDialog.getByLabel('이미 했음')).not.toBeChecked()
   await taskDialog.getByRole('textbox', { name: '할 일 제목' }).fill(taskTitle)
-  await taskDialog.getByLabel('확인할 때').fill('퇴근 전에 확인')
+  await taskDialog.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await taskDialog.getByLabel('할 일 본문').fill('확인할 자료와 수행 절차를 본문에 기록합니다.')
+  await taskDialog.getByLabel('할 일 본문').fill('퇴근 전에 확인')
   await taskDialog.getByRole('combobox', { name: '반복' }).selectOption('daily')
   await expect(taskDialog.getByRole('textbox', { name: '예정일', exact: true })).toHaveCount(0)
   await expect(taskDialog.getByRole('textbox', { name: '반복 시작일', exact: true })).toBeVisible()
@@ -166,6 +175,11 @@ test('creates and completes a general task while keeping manual work as activity
   expect(actionStyles).toHaveLength(2)
   expect(actionStyles[1]).toEqual(actionStyles[0])
   await taskRow.getByRole('button', { name: '이번 완료', exact: true }).click()
+  const completion = page.getByRole('dialog', { name: '할 일 완료' })
+  await completion.getByLabel('결과 제목').fill('일일 점검 완료')
+  await completion.getByLabel('결과 요약').fill('퇴근 전 자료를 확인하고 오늘의 점검을 마쳤다.')
+  await completion.getByLabel('결과 본문').fill('실제로 확인한 자료와 점검 결과를 기록했다.')
+  await completion.getByRole('button', { name: '완료 기록 저장' }).click()
   await expect(pendingSection.getByText(taskTitle, { exact: true })).toBeVisible()
   await expect(taskRow.getByText('이번 완료됨')).toBeVisible()
   await expect(taskRow.getByRole('button', { name: '중단' })).toBeVisible()
@@ -194,6 +208,8 @@ test('creates and completes a general task while keeping manual work as activity
   await expect(activityDialog.getByRole('combobox', { name: '반복' })).toHaveCount(0)
   await expect(activityDialog.getByRole('textbox', { name: '수행일', exact: true })).toBeVisible()
   await activityDialog.getByRole('textbox', { name: '기록 제목' }).fill(activityTitle)
+  await activityDialog.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await activityDialog.getByLabel('기록 내용').fill('확인한 자료와 수행 결과를 기록합니다.')
   await activityDialog.getByLabel('기록 내용').fill('증권사 기준을 확인함. 공식 공시: https://example.com/disclosure')
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
@@ -218,6 +234,8 @@ test('creates and completes a general task while keeping manual work as activity
   await clickPageAction(page, '할 일과 기록', '활동 추가')
   const repeatDialog = page.getByRole('dialog', { name: '활동 추가' })
   await repeatDialog.getByRole('textbox', { name: '할 일 제목' }).fill(repeatingTitle)
+  await repeatDialog.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await repeatDialog.getByLabel('할 일 본문').fill('확인할 자료와 수행 절차를 본문에 기록합니다.')
   await repeatDialog.getByRole('combobox', { name: '반복' }).selectOption('daily')
   await repeatDialog.getByRole('button', { name: '저장', exact: true }).click()
   const repeatingRow = page.getByText(repeatingTitle, { exact: true }).locator('..').locator('..')
@@ -244,12 +262,16 @@ test('edits a task title, schedule, and tags in one detail save', async ({ page 
   await clickPageAction(page, '할 일과 기록', '활동 추가')
   const editor = page.getByRole('dialog', { name: '활동 추가' })
   await editor.getByRole('textbox', { name: '할 일 제목' }).fill(title)
+  await editor.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await editor.getByLabel('할 일 본문').fill('확인할 자료와 수행 절차를 본문에 기록합니다.')
   await editor.getByRole('button', { name: '저장', exact: true }).click()
   const detailResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_get_general_task'))
   await page.getByRole('button', { name: `할 일 편집: ${title}` }).click()
   const detail = page.getByRole('dialog', { name: '할 일 상세' })
   const taskId = (await (await detailResponse).json()).id
   await detail.getByRole('textbox', { name: '할 일 제목' }).fill(`${title} 수정`)
+  await detail.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await detail.getByLabel('할 일 본문').fill('확인할 자료와 수행 절차를 본문에 기록합니다.')
   await detail.getByRole('textbox', { name: '예정일', exact: true }).fill('2026-10-02')
   await detail.getByRole('button', { name: tagName, exact: true }).click()
   await expect(detail.getByRole('button', { name: '저장', exact: true })).toBeEnabled()
@@ -278,13 +300,14 @@ test('deletes a record without changing its related work', async ({ page }) => {
   const title = `E2E 삭제할 조사 ${Date.now()}`
   const created = await callRpc(page, 'app_create_activity', {
     input_idempotency_key: crypto.randomUUID(),
-    input_payload: { title, body: '조사 결과', authored_via: 'app', timezone: 'Asia/Seoul' },
+    input_payload: { title, summary: title, body: '조사 결과', authored_via: 'app', timezone: 'Asia/Seoul' },
   })
   expect(created.status, JSON.stringify(created.body)).toBe(200)
   await page.reload()
   await page.getByRole('button', { name: `기록 편집: ${title}` }).click()
   const detail = page.getByRole('dialog', { name: '기록 상세' })
   await detail.getByRole('textbox', { name: '기록 제목' }).fill(`${title} 미저장`)
+  await detail.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
   await detail.getByRole('button', { name: '기록 삭제' }).click()
   await expect(page.getByRole('dialog', { name: '기록 삭제' }).getByText('저장하지 않은 변경은 버려집니다. 이 기록을 삭제해도 관련 할 일이나 실제 잔고는 바뀌지 않습니다.')).toBeVisible()
   await page.goBack()
@@ -307,6 +330,8 @@ test('links a record to an owned task and instrument', async ({ page }) => {
   await clickPageAction(page, '할 일과 기록', '활동 추가')
   let editor = page.getByRole('dialog', { name: '활동 추가' })
   await editor.getByRole('textbox', { name: '할 일 제목' }).fill(taskTitle)
+  await editor.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await editor.getByLabel('할 일 본문').fill('확인할 자료와 수행 절차를 본문에 기록합니다.')
   await editor.getByRole('button', { name: '저장', exact: true }).click()
   const instruments = await callRpc(page, 'app_search_activity_references', { input_kind: 'instrument', input_query: 'E2EAPL', input_offset: 0, input_limit: 20 })
   expect(instruments.status).toBe(200)
@@ -316,11 +341,13 @@ test('links a record to an owned task and instrument', async ({ page }) => {
   editor = page.getByRole('dialog', { name: '활동 추가' })
   await editor.getByLabel('이미 했음').check()
   await editor.getByRole('textbox', { name: '기록 제목' }).fill(title)
+  await editor.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await editor.getByLabel('기록 내용').fill('확인한 자료와 수행 결과를 기록합니다.')
   await editor.getByRole('combobox', { name: '관련 할 일' }).fill(taskTitle)
   await editor.getByRole('option', { name: taskTitle }).click()
   await editor.getByRole('combobox', { name: '관련 종목' }).fill('E2EAPL')
   await editor.getByRole('option', { name: /E2EAPL/ }).click()
-  const creationResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_create_activity_market_ticker_with_tags'))
+  const creationResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_create_structured_activity'))
   await editor.getByRole('button', { name: '저장', exact: true }).click()
   const createdRecord = await (await creationResponse).json()
   await page.getByRole('button', { name: `기록 편집: ${title}` }).click()
@@ -345,6 +372,8 @@ test('guards activity drafts and detail edits on close, Escape, and browser back
   await clickPageAction(page, '할 일과 기록', '활동 추가')
   const editor = page.getByRole('dialog', { name: '활동 추가' })
   await editor.getByRole('textbox', { name: '할 일 제목' }).fill('버리면 안 되는 초안')
+  await editor.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await editor.getByLabel('할 일 본문').fill('확인할 자료와 수행 절차를 본문에 기록합니다.')
   for (const width of [360, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     await expect(editor).toBeVisible()
@@ -365,6 +394,7 @@ test('guards activity drafts and detail edits on close, Escape, and browser back
   await page.getByRole('button', { name: `기록 편집: ${title}` }).click()
   const detail = page.getByRole('dialog', { name: '기록 상세' })
   await detail.getByRole('textbox', { name: '기록 제목' }).fill(`${title} 수정`)
+  await detail.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
   await detail.getByRole('button', { name: '닫기' }).last().click()
   await expect(page.getByRole('dialog', { name: '변경 버리기' }).getByText('저장하지 않은 변경이 있습니다. 변경을 버리고 닫을까요?')).toBeVisible()
   await page.getByRole('dialog', { name: '변경 버리기' }).getByRole('button', { name: '계속 편집' }).click()
@@ -381,11 +411,13 @@ test('keeps the activity editor locked while its save is in flight', async ({ pa
   await clickPageAction(page, '할 일과 기록', '활동 추가')
   const editor = page.getByRole('dialog', { name: '활동 추가' })
   await editor.getByRole('textbox', { name: '할 일 제목' }).fill(`E2E 저장 중 ${Date.now()}`)
+  await editor.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
+  await editor.getByLabel('할 일 본문').fill('확인할 자료와 수행 절차를 본문에 기록합니다.')
   let release
   const held = new Promise((resolve) => { release = resolve })
   let requested
   const reached = new Promise((resolve) => { requested = resolve })
-  await page.route('**/rest/v1/rpc/app_create_general_task_with_tags', async (route) => {
+  await page.route('**/rest/v1/rpc/app_save_structured_general_task', async (route) => {
     requested()
     await held
     await route.continue()
@@ -423,6 +455,7 @@ test('shares newly created and renamed activity tags with search filters immedia
   await detail.getByRole('button', { name: tagName, exact: true }).click()
   await expect(detail.getByRole('button', { name: tagName, exact: true })).toHaveAttribute('aria-pressed', 'true')
   await detail.getByRole('textbox', { name: '기록 제목' }).fill(`${title} 초안`)
+  await detail.getByRole('textbox', { name: '요약', exact: true }).fill('검토 대상과 확인할 결과를 요약했습니다.')
   const saveResponse = page.waitForResponse((response) => response.url().includes('/rpc/app_save_activity_market_ticker_detail'))
   await detail.getByRole('button', { name: '저장', exact: true }).click()
   expect((await saveResponse).status()).toBe(200)
@@ -652,12 +685,13 @@ test('explains hybrid match evidence, score, and keyword fallback without overfl
       items: [{ record_type: 'activity', record_id: 9203, activity_id: 9203,
         record_state: 'done', title: '투자 심리 자료',
         matched_by: both ? ['keyword', 'semantic'] : ['keyword'],
-        semantic_score: hybrid ? (both ? 0.97231 : 0.71231) : null }], next_cursor: null,
+        semantic_score: hybrid ? (both ? 0.97231 : 0.11231) : null }], next_cursor: null,
       search_mode: hybrid ? 'hybrid' : 'keyword',
       fallback_reason: hybrid ? null : 'embedding_timeout',
-      embedding_model: hybrid ? 'multilingual-e5-large' : null,
-      semantic_threshold: hybrid ? 0.8059 : null,
+      embedding_model: hybrid ? 'llama-text-embed-v2' : null,
+      semantic_threshold: hybrid ? 0.212384 : null,
       index_status: hybrid ? 'partial' : 'not_checked',
+      excluded_count: hybrid ? 2 : 0,
       semantic_status: hybrid ? 'indexing' : 'unavailable',
     }) })
   })
@@ -665,12 +699,13 @@ test('explains hybrid match evidence, score, and keyword fallback without overfl
     await page.setViewportSize({ width, height: 900 })
     await page.getByRole('textbox', { name: '활동 검색' }).fill('심리')
     await expect(page.getByText('단어·유사도 일치 · 유사도 0.972')).toBeVisible()
-    await expect(page.getByText('일부 자료가 색인 대기 중이며', { exact: false })).toBeVisible()
+    await expect(page.getByText('일부 자료는 유사도 검색에 포함되지 않았으며', { exact: false })).toBeVisible()
+    await expect(page.getByText('기존 자료 2건은 유사도 색인에서 제외됩니다.', { exact: false })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   }
   await page.getByRole('textbox', { name: '활동 검색' }).fill('손실')
   await expect(page.getByText('현재 표시된 결과는 모두 단어 일치로 찾았습니다.')).toBeVisible()
-  await expect(page.getByText('단어 일치 · 유사도 0.712 (기준 미달)')).toBeVisible()
+  await expect(page.getByText('단어 일치 · 유사도 0.112 (기준 미달)')).toBeVisible()
   await page.getByRole('textbox', { name: '활동 검색' }).fill('폭락')
   await expect(page.getByText('단어 포함 검색만 사용 · 유사도 검색 응답 시간 초과')).toBeVisible()
   await expect(page.getByText('단어 일치', { exact: true })).toBeVisible()

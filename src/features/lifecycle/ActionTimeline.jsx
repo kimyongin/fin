@@ -11,7 +11,6 @@ import { businessDate } from '../../lib/businessDate'
 import { scheduleSummary } from './TaskScheduleFields'
 import GeneralTaskListActions from './GeneralTaskListActions'
 import { ListItemActions } from '../../components/ListItemAction'
-import { markdownPreview } from '../../lib/markdownPreview'
 
 function statusLabel(task) {
   const state = task.status === 'not_scheduled' ? '예정' : task.status === 'done' ? '이번 완료됨' : ''
@@ -30,7 +29,8 @@ function SearchExplanation({ page }) {
   const hasSemanticHit = page.items.some((item) => item.matched_by?.includes('semantic'))
   return <div className="mt-1 grid gap-1 type-secondary text-[var(--muted-ink)]">
     <p>{mode}{reason ? ` · ${reason}` : ''}</p>
-    {page.indexStatus === 'partial' && <p>일부 자료가 색인 대기 중이며, 해당 자료에는 단어 포함 검색만 적용됩니다.</p>}
+    {page.indexStatus === 'partial' && <p>일부 자료는 유사도 검색에 포함되지 않았으며, 단어 포함 검색만 적용됩니다.</p>}
+    {page.excludedCount > 0 && <p>제목·요약이 입력 한도를 넘거나 비어 있는 기존 자료 {page.excludedCount}건은 유사도 색인에서 제외됩니다.</p>}
     {page.indexStatus === 'unknown' && hybrid && <p>색인 준비 상태를 확인하지 못했습니다.</p>}
     {hybrid && page.items.length > 0 && page.items.every((item) => Array.isArray(item.matched_by)) && !hasSemanticHit && <p>현재 표시된 결과는 모두 단어 일치로 찾았습니다.</p>}
     {hybrid && <p>유사도는 정확도나 확률이 아닌 비교 점수입니다. 검색 기준: {page.semanticThreshold ?? '확인 불가'} · 관련 자료가 누락될 수 있으니 원문을 확인하세요.</p>}
@@ -214,7 +214,7 @@ export default function ActionTimeline({ availableTags = [], canManageTags = tru
           const canEdit = !ownerUserId && (isActivity || item.task_status === 'open')
           return <article className="min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4" key={`${item.record_type}-${item.record_id}`}>
             <div className="min-w-0"><span className="type-meta text-[var(--muted-ink)]">{isActivity ? '기록' : item.record_state === 'todo' ? '할 일' : '종료된 할 일'}{item.due_date ? ` · ${item.due_date}` : ''}</span><div className="list-item-title-line mt-2"><h4 className="list-item-title type-item-title">{item.title}</h4>{' '}<ListItemActions editLabel={`${noun} 편집: ${item.title}`} onEdit={canEdit ? () => open('edit') : null} onRead={() => open('read')} readLabel={`${noun} 보기: ${item.title}`} /></div></div>
-            {(item.excerpt || item.body) && <p className="type-secondary mt-2 line-clamp-3 min-w-0 break-words text-[var(--muted-ink)]">{markdownPreview(item.body?.toLowerCase().includes(searchApplied.query?.toLowerCase()) ? item.body : (item.excerpt || item.body))}</p>}
+            {item.summary && <p className="type-secondary mt-2 line-clamp-3 min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] text-[var(--muted-ink)]">{item.summary}</p>}
             <SearchEvidence item={item} threshold={searchPage.semanticThreshold} />{!isActivity && item.task_kind === 'general' && item.recurrence_kind && item.recurrence_kind !== 'none' && <p className="type-meta mt-2 text-[var(--muted-ink)]">{statusLabel({ ...item, status: item.task_status })}</p>}{item.tags?.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{item.tags.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)}</div>}
             {!isActivity && item.task_kind === 'general' && item.record_state === 'todo' && !ownerUserId && <div className="mt-3 flex justify-end"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={{ ...item, id: item.task_id, status: item.task_status }} /></div>}
           </article>
@@ -222,7 +222,7 @@ export default function ActionTimeline({ availableTags = [], canManageTags = tru
       <section className="min-w-0">
         <div className="mb-3"><h2 className="type-section-title">할 일</h2></div>
         <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 sm:p-6">
-        {page.pending.length === 0 ? <p className="type-secondary text-[var(--muted-ink)]">현재 이어갈 일이 없습니다.</p> : <div className="grid gap-2">{page.pending.map((task) => <article className="min-w-0 rounded-2xl bg-[var(--surface-2)] p-3" key={task.id}><div className="list-item-title-line"><span className="list-item-title type-item-title">{task.title}</span>{' '}<ListItemActions editLabel={`할 일 편집: ${task.title}`} onEdit={!ownerUserId && task.control_state === 'active' ? () => onOpenTask(task, 'edit') : null} onRead={() => onOpenTask(task, 'read')} readLabel={`할 일 보기: ${task.title}`} /></div><span className="type-meta mt-1 block break-words text-[var(--muted-ink)]">{statusLabel(task)}</span>{task.kind === 'general' && !ownerUserId && <div className="mt-3"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={task} /></div>}</article>)}</div>}
+        {page.pending.length === 0 ? <p className="type-secondary text-[var(--muted-ink)]">현재 이어갈 일이 없습니다.</p> : <div className="grid gap-2">{page.pending.map((task) => <article className="min-w-0 rounded-2xl bg-[var(--surface-2)] p-3" key={task.id}><div className="list-item-title-line"><span className="list-item-title type-item-title">{task.title}</span>{' '}<ListItemActions editLabel={`할 일 편집: ${task.title}`} onEdit={!ownerUserId && task.control_state === 'active' ? () => onOpenTask(task, 'edit') : null} onRead={() => onOpenTask(task, 'read')} readLabel={`할 일 보기: ${task.title}`} /></div>{task.summary && <p className="type-secondary mt-2 line-clamp-3 whitespace-pre-wrap [overflow-wrap:anywhere] text-[var(--muted-ink)]">{task.summary}</p>}<span className="type-meta mt-1 block break-words text-[var(--muted-ink)]">{statusLabel(task)}</span>{task.tags?.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{task.tags.map((tag) => <TagChip key={tag.id}>{tag.name}</TagChip>)}</div>}{task.kind === 'general' && !ownerUserId && <div className="mt-3"><GeneralTaskListActions onComplete={onCompleteGeneralTask} onStop={onStopGeneralTask} task={task} /></div>}</article>)}</div>}
         </div>
       </section>
 

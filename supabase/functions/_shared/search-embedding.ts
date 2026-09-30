@@ -1,6 +1,6 @@
-export const SEARCH_EMBEDDING_MODEL = 'multilingual-e5-large'
+export const SEARCH_EMBEDDING_MODEL = 'llama-text-embed-v2'
 export const SEARCH_EMBEDDING_DIMENSIONS = 1024
-export const SEARCH_PIPELINE = 'pinecone-e5-context-v1'
+export const SEARCH_PIPELINE = 'pinecone-llama-summary-v3'
 
 export async function embedSearchText(text: string, inputType: 'passage' | 'query'): Promise<number[]> {
   const key = Deno.env.get('PINECONE_API_KEY')
@@ -16,7 +16,7 @@ export async function embedSearchText(text: string, inputType: 'passage' | 'quer
     body: JSON.stringify({
       model: SEARCH_EMBEDDING_MODEL,
       inputs: [{ text }],
-      parameters: { input_type: inputType, truncate: 'NONE' },
+      parameters: { input_type: inputType, truncate: 'NONE', dimension: SEARCH_EMBEDDING_DIMENSIONS },
     }),
     signal: AbortSignal.timeout(8000),
   })

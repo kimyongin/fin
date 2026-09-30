@@ -8,6 +8,7 @@ import { useDetailHistoryEntry } from '../../hooks/useDetailHistoryEntry'
 import TagManagerModal from '../../components/TagManagerModal'
 import GeneralActionModal from './GeneralActionModal'
 import GeneralTaskDetail from './GeneralTaskDetail'
+import TaskCompletionModal from './TaskCompletionModal'
 import {
   fetchActivity,
   fetchActivityTags,
@@ -28,6 +29,7 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
   const [detailHistory, setDetailHistory] = useState([])
   const [detailLoading, setDetailLoading] = useState(false)
   const [generalEditor, setGeneralEditor] = useState(null)
+  const [completionTask, setCompletionTask] = useState(null)
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [actionRefreshKey, setActionRefreshKey] = useState(0)
   const [activityTags, setActivityTagsState] = useState([])
@@ -114,8 +116,8 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
     return () => tagsRequestGate.current.invalidate()
   }, [ownerUserId, supabase])
 
-  async function completeGeneralTask(task) {
-    await transitionGeneralTask(supabase, task, 'complete', { occurrenceOn: task.occurrence_on })
+  async function completeGeneralTask(task, result) {
+    await transitionGeneralTask(supabase, task, 'complete', { ...result, occurrenceOn: task.occurrence_on })
     setActionRefreshKey((value) => value + 1)
   }
 
@@ -252,7 +254,7 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
           canManageTags={!activityTagsLoading && !activityTagsError}
           key={ownerUserId ?? 'self'}
           onAdd={() => setGeneralEditor('task')}
-          onCompleteGeneralTask={completeGeneralTask}
+          onCompleteGeneralTask={setCompletionTask}
           onStopGeneralTask={stopGeneralTask}
           onManageTags={() => setTagManagerOpen(true)}
           onOpenActivity={openActivity}
@@ -263,6 +265,7 @@ function LifecycleWorkbench({ canViewTimeline = true, initialSelection = null, m
           supabase={supabase}
         /> : null}
       </div>
+      {completionTask && <TaskCompletionModal task={completionTask} onClose={() => setCompletionTask(null)} onSave={completeGeneralTask} />}
       {detail && <GeneralTaskDetail availableTags={activityTags} entry={detail} historyGuardRef={taskHistoryGuard} loading={detailLoading} onBack={detailHistory.length ? () => { detailRequestGate.current.invalidate(); setDetailLoading(false); setDetail(detailHistory[detailHistory.length - 1]); setDetailHistory((history) => history.slice(0, -1)) } : null} onClose={requestDetailClose} onDeleteTask={ownerUserId ? null : removeTaskDetail} onEdit={() => setTaskMode('edit')} onRetryTags={reloadActivityTags} onSaveTask={ownerUserId ? null : saveTaskDetail} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} viewMode={taskMode} />}
       {activityDetail && <ActivityDetailModal activity={activityDetail} availableTags={activityTags} historyGuardRef={activityHistoryGuard} loading={activityDetailLoading} onClose={requestDetailClose} onDeleted={() => { dismissActivityDetail(); setActionRefreshKey((value) => value + 1) }} onEdit={() => setActivityMode('edit')} onRetryTags={reloadActivityTags} onSaved={refreshActivityDetail} ownerUserId={ownerUserId} supabase={supabase} tagsError={activityTagsError} tagsLoading={activityTagsLoading} viewMode={activityMode} />}
       {generalEditor && <GeneralActionModal kind={generalEditor} onClose={() => setGeneralEditor(null)} onKindChange={setGeneralEditor} onRetryTags={reloadActivityTags} onSave={saveGeneralAction} saving={savingGeneral} supabase={supabase} tags={activityTags} tagsError={activityTagsError} tagsLoading={activityTagsLoading} />}
