@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "portfolio-workflow",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Review and manage Portfolio with current data, saved knowledge, and user-approved actions.",
   "author": {
     "name": "Yongin Kim"
@@ -10,7 +10,7 @@
     "com.openai": {
       "apps": "./.app.json",
       "interface": {
-        "displayName": "포트폴리오 (Creator)",
+        "displayName": "포트폴리오",
         "shortDescription": "자산과 기록을 관리하고 판단에 활용",
         "longDescription": "현재 자산과 저장된 지식을 함께 검토하고, 원칙·활동·할 일·공유를 관리합니다. 장기 사이클은 원자료 확보·대체 출처·직접 계산과 조건부 판단을 적용합니다. 다시 쓸 결론은 저장 전에 제안합니다.",
         "developerName": "Yongin Kim",

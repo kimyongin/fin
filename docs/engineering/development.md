@@ -121,7 +121,7 @@ Supabase 플러그인으로 접근할 수 있는 프로젝트를 자동으로 �
 
 관련 티켓/PR에 기준 commit, 실행 환경, 실행 명령과 결과, CI 실행 링크와 대상 revision, 미실행 검사·사유·후속 실행 장소를 남긴다. UI는 확인한 화면 폭·상태·조작을 포함한다. 다음 환경에서 이어갈 작업과 필요한 테스트 데이터 조건도 적되 비밀값은 포함하지 않는다. 구현 완료·필수 검증 완료·운영 배포·실클라이언트 확인을 구분하며, 실행하지 않은 검사를 통과로 기록하지 않는다.
 
-Portfolio 스킬은 `plugins/portfolio/skills/portfolio`에서 관리한다. `npm test`의 플러그인 검사가 참조 파일·도구 이름·앱 연결을 확인하고 스킬 형식 검사를 별도로 수행한다. source digest/review manifest 체계는 퇴역했다. 이 검사는 스킬 자동 선택이나 실제 판단을 보장하지 않으므로 핵심 흐름의 웹·모바일 결과를 티켓에 기록한다.
+Portfolio 스킬 정본은 `plugins/portfolio/skills/portfolio`다. 현재 배포 대상은 Plugin Creator로 편집하는 `portfolio-workflow`이며 표시 이름은 `포트폴리오`다. metadata·버전은 `plugins/portfolio-workflow/plugin.json`에서 관리하고 `python scripts/package-portfolio-workflow.py`로 기존 앱 참조와 스킬을 패키징한다. source 조회 후 현재 release를 guard로 업데이트하고 read-back한다. 구 앱 기반 플러그인을 웹으로 업데이트하는 절차를 기본으로 사용하지 않는다. 상세 절차는 [ChatGPT 플러그인 배포](./chatgpt-plugin-deployment.md)를 따른다. `npm test`의 플러그인 검사는 참조 파일·도구 이름·앱 연결을 확인하지만 실제 동작을 보장하지 않으므로 웹·모바일 시험을 별도로 기록한다. source digest/review manifest 체계는 퇴역했다.
 
 Edge Function 타입 검사는 Deno 2 환경의 `npm run check:edge`로 실행한다. MCP 정의·오류 fixture는 `npm test`에 포함된다. `npm run test:e2e`는 격리 환경에 실제 Edge Function을 복사해 initialize, tools/list, 인증된 tools/call, 인증 거부, 입력 오류 계약도 호출한다. Vite build 통과를 Edge Function 검증으로 대신하지 않는다. 스키마 fixture 검사만으로 DB 보안을 검증했다고 하지 않는다.
 
